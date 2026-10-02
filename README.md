@@ -1,5 +1,28 @@
 # Bazaar SDK for Python
 
+## Panel de cartas con consultas cada 5 segundos
+
+**URL para el equipo:** [Mesa de cartas](https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site).
+
+Abrir la URL e introducir la clave del Bazaar del equipo. La página pública no contiene datos del juego; el servidor valida la clave y conserva el acceso en una cookie cifrada, Secure y HttpOnly, de ocho horas. No hace falta ejecutar el agente ni tener abierto el ordenador de Rubén. Mientras la página esté abierta consulta cada cinco segundos. El botón **Salir** elimina la sesión.
+
+La versión alojada está en `website/`: `node --test website/worker.test.mjs` comprueba autenticación, privacidad, consulta de las cuatro fuentes y refresco de cinco segundos. Las respuestas recientes se reutilizan entre peticiones con la misma clave en el mismo punto de presencia. El caché es temporal; los movimientos observados no constituyen un historial contable permanente.
+
+La entrada con una clave real deberá confirmarse por un miembro del equipo: esta sesión no tuvo disponible la clave corregida. La publicación y sus pruebas con respuestas simuladas sí están verificadas.
+
+El observador consulta saldo e inventario, ofertas, conversaciones y reloj cada **5 segundos**, independientemente del agente y de sus pruebas. Cada fuente muestra la hora de la última verificación; si falla, se conserva el dato anterior y se señala como no verificado. Todas las consultas al juego son GET. Para usar la versión local:
+
+```bash
+python3 panel.py --live --key-file /ruta/local/a/la/clave
+```
+
+Abrir `http://127.0.0.1:8766/`. También admite `BAZAAR_KEY` en el entorno en lugar de `--key-file`. El archivo puede contener la clave sola o una línea `BAZAAR_KEY=...`; no se debe guardar en Git. La clave permanece en el servidor local y no se envía al navegador.
+
+El panel muestra las cartas y sus valores privados actuales, duplicados, ofertas estructuradas y su estado. Las entradas y salidas se registran desde el inicio del observador; no se atribuyen precios ni compras históricas a partir de un simple cambio de inventario. Las consultas de varias rutas no constituyen una instantánea atómica del servidor.
+
+Sin `--live`, `python3 panel.py` observa el archivo local que escribe `laboratorio.py`. El ejemplo de compraventa es independiente y no altera ese archivo. Para pruebas simultáneas, elegir archivos distintos con `--state-file` en ambos scripts. El ejemplo y la simulación usan precios inventados y no sirven como información actual del juego.
+
+
 The Bazaar · Cromos de Madrid, a hackathon game hosted by Causa Prima.
 Welcome!
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from negotiation_policy import Decision, decide_purchase, polite_message
+from inventory_panel import DEFAULT_STATE, InventoryJournal, write_state
 
 
 @dataclass(frozen=True)
@@ -136,14 +137,19 @@ def main():
     parser.add_argument("--increment", type=int, default=2)
     parser.add_argument("--step", action="store_true", help="Enter avanza, q detiene")
     parser.add_argument("--compare", action="store_true", help="Compara ambas políticas en el mismo escenario")
+    parser.add_argument("--state-file", default=str(DEFAULT_STATE), help="Estado que lee el panel local")
     args = parser.parse_args()
     if args.increment < 1 or (args.step and args.compare):
         parser.error("increment debe ser positivo; step y compare se usan por separado")
     print("SIMULACIÓN LOCAL · SIN API · Precios inventados; no mide persuasión real.")
     for policy in ("base", "mejorada") if args.compare else (args.policy,):
         simulation = Simulation(SCENARIOS[args.scenario], policy, args.increment)
+        journal = InventoryJournal(args.scenario, policy)
+        write_state(args.state_file, journal.simulation_state(simulation))
         print(f"\nEscenario: {args.scenario} · Política: {policy}")
+        finished = False
         for event in simulation.steps():
+            write_state(args.state_file, journal.simulation_state(simulation, event))
             print(f"Tick {event['tick']}: {event['action']} · {event['card']} · "
                   f"precio={event['price']} · saldo={event['cash']} · cartas={event['cards']}")
             if "dealer_ask" in event:
@@ -157,6 +163,9 @@ def main():
                         break
                 except EOFError:
                     break
+        else:
+            finished = True
+        write_state(args.state_file, journal.simulation_state(simulation, finished=finished))
         print(f"Resultado: {simulation.summary()}")
 
 
