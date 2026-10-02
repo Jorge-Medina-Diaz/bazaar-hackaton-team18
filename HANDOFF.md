@@ -46,3 +46,13 @@ Los ticks del viernes duran 60 segundos. También hubo demora evitable entre tur
 Siguiente mejora: un ejecutor que evalúe antes de abrir la conversación y actúe al recibir cada respuesta, registrando acción, precio y motivo. Debe confirmar la liquidación, consultar el valor de cada nueva copia y evitar dos procesos actuando a la vez para el equipo. La integración autónoma sigue pendiente; el piloto se ejecutó mediante llamadas controladas de Codex.
 
 Evaluación: `python3 evaluacion.py`. Recorrido: `python3 laboratorio.py --scenario compra --step`.
+
+## Recheck de strategy y comparación de agentes
+
+- Rubén pidió pull antes de cambios y evaluación sin iniciar operaciones. Se hizo `git pull --ff-only` en `codex/plan-negociacion` y en el worktree `review/strategy` que sigue `origin/Santi`; se conservaron los cambios locales del panel.
+- Revisados `Santi@5ebf3cb` y `feat/jorge@cfd0e69`, incluida la actualización de Jorge recibida en el segundo pull. La estrategia está en `/Users/ruben/projects/bazaar-hackaton-team18-strategy`.
+- Añadidos `RECHECK.md` y `recheck.py`: informe, comparación de decisiones de los dos agentes y cuatro probes offline reproducibles. Tres fallos del scorer: marginales repetidos en bundles, cantidades solicitadas insuficientes y bonus de página ya completa. Un fallo del registro de Jorge: precio 0 cuando el dealer acepta una oferta propia de compra por 9.
+- El fallo anterior de leer liquidaciones solo en standing_offers ya fue corregido por Jorge; se retiró. No se modificaron los motores de otros compañeros.
+- Consultados feed, reloj, calendario, dealers y leaderboard mediante GET públicos sin clave. Observaciones iniciales sobre 500 eventos, ticks 30–56; se separan evidencia e hipótesis. No se iniciaron compras, ventas ni conversaciones desde este recheck.
+- Verificación: `python3 recheck.py` reprodujo los cuatro casos; `git diff --check` pasó. El log registra revisiones, fecha, fixtures, comparación y ventana del feed en `runs/recheck.json` y `runs/rechecks.jsonl`, excluidos de Git.
+- Siguiente paso: corregir valoración de paquetes y precio liquidado según el maker, comparar ambos agentes con mismos escenarios y semillas, y dejar un único ejecutor para la clave compartida. No hay ganador demostrado todavía.
