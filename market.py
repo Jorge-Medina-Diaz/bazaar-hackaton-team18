@@ -34,11 +34,13 @@ def scan(b) -> None:
         if o["id"] in ours:
             continue
         g, w = o["give"], o["want"]
-        if len(g.get("assets") or []) == 1 and w.get("cash") and not w.get("assets"):  # someone sells a card
+        if len(g.get("assets") or []) == 1 and g["assets"][0].get("kind", "card") == "card" and w.get("cash") and not w.get("assets"):  # someone sells a card
             ref = g["assets"][0]["ref"]
             values.setdefault(ref, b.value(ref)["your_value"])
             rows.append((values[ref] - w["cash"] - fee(w["cash"]), "BUY", ref, w["cash"], values[ref], o["id"]))
         elif g.get("cash") and len(w.get("types") or []) == 1:  # someone bids for a card type
+            if not w["types"][0].startswith("card:"):
+                continue
             ref = w["types"][0].split(":")[1]
             if ref in held:
                 rows.append((g["cash"] - fee(g["cash"]) - held[ref], "SELL", ref, g["cash"], held[ref], o["id"]))

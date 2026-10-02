@@ -24,6 +24,7 @@ from market import fee, sell_dups
 MIN_GAIN = 3      # primas of value; below this the fee/latency risk is not worth an accept
 RESERVE = 150     # keep for the venue bond (250 + 20) once tomorrow's 150 P allowance lands
 RELIST = 10       # ticks between relisting spares
+PROTECT = {"LAT"}  # sets we are completing (D-009): only spare copies may be sold
 DRY = "--dry" in sys.argv
 
 
@@ -44,6 +45,8 @@ def best_trade(b, me) -> tuple:
         g, w = o["give"], o["want"]
         if (len(g.get("assets") or []) == 1 and not g.get("cash") and not g.get("types")
                 and w.get("cash") and not w.get("assets") and not w.get("types")):  # a card for cash
+            if g["assets"][0].get("kind", "card") != "card":  # packs: value() only knows cards (unknown_card, tick 141)
+                continue
             ref, price = g["assets"][0]["ref"], w["cash"]
             if me["cash"] - price - fee(price) < RESERVE:
                 continue
@@ -51,9 +54,13 @@ def best_trade(b, me) -> tuple:
             cand = (round(values[ref] - price - fee(price), 1), "BUY", o, None)
         elif (g.get("cash") and not g.get("assets") and not g.get("types") and len(w.get("types") or []) == 1
               and not w.get("assets") and not w.get("cash")):  # a bid for a card type
-            ref = w["types"][0].split(":", 1)[1]
+            kind, ref = w["types"][0].split(":", 1)
+            if kind != "card":
+                continue
             if ref not in held:
                 continue
+            if ref[:3] in PROTECT and sum(1 for a in me["assets"] if a["ref"] == ref) < 2:
+                continue  # last copy of a page we are building
             cand = (round(g["cash"] - fee(g["cash"]) - held[ref]["your_value"], 1), "SELL", o, held[ref]["id"])
         else:
             continue

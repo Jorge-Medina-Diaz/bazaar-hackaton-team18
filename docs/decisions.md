@@ -2,6 +2,10 @@
 
 Entradas cortas y fechadas: qué decidimos, por qué, y qué haría cambiarlo. Las más recientes arriba.
 
+## D-009 · vie 2 oct, tick 145 · Volver a por la página LAT (anula D-008)
+Al recuperar LAT-06 y LAT-08 tenemos **LAT 7/10**: solo faltan LAT-03 (c) y las raras LAT-09 y LAT-10. La táctica de la última carta (EXP-008) da ~+50 con la rara final (valor 63 + bonus 59,6 ≈ 122), mucho más que los ~+10 de vender las infrecuentes a t15. Pujas públicas (cada una se cumple una sola vez, sin riesgo de duplicado): LAT-09 62, LAT-10 62, LAT-03 9. Se cancelan las ofertas de LAT a t15. Se abre el sobre de bienvenida por si trae LAT (salió LAT-05 repetida, LAV-06 y SAL-06 repetida).
+**Revisar si** el sábado aparece una rara LAT a ≤ 63 en el tablón, o si t15 o t14 completan LAT antes que nosotros.
+
 ## D-008 · vie 2 oct, tick 108 · Abandonar la página LAT y vender LAT a t15
 t15 colecciona LAT (5 compras en 8 ticks) y casi seguro tiene una affinity mayor que nuestro ×0,9. Para completar LAT nos faltan 2 raras que nadie vende, t15 compite por ellas y las ganancias con vendedores no suman (E9). **Crear valor = mover las LAT a quien más las valora.** Ofertas dirigidas a t15: comunes a 12 (valor 9) y LAT-07 a 28 (valor 22,5). Las pujas por LAT por debajo de nuestro valor se mantienen: si se cumplen, son reventa.
 **Revisar si** t15 no acepta en ~30 ticks (bajar a 10–11 / 25) o si aparecen raras de LAT a ≤ 63.

@@ -1,5 +1,20 @@
 # Playbook
 
+## 🧭 REGLAS LIMPIAS PARA EL SÁBADO (síntesis de la auditoría del viernes, [audit.md](audit.md))
+1. **Nunca pagar a un vendedor (Abuela, El Chato…) por encima de nuestro `value?card`.** Las 5 veces que lo hicimos costaron −27,6 `neg_points` (el 37 % de lo ganado) y la escalera no se movió. Sin excepciones "por la escalera" (E9, E13).
+2. **La escalera solo puntúa lo que rebajas del precio de salida del vendedor.** Comprar a 1 P de su precio de salida = 0. Solo un trato que capture de verdad (≥ 50 % de su rango) y a ≤ nuestro valor merece la pena.
+3. **Los puntos están en los cambios entre sets con affinity distinta, sobre todo de raras** (+30–50 por trato). Por orden:
+   a) **la última carta de una página**, comprada a un equipo (táctica SAL-10);
+   b) **comprar barato las comunes e infrecuentes de nuestro set fuerte** a quien las vende por debajo de nuestro valor, y **pujar desde el minuto 1** (t13 empezó en el tick 4, nosotros en el 45);
+   c) **vender raras y repetidos de nuestros sets débiles** (MAL ×0,5, LAV ×0,7) a sus coleccionistas;
+   d) los sobrantes que nadie compra, a la Abuela.
+4. **Nuestros sets fuertes salen ahora: RET ×1,3 (sábado 09:00) y CHA ×1,6 (domingo).** Es nuestra ventana, como SAL lo fue para t13. **En la primera hora de RET:** pujas por debajo de nuestro valor por las 10 cartas de la página, compras a la Abuela a ≤ valor (sus comunes de RET nos valen 13) y, al llegar a 9/10, la última carta a otro equipo.
+5. **La página LAT está en 8/10.** Pujas de 62 por LAT-09 y LAT-10. Con la primera, la segunda vale ~122.
+6. **Velocidad antes que análisis:** primero jugar (bucle + pujas), después documentar.
+7. **Market Test:** mercado propio `board` con comisión 0 en cuanto haya 270 P (`run_morning.py`) y grabar el libro (`run_broker.py`).
+8. **Duelos:** solo cuando puntúen (Duelos I, hora 6,5). Ceder solo si el rival se mueve y aceptar si se queda fijo dentro de nuestro límite.
+
+
 Conocimiento confirmado, por vendedor y por mecánica. Cada afirmación lleva su fuente (experimento `EXP-…` o `scout`).
 Lo no confirmado va en [experiments.md](experiments.md) hasta que lo esté.
 
@@ -19,7 +34,7 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 - Épica (SAL-11, 198) y legendaria (SAL-12, 495): `value?` no muestra bonus "master" mientras falte una de las dos. 📜 El master bonus (+10 %) requiere ambas.
 - ❓ `neg_points` subió **+50,0** cuando esperábamos +69,9 (149,9 − 80). Pendiente: ¿tope por trato?
 
-## ⚠️ Regla dura (E9)
+## ⚠️ Regla dura (E9, confirmada por E13)
 **Con un vendedor, el precio máximo es nuestro `your_value`.** Las pérdidas frente a nuestro valor restan `neg_points` y las ganancias no suman (solo cuentan en la escalera). Comprar a vendedores únicamente cuando: (a) sea una carta que nos falta y el precio ≤ valor, o (b) haga falta para la escalera o para desbloquear un nivel con coste ≈ 0.
 
 ## 🤖 Agente autónomo (`run_loop.py`, desde el tick 90)
@@ -100,6 +115,7 @@ En cada tick: alertas de niveles y duelos → juega los duelos activos → **ace
 | E10 (evitado) | Tener a la vez una puja pública por una carta y un regateo con un vendedor por la misma carta: si se cumplen las dos, la 2.ª copia vale el 25 % | Habría restado ~10 por carta | **Antes de comprar una carta por una vía, cancelar las pujas por esa carta en las demás** |
 | E11 | El bucle murió en el tick 120 con `KeyError: 'id'`: el duelo real usa `duel`, no `id` (suposición sacada del SDK) | ~1 tick sin agente al empezar los duelos | Formas reales anotadas en api.md; el bucle captura **cualquier** excepción y sigue |
 | E12 | Tomar el control de un hilo sin parar antes el script que lo llevaba: el script se retiró (cerró el hilo 261) justo cuando El Chato bajaba a 32 | Un trato de la escalera del nivel 2 y 2 ticks | **Parar el proceso y confirmar que el hilo sigue abierto antes de intervenir**, o lanzar el hilo ya con los parámetros correctos |
+| E13 | Cambiar la regla E9 por una evidencia débil (t12 subió con tratos con El Chato) y comprarle LAT-08 a 32 (valor 22,5) | **−11,8 `neg_points`**, puesto 6 → 7, 0 de escalera | **La escalera solo puntúa la parte del rango capturada**: comprar cerca de su precio de salida no da nada. Las reglas medidas (E9) mandan sobre las corazonadas |
 | E6 | El precio registrado salía 0 cuando era ella quien aceptaba nuestra oferta (el dinero va en `give`) | Log incorrecto en EXP-007 | `haggle.py` toma el dinero del lado que lo lleve |
 
 ## 📈 El Rastro (tick 65)

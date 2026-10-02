@@ -2,7 +2,9 @@
 
 *Última actualización: vie 2 oct, tick 74 (≈22:05). Mantener al día: es lo primero que hay que leer.*
 
-> **Ahora mismo (tick 99):** 281 P · **nivel 2 (El Chato, acceso anticipado)** · página SAL completa · `neg_points` 73,2 · puesto 2 · `run_loop.py` operando. **Regla E9:** nunca pagar a un vendedor por encima de nuestro valor.
+> **Cierre del viernes (tick 155, 22:55):** 260 P · nivel 2 · **SAL 10/10, LAT 8/10** (faltan LAT-09 y LAT-10: pujas de 62 activas) · `neg_points` 74,5 · 17 tratos · puesto 7 · 2 tratos con El Chato (LAT-08 a 32, LAV-06 a 13).
+
+> **Sábado 09:00, en este orden:** (1) `probe.py` + `levels()` · (2) **abrir mercado `board` con comisión 0** antes del Market Test (~09:20, hora 3,0) y grabar el libro · (3) RET (×1,3): pujas por debajo de nuestro valor, raras y la última carta de la página · (4) cerrar LAT (la 2.ª rara vale ~122) · (5) `run_loop.py` todo el día · (6) Duelos I (hora 6,5) con la regla de rival fijo.
 
 | Documento | Para qué |
 |---|---|
@@ -14,6 +16,16 @@
 | [negotiation-design.md](negotiation-design.md) | Diseño del negociador (para los duelos) |
 | [audit.md](audit.md) | Auditoría crítica, opciones y plan del sábado |
 | [broker-design.md](broker-design.md) | Broker para el Market Test |
+
+## Aportaciones del equipo (main, merge de las 22:40)
+| Quién | Qué | Dónde |
+|---|---|---|
+| Rubén | Núcleo corregido: `offer_safety` (estructura, identidad, caducidad), `execution.team_writer` (un ejecutor por máquina), `negotiation_policy`, laboratorio y evaluación offline, `recheck.py` (encontró 4 bugs) | `agent/`, `INTEGRACION_JORGE.md`, `RECHECK.md` |
+| Rubén | **Panel web del equipo** con la clave, refresco cada 5 s: https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site · observador de rendimiento | `website/`, `panel.py`, `observe_performance.py`, `ANALISIS_RENDIMIENTO.md` |
+| Santi | `agent/scorer.py`: precio de cada carta, oferta y sobre a nuestros valores, márgenes de compra y venta, coste y ganancia por página, cambios de vendedores | `python3 -m agent.scorer` |
+| Equipo | **Material para los jueces** (de 13.º a 2.º en una tarde, hábitos, errores y lecciones) | `SHOWCASE.md` |
+Avisos de su análisis: (1) la puntuación visible puede bajar sin cambios en nuestros componentes (normalización y fase), así que no hay que leer cada bajada como un error; (2) `scorer.keep_value` podía contar dos veces el bonus de página (corregido en la integración, según Rubén).
+**Corrección al calendario:** SHOWCASE dice "el primer Market Test es esta noche", pero `schedule` lo pone en la hora 3,0 y el viernes cierra a las 23:00, hacia la hora 2,65. Con ticks de 60 s **no llega hoy**. Llegará el **sábado ~09:20** (con ticks de 30 s, la hora 3,0 cae ~20 minutos después de abrir). **Hay que tener el mercado abierto a las 09:00.**
 
 ## Estado del Team 18
 - 383 P · nivel 1 · 1 trato (el de bienvenida, a 17 P) · `ladder_points` 0,022 · negociación 5,25 · puesto 8.
