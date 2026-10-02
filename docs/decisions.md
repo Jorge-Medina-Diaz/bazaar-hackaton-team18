@@ -2,6 +2,10 @@
 
 Entradas cortas y fechadas: qué decidimos, por qué, y qué haría cambiarlo. Las más recientes arriba.
 
+## D-007 · vie 2 oct · El límite de compra de una carta que queremos es nuestro `your_value`
+Corrige a D-006 y D-005 para las cartas que queremos: si el precio es ≤ `value?card=` (y el gasto cabe en la reserva de dinero), aceptar. El dinero no puntúa y el valor de la carta sí entra en futuros cambios y páginas. El suelo del vendedor solo sirve para **regatear** (hasta dónde empujar), no para **retirarse**.
+Evidencia: EXP-004 rechazó SAL-08 a 23 con un valor de 27,5. t13 lo compró a 24.
+
 ## D-006 · vie 2 oct · Cómo decidir ante una oferta final
 Una final no se repite (playbook). Para la escalera, un trato **nunca resta** (puntúa ≥ 0; los huecos vacíos valen 0) y solo cuentan los 3 mejores por nivel. Por tanto, ante una final:
 - **Aceptar** si el precio está dentro del límite. El límite lo marca su suelo observado (sobre ≤ 23, común ≤ 10, infrecuente ≤ 22) **y** que el gasto no nos deje sin dinero para lo que sí puntúa: comprar a equipos cartas que nos faltan, la fianza del mercado (270 P) y los duelos.

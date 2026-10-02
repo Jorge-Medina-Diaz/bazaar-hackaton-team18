@@ -42,7 +42,8 @@ def haggle(b: Bazaar, dealer: str, topic: dict, *, anchor: int, limit: int, roun
         t = b.thread(tid)
         if t["status"] != "open":
             offers = [m["offer"] for m in t.get("messages", []) if m.get("offer")]  # a deal ends as status "settled"
-            price = next((o[side]["cash"] for o in reversed(offers) if o["status"] == "settled"), None)
+            # the settled offer may be hers or ours (she accepted): the price is whichever side carries cash
+            price = next((o["give"]["cash"] or o["want"]["cash"] for o in reversed(offers) if o["status"] == "settled"), None)
             print(f"  {t['status']} ({t.get('closed_reason')}) price {price}")
             log(dealer, event="end", thread=tid, status=t["status"], reason=t.get("closed_reason"), price=price,
                 our_last=last, snapshot=t)  # full thread kept: her words are data for the playbook

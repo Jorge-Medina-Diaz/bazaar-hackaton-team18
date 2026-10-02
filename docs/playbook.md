@@ -3,6 +3,53 @@
 Conocimiento confirmado, por vendedor y por mecánica. Cada afirmación lleva su fuente (experimento `EXP-…` o `scout`).
 Lo no confirmado va en [experiments.md](experiments.md) hasta que lo esté.
 
+## ⭐ Lecciones de alto valor (vie 2 oct, tick 60, ordenadas por impacto)
+1. **Los puntos salen de comerciar con equipos, no de la escalera.** `neg_points` = primas de valor ganadas, 1 a 1 (EXP-005). Un trato con la Abuela mueve `ladder_points` unos +0,014; vender un repetido a 9 dio +6,8 `neg_points` (+3 de negociación).
+2. **Lo que más puntúa son las raras entre equipos con affinity distinta.** Una rara vale entre 35 (×0,5) y 112 (×1,6) según el equipo, y ambos ganan: t08 vendió LAV-10 a t10 por 70 (puesto 4 con solo 4 tratos), y t13 vendió LAT-09 a t14 por 65 (t13 es primero). Las infrecuentes van de 12,5 a 40 y las comunes de 5 a 16.
+3. **Los líderes juegan a "vender lo que valen poco y comprar lo que valen mucho".** t13 compra MAL a 6 a otros equipos y SAL a la Abuela, y vende LAT. t10 compra todo LAV, incluida la rara a 70. t14 compra LAT, incluida la rara a 65. **El patrón de compras de cada equipo delata su affinity alta.**
+4. **Para una carta que queremos, el límite es nuestro `your_value`, no el suelo del vendedor.** El dinero no puntúa: pagar menos que nuestro valor es neutro o positivo. En EXP-004 rechazamos SAL-08 a 23 P cuando nos vale 27,5. Error: lo correcto era aceptar (D-007).
+5. **La Abuela compra lotes.** t08 le vendió 4 comunes (2 LAT-05 y 2 SAL-02) por 23 P en un solo trato, unas 5,75 por carta. Al bajar t08 su precio (34 → 32 → 29), ella subió su oferta (22 → 23). Es una salida para los repetidos si no hay comprador entre los equipos.
+6. **La Abuela revende lo que compra**: el SAL-02 que le compramos (id 326) se lo acababa de vender t08. Su inventario son las cartas que le venden los equipos.
+
+## ✅ Bonus de página confirmado (tick 68)
+Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × página (291,6). **La última carta de una página vale casi el doble.** Hay que llevar las páginas a 9/10 con cartas baratas (comunes e infrecuentes de la Abuela) y comprar después la última carta a otro equipo: es la jugada de más valor.
+
+## 🎯 Tácticas que funcionan (con evidencia)
+| Táctica | Herramienta | Evidencia |
+|---|---|---|
+| Vender repetidos a 9 P en El Rastro, por debajo de los 10–12 del resto | `market.py sell-dups 9` | EXP-005: 3 vendidos en ~15 ticks, +21 `neg_points` |
+| Comprar comunes a la Abuela con pasos de 1 P desde 7 | `run_dealer.py --card X --anchor 7 --limit 10 --rounds 3` | EXP-006: 10 P en 3 rondas; SAL-02 a 9 |
+| Buscar gangas antes de cada ronda (ganancia = nuestro valor − precio − comisión) | `market.py scan` | Cuando la ganancia es negativa, no se compra |
+| Pujar públicamente por la carta que cierra una página, por debajo de nuestro valor y por encima de la puja rival | `list_offer({"cash": X}, {"cards": [ref]})` | SAL-10: puja de 80 (t13 ofrece 55); para nosotros vale 149,9 |
+| Grabar el feed (los rivales delatan su affinity) | `scout.py abuela --save` | Mapa de affinity de abajo |
+
+## ❌ Errores cometidos (no repetir)
+| # | Error | Coste | Lección |
+|---|---|---|---|
+| E1 | Límite de 20 P para los sobres, sacado de nuestro valor y no de su suelo (EXP-002) | 5 ticks y un hilo | Mirar su suelo en el feed antes de fijar límites |
+| E2 | Rechazar SAL-08 a 23 cuando nos vale 27,5 (EXP-004) | t13 se la llevó; la página SAL se retrasa | D-007: para cartas que queremos, el límite es `your_value` |
+| E3 | Suponer que una oferta aceptada queda en `accepted` (en realidad `settled`) | Precio no registrado | Verificar formas con datos reales (`probe.py`) |
+| E4 | `market.py scan` mostraba nuestras propias ofertas: el tablón también nos pone seudónimo | Ninguno (detectado a tiempo) | Filtrar por los ids de `/api/me/offers` |
+| E5 | Creer que la duración de una oferta tenía un tope de 30 | Ofertas que caducaban antes de tiempo | Medido: la duración pedida se divide entre (60 s / 15 s) = 4. `market.expiry()` lo corrige |
+| E6 | El precio registrado salía 0 cuando era ella quien aceptaba nuestra oferta (el dinero va en `give`) | Log incorrecto en EXP-007 | `haggle.py` toma el dinero del lado que lo lleve |
+
+## 📈 El Rastro (tick 65)
+- **Hay demasiadas comunes a la venta**: muchas copias de LAV-05, LAV-02, MAL-02, MAL-04 y LAT-04 a 10–12 P, probablemente de quien compra sobres para revenderlos. Nuestros 9 P son el precio más bajo y se venden.
+- Las pujas por comunes están a 4–6 P (MAL-01, SAL-03, SAL-04) y una infrecuente a 16 (SAL-07). Por debajo de nuestro valor: no se aceptan.
+- **Hoy no hay nada rentable que comprar** (lo mejor: LAT-06 a 22 con valor 22,5 → −2,5 tras la comisión).
+
+## Mapa de affinity de los rivales (deducido de sus compras; actualizar)
+| Equipo | Compra a otros equipos o a la Abuela | Affinity alta probable | Vende | Baja probable |
+|---|---|---|---|---|
+| t13 | SAL (×4 a la Abuela), MAL a 6 a equipos, MAL-08 a 26 | SAL, MAL | LAT-09 (rara) a 65 | LAT |
+| t10 | LAV ×6 (rara LAV-10 a 70), MAL | LAV | — | — |
+| t14 | LAT-09 a 65, LAT-04 a 9 (a nosotros), LAV comunes | LAT | MAL-05 a 6 | MAL |
+| t08 | — | — | LAV-10 a 70, LAT y SAL a la Abuela | LAV |
+| t07 | LAT-06, 07 y 08 (infrecuentes) a 22–25 | LAT | — | — |
+| t17 | MAL-01, 02, 03 y 06 | MAL | — | — |
+| t05 | LAV comunes e infrecuentes | LAV | MAL-02 y MAL-08 a t13 | MAL |
+**Para nosotros:** compradores de SAL = t13 (competidor por SAL-10). Compradores de MAL = t13 y t17 (para nuestras MAL-01 y MAL-04). Compradores de LAT = t14 y t07 (para LAT-07, valor 22,5, y LAT-04).
+
 ## Puntuación
 Todo el detalle está en [scoring.md](scoring.md). Resumen: no cerrar trato con un vendedor no penaliza (el hueco vale 0); en los duelos, un trato fuera de tu límite resta; el dinero no puntúa por sí mismo.
 

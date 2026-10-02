@@ -11,6 +11,7 @@ agent/
   journal.py        log(stream, **row) -> logs/<stream>.jsonl
   client.py         client(): Bazaar con BAZAAR_KEY del entorno o de .env
 run_dealer.py       CLI: regatear con un vendedor (sobres, cartas, ventas)
+market.py           El Rastro: scan (gangas por ganancia de valor) y sell-dups (vender repetidos)
 probe.py            snapshot de todos los GET en logs/probe/<tick>/ (formas de respuesta, cambios)
 scout.py            estudiar a un vendedor con el feed público (los regateos de todos los equipos)
 docs/               conocimiento: playbook, experimentos, decisiones, diseño

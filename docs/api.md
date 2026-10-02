@@ -34,7 +34,7 @@ Cuerpos (OpenAPI): `PostMessage {text, price?, days?, offer?, topic?}` (vale par
   - La Abuela vendiendo: `give.types = ["pack:sobre_barrio"]` o `["card:SAL-02"]` y `want.cash` = su precio.
   - La Abuela comprando: `give.cash` = lo que paga y `want.assets = [{id, kind, ref, ...}]`.
   - `agent/haggle.offer_ok()` comprueba esta estructura antes de aceptar; todas las ofertas reales del feed la pasan.
-- **`expires_in_ticks` tiene un tope de 30**: pedimos 120 y caducan a los 30 (tick 51 → 81). Hay que volver a publicarlas. Las ofertas en El Rastro caducan a los 40 ticks si no se dice otra cosa (en la práctica, 30): las 5 del starter ya no están (`/api/me/offers` vacío).
+- **`expires_in_ticks` se cuenta en unidades de 15 s**: con ticks de 60 s, pedir 120 da 30 ticks reales, 60 da 15 y 240 da 60 (medido, ticks 51, 68 y 69). El sábado, con ticks de 30 s, se divide entre 2. `market.expiry()` lo compensa. Las ofertas en El Rastro caducan a los 40 ticks si no se dice otra cosa (en la práctica, 30): las 5 del starter ya no están (`/api/me/offers` vacío).
 - Topics con vendedores: `{"buy": {"pack"|"card": id}}`, `{"buy": {"rarity", "set"}}`, `{"sell": {"assets": [ids]}}`.
 
 ## Públicas (sin clave)
@@ -44,6 +44,12 @@ Cuerpos (OpenAPI): `PostMessage {text, price?, days?, offer?, topic?}` (vale par
 - `dealers`: `traits`, `unlock {always, early_deals_with, early_min_deals: 3, ...}`, `menu.sells/buys`, `deals_per_team_per_hour`.
 - **`feed`: tope de 500 eventos** (`limit` mayor no da más). Para conservar el historial: `python3 scout.py abuela --save` → `logs/feed.jsonl`, que solo añade los eventos nuevos.
 - `cards/{id}`: `history[{tick, from, to, why}]`. Por ejemplo, un sobre abierto pasa a `owner: "burned"`.
+
+## Seudónimos
+El tablón (`/api/venues/rastro/offers`) muestra a quien publica con un seudónimo (`mf60b788f`), **pero el evento `offer.listed` del feed lleva el id real** (`maker: "t13"`). Para desanonimizar: cruzar el id de la oferta con el feed. Así supimos que `mf60b788f` = t13.
+
+## Quién tiene qué
+`leaderboard.teams[].rarest` = la carta más rara de cada equipo (`ref`, `serial`). `catalog...cards[].minted` = cuántas copias existen. Ejemplo: SAL-10 tiene 4 copias; t17 (n.º 4), t12 (n.º 3) y t02 (n.º 1) la muestran.
 
 ## Errores vistos
 `{"error": code, "message"}`: `not_your_thread` (403), `wait_for_tick`, `rate_limited`, `persona_quota` ("you bought enough of these this hour; come back later"), `insufficient_cash`, `cooloff`, `locked`, `self_venue`, `venue_not_live`, `bad_key`, `too_many_failures`.

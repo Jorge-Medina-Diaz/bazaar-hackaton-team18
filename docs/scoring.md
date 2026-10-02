@@ -16,6 +16,9 @@ Fuentes: [RULES.md](../RULES.md), la presentación del kickoff (diapositivas 8 y
 ## Desglose medible (`GET /api/me → score`)
 `ladder_points`, `duel_points`, `neg_points` (comercio entre equipos), `mm_points`, `bench_efficiency`/`bench_points`, `negotiating`, `market`. Con solo el trato de bienvenida tenemos `ladder_points` 0,022 y negociación 5,25 (tick 30). **Cómo pasa `*_points` a los 30 puntos aún no lo sabemos**: se mide antes y después de cada trato (`run_dealer.py` lo registra).
 
+## ✅ Medido: `neg_points` = primas de valor ganadas (EXP-005)
+Vender LAT-04 (para nosotros 2,2) a 9 P dio `neg_points` **+6,8** exactos, y la negociación pasó de 7,39 a 10,46 (+3,07). Por comparación, el trato de SAL-02 con la Abuela solo movió `ladder_points` +0,014. **Cada prima de valor ganada con otros equipos cuenta**: vender caro lo que valoramos poco y comprar barato lo que valoramos mucho (RET 1,3 y CHA 1,6 llegan sábado y domingo).
+
 ## Dónde está el valor entre equipos
 El valor de una carta para nosotros depende de lo que ya tenemos. Cuando falte una sola carta de una página, esa carta vale su catálogo × affinity **más el bonus de página** (25 % de la página). Comprarla a otro equipo por menos es la mayor ganancia de `neg_points` posible. Al revés, nuestros repetidos (25 % o 10 %) valen mucho para quien los necesita: hay que venderlos.
 

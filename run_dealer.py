@@ -21,6 +21,7 @@ p.add_argument("--card", help="buy a card (e.g. LAV-06) instead of a pack")
 p.add_argument("--sell", type=int, help="sell one of our assets (asset id) instead of buying")
 p.add_argument("--anchor", type=int, help="first price (overrides the profile)")
 p.add_argument("--limit", type=int, help="worst price we accept (overrides the profile)")
+p.add_argument("--rounds", type=int, help="rounds from anchor to limit (fewer = bigger steps)")
 a = p.parse_args()
 
 b = client()
@@ -36,6 +37,7 @@ else:
     cfg["anchor"], cfg["limit"] = round(ask * cfg["anchor"]), round(ask * cfg["limit"])
 cfg["anchor"] = a.anchor or cfg["anchor"]
 cfg["limit"] = a.limit or cfg["limit"]
+cfg["rounds"] = a.rounds or cfg["rounds"]
 if not isinstance(cfg["anchor"], int) or not isinstance(cfg["limit"], int):
     raise SystemExit("cards and sales need --anchor and --limit")
 
