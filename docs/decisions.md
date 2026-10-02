@@ -2,6 +2,25 @@
 
 Entradas cortas y fechadas: qué decidimos, por qué, y qué haría cambiarlo. Las más recientes arriba.
 
+## Pendiente de decidir (vie 2 oct, tick ~111)
+1. **¿Tope de 50 `neg_points` por trato?** EXP-008 dio +50,0 donde esperábamos +69,9. Si hay tope, tres compras de +50 valen más que una de +150, y eso cambia cómo pujamos por raras y por las cartas de RET y CHA. Probar con el próximo trato de ganancia > 50.
+2. **Nuestra puntuación baja sin hacer tratos:** 27,4 (tick 75, 2.º) → 21,8 (tick 110, 4.º) → 19,7 (tick 138, 6.º). ❓ Probablemente es relativa a los demás y ponderada por la fase de la ronda. Si es así, quedarse quieto hace perder puestos.
+3. **Espejo de duelos (EXP-010, D-008):** en el par 11/12 el rival y los límites eran distintos (113 comprando contra Rojo y 67 vendiendo contra Verde), así que el espejo quizá no revela el límite del rival. Comprobarlo con los datos de práctica antes de Duels I.
+4. **Mercado:** ¿abrimos el mercado (fianza de 250 + 20 P) antes del próximo Market Test o seguimos con el puesto gratuito? Con `starter_broker.py` sacamos lo mismo que el puesto (la mitad de los puntos). La ventaja real es cobrar poca comisión para atraer el comercio entre equipos (`market` = 0 para todos; solo t06 tiene mercado, al 0,5 %).
+
+## D-009 · vie 2 oct · Vendedores: solo para cartas de página y niveles. El Chato, con ancla baja
+- La escalera casi no puntúa: +0,014 por trato con la Abuela, `ladder_points` 0,051 frente a `neg_points` 73,2. Matiza D-005: los tratos con vendedores sirven para conseguir las cartas baratas de una página (que después cerramos comprando a otro equipo) y para desbloquear niveles, no para perseguir la escalera.
+- El Chato concede exactamente lo que concedemos nosotros y el trato cae en el punto medio de las aperturas (playbook, "El Chato"). Por eso: ancla al ~45 %, pasos iguales y nunca bajar la oferta. `dealers.py["chato"]` reajustado (0,45 / 0,75).
+- Los líderes (t12, t08) puntúan con arbitraje de raras entre equipos: comprar a quien la valora poco y vender a quien la valora mucho. Hacemos lo mismo con nuestras cartas fuera de SAL.
+**Revisar si** el Δ de `ladder_points` de un trato con El Chato (nivel 2, "higher levels weigh more") resulta grande.
+
+## D-008 · vie 2 oct · Ventajas de información y manipulación: dónde sí y dónde no
+- **Sí:** usar todo lo público (feed, tablones de todos los mercados, nuestros duelos) para adelantarnos: espejo de duelos (EXP-010), libros cruzados (EXP-011), pujas por páginas (EXP-013), faroles de vendedores (EXP-014) y libros del Market Test (EXP-015).
+- **Sí, solo en el texto:** inyección de prompt y persuasión contra los agentes de otros equipos en los duelos (EXP-012). RULES: *"your agent may say anything"*. Las cifras las sigue decidiendo el código, así que el peor caso es igual que no inyectar. Se mide con A/B (`--arms`).
+- **No:** inyección contra los vendedores (no cambia sus precios y alguno deja de hablarnos; El Chato fija el precio según "if I like you"), colusión o regalos entre equipos (penalización), más de una clave, `/api/admin/*`, ni saturar la API.
+- **Flags:** solo a mano y con la contradicción entre texto y estructura a la vista (`flags.py`). Uno erróneo resta.
+**Revisar si** los organizadores dicen que la inyección entre equipos no está permitida (entonces `--arms plain`) o si el A/B muestra que `inject` provoca más impasses.
+
 ## D-007 · vie 2 oct · El límite de compra de una carta que queremos es nuestro `your_value`
 Corrige a D-006 y D-005 para las cartas que queremos: si el precio es ≤ `value?card=` (y el gasto cabe en la reserva de dinero), aceptar. El dinero no puntúa y el valor de la carta sí entra en futuros cambios y páginas. El suelo del vendedor solo sirve para **regatear** (hasta dónde empujar), no para **retirarse**.
 Evidencia: EXP-004 rechazó SAL-08 a 23 con un valor de 27,5. t13 lo compró a 24.

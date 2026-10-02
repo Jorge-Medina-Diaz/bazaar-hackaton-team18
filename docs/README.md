@@ -1,8 +1,8 @@
 # Síntesis: dónde estamos y qué sabemos
 
-*Última actualización: vie 2 oct, tick 74 (≈22:05). Mantener al día: es lo primero que hay que leer.*
+*Última actualización: vie 2 oct, tick 150 (hora de juego 2,5). Mantener al día: es lo primero que hay que leer.*
 
-> **Ahora mismo:** 287 P · **página SAL completa** · `neg_points` 70,9 · 8 tratos · puesto 7 (pendiente de snapshot) · **El Chato (nivel 2) anunciado**.
+> **Ahora mismo:** 247 P · puesto **7** (19,42) · `neg_points` 79,0 · `ladder_points` 0,051 · `market` 0 · 16 tratos · nivel 2 (Abuela + **El Chato**, activo) · sin mercado propio. Pendientes abiertos en [decisions.md](decisions.md#pendiente-de-decidir-vie-2-oct-tick-111).
 
 | Documento | Para qué |
 |---|---|
@@ -14,11 +14,11 @@
 | [negotiation-design.md](negotiation-design.md) | Diseño del negociador (para los duelos) |
 
 ## Estado del Team 18
-- 383 P · nivel 1 · 1 trato (el de bienvenida, a 17 P) · `ladder_points` 0,022 · negociación 5,25 · puesto 8.
+- 247 P · nivel 2 · 16 tratos · `neg_points` 79,0 · `ladder_points` 0,051 · `duel_points` 0 · `mm_points` 0 · puesto 7 (tick 150). La puntuación baja sola mientras otros comercian (27,4 en el tick 75 → 19,4).
 - **Affinity: CHA 1,6 · RET 1,3 · SAL 1,1 · LAT 0,9 · LAV 0,7 · MAL 0,5.** Los dos sets que más valoramos llegan el sábado (RET) y el domingo (CHA).
-- **Álbum:** SAL 7/10, LAT 4/10, MAL 2/10, LAV 1/10.
-  - A SAL solo le faltan **SAL-02** (común, 11), **SAL-08** (infrecuente, 27,5) y **SAL-10** (rara, 77). Completar la página suma un 25 % sobre ≈ 291 P de página, unos +73 P.
-- **Repetidos** (valen el 25 % o el 10 % para nosotros): SAL-01 ×3, LAV-03 ×2, LAT-04 ×2, MAL-04 ×2.
+- **Álbum (tick 150):** **SAL 10/10 (completa: no vender ninguna)**, LAT 8/10, LAV 3/10, MAL 2/10.
+  - A LAT solo le faltan sus dos raras, **LAT-09** y **LAT-10** (pujas de EXP-009 a 55). La última cierra la página: táctica de la última carta (playbook) y prueba del posible tope de 50 por trato (decisions.md, pendiente 1).
+- **Repetidos:** LAT-01 ×2 y LAT-05 ×2. Compradores de LAT: t15, t14, t07 (playbook, mapa de affinity).
 
 ## Las 10 cosas que más importan
 1. **El dinero no puntúa.** Puntúan la parte del rango capturada a los vendedores, el pastel de los duelos, el valor ganado con otros equipos (a nuestros valores) y el mercado.

@@ -28,7 +28,20 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 - Solo los vendedores de `me.unlocked` fijan `buy_at` y `sell_at`. Un vendedor bloqueado sale como `(locked)` en la tabla de sobres.
 - Los sobres que nadie vende todavía (bienvenida, plata, oro) ya tienen su valor esperado para nosotros. Cuando se agota una rareza, el sobre da la inferior (las épicas solo tienen 9 copias y las legendarias 3). En el tick 93, para nosotros: plata ≈ 95 P y oro ≈ 286 P.
 - La tabla de la escalera cuenta los tratos negociados a partir de nuestros hilos. Un trato al precio de salida no cuenta: el primer sobre a 17 P no contó. Llevamos 3 de 4.
-- `agent/dealers.py["chato"]` es **provisional**: primera oferta al 60 % y límite al 80 %, en tono amable. Hay que reajustarlo con sus `traits` y `scout.py chato`.
+- ✅ **El Chato va de farol (feed, tick 138):** dice *"13 P. Take it or leave it."* en ofertas con `final: false` (mensajes 1151, 1216 y 1868). Su "última oferta" en palabras no lo es: **seguir regateando hasta que la estructura diga `final: true`**. Si nos lo hace en un hilo nuestro, es el candidato más claro para un flag (`flags.py`, EXP-014).
+- ~~`agent/dealers.py["chato"]` es provisional (60 % / 80 %)~~ → reajustado con el feed, ver abajo.
+
+## El Chato (nivel 2, activo desde el tick ~98) · feed ticks 100–111, 9 hilos
+
+- **Concede exactamente lo que concedemos nosotros** ("You move, I move", "I match what you move, nothing extra"). Si subimos 3, baja 3; si subimos 1, baja 1; si no subimos, no se mueve ("You moved two, I moved nothing" en la primera ronda). El trato acaba cerca del **punto medio de las dos aperturas**: el ancla es la palanca, no la paciencia.
+  - t13 por MAL-09 (rara): 58 → 74 frente a 97 → 86 en 7 ticks; converge en ~80 (punto medio 77,5).
+  - t10 por LAV-09: 78 → 85 frente a 97 → 95. t14 por LAV-09: 55 → 60 frente a 97 → 93.
+- **Precios de apertura:** infrecuentes 33, raras 97, sobre de plata 188. **No vende `sobre_barrio`** ("Abuela handles those").
+- **Compra infrecuentes a 13 fijo** y no se mueve aunque bajemos (t06: 26 → 20 frente a 13 → 13 → 13; t10 igual).
+- **Bajar la oferta no funciona:** t12 pasó de 48 a 5 y a 7 y él solo bajó 1–2 ("Your numbers are going the wrong way").
+- Le molesta que le llamen Abuela (t14). Responde en el idioma que le hablen.
+- **Táctica:** abrir al ~45 % de su precio y subir en pasos iguales hasta ~75 % (rara 97 → 44…72; infrecuente 33 → 15…25). Solo para cartas de sets altos (RET, CHA) o la última de una página: ❓ comprar a un vendedor no suma `neg_points` (EXP-005), solo valor de colección y escalera.
+- `agent/dealers.py["chato"]`: sobre de plata con ancla 0,45 y límite 0,75; cartas con `--anchor`/`--limit` a mano.
 
 ## 🎯 Tácticas que funcionan (con evidencia)
 | Táctica | Herramienta | Evidencia |
@@ -38,6 +51,8 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 | Buscar gangas antes de cada ronda (ganancia = nuestro valor − precio − comisión) | `market.py scan` | Cuando la ganancia es negativa, no se compra |
 | Pujar públicamente por la carta que cierra una página, por debajo de nuestro valor y por encima de la puja rival | `list_offer({"cash": X}, {"cards": [ref]})` | ✅ SAL-10: puja de 80 frente a 55 de t13 → t12 aceptó en 3 ticks. +50 `neg_points` y página completa |
 | **Pujar por debajo de nuestro valor por todas las cartas que faltan de una página**: cada puja es positiva por sí sola y juntas desbloquean el bonus. Las pujas no bloquean el dinero | `list_offer({"cash": p}, {"cards": [ref]})` con p < `value?card` | EXP-009 (LAT) en curso |
+| Libros cruzados entre mercados: comprar una oferta de venta más barata que la puja de otro equipo por la misma carta y servírsela. Da bid − ask − comisiones en `neg_points`, valga lo que valga la carta para nosotros | `market.py cross [--go]` | EXP-011. Hay 4 mercados de equipo con comisión 0–0,5 % además de El Rastro; `scan` ya los mira todos |
+| Pujar por toda la página del set nuevo antes que nadie (RET el sábado ×1,3, CHA el domingo ×1,6) | `market.py bid-page RET 0.8` | EXP-013 |
 | Grabar el feed (los rivales delatan su affinity) | `scout.py abuela --save` | Mapa de affinity de abajo |
 
 ## ❌ Errores cometidos (no repetir)
@@ -66,6 +81,20 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 | t07 | LAT-06, 07 y 08 (infrecuentes) a 22–25 | LAT | — | — |
 | t17 | MAL-01, 02, 03 y 06 | MAL | — | — |
 | t05 | LAV comunes e infrecuentes | LAV | MAL-02 y MAL-08 a t13 | MAL |
+
+🆕 **Ticks 76–111** (leaderboard del tick 110: t13 27,8 · t12 25,4 · t08 22,7 · **t18 21,8** · t10 21,4; `market` = 0 para todos):
+
+| Equipo | Qué hace | Lectura |
+|---|---|---|
+| t13 | Compra SAL-10 a t10 por 70 (página SAL completa), vende repetidos a la Abuela a 5–6 (cuentan como tratos), puja por MAL-09 a El Chato, intenta venderle LAT-09 a 135 | Volumen + página; SAL y MAL altas |
+| t12 | Vende SAL-09 (sacada de un sobre de bienvenida) a t17 por 75; compró MAL-10 por 80; infrecuentes de la Abuela a 21 | Arbitraje de raras; MAL alta, SAL baja |
+| t08 | MAL-10 a 53 (de t14) y a 70; solo 9 tratos y 3.º | Raras baratas a quien las valora poco; MAL alta |
+| t17 | SAL-09 a 75, MAL-07 a 26 | **SAL y MAL altas: compite con t13 por SAL** |
+| t15 | Sobres a 30/30/27, LAT-02/05/06 y LAT-01/07 a equipos | LAT alta; regatea mal |
+| t07 | LAV-02/04/05 a equipos, LAV-06 a la Abuela | LAV alta |
+| t06 | Único con mercado propio (`v01`, 0,5 %, fianza 250); luck −33 | Apuesta por Market |
+| t14 | Vende MAL-10 a 53 | MAL baja |
+
 **Para nosotros:** compradores de SAL = t13 (competidor por SAL-10). Compradores de MAL = t13 y t17 (para nuestras MAL-01 y MAL-04). Compradores de LAT = t14 y t07 (para LAT-07, valor 22,5, y LAT-04).
 
 ## Puntuación
@@ -81,6 +110,9 @@ Ficha: paciencia 0.85, generosidad 0.8, astucia 0.2, memoria 0.15. Vende 3 sobre
 - Para nosotros un sobre vale unas 18 P (`your_value` del sobre cerrado), pero el dinero no puntúa: lo que importa es la parte del rango capturada.
 - **Los sobres a 24 P parecen no puntuar nada (t07, t12); a 22 P sí (t05).** Si compramos sobres, solo a ≤ 23. (scoring.md, H1)
 - Su ritmo es de 5 ticks desde 30 hasta la final, empecemos alto o bajo (EXP-002 y scout). Abrir bajo no acelera ni mejora la final.
+
+- 🆕 (feed, ticks 76–111) **El sobre más barato hasta ahora: 20 P** (t04, hilo 166: abrió en 8 y subió 1–2 por tick durante 7 rondas). Es un solo dato: t13 abrió en 6 y t17 en 10 y cerraron en 22 y 21. Lo normal sigue siendo 21–23. Pagar el precio de salida (t15: 30, 30, 27) es tirar el dinero.
+- 🆕 **Repetir la misma cifra la enfada y cierra el hilo**: t06 repitió 27 once veces ("with those manners? Go and think a little") y t02 la misma frase ("like a little parrot… Enough now"). t07 repitió 18 cinco veces: no bajó de 24.
 
 **Oferta final (`"final": true`): no hay segunda oportunidad** (feed, 11 hilos con final)
 - La final **nunca baja**: repite su último precio o lo baja 1 P, y después no vuelve a moverse.
@@ -100,6 +132,15 @@ Ficha: paciencia 0.85, generosidad 0.8, astucia 0.2, memoria 0.15. Vende 3 sobre
 **Regalos:** a algunos equipos la Abuela les regala una carta ("gift from Abuela Carmen"), a nosotros LAT-05. Probablemente por ser amables. No puntúa, pero es una carta.
 
 ## Duelos
+**Lo aprendido en la práctica (tick 120, 16 duelos nuestros):**
+- 🔌 Forma real: `{duel, session, status, role, item, issues, your_limit, limit_meaning, rival (alias), deadline_tick, decay_per_round, rounds, your_offer, rival_offer {id, price, tick, days}, messages[], result, price}`. El id viene en `duel`, no en `id`.
+- ✅ **`result` = nuestro excedente × (1 − decay)^rounds, en primas.** Duelo 11: (113 − 99) × 0,94 = 13,2. Duelo 12: (74 − 67) × 0,94 = 6,6.
+- ✅ `rounds` cuenta los intercambios, no nuestros mensajes: en el duelo 11 enviamos 7 y `rounds` = 1. Repetir el precio no sirve de nada (ahora no lo hacemos).
+- ❓ **Espejo (EXP-010):** los duelos llegan por parejas (2k−1, 2k) con el mismo `item` y roles opuestos (11/12, 21/22, 55/56…), y el alias cambia aunque el rival sea el mismo. Si el escenario es el mismo, **nuestro límite en uno es el del rival en el otro**: los 6 tratos cayeron dentro de [nuestro límite vendedor, nuestro límite comprador] de su pareja. En 3 de 7 parejas no había pastel (comprador < vendedor) y aun así hubo rivales que cruzaron su propio límite (duelo 243: nos vendió a 73; en el 244 nos ofrecían 145 sobre un coste de 140 y no lo aceptamos).
+- El feed solo publica `duel.closed` (`item`, `status`): 41 sin trato frente a 32 con trato. Muchos rivales no cierran.
+
+`agent/duels.py` v1 (tick 138): con espejo, abre pidiendo el 90 % del pastel y cede hasta el 30 % al final. Acepta la oferta rival si vale ≥ 94 % de la nuestra siguiente (por el decay), y **en el acto si el rival ha cruzado su propio límite**. Sin espejo, igual que v0. El texto rota entre `plain`, `info` (le dice su propio límite) e `inject` (falso aviso del motor) por pareja (EXP-012). Los tests (`tests/test_duels.py`) comprueban que nunca cruza el límite, nunca retrocede, nunca repite precio y el texto nunca filtra nuestro límite.
+
 `agent/duels.py` v0 (tick 69): abre con límite/0,6 si vende y límite×0,6 si compra, cede rápido (β = 1,6) y acepta cualquier oferta dentro del límite desde el 75 % del tiempo. Probado sin conexión: nunca cruza el límite y nunca retrocede. **Los duelos de práctica (hora 2) sirven para conocer la forma real de los datos**: primero `run_duels.py --watch` y después jugar. Diseño previo en [negotiation-design.md](negotiation-design.md). Ojo: el pastel se reduce con cada ronda (decay 0.06–0.08).
 
 ## Market Test / broker
