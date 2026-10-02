@@ -45,6 +45,9 @@ Cuerpos (OpenAPI): `PostMessage {text, price?, days?, offer?, topic?}` (vale par
 - **`feed`: tope de 500 eventos** (`limit` mayor no da más). Para conservar el historial: `python3 scout.py abuela --save` → `logs/feed.jsonl`, que solo añade los eventos nuevos.
 - `cards/{id}`: `history[{tick, from, to, why}]`. Por ejemplo, un sobre abierto pasa a `owner: "burned"`.
 
+## Duelos (forma real, tick 120)
+`GET /api/duels → {duels: [{duel, session, status: "live", role, item, issues, your_limit, limit_meaning ("never pay above your value" / "never sell below your cost"), rival (alias), deadline_tick, decay_per_round, rounds, your_offer, rival_offer, messages[], result, price, days, your_days_weight, days_meaning}]}`. **El id es `duel`, no `id`.**
+
 ## Seudónimos
 El tablón (`/api/venues/rastro/offers`) muestra a quien publica con un seudónimo (`mf60b788f`), **pero el evento `offer.listed` del feed lleva el id real** (`maker: "t13"`). Para desanonimizar: cruzar el id de la oferta con el feed. Así supimos que `mf60b788f` = t13.
 

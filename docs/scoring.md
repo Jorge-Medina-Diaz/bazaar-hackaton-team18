@@ -67,6 +67,18 @@ valor de la copia k = catálogo(rareza) × affinity(set) × marginal[k]        m
 - 📜 En El Rastro, **quien acepta paga la comisión** (5 % + 1 P por carta). Si publicamos y otro acepta, cobramos el precio entero.
 - 📜 Regalar valor a otro equipo a propósito no cuenta y se revisa.
 
+### ⚠️ Los tratos con vendedores también tocan `neg_points` (✅ medido, tick 97)
+Reconstruyendo todos nuestros tratos, cuadra la regla **«con vendedores, las pérdidas restan y las ganancias no suman»**:
+| Trato | Valor − precio | Δ `neg_points` |
+|---|---|---|
+| SAL-02 a la Abuela a 9 (valor 11) | +2 | 0 |
+| LAT-01 a la Abuela a 10 (valor 9) | −1 | −1 |
+| SAL-08 a la Abuela a 24 (valor 27,5) | +3,5 | 0 |
+| Sobre a la Abuela a 23 (valor ~14,6) | −8,4 | **−8,4** |
+| Ventas a equipos (LAT-04, SAL-01, LAV-03, MAL-01, MAL-04) | +6,8 · +7,9 · +7,2 · +4 · +6,8 | iguales ✅ |
+| SAL-10 a t12 a 80 (valor 149,9) | +69,9 | **+50** ❓ (¿tope de 50 por trato?) |
+**Regla:** con un vendedor, nunca pagar por encima de `value?card` (de un sobre: su `your_value`). Con equipos, cada prima ganada cuenta, quizá con tope de 50 por trato.
+
 ### 4.2 Escalera de vendedores → `ladder_points` ✅📜
 - 📜 Puntúa la **parte del rango de precios del vendedor que capturamos**. Cuentan los **3 mejores tratos por nivel**, los que faltan valen 0 y los niveles altos pesan más.
 - ✅ Cada trato con la Abuela ha movido `ladder_points` entre +0,000 y +0,015: **poco**. ❓ Cómo pesa `ladder_points` dentro de los 30 puntos no se conoce. (Corrección: la subida de 10,3 a 14,55 del tick 68 fue casi seguro el snapshot atrasado de los `neg_points` de las ventas, no el trato de SAL-08.)

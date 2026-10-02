@@ -2,6 +2,10 @@
 
 Entradas cortas y fechadas: qué decidimos, por qué, y qué haría cambiarlo. Las más recientes arriba.
 
+## D-008 · vie 2 oct, tick 108 · Abandonar la página LAT y vender LAT a t15
+t15 colecciona LAT (5 compras en 8 ticks) y casi seguro tiene una affinity mayor que nuestro ×0,9. Para completar LAT nos faltan 2 raras que nadie vende, t15 compite por ellas y las ganancias con vendedores no suman (E9). **Crear valor = mover las LAT a quien más las valora.** Ofertas dirigidas a t15: comunes a 12 (valor 9) y LAT-07 a 28 (valor 22,5). Las pujas por LAT por debajo de nuestro valor se mantienen: si se cumplen, son reventa.
+**Revisar si** t15 no acepta en ~30 ticks (bajar a 10–11 / 25) o si aparecen raras de LAT a ≤ 63.
+
 ## D-007 · vie 2 oct · El límite de compra de una carta que queremos es nuestro `your_value`
 Corrige a D-006 y D-005 para las cartas que queremos: si el precio es ≤ `value?card=` (y el gasto cabe en la reserva de dinero), aceptar. El dinero no puntúa y el valor de la carta sí entra en futuros cambios y páginas. El suelo del vendedor solo sirve para **regatear** (hasta dónde empujar), no para **retirarse**.
 Evidencia: EXP-004 rechazó SAL-08 a 23 con un valor de 27,5. t13 lo compró a 24.

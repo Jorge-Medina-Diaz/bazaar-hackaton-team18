@@ -2,6 +2,7 @@
 
     python3 market.py scan              # every open offer, ranked by our gain = our value - price - fee (buys)
                                         # or price - fee - our value (their bids for cards we hold)
+    python3 market.py sell-low 9 LAT    # list every card worth < 9-3 to us, except sets we complete (LAT)
     python3 market.py sell-dups 9       # list every spare copy (never the last one) at 9 P, if 9 > its value to us
 
 The accepting side pays the venue fee (5 % + 1 P per card on El Rastro); a listing of ours is paid in full.
@@ -62,9 +63,25 @@ def sell_dups(b, price: int) -> None:
             log("market", event="list", ref=ref, asset=a["id"], price=price, our_value=a["your_value"], offer=r.get("id"))
 
 
+def sell_low(b, price: int, keep_sets: set) -> None:
+    """List every card worth less than `price` to us (first copies too), except sets we are completing.
+    your_value includes page bonuses, so cards of a complete page never qualify."""
+    me = b.me()
+    listed = {a["id"] for o in b.my_offers()["offers"] for a in o["give"].get("assets") or []}
+    for a in me["assets"]:
+        if a["kind"] != "card" or a["id"] in listed or a["set"] in keep_sets or price - a["your_value"] < 3:
+            continue
+        r = b.list_offer({"assets": [a["id"]]}, {"cash": price}, venue=VENUE, expires_in_ticks=expiry(b, 60))
+        print(f"listed {a['ref']} (value {a['your_value']}) at {price} P -> offer {r.get('id')}")
+        log("market", event="list", ref=a["ref"], asset=a["id"], price=price, our_value=a["your_value"], offer=r.get("id"))
+        listed.add(a["id"])
+
+
 if __name__ == "__main__":
     b = client()
-    if sys.argv[1:2] == ["sell-dups"]:
+    if sys.argv[1:2] == ["sell-low"]:  # python3 market.py sell-low 9 LAT,RET,CHA
+        sell_low(b, int(sys.argv[2]), set(sys.argv[3].split(",")) if len(sys.argv) > 3 else set())
+    elif sys.argv[1:2] == ["sell-dups"]:
         sell_dups(b, int(sys.argv[2]) if len(sys.argv) > 2 else 9)
     else:
         scan(b)

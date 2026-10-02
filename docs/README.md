@@ -2,7 +2,7 @@
 
 *Última actualización: vie 2 oct, tick 74 (≈22:05). Mantener al día: es lo primero que hay que leer.*
 
-> **Ahora mismo:** 287 P · **página SAL completa** · `neg_points` 70,9 · 8 tratos · puesto 7 (pendiente de snapshot) · **El Chato (nivel 2) anunciado**.
+> **Ahora mismo (tick 99):** 281 P · **nivel 2 (El Chato, acceso anticipado)** · página SAL completa · `neg_points` 73,2 · puesto 2 · `run_loop.py` operando. **Regla E9:** nunca pagar a un vendedor por encima de nuestro valor.
 
 | Documento | Para qué |
 |---|---|
@@ -12,6 +12,8 @@
 | [experiments.md](experiments.md) | Cada ejecución: hipótesis → resultado |
 | [decisions.md](decisions.md) | Decisiones fechadas y qué haría revisarlas |
 | [negotiation-design.md](negotiation-design.md) | Diseño del negociador (para los duelos) |
+| [audit.md](audit.md) | Auditoría crítica, opciones y plan del sábado |
+| [broker-design.md](broker-design.md) | Broker para el Market Test |
 
 ## Estado del Team 18
 - 383 P · nivel 1 · 1 trato (el de bienvenida, a 17 P) · `ladder_points` 0,022 · negociación 5,25 · puesto 8.

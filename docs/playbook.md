@@ -19,8 +19,53 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 - Épica (SAL-11, 198) y legendaria (SAL-12, 495): `value?` no muestra bonus "master" mientras falte una de las dos. 📜 El master bonus (+10 %) requiere ambas.
 - ❓ `neg_points` subió **+50,0** cuando esperábamos +69,9 (149,9 − 80). Pendiente: ¿tope por trato?
 
-## 🆕 Nivel 2 anunciado: **El Chato**
-*«Better packs, friendly prices. If I like you.»* (`/api/levels`, tick 74, estado `announced`). Lo que podemos deducir de la frase: vende sobres mejores (¿plata/oro?) y su precio depende de cómo le tratemos. **Cuando se active**: `probe.py` + `levels()` → leer el `how` antes de tocar nada. Tenemos 3 tratos negociados con la Abuela (SAL-02, LAT-01, SAL-08), así que deberíamos tener acceso anticipado.
+## ⚠️ Regla dura (E9)
+**Con un vendedor, el precio máximo es nuestro `your_value`.** Las pérdidas frente a nuestro valor restan `neg_points` y las ganancias no suman (solo cuentan en la escalera). Comprar a vendedores únicamente cuando: (a) sea una carta que nos falta y el precio ≤ valor, o (b) haga falta para la escalera o para desbloquear un nivel con coste ≈ 0.
+
+## 🤖 Agente autónomo (`run_loop.py`, desde el tick 90)
+En cada tick: alertas de niveles y duelos → juega los duelos activos → **acepta la mejor oferta de El Rastro si la ganancia de valor es ≥ 3** (compras: valor − precio − comisión; ventas a pujas: puja − comisión − nuestro valor) → vuelve a publicar los repetidos cada 10 ticks. Reserva de 150 P. Como `your_value` ya incluye el bonus de página, **nunca vende una carta de una página completa**: su ganancia sale negativa.
+- Tick 90: **vendió MAL-04 a una puja de 10** (+6,8). La venta de MAL-01 a 9 que teníamos publicada dio +4.
+- E8: una puja puede desaparecer entre que se lee y se acepta (`offer_not_open`). Se registra y se sigue: coste 0.
+
+## 🗺️ Hoja de ruta de optimización (por puntos esperados)
+| # | Palanca | Puntos en juego | Estado |
+|---|---|---|---|
+| 1 | **Broker propio para el Market Test** (comisión 0, límites estimados, no emparejar extramarginales) | Hasta 30 (mercado); el puesto gratuito da la mitad | Diseño en [broker-design.md](broker-design.md). Falta: datos de una sesión, nivel 2 y 270 P |
+| 2 | **Duelos** (I sábado 6,5 · II 13 · III 20 · final 23) | Parte de los 30 de negociación | v0 hecho; práctica en el tick ~120 |
+| 3 | **RET (×1,3) y CHA (×1,6)** el sábado y el domingo: comprar por debajo de nuestro valor, sobre todo las raras, y llevar páginas a 9/10 para pujar por la última | `neg_points` grandes | Plan listo (táctica EXP-008/009) |
+| 4 | **Vender LAT a t15** cuando esté cerca de completar la página | ~+20–40 | Vigilar |
+| 5 | Bucle autónomo: ventas y compras con ganancia ≥ 3 | +3–7 por trato | **En marcha** |
+| 6 | Escalera: 3 mejores tratos por nivel; El Chato al activarse | Pequeño, pero desbloquea nivel 2 | Esperando activación |
+| 7 | Jueces (40): presentación con proceso, errores y herramientas | 40 | Material en `docs/` |
+
+## 🔎 El Rastro, ticks 70–87: quién compra qué y a cuánto
+| Comprador | Compras (precio) | Lectura |
+|---|---|---|
+| **t15** | LAT-02 + LAT-05 por 18 (t04) · LAT-01 + LAT-07 por 40 (t13) · LAT-06 por 22 (t05) | **Colecciona LAT y compite con nosotros por esa página.** Paga ~9 por común y ~22–30 por infrecuente |
+| t12 | MAL-06 por 27 · MAL-05 por 10 (t10) | Colecciona MAL |
+| t08 | MAL-10 (rara) por 53 (t14) · MAL-01 por 9 (t04) | Colecciona MAL |
+| t04 | LAT-04 por 6 (t10) | — |
+- **Se venden lotes** (2 cartas en una oferta): es habitual.
+- El precio de mercado de las LAT ≈ nuestro valor (×0,9), así que venderle LAT a t15 ahora no da ganancia. **Pero cuando t15 se acerque a completar la página, la carta que le falte le valdrá ~2× (bonus).** Nuestras LAT (01, 02, 04, 05, 07) son moneda de cambio: venderlas caro al final es mejor que competir por su página.
+- Nuestras pujas por LAT (EXP-009) compiten con t15, que paga más: probablemente no se cumplirán. Se dejan porque no cuestan nada.
+- Las raras de MAL se venden a ~53; la rara de LAT, a 65.
+
+## 🧢 El Chato (nivel 2), activo desde la hora 1,633 (tick 99)
+- **Somos nivel 2 con acceso anticipado** (3 tratos negociados con la Abuela). Se abre a todos en la hora 2,633 (~60 ticks de ventaja).
+- Ficha: paciencia **0,35**, generosidad 0,25, astucia **0,85**, memoria **0,9**, rigidez **0,85**. Cambia rápido a la oferta final, cede poco y **recuerda los trucos**: mensajes cortos y honestos, sin inyecciones ni repeticiones.
+- Vende: **sobre de plata** (salida 188, lista 150; valor de catálogo esperado 160,8), **infrecuentes** (lista 26) y **raras sueltas** (lista 77). Compra infrecuentes y raras. 6 tratos por equipo y hora; 2 sobres de plata por hora.
+- Regla E9: comprarle solo a ≤ nuestro valor. Venderle solo a ≥ nuestro valor.
+
+### Lo que sabemos de su comportamiento (EXP-011)
+- Infrecuente: **abre en 33** (lista 26), se queda en 33 dos rondas y luego 32. Frases: *"You move, I move"*, *"Three points. That is your big move?"*, *"Come back when you are serious, chaval."*
+- Pasos de +3 P le parecen ridículos: **con él, saltos grandes o nada**. Su "You again" en el primer mensaje sugiere que reconoce a los equipos.
+- Para nosotros (LAT ×0,9, infrecuente 22,5) **no hay compra rentable** de infrecuentes. Las raras (lista 77; valor de LAT-09 63) probablemente tampoco.
+
+### Cómo cambia la estrategia con el nivel 2
+1. **Mercado propio desbloqueado.** Se abre el sábado temprano, antes del primer Market Test (hora 5,0, ~10:00), como `board` con **comisión 0** ([broker-design.md](broker-design.md)). Hacen falta 270 P: hoy tenemos 281 y mañana se reparten 150 más. Hoy no merece la pena (los mercados de equipo abren a partir de la hora 3 y hoy no hay Market Test).
+2. **Escalera del nivel 2 (pesa más que la del 1):** 3 buenos tratos con El Chato, siempre dentro de nuestro valor. Candidatas: las infrecuentes LAT-06 y LAT-08 (valor 22,5) y vender cartas que nos valgan menos de lo que él pague.
+3. **Raras sueltas de El Chato** = fuente de LAT-09 y LAT-10 para la página. Pero las ganancias con vendedores no suman `neg_points` (E9): **la última carta de una página conviene comprarla a un equipo** (cuenta) y las anteriores, a vendedores a ≤ valor.
+4. **No comprar sobres de plata** salvo que su `your_value` ≥ precio (E9).
 
 ## 🎯 Tácticas que funcionan (con evidencia)
 | Táctica | Herramienta | Evidencia |
@@ -30,6 +75,8 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 | Buscar gangas antes de cada ronda (ganancia = nuestro valor − precio − comisión) | `market.py scan` | Cuando la ganancia es negativa, no se compra |
 | Pujar públicamente por la carta que cierra una página, por debajo de nuestro valor y por encima de la puja rival | `list_offer({"cash": X}, {"cards": [ref]})` | ✅ SAL-10: puja de 80 frente a 55 de t13 → t12 aceptó en 3 ticks. +50 `neg_points` y página completa |
 | **Pujar por debajo de nuestro valor por todas las cartas que faltan de una página**: cada puja es positiva por sí sola y juntas desbloquean el bonus. Las pujas no bloquean el dinero | `list_offer({"cash": p}, {"cards": [ref]})` con p < `value?card` | EXP-009 (LAT) en curso |
+| **Ofertas dirigidas (`to=equipo`)** al coleccionista de un set que valoramos poco, algo por encima de nuestro valor (ganan los dos) | `list_offer(..., to="t15")` | D-008: 4 LAT a t15 (tick 108) |
+| **Circuito vendedor → coleccionista**: comprar a la Abuela a ≤ nuestro valor (0 `neg_points`, + escalera) y revender al coleccionista por encima (+) | `run_dealer.py --limit <valor>` + `list_offer(to=…)` | EXP-012 (LAT → t15) |
 | Grabar el feed (los rivales delatan su affinity) | `scout.py abuela --save` | Mapa de affinity de abajo |
 
 ## ❌ Errores cometidos (no repetir)
@@ -41,6 +88,10 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 | E4 | `market.py scan` mostraba nuestras propias ofertas: el tablón también nos pone seudónimo | Ninguno (detectado a tiempo) | Filtrar por los ids de `/api/me/offers` |
 | E5 | Creer que la duración de una oferta tenía un tope de 30 | Ofertas que caducaban antes de tiempo | Medido: la duración pedida se divide entre (60 s / 15 s) = 4. `market.expiry()` lo corrige |
 | E7 | Atribuir a SAL-08 la subida de la negociación de 10,3 a 14,55, que era el snapshot atrasado de los `neg_points` | Una conclusión falsa en scoring.md (ya corregida) | Medir cada trato con el Δ de `*_points`, nunca con `negotiating`/`score`, que van por snapshots y fases |
+| E9 | Comprar un sobre a 23 cuando nos valía ~14,6 (EXP-010), pensando que los tratos con vendedores no tocaban `neg_points` | **−8,4 `neg_points`** | Con vendedores, las pérdidas sí restan: **nunca pagar por encima de nuestro valor**. Los sobres solo valen la pena si su `your_value` ≥ precio (p. ej. cuando salgan RET y CHA) |
+| E10 (evitado) | Tener a la vez una puja pública por una carta y un regateo con un vendedor por la misma carta: si se cumplen las dos, la 2.ª copia vale el 25 % | Habría restado ~10 por carta | **Antes de comprar una carta por una vía, cancelar las pujas por esa carta en las demás** |
+| E11 | El bucle murió en el tick 120 con `KeyError: 'id'`: el duelo real usa `duel`, no `id` (suposición sacada del SDK) | ~1 tick sin agente al empezar los duelos | Formas reales anotadas en api.md; el bucle captura **cualquier** excepción y sigue |
+| E12 | Tomar el control de un hilo sin parar antes el script que lo llevaba: el script se retiró (cerró el hilo 261) justo cuando El Chato bajaba a 32 | Un trato de la escalera del nivel 2 y 2 ticks | **Parar el proceso y confirmar que el hilo sigue abierto antes de intervenir**, o lanzar el hilo ya con los parámetros correctos |
 | E6 | El precio registrado salía 0 cuando era ella quien aceptaba nuestra oferta (el dinero va en `give`) | Log incorrecto en EXP-007 | `haggle.py` toma el dinero del lado que lo lleve |
 
 ## 📈 El Rastro (tick 65)
@@ -92,6 +143,8 @@ Ficha: paciencia 0.85, generosidad 0.8, astucia 0.2, memoria 0.15. Vende 3 sobre
 **Regalos:** a algunos equipos la Abuela les regala una carta ("gift from Abuela Carmen"), a nosotros LAT-05. Probablemente por ser amables. No puntúa, pero es una carta.
 
 ## Duelos
+**Formato real (práctica, tick 120):** `{duel, session, status: "live", role: buyer|seller, item, issues: ["price"], your_limit, limit_meaning, rival (alias), deadline_tick, decay_per_round: 0.06, rounds, your_offer, rival_offer, messages, result, price, days, your_days_weight, days_meaning}`. 6 duelos por sesión en la práctica (3 como comprador y 3 como vendedor, contra rivales distintos), 12 ticks (120 → 132).
+- **Práctica: los rivales no contestaron en los primeros 2 ticks** (muchos equipos no tienen agente de duelos). Error de diseño corregido: **solo cedemos cuando el rival se mueve** (reciprocidad) y, tras un reinicio, retomamos desde `your_offer` (nunca retroceder). Aceptamos cualquier oferta dentro del límite si quedan ≤ 2 ticks.
 `agent/duels.py` v0 (tick 69): abre con límite/0,6 si vende y límite×0,6 si compra, cede rápido (β = 1,6) y acepta cualquier oferta dentro del límite desde el 75 % del tiempo. Probado sin conexión: nunca cruza el límite y nunca retrocede. **Los duelos de práctica (hora 2) sirven para conocer la forma real de los datos**: primero `run_duels.py --watch` y después jugar. Diseño previo en [negotiation-design.md](negotiation-design.md). Ojo: el pastel se reduce con cada ronda (decay 0.06–0.08).
 
 ## Market Test / broker
