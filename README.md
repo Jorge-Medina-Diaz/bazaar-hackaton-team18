@@ -6,6 +6,43 @@ Welcome!
 One file, standard library only: `bazaar_sdk.py`.
 Copy it next to your agent, or run from this folder.
 
+## Laboratorio del equipo: primera prueba paso a paso
+
+Para empezar sin gastar primas ni contactar al servidor:
+
+```bash
+cd /Users/ruben/projects/bazaar-hackaton-team18
+python3 laboratorio.py --scenario compra --step
+```
+
+Enter avanza al siguiente evento y `q` detiene la simulación. El laboratorio muestra el precio solicitado, el mensaje amable, la contraoferta, el saldo y el inventario. Sus precios y su vendedora son inventados: permite verificar decisiones, pero no medir la persuasión real de Abuela.
+
+La primera prueba ejecutada ofreció 7 P por `LAV-03`, recibió una contraoferta de 12 P y subió a 9 P. La vendedora simulada aceptó; la carta entró al inventario en el siguiente tick y el saldo pasó de 40 a 31 P.
+
+Archivos para inspeccionar:
+
+- [laboratorio.py](laboratorio.py): simulación local y recorrido paso a paso.
+- [negotiation_policy.py](negotiation_policy.py): decisiones de ofrecer, aceptar, cerrar o esperar; mensajes amables.
+- [evaluacion.py](evaluacion.py): evaluación rápida con 17 pruebas y ocho simulaciones comparativas.
+- [tests/test_negotiation.py](tests/test_negotiation.py): 13 comprobaciones de presupuesto, ofertas finales, liquidación e inventario.
+- [PROPUESTA.md](PROPUESTA.md): alcance de la mejora y pasos posteriores.
+
+Escenarios disponibles: `compra`, `limite`, `final` y `varias`. Para comparar la lógica de precios del starter con la política mejorada, usar `--compare` en lugar de `--step`. Para variar el tamaño de concesión, usar `--increment 1` o un entero positivo. La política nueva está conectada al laboratorio; todavía no sustituye el bucle del starter real.
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+**Qué inicia cada script:** `starter_agent.py` habla con Abuela, compra un sobre, lo abre y publica duplicados. `starter_broker.py` empareja compradores y vendedores en un mercado y requiere una clave de broker. Para avanzar con control ahora, usar el laboratorio. La prueba real y la apertura de sobres requieren una clave válida del equipo; el laboratorio no realiza ninguna de esas operaciones.
+
+**Varias cartas:** el inventario contiene varios activos con identificadores distintos y admite copias de un mismo tipo. El escenario `varias` comprueba tres compras, incluida una copia repetida con menor valor simulado. En el juego real, las compras de carta concreta al dealer se documentan por tema individual, los sobres entregan varias cartas y las ofertas entre equipos pueden incluir varias cartas. El límite de 50 elementos por lado corresponde a una oferta; las reglas no indican que sea un límite del inventario.
+
+Para evaluar todo de una vez, ejecutar `python3 evaluacion.py` o `python3 evaluacion.py --json`. La evaluación usa un dealer inventado; no mide persuasión real. En el escenario `limite`, la política mejorada reduce las decisiones de 13 a ocho y evita seis repeticiones de precio.
+
+**Piloto real completado:** compra de El Portero (`SAL-02`) a Abuela por 9 P, frente a una petición inicial de 12 P, tras propuestas propias de 5 y 7 P. La liquidación y la entrada al inventario están confirmadas. La política se aplicó mediante llamadas controladas de Codex; falta integrarla en un ejecutor autónomo. El relato está en [HANDOFF.md](HANDOFF.md).
+
+ Según la instrucción de Rubén, abrir sobres del juego únicamente después de probar y analizar. Las cartas sueltas ya están abiertas; `open_pack` se aplica a sobres sellados.
+
 ## 1. Start in five minutes
 
 ```bash
@@ -86,3 +123,14 @@ New dealers and mechanics appear as levels.
 `b.levels()` lists what is announced and what is active, with a line on how to use it.
 A route a level brings is one `b.call("POST", "/api/...", {...})` away.
 For live updates instead of polling: `GET /api/events/stream?scope=team` with your `X-Team-Key` header.
+
+## Núcleo para integrar con Jorge
+
+La entrega está en [INTEGRACION_JORGE.md](INTEGRACION_JORGE.md): módulos corregidos, fortalezas y limitaciones, compatibilidad y pasos para combinar en un agente. `agent/haggle.py` no se inicia al importarlo; requiere un cliente y límites explícitos. La clave no forma parte de los archivos.
+
+```bash
+python3 evaluacion.py
+python3 recheck.py --candidate
+```
+
+La entrega incluye 50 pruebas propias (17 anteriores y 33 del núcleo). El recheck del candidato verifica los cuatro fallos originales contra los módulos corregidos. Los logs quedan en `runs/` y `logs/`, fuera de Git.
