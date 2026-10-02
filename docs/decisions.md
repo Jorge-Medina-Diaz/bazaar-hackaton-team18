@@ -5,8 +5,16 @@ Entradas cortas y fechadas: qué decidimos, por qué, y qué haría cambiarlo. L
 ## Pendiente de decidir (vie 2 oct, tick ~111)
 1. **¿Tope de 50 `neg_points` por trato?** EXP-008 dio +50,0 donde esperábamos +69,9. Si hay tope, tres compras de +50 valen más que una de +150, y eso cambia cómo pujamos por raras y por las cartas de RET y CHA. Probar con el próximo trato de ganancia > 50.
 2. **Nuestra puntuación baja sin hacer tratos:** 27,4 (tick 75, 2.º) → 21,8 (tick 110, 4.º) → 19,7 (tick 138, 6.º). ❓ Probablemente es relativa a los demás y ponderada por la fase de la ronda. Si es así, quedarse quieto hace perder puestos.
-3. **Espejo de duelos (EXP-010, D-008):** en el par 11/12 el rival y los límites eran distintos (113 comprando contra Rojo y 67 vendiendo contra Verde), así que el espejo quizá no revela el límite del rival. Comprobarlo con los datos de práctica antes de Duels I.
+3. ~~**Espejo de duelos**~~ → revisado en D-010: cada pareja es el mismo equipo (misma plantilla de texto con alias distinto); 5 equipos consistentes con el espejo y 2 que cruzan su límite en ambos sentidos.
 4. **Mercado:** ¿abrimos el mercado (fianza de 250 + 20 P) antes del próximo Market Test o seguimos con el puesto gratuito? Con `starter_broker.py` sacamos lo mismo que el puesto (la mitad de los puntos). La ventaja real es cobrar poca comisión para atraer el comercio entre equipos (`market` = 0 para todos; solo t06 tiene mercado, al 0,5 %).
+
+## D-010 · vie 2 oct · Duelos v2: anclar alto, hablar poco, que el rival cruce
+Detalle en [duels-strategy.md](duels-strategy.md). De la práctica (24 duelos, transcripciones completas):
+- `rounds` = mín(mensajes nuestros, del rival): contra un rival callado ceder a pasitos es gratis; contra uno que concede solo, callarse es gratis.
+- 11 de 17 tratos se cerraron a **nuestro** precio (el rival acepta la primera oferta que entra en su zona): ancla alta y pasos pequeños.
+- Los rivales son casi todos plantillas deterministas, en 6 arquetipos reconocibles por el texto. El texto no mueve cifras.
+- Espejo: confianza media (5 equipos consistentes; 2 lo cruzan en ambos sentidos). Se usa para el ancla y el suelo solo hasta 3 ticks del final.
+**Revisar si** en Duelos I la tasa de trato baja del 71 % de la práctica o el `result` medio no supera 20,2.
 
 ## D-009 · vie 2 oct · Vendedores: solo para cartas de página y niveles. El Chato, con ancla baja
 - La escalera casi no puntúa: +0,014 por trato con la Abuela, `ladder_points` 0,051 frente a `neg_points` 73,2. Matiza D-005: los tratos con vendedores sirven para conseguir las cartas baratas de una página (que después cerramos comprando a otro equipo) y para desbloquear niveles, no para perseguir la escalera.

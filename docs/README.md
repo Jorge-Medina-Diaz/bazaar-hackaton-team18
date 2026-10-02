@@ -11,6 +11,7 @@
 | [playbook.md](playbook.md) | Conocimiento confirmado por vendedor y mecánica |
 | [experiments.md](experiments.md) | Cada ejecución: hipótesis → resultado |
 | [decisions.md](decisions.md) | Decisiones fechadas y qué haría revisarlas |
+| [duels-strategy.md](duels-strategy.md) | **Estrategia de duelos v2**: arquetipos de los rivales y qué hacer contra cada uno |
 | [negotiation-design.md](negotiation-design.md) | Diseño del negociador (para los duelos) |
 
 ## Estado del Team 18
