@@ -3,6 +3,7 @@ import contextlib
 import argparse
 import importlib.util
 import io
+import hashlib
 import json
 import subprocess
 import urllib.request
@@ -20,21 +21,22 @@ def git(*args):
     return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
 
 
-def run():
+def run(candidate=False):
     santi = git('rev-parse', 'origin/Santi')
     jorge = git('rev-parse', 'origin/feat/jorge')
-    spec = importlib.util.spec_from_file_location(
-        'review_scorer', ROOT.parent / 'bazaar-hackaton-team18-strategy/agent/scorer.py')
+    path = ROOT / 'agent/scorer.py' if candidate else ROOT.parent / 'bazaar-hackaton-team18-strategy/agent/scorer.py'
+    spec = importlib.util.spec_from_file_location('review_scorer', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    source = git('show', jorge + ':agent/haggle.py')
+    source = (ROOT / 'agent/haggle.py').read_text() if candidate else git('show', jorge + ':agent/haggle.py')
     source = source.replace('from bazaar_sdk import Bazaar', '').replace('from agent.journal import log', '')
     engine = {'Bazaar': object, 'log': lambda *args, **kwargs: None}
     exec(compile(source, jorge + ':agent/haggle.py', 'exec'), engine)
 
     card = {'id': 'SAL-01', 'set': 'SAL', 'book': 10, 'rarity': 'common'}
     snap = SimpleNamespace(cards={'SAL-01': card}, sets={'SAL': {'name': 'Fixture',
-        'released': True, 'cards': [card]}}, my_offer_ids=set(), venues={}, boards={})
+        'released': True, 'cards': [card]}}, my_offer_ids=set(), venues={}, boards={},
+        clock={'tick': 0}, me={'id': 't18', 'cash': 100, 'assets': []})
     values = module.Values.__new__(module.Values)
     values.snap, values.mult = snap, {'SAL': 1.0}
     values.counts, values.copy_values = defaultdict(int), defaultdict(list)
@@ -47,17 +49,21 @@ def run():
 
     # Evitar bonus de cierre en esta prueba de duplicados.
     values.page_bonus = 0
-    snap.boards = {'fixture': [offer({'assets': [{'ref': 'SAL-01'}, {'ref': 'SAL-01'}]}, {})]}
+    snap.boards = {'fixture': [offer({'assets': [{'id': 2, 'kind': 'card', 'ref': 'SAL-01'},
+                                              {'id': 3, 'kind': 'card', 'ref': 'SAL-01'}]}, {})]}
     duplicates = scorer.board_offers()[0]['surplus']
     values.counts['SAL-01'], values.copy_values['SAL-01'] = 1, [10]
+    snap.me['assets'] = [{'id': 1, 'kind': 'card', 'ref': 'SAL-01'}]
     snap.boards = {'fixture': [offer({'cash': 30}, {'types': ['card:SAL-01', 'card:SAL-01']})]}
     invalid_quantity = len(scorer.board_offers())
     values.page_bonus = 0.25
     complete_page = scorer.pages({'SAL-01': {'buy_at': 9, 'mv': 10}})[0]['net']
 
-    own = {'id': 2, 'status': 'settled', 'give': {'cash': 9}, 'want': {'cash': 0}}
+    own = {'id': 2, 'maker': 't18', 'to': 'abuela', 'status': 'settled',
+           'give': {'cash': 9}, 'want': {'cash': 0, 'types': ['card:SAL-01']}}
     fake = SimpleNamespace(open_thread=lambda *a, **k: {'id': 1},
-        thread=lambda *a: {'status': 'deal', 'messages': [{'offer': own}], 'standing_offers': []})
+        thread=lambda *a: {'status': 'deal', 'messages': [{'offer': own}], 'standing_offers': []},
+        me=lambda: {'id': 't18', 'cash': 100, 'open_threads': []}, clock=lambda: {'tick': 0})
     with contextlib.redirect_stdout(io.StringIO()):
         paid = engine['haggle'](fake, 'abuela', {'buy': {'card': 'SAL-01'}},
             anchor=5, limit=9, rounds=6, beta=1, lines=['{p}'])['price']
@@ -98,7 +104,10 @@ def run():
             'price': e['payload'].get('price'), 'dealer': e['payload'].get('persona'),
             'items': e['payload'].get('items')} for e in fills]})
     return {'timestamp_utc': datetime.now(timezone.utc).isoformat(),
+        'candidate': candidate,
         'revisions': {'santi': santi, 'jorge': jorge, 'codex': git('rev-parse', 'HEAD')},
+        'source_hashes': {'scorer': hashlib.sha256(path.read_bytes()).hexdigest(),
+                          'haggle': hashlib.sha256(source.encode()).hexdigest()},
         'scorer_loaded_from': str(spec.origin),
         'scorer_revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'],
             cwd=Path(spec.origin).parent.parent, text=True).strip(),
@@ -112,6 +121,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--refresh-public', action='store_true',
                         help='Actualizar feed, reloj y leaderboard con GET públicos, sin clave.')
+    parser.add_argument('--candidate', action='store_true', help='Verificar los módulos corregidos de esta rama.')
     args = parser.parse_args()
     if args.refresh_public:
         (ROOT / 'runs').mkdir(exist_ok=True)
@@ -119,10 +129,10 @@ if __name__ == '__main__':
             with urllib.request.urlopen('https://bazaar.causaprima.ai/api/' + route, timeout=15) as response:
                 data = json.load(response)
             (ROOT / ('runs/recheck-' + name + '.json')).write_text(json.dumps(data, ensure_ascii=False))
-    report = run()
+    report = run(candidate=args.candidate)
     out = ROOT / 'runs'
     out.mkdir(exist_ok=True)
-    path = out / 'recheck.json'
+    path = out / ('recheck-candidate.json' if args.candidate else 'recheck.json')
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
     with (out / 'rechecks.jsonl').open('a') as stream:
         stream.write(json.dumps(report, ensure_ascii=False) + '\n')
@@ -131,3 +141,5 @@ if __name__ == '__main__':
         print(f"{'REVISAR' if probe['mismatch'] else 'OK'}: {probe['case']} "
               f"observado={probe['actual']} esperado={probe['expected']}")
     print(report['scope'])
+    if args.candidate and any(p['mismatch'] for p in report['probes']):
+        raise SystemExit(1)

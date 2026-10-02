@@ -123,3 +123,14 @@ New dealers and mechanics appear as levels.
 `b.levels()` lists what is announced and what is active, with a line on how to use it.
 A route a level brings is one `b.call("POST", "/api/...", {...})` away.
 For live updates instead of polling: `GET /api/events/stream?scope=team` with your `X-Team-Key` header.
+
+## Núcleo para integrar con Jorge
+
+La entrega está en [INTEGRACION_JORGE.md](INTEGRACION_JORGE.md): módulos corregidos, fortalezas y limitaciones, compatibilidad y pasos para combinar en un agente. `agent/haggle.py` no se inicia al importarlo; requiere un cliente y límites explícitos. La clave no forma parte de los archivos.
+
+```bash
+python3 evaluacion.py
+python3 recheck.py --candidate
+```
+
+La entrega incluye 50 pruebas propias (17 anteriores y 33 del núcleo). El recheck del candidato verifica los cuatro fallos originales contra los módulos corregidos. Los logs quedan en `runs/` y `logs/`, fuera de Git.

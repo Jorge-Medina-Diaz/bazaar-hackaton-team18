@@ -56,3 +56,14 @@ Evaluación: `python3 evaluacion.py`. Recorrido: `python3 laboratorio.py --scena
 - Consultados feed, reloj, calendario, dealers y leaderboard mediante GET públicos sin clave. Observaciones iniciales sobre 500 eventos, ticks 30–56; se separan evidencia e hipótesis. No se iniciaron compras, ventas ni conversaciones desde este recheck.
 - Verificación: `python3 recheck.py` reprodujo los cuatro casos; `git diff --check` pasó. El log registra revisiones, fecha, fixtures, comparación y ventana del feed en `runs/recheck.json` y `runs/rechecks.jsonl`, excluidos de Git.
 - Siguiente paso: corregir valoración de paquetes y precio liquidado según el maker, comparar ambos agentes con mismos escenarios y semillas, y dejar un único ejecutor para la clave compartida. No hay ganador demostrado todavía.
+
+## Núcleo corregido para integración con Jorge
+
+- Rubén autorizó mejorar esta rama y entregar un resumen para pasar después a un agente único. Se hizo pull antes de editar; no se iniciaron operaciones de juego.
+- Añadidos `agent/scorer.py` a partir de Santi y `agent/haggle.py` con la curva/interfaz de Jorge, más `agent/offer_safety.py`, `agent/execution.py` y su journal. Orígenes detallados en `INTEGRACION_JORGE.md`.
+- Corregidos los cuatro fallos reproducidos: marginales por cantidad, cantidades/activos insuficientes, bonus de página repetido y cash del lado equivocado en liquidaciones de ofertas propias.
+- Añadidos validación de identidad/estructura/caducidad, selección de activos para ofertas por tipo, comisiones y caja, exclusión del venue propio, reserva de caja, bloqueo local por equipo y espera sin nuevas acciones durante liquidaciones propias o ajenas.
+- `recheck.py --candidate` comprueba los módulos locales y falla si reaparece alguno de los cuatro casos. Los logs están excluidos de Git.
+- Verificación local: 59 pruebas pasaron, incluida la integración local del panel; cuatro probes del candidato pasaron. La entrega aislada incluye las 17 pruebas originales y 33 nuevas del núcleo, sin los archivos ajenos del panel.
+- No se afirma mejora de puntuación real: esta versión nueva solo fue evaluada offline. Las transiciones de bonus master se excluyen hasta validar la fórmula; el EV de sobres sigue siendo una estimación.
+- Entrega: `INTEGRACION_JORGE.md` describe lo mejor, lo peor, archivos a aplicar e interfaz compatible. Siguiente paso: Jorge integra sus CLI y perfiles con estos módulos y elige una sola configuración; el scheduler de duelos/broker sigue pendiente.

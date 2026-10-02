@@ -1,5 +1,7 @@
 # Recheck de estrategia — 2 octubre 2026
 
+Actualización: los cuatro fallos se corrigieron en los módulos `agent/` de esta rama. `python3 recheck.py --candidate` verifica la corrección; el modo sin ese argumento sigue revisando los originales remotos. La entrega para combinar agentes está en `INTEGRACION_JORGE.md`.
+
 ## Estado y reproducción rápida
 
 Evaluación de los dos agentes del equipo: Codex y Jorge. Santi aporta estrategia y valoración; su scorer no es todavía un tercer agente que negocie. Esta revisión no inició operaciones de juego.

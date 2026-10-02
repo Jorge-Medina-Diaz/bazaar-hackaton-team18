@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 runs/
+logs/
 *.key
 __pycache__/
 *.pyc
