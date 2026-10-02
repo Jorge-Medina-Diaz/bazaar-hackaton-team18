@@ -5,9 +5,10 @@
     python3 run_dealer.py abuela --card LAV-06 --anchor 15 --limit 22
     python3 run_dealer.py abuela --sell 123 --anchor 20 --limit 13   # sell asset 123, never below 13
 """
-import argparse, os  # noqa: E401
+import argparse
 
-from bazaar_sdk import Bazaar, BazaarError
+from bazaar_sdk import BazaarError
+from agent.client import client
 from agent.dealers import PROFILES
 from agent.haggle import haggle
 from agent.journal import log
@@ -22,7 +23,7 @@ p.add_argument("--anchor", type=int, help="first price (overrides the profile)")
 p.add_argument("--limit", type=int, help="worst price we accept (overrides the profile)")
 a = p.parse_args()
 
-b = Bazaar(os.environ.get("BAZAAR_URL", "https://bazaar.causaprima.ai"), os.environ["BAZAAR_KEY"])
+b = client()
 prof = PROFILES[a.dealer]
 cfg = dict(prof.get("pack", {"anchor": 0.5, "limit": 0.8, "rounds": 6, "beta": 1.0}))
 if a.sell:
@@ -38,10 +39,17 @@ cfg["limit"] = a.limit or cfg["limit"]
 if not isinstance(cfg["anchor"], int) or not isinstance(cfg["limit"], int):
     raise SystemExit("cards and sales need --anchor and --limit")
 
+SCORE_KEYS = ("score", "negotiating", "ladder_points", "duel_points", "neg_points", "deals", "rank")
 for i in range(1 if a.sell else a.n):
-    print(f"\n== {i + 1}/{a.n} · cash {b.me()['cash']} P")
+    me = b.me()
+    before = {k: me["score"].get(k) for k in SCORE_KEYS}
+    print(f"\n== {i + 1}/{a.n} · cash {me['cash']} P · score {before}")
     try:
         r = haggle(b, a.dealer, topic, buying=buying, lines=prof["lines"], **cfg)
+        b.wait_tick()  # the score updates once the deal has settled
+        after = {k: b.me()["score"].get(k) for k in SCORE_KEYS}
+        print(f"  score -> {after}")  # measure what each deal is worth: this is how we learn the ladder formula
+        log(a.dealer, event="score", thread=r["thread"], status=r["status"], price=r["price"], before=before, after=after)
         if r["status"] == "deal" and not a.sell and not a.card:
             pack = next(x for x in b.me()["assets"] if x["kind"] == "pack" and x["ref"] == a.pack)
             cards = b.open_pack(pack["id"])["cards"]

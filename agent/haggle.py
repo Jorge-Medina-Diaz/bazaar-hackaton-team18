@@ -13,6 +13,22 @@ def curve(k: int, anchor: int, limit: int, rounds: int, beta: float) -> int:
     return round(anchor + (limit - anchor) * min(1.0, k / rounds) ** (1 / beta))
 
 
+def offer_ok(o: dict, topic: dict, buying: bool) -> bool:
+    """Structure binds: before accepting, check the offer moves exactly what the thread is about.
+    Buying: she gives one item of the kind we asked for and wants only cash. Selling: she wants exactly the assets we
+    put up and gives only cash. Anything else (extra assets asked from us, a different item) is refused."""
+    give, want = o.get("give") or {}, o.get("want") or {}
+    if buying:
+        item = topic["buy"]
+        kind, ref = ("pack", item["pack"]) if "pack" in item else ("card", item.get("card"))
+        got = list(give.get("types") or []) + [f"{a['kind']}:{a['ref']}" for a in give.get("assets") or []]
+        return (not want.get("assets") and not want.get("types") and not give.get("cash") and len(got) == 1
+                and got[0].startswith(kind + ":") and (ref is None or got[0] == f"{kind}:{ref}"))
+    ours = sorted(topic["sell"]["assets"])
+    asked = sorted(a["id"] if isinstance(a, dict) else a for a in want.get("assets") or [])
+    return asked == ours and not want.get("cash") and not give.get("assets") and not give.get("types")
+
+
 def haggle(b: Bazaar, dealer: str, topic: dict, *, anchor: int, limit: int, rounds: int, beta: float,
            lines: list, buying: bool = True) -> dict:
     """Run one thread to its end. Returns {"status", "price", "thread"}; every round goes to logs/<dealer>.jsonl."""
@@ -25,7 +41,8 @@ def haggle(b: Bazaar, dealer: str, topic: dict, *, anchor: int, limit: int, roun
     while True:
         t = b.thread(tid)
         if t["status"] != "open":
-            price = next((o[side]["cash"] for o in reversed(t["standing_offers"]) if o["status"] == "accepted"), None)
+            offers = [m["offer"] for m in t.get("messages", []) if m.get("offer")]  # a deal ends as status "settled"
+            price = next((o[side]["cash"] for o in reversed(offers) if o["status"] == "settled"), None)
             print(f"  {t['status']} ({t.get('closed_reason')}) price {price}")
             log(dealer, event="end", thread=tid, status=t["status"], reason=t.get("closed_reason"), price=price,
                 our_last=last, snapshot=t)  # full thread kept: her words are data for the playbook
@@ -37,7 +54,10 @@ def haggle(b: Bazaar, dealer: str, topic: dict, *, anchor: int, limit: int, roun
         if last is not None:  # strictly monotonic towards the limit
             nxt = max(last + 1, nxt) if buying else min(last - 1, nxt)
         log(dealer, event="round", thread=tid, k=k, her=her, final=final, our_next=nxt, our_last=last)
-        ok = her is not None and better(her, limit)
+        ok = her is not None and better(her, limit) and offer_ok(hers[-1], topic, buying)
+        if her is not None and not offer_ok(hers[-1], topic, buying):  # words may lie; never accept a twisted offer
+            print(f"  her offer does not match the topic, not accepting: {hers[-1]}")
+            log(dealer, event="bad_structure", thread=tid, offer=hers[-1])
         if ok and (better(her, nxt) or final or k >= rounds):  # AC_next, her final word, or out of rounds
             print(f"  accept {her}{' (final)' if final else ''}")
             log(dealer, event="accept", thread=tid, price=her, final=final, k=k)

@@ -1,11 +1,11 @@
 """Learn a dealer's behaviour from everyone's public haggles (GET /api/feed needs no key).
 
     python3 scout.py abuela            # every thread with her: topic, price sequence, outcome
-    python3 scout.py abuela --save     # also append the raw events to logs/feed.jsonl
+    python3 scout.py abuela --save     # also append NEW raw events to logs/feed.jsonl (the feed keeps only the last 500)
 
 Reading: "t05:16 abu:30 abu:26F" = team t05 offered 16, she asked 30, then 26 as her final word (F).
 """
-import argparse, collections, json, urllib.request  # noqa: E401
+import argparse, collections, json, os, urllib.request  # noqa: E401
 
 from agent.journal import log
 
@@ -15,11 +15,14 @@ p.add_argument("--save", action="store_true")
 p.add_argument("--url", default="https://bazaar.causaprima.ai")
 a = p.parse_args()
 
-events = json.load(urllib.request.urlopen(f"{a.url}/api/feed?limit=1000"))["events"]
+events = json.load(urllib.request.urlopen(f"{a.url}/api/feed?limit=500"))["events"]  # 500 is the server's cap
+seen = 0
+if a.save and os.path.exists("logs/feed.jsonl"):
+    seen = max(json.loads(line)["id"] for line in open("logs/feed.jsonl", encoding="utf-8"))
 topics, msgs, deals = {}, collections.defaultdict(list), {}
 for e in sorted(events, key=lambda e: e["id"]):
     pl = e["payload"]
-    if a.save:
+    if a.save and e["id"] > seen:
         log("feed", **e)
     if pl.get("with") != a.dealer and pl.get("persona") != a.dealer:
         continue

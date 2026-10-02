@@ -6,7 +6,7 @@ Numbers come from docs/playbook.md; change them there and here together.
 
 PROFILES = {
     "abuela": {
-        "pack": {"anchor": 0.50, "limit": 0.80, "rounds": 6, "beta": 1.0},  # observed: 30 -> ~22-24 final
+        "pack": {"anchor": 0.50, "limit": 0.77, "rounds": 6, "beta": 1.0},  # 30 -> 23 final; a pack at 24 seems to score 0
         "lines": [  # she likes kindness; the same words twice are spam, so rotate
             "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en {p} P?",
             "Usted conoce los cromos mejor que nadie. ¿Qué tal {p} P, señora?",
