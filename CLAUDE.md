@@ -13,7 +13,9 @@ agent/
   client.py         client(): Bazaar con BAZAAR_KEY del entorno o de .env
 run_duels.py        CLI: jugar los duelos activos (--watch = solo observar y registrar)
 run_dealer.py       CLI: regatear con un vendedor (sobres, cartas, ventas)
-market.py           El Rastro: scan (gangas por ganancia de valor) y sell-dups (vender repetidos)
+market.py           Todos los mercados: scan (gangas), sell-dups, cross (libros cruzados), bid-page (pujar por una página)
+flags.py            candidatos a flag: mensajes de vendedor cuyo texto contradice su oferta (flaggear solo a mano)
+bench.py            grabar los libros del Market Test (necesita BROKER_KEY de nuestro mercado)
 probe.py            snapshot de todos los GET en logs/probe/<tick>/ (formas de respuesta, cambios)
 scout.py            estudiar a un vendedor con el feed público (los regateos de todos los equipos)
 docs/               conocimiento: playbook, experimentos, decisiones, diseño
