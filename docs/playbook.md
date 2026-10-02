@@ -37,7 +37,7 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
   - t13 por MAL-09 (rara): 58 → 74 frente a 97 → 86 en 7 ticks; converge en ~80 (punto medio 77,5).
   - t10 por LAV-09: 78 → 85 frente a 97 → 95. t14 por LAV-09: 55 → 60 frente a 97 → 93.
 - **Precios de apertura:** infrecuentes 33, raras 97, sobre de plata 188. **No vende `sobre_barrio`** ("Abuela handles those").
-- **Compra infrecuentes a 13 fijo** y no se mueve aunque bajemos (t06: 26 → 20 frente a 13 → 13 → 13; t10 igual).
+- **Compra infrecuentes a 13** y en los ticks 100–111 no se movió aunque el vendedor bajara (t06: 26 → 20 frente a 13 → 13 → 13; t10 igual). Sus ofertas llevaban `final: false` (es el farol de arriba), pero nadie le ha sacado más: si vendemos, no contar con más de 13.
 - **Bajar la oferta no funciona:** t12 pasó de 48 a 5 y a 7 y él solo bajó 1–2 ("Your numbers are going the wrong way").
 - Le molesta que le llamen Abuela (t14). Responde en el idioma que le hablen.
 - **Táctica:** abrir al ~45 % de su precio y subir en pasos iguales hasta ~75 % (rara 97 → 44…72; infrecuente 33 → 15…25). Solo para cartas de sets altos (RET, CHA) o la última de una página: ❓ comprar a un vendedor no suma `neg_points` (EXP-005), solo valor de colección y escalera.
