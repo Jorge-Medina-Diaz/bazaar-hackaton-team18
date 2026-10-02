@@ -1,0 +1,490 @@
+<title>Álbum del Team 18</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: cabecera + cifras, álbum (una fila por barrio con cromos de verdad), nuestras cartas, y la tabla de rivales. */
+:root{
+  --bg:#F3F4F7; --surface:#FFFFFF; --ink:#141A2A; --muted:#5E6679; --line:#DCDFE7; --slot:#ECEEF3;
+  --accent:#C8102E; --good:#1E8E5A; --bad:#B4372F; --me:#FFF4D6;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10131C; --surface:#181C28; --ink:#E9ECF3; --muted:#9AA2B5; --line:#2A3042; --slot:#1D2230;
+  --accent:#FF5A6E; --good:#4CC98A; --bad:#FF7A6E; --me:#3A3220; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10131C; --surface:#181C28; --ink:#E9ECF3; --muted:#9AA2B5; --line:#2A3042; --slot:#1D2230;
+  --accent:#FF5A6E; --good:#4CC98A; --bad:#FF7A6E; --me:#3A3220; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 56px;display:grid;gap:36px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.02em;line-height:1}
+h2{font-size:1.4rem;font-weight:700}
+.eyebrow{font:500 .72rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:16px}
+header .meta{display:grid;gap:6px;text-align:right}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);font:500 .78rem var(--mono);background:var(--surface)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:16px 18px;display:grid;gap:6px;align-content:start}
+.stat .v{font:700 1.9rem/1 var(--display);font-variant-numeric:tabular-nums}
+.stat .v small{font:500 .9rem var(--mono);color:var(--muted);margin-left:4px}
+.stat .s{font-size:.82rem;color:var(--muted)}
+.stat.cash .v{color:var(--accent)}
+.section-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:14px}
+.section-head p{margin:0;color:var(--muted);font-size:.88rem;max-width:64ch}
+.breakdown{display:flex;flex-wrap:wrap;gap:8px}
+.album{display:grid;gap:14px}
+.set{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+.set.complete{box-shadow:inset 0 0 0 2px var(--c)}
+.set-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.set-head h3{font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.swatch{width:12px;height:12px;border-radius:3px;background:var(--c)}
+.set-head .sub{font:.8rem var(--mono);color:var(--muted)}
+.progress{flex:1 1 120px;max-width:220px;height:6px;border-radius:3px;background:var(--slot);overflow:hidden}
+.progress b{display:block;height:100%;background:var(--c)}
+.aff{font:600 .78rem var(--mono);padding:1px 7px;border-radius:4px;border:1px solid var(--line)}
+.aff.hi{color:var(--good);border-color:currentColor}.aff.lo{color:var(--bad);border-color:currentColor}
+.done{font:600 .7rem var(--mono);color:var(--good);letter-spacing:.06em;text-transform:uppercase}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.card{position:relative;border-radius:9px;min-height:150px;padding:9px 10px;display:flex;flex-direction:column;gap:4px;border:1px dashed var(--line);background:var(--slot);color:var(--muted);min-width:0}
+.card .top{display:flex;justify-content:space-between;align-items:center;font:500 .72rem var(--mono)}
+.card .nm{font:600 .86rem/1.2 var(--display);overflow-wrap:anywhere}
+.card .rr{font:500 .66rem var(--mono);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:5px}
+.card .rr i{width:7px;height:7px;border-radius:50%;background:var(--r);flex:none}
+.card .ft{margin-top:auto;display:flex;justify-content:space-between;align-items:end;font:500 .72rem var(--mono)}
+.card.have{border:1px solid var(--c);background:linear-gradient(160deg,var(--c) 0 38%,var(--surface) 38%);color:var(--ink)}
+.card.have .top{color:#fff}
+.card.have .nm{margin-top:22px}
+.card.extra:not(.have){border-style:dotted}
+.card .val{font-weight:600;color:var(--ink)}
+.card.have .rr{color:var(--muted)}
+.cnt{background:var(--ink);color:var(--surface);border-radius:4px;padding:0 5px}
+.card.locked{opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.panel h3{font-size:1rem;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:500 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);user-select:none}
+th.sort{cursor:pointer}th.sort:hover,th.sort:focus-visible{color:var(--ink);outline:none}
+th.active::after{content:" ↓"}th.active.asc::after{content:" ↑"}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.me td{background:var(--me);font-weight:600}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.bar{display:inline-block;height:6px;border-radius:3px;background:var(--accent);vertical-align:middle;margin-right:8px;opacity:.8}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+.card-tag{display:inline-flex;align-items:center;gap:6px}
+.card-tag i{width:8px;height:8px;border-radius:50%;background:var(--r);flex:none}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);margin-right:6px;vertical-align:middle}
+.list .row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.list .row:last-child{border-bottom:0}
+.list .row span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--line);margin-bottom:-12px}
+.tabs button{font:600 .92rem var(--body);color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px;cursor:pointer}
+.tabs button:hover{color:var(--ink)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab{display:grid;gap:36px}
+.src{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;margin:2px 4px 2px 0;border-radius:999px;border:1px solid var(--line);font-size:.8rem;white-space:nowrap}
+.src.sell{border-color:var(--good);color:var(--good)}
+.pill{font:600 .7rem var(--mono);letter-spacing:.04em;padding:1px 7px;border-radius:4px;border:1px solid currentColor;text-transform:uppercase}
+.chips{white-space:normal;min-width:120px;max-width:340px}
+.chips span{display:inline-block;font:.74rem var(--mono);padding:0 5px;margin:1px 2px;border-radius:3px;background:var(--slot)}
+footer{font-size:.78rem;color:var(--muted)}
+@media (max-width:760px){
+  .cols{grid-template-columns:1fr}
+  header .meta{text-align:left}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div style="display:grid;gap:10px">
+      <span class="eyebrow">Bazaar · Cromos de Madrid</span>
+      <h1>Álbum del Team 18</h1>
+    </div>
+    <div class="meta">
+      <span class="chip"><span class="dot" id="dot"></span><span id="when"></span></span>
+      <span class="eyebrow" id="clock"></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="stats" id="stats"></div>
+    <div class="breakdown" id="breakdown" style="margin-top:12px"></div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" id="t-equipo" data-tab="equipo">Nuestro equipo</button>
+    <button type="button" role="tab" id="t-oportunidades" data-tab="oportunidades">Oportunidades</button>
+    <button type="button" role="tab" id="t-rivales" data-tab="rivales">Mercado y rivales</button>
+  </nav>
+
+  <div class="tab" id="tab-equipo">
+  <section>
+    <div class="section-head">
+      <h2>Nuestro álbum</h2>
+      <p>Cada barrio tiene 10 cromos de página más la épica (11) y la legendaria (12), que no cuentan para la página. Los cromos en color son los que tenemos, con el valor de nuestra mejor copia; los grises nos faltan. La etiqueta junto a cada barrio es nuestra afinidad privada.</p>
+    </div>
+    <div class="album" id="album"></div>
+    <div class="legend" id="legend" style="margin-top:12px"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Nuestras cartas</h2>
+      <p>Todo lo que tenemos ahora mismo, ordenado por valor. El valor es marginal: la 1.ª copia vale catálogo × afinidad, la 2.ª el 25 % y la 3.ª el 10 %.</p>
+    </div>
+    <div class="tablewrap">
+      <table id="mine">
+        <thead><tr><th>Carta</th><th>Nombre</th><th>Barrio</th><th>Rareza</th><th class="n">N.º serie</th><th class="n">Acuñadas</th><th class="n">Valor</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cols">
+    <div class="panel">
+      <h3>Repetidas (candidatas a vender)</h3>
+      <div class="list" id="dups"></div>
+    </div>
+    <div class="panel">
+      <h3>Nos faltan (páginas abiertas)</h3>
+      <div class="list" id="missing"></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab" id="tab-oportunidades" hidden>
+  <section>
+    <div class="section-head">
+      <h2>Nosotros contra cada equipo</h2>
+      <p id="cmpnote"></p>
+    </div>
+    <div class="tablewrap">
+      <table id="cmp">
+        <thead><tr><th>Equipo</th><th class="n">Puntos</th><th class="n">Δ puntos</th><th class="n">Δ tratos</th><th class="n">Δ álbum</th><th class="n">Δ páginas</th><th class="n">Cobrado</th><th class="n">Pagado</th><th class="n">Neto</th><th>Sabemos que tiene</th><th>Busca</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Quién tiene lo que nos falta</h2>
+      <p>Cartas de página que nos faltan en barrios abiertos: primero las que alguien vende o tiene, y dentro de eso los barrios donde estamos más cerca de completar. «Valor» es lo que nos sumaría una copia según /api/me/value.</p>
+    </div>
+    <div class="tablewrap">
+      <table id="need">
+        <thead><tr><th>Carta</th><th>Barrio</th><th class="n">Valor para nosotros</th><th>Dónde conseguirla</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Cartas nuestras que otros buscan</h2>
+      <p>Pujas de otros equipos por cartas que tenemos, señal de que les faltan para su álbum. «Ahora» es una puja abierta en El Rastro; el resto son pujas anteriores. Vender la única copia de una página completa nos la rompe.</p>
+    </div>
+    <div class="tablewrap">
+      <table id="sellto">
+        <thead><tr><th>Equipo</th><th>Carta</th><th class="n">Puja</th><th class="n">Nos vale</th><th class="n">Diferencia</th><th class="n">Copias</th><th>Estado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab" id="tab-rivales" hidden>
+  <section>
+    <div class="section-head">
+      <h2>Todos los equipos</h2>
+      <p>Clasificación pública (se refresca cada 5 ticks). El dinero y las cartas de los rivales son privados; aquí está todo lo que el juego publica de ellos. Pulsa una columna para ordenar.</p>
+    </div>
+    <div class="tablewrap">
+      <table id="lb">
+        <thead><tr>
+          <th class="sort n" data-k="rank" tabindex="0">#</th>
+          <th class="sort" data-k="name" tabindex="0">Equipo</th>
+          <th class="sort n active" data-k="score" tabindex="0">Puntos</th>
+          <th class="sort n" data-k="deals" tabindex="0">Tratos</th>
+          <th class="sort n" data-k="album_filled" tabindex="0">Álbum</th>
+          <th class="sort n" data-k="pages_complete" tabindex="0">Páginas</th>
+          <th class="sort n" data-k="luck" tabindex="0">Suerte</th>
+          <th class="sort n" data-k="moved" tabindex="0">Tratos recientes</th>
+          <th class="sort n" data-k="listings" tabindex="0">Ofertas en El Rastro</th>
+          <th class="sort" data-k="rarest" tabindex="0">Carta más rara</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>El Rastro ahora</h2>
+      <p>Ofertas abiertas en el tablón público. El tablón oculta a quien publica tras un seudónimo; cuando el feed revela el equipo real lo mostramos. «Nos falta» marca cartas que completarían una página nuestra.</p>
+    </div>
+    <div class="tablewrap">
+      <table id="board">
+        <thead><tr><th>Quién</th><th>Tipo</th><th>Carta</th><th>Barrio</th><th class="n">Precio</th><th class="n">Caduca</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Últimos tratos</h2>
+      <p id="movesnote"></p>
+    </div>
+    <div class="tablewrap">
+      <table id="moves">
+        <thead><tr><th class="n">Tick</th><th>De</th><th>A</th><th>Cartas</th><th class="n">Precio</th><th>Dónde</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const EMBED = __DATA__;  // null when served by run_dashboard.py: then data.json is polled
+const REFRESH_MS = 30000;
+const $ = id => document.getElementById(id);
+const RL = {common:"Común", uncommon:"Infrecuente", rare:"Rara", epic:"Épica", legendary:"Legendaria"};
+const fmt = (n, d=0) => n == null ? "–" : Number(n).toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const DAY = {fri:"viernes", sat:"sábado", sun:"domingo"};
+const relLabel = r => { const m = /^(\w+)\+/.exec(r); return m && DAY[m[1]] ? `Sale el ${DAY[m[1]]}` : `Sale ${r}`; };
+let sortK = "score", asc = false, renderLB = () => {};
+
+function render(D){
+const me = D.me, sc = me.score, cat = D.cat, lb = D.lb;
+const RAR = cat.rarities, SYM = cat.currency_symbol;
+const sets = cat.sets, setBy = Object.fromEntries(sets.map(s => [s.id, s]));
+const cardIdx = {}; sets.forEach(s => s.cards.forEach(c => cardIdx[c.id] = {...c, set: s.id}));
+$("clock").textContent = `Ronda ${D.clock.round} · ticks de ${me.tick_seconds} s`;
+
+const nTeams = lb.teams.length;
+const cards = me.assets.filter(a => a.kind === "card");
+const stats = [
+  ["cash", "Dinero", `${fmt(me.cash)}<small>${SYM}</small>`, `${cat.currency} en caja`],
+  ["", "Puntuación", fmt(sc.score,2), `Puesto ${sc.rank} de ${nTeams}`],
+  ["", "Valor colección", `${fmt(me.collection_value,1)}<small>${SYM}</small>`, `${cards.length} cartas`],
+  ["", "Álbum", `${sc.album_filled}<small>/ ${sc.album_slots}</small>`, `${sc.pages_complete} página${sc.pages_complete === 1 ? "" : "s"} completa${sc.pages_complete === 1 ? "" : "s"}`],
+  ["", "Tratos cerrados", fmt(sc.deals), `Nivel ${me.level} · desbloqueado: ${me.unlocked.join(", ")}`],
+];
+$("stats").innerHTML = stats.map(([c,l,v,s]) => `<div class="stat ${c}"><span class="eyebrow">${l}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join("");
+
+const bd = [["Negociación", sc.negotiating], ["Mercado", sc.market], ["Puntos neg.", sc.neg_points], ["Duelos", sc.duel_points], ["Escalera", sc.ladder_points], ["Creador de mercado", sc.mm_points], ["Suerte", sc.luck], ["Suerte (privada)", sc.luck_private]];
+$("breakdown").innerHTML = bd.map(([k,v]) => `<span class="chip">${k} <b>${fmt(v, v && Math.abs(v) < 1 ? 3 : (Number.isInteger(v) ? 0 : 2))}</b></span>`).join("");
+
+const held = {};
+cards.forEach(a => (held[a.ref] ??= []).push(a));
+const pages = Object.fromEntries(me.album.pages.map(p => [p.set, p]));
+
+$("album").innerHTML = sets.map(s => {
+  const aff = me.affinity[s.id];
+  const affCls = aff > 1 ? "hi" : aff < 1 ? "lo" : "";
+  const p = pages[s.id];
+  const have = p ? p.have : 0;
+  const status = !s.released ? relLabel(s.release) : `${have} / 10 en la página`;
+  const tiles = s.cards.map(c => {
+    const h = held[c.id] || [];
+    const val = h.length ? Math.max(...h.map(a => a.your_value)) : null;
+    const foot = h.length
+      ? `<span class="val">${fmt(val,1)} ${SYM}</span>${h.length > 1 ? `<span class="cnt">×${h.length}</span>` : `<span>#${h[0].serial}</span>`}`
+      : `<span>${c.minted} acuñadas</span>`;
+    return `<div class="card ${h.length ? "have" : ""} ${c.page ? "" : "extra"} ${s.released ? "" : "locked"}" style="--r:${RAR[c.rarity].color}" title="${esc(c.id + " · " + c.name)}">
+      <div class="top"><span>${c.id}</span>${h.length ? "<span>✓</span>" : ""}</div>
+      <div class="nm">${esc(c.name)}</div>
+      <div class="rr"><i></i>${RL[c.rarity]}</div>
+      <div class="ft">${foot}</div>
+    </div>`;
+  }).join("");
+  return `<div class="set ${p && p.complete ? "complete" : ""}" style="--c:${s.color}">
+    <div class="set-head">
+      <h3><span class="swatch"></span>${esc(s.name)}</h3>
+      <span class="aff ${affCls}" title="Afinidad privada">×${aff}</span>
+      <span class="sub">${s.id} · ${status}</span>
+      ${s.released ? `<span class="progress"><b style="width:${have*10}%"></b></span>` : ""}
+      ${p && p.complete ? `<span class="done">Página completa${p.master ? " · máster" : ""}</span>` : ""}
+    </div>
+    <div class="cards">${tiles}</div>
+  </div>`;
+}).join("");
+$("legend").innerHTML = Object.entries(RAR).map(([k,r]) => `<span><i style="background:${r.color}"></i>${RL[k]} · catálogo ${r.book}</span>`).join("") + `<span>Borde punteado = fuera de la página</span>`;
+
+$("mine").querySelector("tbody").innerHTML = [...cards].sort((a,b) => b.your_value - a.your_value).map(a => {
+  const s = setBy[a.set], c = cardIdx[a.ref] || {};
+  return `<tr>
+    <td class="mono">${a.ref}</td>
+    <td><span class="card-tag" style="--r:${RAR[a.rarity].color}"><i></i>${esc(a.name)}</span></td>
+    <td><span class="sw" style="--c:${s.color}"></span>${esc(s.name)}</td>
+    <td>${RL[a.rarity]}</td>
+    <td class="n">#${a.serial} / ${a.print_run}</td>
+    <td class="n">${c.minted ?? "–"}</td>
+    <td class="n"><b>${fmt(a.your_value,1)} ${SYM}</b></td>
+  </tr>`;
+}).join("");
+
+const dups = Object.entries(held).filter(([,h]) => h.length > 1);
+$("dups").innerHTML = dups.length ? dups.map(([ref,h]) => {
+  const spare = h.map(a => a.your_value).sort((a,b) => a-b).slice(0, h.length-1).reduce((x,y) => x+y, 0);
+  return `<div class="row"><span>${ref} · ${esc(h[0].name)} ×${h.length}</span><span class="mono">${fmt(spare,1)} ${SYM} sobrantes</span></div>`;
+}).join("") : `<div class="row"><span>No tenemos repetidas</span></div>`;
+
+const miss = [];
+sets.filter(s => s.released && !(pages[s.id] && pages[s.id].complete)).forEach(s => s.cards.filter(c => c.page && !held[c.id]).forEach(c => miss.push(c)));
+const est = c => c.book * me.affinity[cardIdx[c.id].set];
+miss.sort((a,b) => est(b) - est(a));
+$("missing").innerHTML = miss.slice(0, 8).map(c => `<div class="row"><span class="card-tag" style="--r:${RAR[c.rarity].color}"><i></i>${c.id} · ${esc(c.name)}</span><span class="mono">≈${fmt(est(c),1)} ${SYM}</span></div>`).join("") + `<div class="row"><span style="color:var(--muted)">${miss.length} en total · ≈ catálogo × afinidad</span></div>`;
+
+
+const TM = Object.fromEntries(lb.teams.map(t => [t.team, t.name]));
+const who = id => id === me.id ? "<b>Nosotros</b>" : TM[id] ? esc(TM[id]) : PN[id] ? esc(PN[id]) : `<span class="mono" style="color:var(--muted)">${esc(id)}</span>`;
+const PN = {abuela: "Abuela Carmen", chato: "El Chato"};
+lb.teams.forEach(t => {
+  t.moved = D.moves.filter(m => m.parties.includes(t.team)).length;
+  t.listings = D.board.filter(o => o.team === t.team).length;
+});
+const missingSet = new Set(miss.map(c => c.id));
+const cardCell = ref => { const c = cardIdx[ref]; return c ? `<span class="card-tag" style="--r:${RAR[c.rarity].color}"><i></i>${ref} · ${esc(c.name)}</span>` : esc(ref); };
+$("board").querySelector("tbody").innerHTML = D.board.length ? D.board.map(o => {
+  const c = cardIdx[o.ref] || {}, s = setBy[c.set];
+  const tag = o.side === "vende" && missingSet.has(o.ref) ? `<span class="done">Nos falta</span>` : (o.side === "compra" && held[o.ref] ? `<span class="done" style="color:var(--accent)">La tenemos</span>` : "");
+  return `<tr class="${o.team === me.id ? "me" : ""}">
+    <td>${o.team ? who(o.team) : `<span class="mono" style="color:var(--muted)">${esc(o.maker)}</span>`}</td>
+    <td>${o.side === "vende" ? "Vende" : "Compra"}</td>
+    <td>${cardCell(o.ref)}</td>
+    <td>${s ? `<span class="sw" style="--c:${s.color}"></span>${esc(s.name)}` : "–"}</td>
+    <td class="n">${fmt(o.price)} ${SYM}</td>
+    <td class="n">tick ${o.expires}</td>
+    <td>${tag}</td></tr>`;
+}).join("") : `<tr><td colspan="7">No hay ofertas abiertas</td></tr>`;
+
+$("movesnote").textContent = `Cada intercambio liquidado en el feed público (ticks ${D.feedFrom}–${D.feedTo}; el feed solo guarda los últimos 500 eventos). Incluye tratos entre equipos y con vendedores.`;
+$("moves").querySelector("tbody").innerHTML = D.moves.slice().reverse().map(m => `<tr class="${m.parties.includes(me.id) ? "me" : ""}">
+  <td class="n">${m.tick}</td><td>${who(m.from)}</td><td>${who(m.to)}</td>
+  <td style="white-space:normal">${m.cards.map(cardCell).join(" ") || "–"}</td>
+  <td class="n">${m.price != null ? fmt(m.price) + " " + SYM : "–"}</td>
+  <td>${m.persona ? esc(PN[m.persona] || m.persona) : esc(m.venue || "–")}</td></tr>`).join("");
+
+const maxScore = Math.max(...lb.teams.map(t => t.score)) || 1;
+renderLB = function(){
+  const rows = [...lb.teams].sort((a,b) => {
+    let x = a[sortK], y = b[sortK];
+    if (sortK === "rarest") { x = a.rarest ? RAR[a.rarest.rarity].book : 0; y = b.rarest ? RAR[b.rarest.rarity].book : 0; }
+    if (typeof x === "string") return asc ? x.localeCompare(y) : y.localeCompare(x);
+    return asc ? x - y : y - x;
+  });
+  document.querySelector("#lb tbody").innerHTML = rows.map(t => {
+    const r = t.rarest, rr = r && RAR[r.rarity];
+    return `<tr class="${t.team === me.id ? "me" : ""}">
+      <td class="n">${t.rank}</td>
+      <td>${esc(t.name)} <span class="mono" style="color:var(--muted);font-weight:400">${t.team}</span></td>
+      <td class="n"><span class="bar" style="width:${Math.round(60*t.score/maxScore)}px"></span>${fmt(t.score,2)}</td>
+      <td class="n">${t.deals}</td>
+      <td class="n">${t.album_filled}/${t.album_slots}</td>
+      <td class="n">${t.pages_complete}</td>
+      <td class="n ${t.luck > 0 ? "pos" : t.luck < 0 ? "neg" : ""}">${t.luck > 0 ? "+" : ""}${fmt(t.luck,1)}</td>
+      <td class="n">${t.moved}</td>
+      <td class="n">${t.listings}</td>
+      <td>${r ? `<span class="card-tag" style="--r:${rr.color}" title="${RL[r.rarity]} · tirada ${r.print_run}"><i></i>${r.ref} #${r.serial} · ${esc(r.name)}</span>` : "–"}</td>
+    </tr>`;
+  }).join("");
+  document.querySelectorAll("#lb th.sort").forEach(th => { th.classList.toggle("active", th.dataset.k === sortK); th.classList.toggle("asc", th.dataset.k === sortK && asc); });
+}
+renderOpp(D, {me, cardIdx, setBy, who, cardCell, SYM});
+renderLB();
+$("foot").textContent = `Datos de /api/me (tick ${me.tick}) y de la clasificación pública (tick ${lb.tick}), ${DAY[D.clock.today] || D.clock.today_name}. Las puertas cierran a las ${D.clock.closes.slice(11,16)}; el ${DAY[D.clock.days[1].day]} abre a las ${D.clock.next_opens.slice(11,16)} con ticks de ${D.clock.days[1].tick_seconds} s.`;
+}
+
+document.querySelectorAll("#lb th.sort").forEach(th => {
+  const go = () => { const k = th.dataset.k; if (k === sortK) asc = !asc; else { sortK = k; asc = (k === "rank" || k === "name"); } renderLB(); };
+  th.addEventListener("click", go);
+  th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+});
+
+function renderOpp(D, x){
+  const {me, cardIdx, setBy, who, cardCell, SYM} = x, I = D.intel;
+  const us = c => c.team === me.id;
+  const sign = (v, d=0) => `<span class="${v > 0 ? "neg" : v < 0 ? "pos" : ""}">${v > 0 ? "+" : ""}${fmt(v, d)}</span>`;
+  $("cmpnote").textContent = `El dinero y las cartas de los rivales son privados. «Cobrado» y «Pagado» es lo que vimos en el feed desde el tick ${I.since_tick} (${I.events} eventos guardados); «Sabemos que tiene» son cartas que recibió en un trato o que vende ahora. Nuestro dinero en caja: ${fmt(me.cash)} ${SYM}. Δ es el rival menos nosotros: en rojo, nos saca ventaja.`;
+  $("cmp").querySelector("tbody").innerHTML = I.compare.map(c => `<tr class="${us(c) ? "me" : ""}">
+    <td>${us(c) ? "<b>Nosotros</b>" : esc(c.name)} <span class="mono" style="color:var(--muted);font-weight:400">${c.team} · #${c.rank}</span></td>
+    <td class="n">${fmt(c.score,2)}</td>
+    <td class="n">${us(c) ? "–" : sign(c.d_score,2)}</td>
+    <td class="n">${us(c) ? "–" : sign(c.d_deals)}</td>
+    <td class="n">${us(c) ? "–" : sign(c.d_album)}</td>
+    <td class="n">${us(c) ? "–" : sign(c.d_pages)}</td>
+    <td class="n">${fmt(c.cash_in)}</td><td class="n">${fmt(c.cash_out)}</td>
+    <td class="n">${c.cash_in - c.cash_out > 0 ? "+" : ""}${fmt(c.cash_in - c.cash_out)}</td>
+    <td class="chips">${us(c) ? "–" : c.known.map(r => `<span>${r}</span>`).join("") || "–"}</td>
+    <td class="chips">${us(c) ? "–" : c.wants.map(r => `<span>${r}</span>`).join("") || "–"}</td></tr>`).join("");
+
+  $("need").querySelector("tbody").innerHTML = I.missing.map(m => {
+    const s = setBy[m.set];
+    const src = m.sources.length ? m.sources.map(o => o.kind === "vende"
+      ? `<span class="src sell">${o.team ? who(o.team) : esc(o.maker)} vende a ${fmt(o.price)} ${SYM}</span>`
+      : `<span class="src" title="${esc(o.how)} · tick ${o.tick}">${who(o.team)} la tiene</span>`).join("")
+      : `<span style="color:var(--muted)">Nadie a la vista · ${m.minted} acuñadas</span>`;
+    return `<tr><td>${cardCell(m.ref)}</td>
+      <td><span class="sw" style="--c:${s.color}"></span>${esc(s.name)} <span class="mono" style="color:var(--muted)">${m.set_have}/10</span></td>
+      <td class="n"><b>${fmt(m.value,1)} ${SYM}</b></td>
+      <td style="white-space:normal">${src}</td></tr>`;
+  }).join("") || `<tr><td colspan="4">No nos falta nada en los barrios abiertos</td></tr>`;
+
+  $("sellto").querySelector("tbody").innerHTML = I.sell_to.map(r => `<tr>
+    <td>${who(r.team)}</td><td>${cardCell(r.ref)}</td>
+    <td class="n">${fmt(r.price)} ${SYM}</td><td class="n">${fmt(r.our_value,1)} ${SYM}</td>
+    <td class="n ${r.gain > 0 ? "pos" : "neg"}">${r.gain > 0 ? "+" : ""}${fmt(r.gain,1)}</td>
+    <td class="n">${r.copies}</td>
+    <td>${r.now ? `<span class="pill" style="color:var(--good)">Ahora</span>` : `<span class="pill" style="color:var(--muted)">Tick ${r.tick}</span>`}${r.breaks_page ? ` <span class="pill" style="color:var(--bad)">Rompe página</span>` : ""}</td></tr>`).join("")
+    || `<tr><td colspan="7">Nadie ha pujado por cartas que tengamos</td></tr>`;
+}
+
+const TABS = ["equipo", "oportunidades", "rivales"];
+function showTab(name){
+  if (!TABS.includes(name)) name = "equipo";
+  TABS.forEach(t => { $("tab-" + t).hidden = t !== name; $("t-" + t).setAttribute("aria-selected", t === name); });
+  try { localStorage.setItem("tab", name); } catch (e) {}
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+let firstTab = location.hash.slice(1);
+if (!firstTab) { try { firstTab = localStorage.getItem("tab"); } catch (e) {} }
+showTab(firstTab);
+
+const hhmmss = s => new Date(s * 1000).toLocaleTimeString("es-ES");
+async function live(){
+  try {
+    const r = await fetch("data.json?_=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const D = await r.json();
+    render(D);
+    const age = Date.now() / 1000 - D.fetched_at;
+    $("dot").style.background = age > 90 ? "var(--bad)" : "var(--good)";
+    $("when").textContent = age > 90
+      ? `Sin datos nuevos desde ${hhmmss(D.fetched_at)} · tick ${D.me.tick}`
+      : `En directo · tick ${D.me.tick} · ${hhmmss(D.fetched_at)}`;
+  } catch (e) {
+    $("dot").style.background = "var(--bad)";
+    $("when").textContent = `No llega data.json (${e.message}); reintento en 30 s`;
+  }
+  setTimeout(live, REFRESH_MS);
+}
+
+if (EMBED) { render(EMBED); $("when").textContent = `Foto · tick ${EMBED.me.tick}`; }
+else live();
+</script>

@@ -17,4 +17,19 @@ PROFILES = {
             "Es usted un encanto. ¿{p} P y cerramos con una sonrisa?",
         ],
     },
+    # PROVISIONAL until he opens: only the teaser is known ("Better packs, friendly prices. If I like you.").
+    # His price depends on how he feels about us, so open less hard than with Abuela, never trick or inject,
+    # never repeat a line without a new price. Re-tune from his traits and `python3 scout.py chato` once active.
+    "chato": {
+        "pack": {"anchor": 0.60, "limit": 0.80, "rounds": 6, "beta": 1.0},
+        "lines": [
+            "¡Buenas, Chato! Me han dicho que eres el más majo del Rastro. ¿Lo dejamos en {p} P?",
+            "Vengo recomendado por la Abuela Carmen. ¿Te parece bien {p} P?",
+            "Qué buen material tienes, de verdad. Te ofrezco {p} P.",
+            "Me gusta tratar contigo. Subo a {p} P, ¿hay trato?",
+            "Volveré a comprarte, palabra. ¿{p} P y amigos?",
+            "Hago un esfuerzo por ti: {p} P.",
+            "Venga, Chato, que somos de confianza: {p} P y cerramos.",
+        ],
+    },
 }

@@ -22,6 +22,14 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 ## 🆕 Nivel 2 anunciado: **El Chato**
 *«Better packs, friendly prices. If I like you.»* (`/api/levels`, tick 74, estado `announced`). Lo que podemos deducir de la frase: vende sobres mejores (¿plata/oro?) y su precio depende de cómo le tratemos. **Cuando se active**: `probe.py` + `levels()` → leer el `how` antes de tocar nada. Tenemos 3 tratos negociados con la Abuela (SAL-02, LAT-01, SAL-08), así que deberíamos tener acceso anticipado.
 
+**El scorer ya está preparado (tick 93):**
+- `python -m agent.scorer --watch 60` avisa en cuanto El Chato pasa de `announced` a `active` y cuando se nos abre.
+- Cada vendedor tiene su propio precio. Primero cuentan nuestros tratos con él, porque su precio depende de si le caemos bien; después los de todos los equipos y, por último, el `list_price` del menú. El día que abra no tendrá historial, así que lo valoramos con el menú.
+- Solo los vendedores de `me.unlocked` fijan `buy_at` y `sell_at`. Un vendedor bloqueado sale como `(locked)` en la tabla de sobres.
+- Los sobres que nadie vende todavía (bienvenida, plata, oro) ya tienen su valor esperado para nosotros. Cuando se agota una rareza, el sobre da la inferior (las épicas solo tienen 9 copias y las legendarias 3). En el tick 93, para nosotros: plata ≈ 95 P y oro ≈ 286 P.
+- La tabla de la escalera cuenta los tratos negociados a partir de nuestros hilos. Un trato al precio de salida no cuenta: el primer sobre a 17 P no contó. Llevamos 3 de 4.
+- `agent/dealers.py["chato"]` es **provisional**: primera oferta al 60 % y límite al 80 %, en tono amable. Hay que reajustarlo con sus `traits` y `scout.py chato`.
+
 ## 🎯 Tácticas que funcionan (con evidencia)
 | Táctica | Herramienta | Evidencia |
 |---|---|---|
