@@ -6,12 +6,14 @@
     python3 run_dealer.py abuela --sell 123 --anchor 20 --limit 13   # sell asset 123, never below 13
 """
 import argparse
+import sqlite3
 
 from bazaar_sdk import BazaarError
 from agent.client import client
 from agent.dealers import PROFILES
 from agent.haggle import haggle
 from agent.journal import log
+from agent.information import DEFAULT_STATE, get_context, record_result
 
 p = argparse.ArgumentParser()
 p.add_argument("dealer")
@@ -22,6 +24,8 @@ p.add_argument("--sell", type=int, help="sell one of our assets (asset id) inste
 p.add_argument("--anchor", type=int, help="first price (overrides the profile)")
 p.add_argument("--limit", type=int, help="worst price we accept (overrides the profile)")
 p.add_argument("--rounds", type=int, help="rounds from anchor to limit (fewer = bigger steps)")
+p.add_argument("--information", nargs="?", const=str(DEFAULT_STATE),
+               help="read collector context and remember confirmed results (optional state path)")
 a = p.parse_args()
 
 b = client()
@@ -44,10 +48,23 @@ if not isinstance(cfg["anchor"], int) or not isinstance(cfg["limit"], int):
 SCORE_KEYS = ("score", "negotiating", "ladder_points", "duel_points", "neg_points", "deals", "rank")
 for i in range(1 if a.sell else a.n):
     me = b.me()
+    if a.information:
+        context = get_context(a.information, reserve_cash=cfg.get('reserve_cash', 0))
+        log(a.dealer, event='information_before', context=context)
+        print(f"  collector ready={context['ready']} · actions={context['actions']}")
     before = {k: me["score"].get(k) for k in SCORE_KEYS}
     print(f"\n== {i + 1}/{a.n} · cash {me['cash']} P · score {before}")
     try:
         r = haggle(b, a.dealer, topic, buying=buying, lines=prof["lines"], **cfg)
+        if a.information:
+            item = (next((x['ref'] for x in me['assets'] if x['id'] == a.sell), None)
+                    if a.sell else a.card or a.pack)
+            try:
+                record_result(a.information, team=me.get('id') or me.get('team'),
+                              dealer=a.dealer, item=item, buying=buying, result=r)
+            except (OSError, sqlite3.Error) as error:
+                log(a.dealer, event='information_memory_error', error=type(error).__name__)
+            log(a.dealer, event='information_after', context=get_context(a.information))
         b.wait_tick()  # the score updates once the deal has settled
         after = {k: b.me()["score"].get(k) for k in SCORE_KEYS}
         print(f"  score -> {after}")  # measure what each deal is worth: this is how we learn the ladder formula

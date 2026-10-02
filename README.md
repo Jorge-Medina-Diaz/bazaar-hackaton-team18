@@ -1,5 +1,15 @@
 # Bazaar SDK for Python
 
+## Recolector de información para el agente y Claude
+
+Python estándar, cuatro GET cada **5 segundos**, memoria persistente de tratos confirmados y contexto local sin llamadas a modelos. Arranque en una terminal del equipo, con `BAZAAR_KEY` ya configurada:
+
+```bash
+python3 collect_info.py
+```
+
+Consulta instantánea: `python3 collect_info.py --context`. Claude Code detecta el servidor compartido `.mcp.json`; al habilitar `bazaar-info`, la herramienta `bazaar_context` lee ese mismo contexto. Para registrar resultados del negociador, añadir `--information` a su comando habitual. [Uso, tiempos y límites](docs/information.md).
+
 ## Panel de cartas con consultas cada 5 segundos
 
 **URL para el equipo:** [Mesa de cartas](https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site).

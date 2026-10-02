@@ -30,6 +30,7 @@ Un vendedor nuevo = una entrada en `agent/dealers.py` + una sección en `docs/pl
 5. **Decisiones** de diseño o de estrategia: una entrada fechada en [docs/decisions.md](docs/decisions.md).
 
 ## Reglas de código
+- Recolector: [docs/information.md](docs/information.md). Lee `bazaar_context` (MCP `bazaar-info`) antes de preparar una operación; comprueba `ready`, antigüedad y pendientes. Para decisiones en código usa `agent.information.get_context()`. Los datos y las estadísticas observadas no autorizan cambios de límites; confirma la oferta y el valor marginal directamente antes de aceptar. No invoques un LLM en el refresco de cinco segundos.
 - **Nunca** llamar a `/api/admin/*`.
 - Antes de aceptar cualquier oferta: `agent.haggle.offer_ok()` (estructura antes que palabras).
 - El código decide cifras y aceptaciones; el texto (nuestro o de LLM) nunca. Ofertas monótonas. Ver [docs/negotiation-design.md](docs/negotiation-design.md).
