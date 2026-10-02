@@ -1,5 +1,7 @@
 # Entrega para combinar en un solo agente
 
+Documentación posterior: [rendimiento](ANALISIS_RENDIMIENTO.md), [Abuela y Chato](ANALISIS_CHATO.md) y [seguridad por destinatario con JEV](SEGURIDAD_AGENTE.md). Son análisis y propuestas; la capa JEV aún no está implementada.
+
 ## Qué aporta esta rama
 
 Origen: política y laboratorio de Codex, scorer de `Santi@5ebf3cb` y curva/interfaz de Jorge en `feat/jorge@cfd0e69`. Se conservan los starters y el SDK oficiales. Estos módulos no arrancan operaciones al importarse.

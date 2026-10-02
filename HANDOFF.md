@@ -1,5 +1,22 @@
 # Traspaso del equipo — 2026-10-02
 
+## Entrega del análisis de Chato y propuestas de seguridad
+
+- Rubén autorizó subir el análisis completo y pidió ideas de seguridad según comportamiento y destinatario, por ejemplo JEV. Se hizo `git pull --ff-only`: ya actualizado; se conservó el apunte local previo.
+- Añadidos `ANALISIS_CHATO.md` y `SEGURIDAD_AGENTE.md`: evidencia histórica frente a hipótesis, política de información por rol, controles económicos/identidad en código, preguntas semánticas JEV, manejo de incertidumbre/fallos, presupuesto de consultas y puntos concretos de integración.
+- Aplicada skill `typesafe-ai`; consultadas documentación oficial de Noul, estado, confianza y cookbook de guardrails. JEV no está integrado ni se hicieron llamadas a TypeSafe; tampoco se enviaron conversaciones a ese servicio. No se modificaron módulos de agente ni se lanzaron operaciones de juego.
+- README e INTEGRACION_JORGE enlazan los documentos. ANALISIS_RENDIMIENTO señala que Rubén sustituyó el artefacto antiguo: no continuar su diagnóstico como tarea pendiente. Falta identificar el nuevo artefacto para consumir sus métricas.
+- Verificación de esta entrega documental: diff y enlaces relativos comprobados; no se requieren pruebas nuevas porque no hay cambios ejecutables. Se mantienen como antecedentes las seis pruebas previas del observador; no prueban una integración JEV.
+- Entrega en `codex/plan-negociacion` mediante commit y push autorizados. Siguiente paso: decidir la política de información, preparar casos etiquetados y conectar el control al único ejecutor antes de un nuevo piloto.
+
+## Evaluación de Chato tras la entrega
+
+- Rubén pidió una explicación breve de su comportamiento; solo se consultaron por GET su ficha oficial y la conversación 188. Sin nuevas negociaciones ni cambios del agente.
+- Ficha: memory 0,9; shrewdness y strictness 0,85; patience 0,35; generosity 0,25. Son rasgos publicados, no evidencia de tamaño de contexto, stacks o fórmula interna de memoria.
+- Conversación 188, LAT-06: nuestras ofertas 16, 19 y 22; sus ofertas estructuradas 33, 33, 33 y 32. Su texto reclamó una concesión más significativa; una conversación no prueba un umbral fijo ni que el tono causara los precios.
+- Reglas oficiales: la inyección puede modificar lo que dicen los dealers, no sus precios. Propuesta a evaluar: mensajes cortos coherentes, techo privado, concesiones adaptadas al margen y salida cuando la oferta supere el límite económico. Con el valor previamente observado 22,5, una compra por 32 no sería rentable por valoración privada sola; distinguir ese objetivo de posibles puntos de ladder.
+- El apunte se incorpora ahora a la entrega documental autorizada, con explicación ampliada en `ANALISIS_CHATO.md`. La política nueva no se probó en vivo.
+
 ## Observación local de puntuación y clasificación
 
 - Durante el análisis previo solo se hicieron cambios locales. Rubén autorizó después organizar y subir este análisis a `codex/plan-negociacion`. Se hizo `git pull --ff-only`: ya actualizado. SDK y agentes de compañeros conservados; sin despliegues ni operaciones de juego.

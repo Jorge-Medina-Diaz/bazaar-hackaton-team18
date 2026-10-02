@@ -160,7 +160,7 @@ La entrega incluye 50 pruebas propias (17 anteriores y 33 del núcleo). El reche
 
 ## Observación de puntuación sin negociar
 
-El análisis de reglas, métricas observadas y estrategia de venta está en [ANALISIS_RENDIMIENTO.md](ANALISIS_RENDIMIENTO.md).
+El análisis de reglas, métricas observadas y estrategia de venta está en [ANALISIS_RENDIMIENTO.md](ANALISIS_RENDIMIENTO.md). La evaluación específica de dealers está en [ANALISIS_CHATO.md](ANALISIS_CHATO.md); las ideas de seguridad por destinatario y comportamiento, con JEV como evaluación semántica propuesta, en [SEGURIDAD_AGENTE.md](SEGURIDAD_AGENTE.md).
 
 `observe_performance.py` consume el estado del artefacto cada cinco segundos y registra solo cambios. Como el panel desplegado aún omite puntuación, consulta `/api/me` una vez por nuevo tick del panel; las métricas pueden retrasarse dentro del tick. No llama a modelos ni envía órdenes al juego. La autenticación al propio panel es su único POST.
 
