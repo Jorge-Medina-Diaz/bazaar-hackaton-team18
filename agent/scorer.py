@@ -11,9 +11,11 @@ neutral team (every multiplier 1.0).
 
 Three prices per card, all in primas:
   ours    what one more copy is worth to us (next) and what giving one away costs us (keep)
-  market  buy_at: the cheapest way to get one now (board ask + fee, or Abuela's typical fill)
-          sell_at: the best way to cash one now (board bid - fee, or Abuela's typical bid)
+  market  buy_at: the cheapest way to get one now (board ask + fee, or the cheapest open dealer's typical fill)
+          sell_at: the best way to cash one now (board bid - fee, or the best-paying open dealer's typical bid)
           mv: the clearing estimate (team fills > board mid > dealer fills > book)
+  dealers each priced on its own: our fills with it > every team's > its menu list price (a dealer that just
+          opened, like El Chato, has no fills yet). Only dealers in /api/me `unlocked` set buy_at and sell_at.
   peers   what the card is worth to another team missing it: the six multipliers are the same for
           everyone, shuffled, so once we know ours we know the whole distribution of theirs
 
@@ -41,6 +43,7 @@ LOGS = ROOT / "logs"
 MULT_CACHE = LOGS / "multipliers.json"
 FILLS_LOG = LOGS / "fills.jsonl"
 PAGE_RARITIES = ("common", "uncommon", "rare")
+RARITY_ORDER = ("common", "uncommon", "rare", "epic", "legendary")
 RECENT = 8  # fills that count towards a median
 
 
@@ -57,6 +60,14 @@ def load_env() -> None:
 def median(xs, default=None):
     xs = [x for x in xs if x is not None]
     return statistics.median(xs) if xs else default
+
+
+def menu_covers(item: dict, card: dict, released: bool) -> bool:
+    """A menu line covers a card when the rarity matches and the card's set is on it ("released" or a list)."""
+    if item.get("rarity") != card["rarity"] or not released:
+        return False
+    sets = item.get("sets", "released")
+    return card["set"] in sets if isinstance(sets, list) else True
 
 
 def venue_fee(venue: dict | None, price: int, cards: int = 1) -> int:
@@ -79,6 +90,7 @@ class Snapshot:
         self.sets: dict[str, dict] = {}
         self.me: dict | None = None
         self.my_offer_ids: set[int] = set()
+        self.my_threads: list[dict] | None = None  # ours, complete (the public feed forgets old deals)
 
     def get(self, path: str, query: dict | None = None):
         return self.public._call("GET", path, query=query)
@@ -112,6 +124,10 @@ class Snapshot:
                                      if isinstance(o, dict) and o.get("maker") == self.me.get("team", self.me.get("id"))}
             except BazaarError:
                 pass
+            try:
+                self.my_threads = self.team.my_threads().get("threads", [])
+            except BazaarError:
+                self.my_threads = None
 
     def released(self, ref: str) -> bool:
         return bool(self.sets[self.cards[ref]["set"]].get("released"))
@@ -163,8 +179,9 @@ def merge_history(new: list[dict]) -> list[dict]:
 
 
 def dealer_quotes(events: list, cards: dict) -> dict:
-    """Dealer asks and bids by rarity from every team's haggling, with the final (walk-away) ones apart."""
-    q = defaultdict(lambda: {"open_ask": [], "final_ask": [], "final_bid": []})
+    """Dealer asks and bids from every team's haggling, keyed (dealer, rarity) for cards and (dealer, pack id)
+    for packs, with the opening and the final (walk-away) ones apart. Dealers price differently: never pool them."""
+    q = defaultdict(lambda: {"open_ask": [], "final_ask": [], "open_bid": [], "final_bid": []})
     first = set()
     for e in events:
         if e.get("type") != "thread.message":
@@ -173,21 +190,56 @@ def dealer_quotes(events: list, cards: dict) -> dict:
         o = p.get("offer") or {}
         if p.get("kind") != "persona" or p.get("sender") != p.get("with") or not o:
             continue
+        dealer, opening = p["with"], p["thread"] not in first
+        first.add(p["thread"])
         give, want = o.get("give") or {}, o.get("want") or {}
         if want.get("cash"):      # the dealer sells: "card:LAV-06" or "pack:sobre_barrio" in give.types
             t = ((give.get("types") or []) + [""])[0]
-            key = "pack" if t.startswith("pack:") else cards.get(t.removeprefix("card:"), {}).get("rarity")
+            key = t.removeprefix("pack:") if t.startswith("pack:") else cards.get(t.removeprefix("card:"), {}).get("rarity")
             if key:
-                if p["thread"] not in first:
-                    q[key]["open_ask"].append(want["cash"])
-                    first.add(p["thread"])
+                if opening:
+                    q[(dealer, key)]["open_ask"].append(want["cash"])
                 if o.get("final"):
-                    q[key]["final_ask"].append(want["cash"])
+                    q[(dealer, key)]["final_ask"].append(want["cash"])
         elif give.get("cash"):    # the dealer buys
-            item = (want.get("assets") or [{}])[0]
-            if item.get("rarity") and o.get("final"):
-                q[item["rarity"]]["final_bid"].append(give["cash"] / max(1, len(want.get("assets") or [1])))
+            assets = want.get("assets") or []
+            rarity = (assets or [{}])[0].get("rarity")
+            if rarity:
+                each = give["cash"] / len(assets)
+                if opening:
+                    q[(dealer, rarity)]["open_bid"].append(each)
+                if o.get("final"):
+                    q[(dealer, rarity)]["final_bid"].append(each)
     return q
+
+
+def thread_deal(t: dict, cards: dict) -> dict | None:
+    """One of our dealer threads that ended in a deal: side, item key (rarity, or pack id), the dealer's first
+    price and the settled one. Negotiated = settled away from that first price (the unlock rule: a deal at
+    the dealer's opening price does not count)."""
+    if t.get("kind") != "persona" or t.get("status") != "deal":
+        return None
+    dealer, topic = t["with"], t.get("topic") or {}
+    buy = topic.get("buy") or {}
+    side = "dealer_sells" if buy else "dealer_buys"
+    key = buy.get("pack") or cards.get(buy.get("card"), {}).get("rarity")
+    first = settled = None
+    for m in t.get("messages", []):
+        o = m.get("offer") or {}
+        cash = (o.get("want") or {}).get("cash") or (o.get("give") or {}).get("cash")
+        if not cash:
+            continue
+        if first is None and o.get("maker") == dealer:
+            first = cash
+        if o.get("status") == "settled":
+            settled = cash
+            if key is None:  # a sale: the card is in the offer
+                assets = (o.get("give") or {}).get("assets", []) + (o.get("want") or {}).get("assets", [])
+                key = next((a.get("rarity") for a in assets if a.get("rarity")), None)
+    if settled is None:
+        return None
+    return {"dealer": dealer, "side": side, "key": key, "first": first, "price": settled,
+            "negotiated": first is None or settled != first}
 
 
 def demand_from(events: list) -> dict[str, set]:
@@ -355,13 +407,24 @@ class Scorer:
         self.demand = demand_from(snap.events)
         self.by_ref = defaultdict(lambda: defaultdict(list))
         self.by_rarity = defaultdict(lambda: defaultdict(list))
+        me = snap.me or {}
+        self.team_id = me.get("id") or me.get("team")
+        # Dealers in play, and the ones we may trade with now (a new dealer opens to the teams that earned it
+        # first, to everyone after a head start). Without a key we price as if every dealer were open.
+        self.active = {d["id"]: d for d in snap.dealers if d.get("status") == "active" and d.get("enabled", True)}
+        self.can_trade = set(self.active) & set(me["unlocked"]) if "unlocked" in me else set(self.active)
+        # Fills per dealer, keyed (dealer, side, ref) and (dealer, side, rarity); ours apart, because some
+        # dealers price by how much they like you (El Chato: "friendly prices. If I like you.").
+        self.dfills, self.dfills_ours = defaultdict(list), defaultdict(list)
         for f in history:
             self.by_ref[f["ref"]][f["side"]].append(f["price"])
             self.by_rarity[f["rarity"]][f["side"]].append(f["price"])
-        self.dealer_sells = {r for d in snap.dealers if d.get("status") == "active"
-                             for item in d.get("menu", {}).get("sells", []) for r in [item.get("rarity")] if r}
-        self.dealer_buys = {r for d in snap.dealers if d.get("status") == "active"
-                            for item in d.get("menu", {}).get("buys", []) for r in [item.get("rarity")] if r}
+            if f.get("dealer"):
+                mine = self.team_id is not None and self.team_id in (f["buyer"], f["seller"])
+                for k in {f["ref"], f["rarity"]}:
+                    self.dfills[(f["dealer"], f["side"], k)].append(f["price"])
+                    if mine:
+                        self.dfills_ours[(f["dealer"], f["side"], k)].append(f["price"])
         self.asks, self.bids = defaultdict(list), defaultdict(list)
         for vid, offers in snap.boards.items():
             for o in offers:
@@ -380,13 +443,36 @@ class Scorer:
     def recent(self, xs):
         return median(xs[-RECENT:])
 
+    def menu_item(self, dealer: str, side: str, ref: str) -> dict | None:
+        """The line of a dealer's menu under which it sells ("dealer_sells") or buys this card or pack."""
+        menu = self.active[dealer].get("menu", {}).get("sells" if side == "dealer_sells" else "buys", [])
+        if ref in self.snap.cards:
+            c = self.snap.cards[ref]
+            return next((i for i in menu if menu_covers(i, c, self.snap.released(ref))), None)
+        return next((i for i in menu if i.get("pack") == ref), None)
+
+    def dealer_estimate(self, dealer: str, side: str, ref: str):
+        """What a deal with one dealer for this card or pack typically settles at, and where the number
+        comes from: our own fills, then every team's for the card, then for its rarity, then the menu's
+        list price (a dealer that just opened has no fills yet). Packs never fall back to a rarity."""
+        if self.menu_item(dealer, side, ref) is None:
+            return None, None
+        rarity = self.snap.cards[ref]["rarity"] if ref in self.snap.cards else None
+        for pool, label, need_ref in ((self.dfills_ours, "our fills", 1), (self.dfills, "fills", 2)):
+            for k, need in ((ref, need_ref), (rarity, 1)):
+                xs = pool.get((dealer, side, k), []) if k else []
+                if len(xs) >= need:
+                    return self.recent(xs), f"{dealer} {label}"
+        price = self.menu_item(dealer, side, ref).get("list_price")
+        return (price, f"{dealer} list") if price else (None, None)
+
     def dealer_price(self, ref: str, side: str):
-        rarity = self.snap.cards[ref]["rarity"]
-        menu = self.dealer_sells if side == "dealer_sells" else self.dealer_buys
-        if rarity not in menu or not self.snap.released(ref):
+        """The best dealer we can trade with now for this card: (price, dealer, source), or None."""
+        quotes = [(p, d, src) for d in sorted(self.can_trade) for p, src in [self.dealer_estimate(d, side, ref)]
+                  if p is not None]
+        if not quotes:
             return None
-        own = self.by_ref[ref][side]
-        return self.recent(own) if len(own) >= 2 else self.recent(self.by_rarity[rarity][side])
+        return min(quotes) if side == "dealer_sells" else max(quotes, key=lambda q: q[0])
 
     def card(self, ref: str) -> dict:
         c, v = self.snap.cards[ref], self.v
@@ -395,10 +481,10 @@ class Scorer:
         d_sell, d_buy = self.dealer_price(ref, "dealer_sells"), self.dealer_price(ref, "dealer_buys")
         buy_opts = [(ask["cost"], f"board #{ask['offer']}")] if ask else []
         if d_sell:
-            buy_opts.append((d_sell, "abuela"))
+            buy_opts.append(d_sell[:2])
         sell_opts = [(bid["net"], f"bid #{bid['offer']}")] if bid else []
         if d_buy:
-            sell_opts.append((d_buy, "abuela"))
+            sell_opts.append(d_buy[:2])
         buy_at, buy_via = min(buy_opts, default=(None, "no seller"))
         sell_at, sell_via = max(sell_opts, default=(None, "no buyer"))
         team = self.by_ref[ref]["team"]
@@ -407,7 +493,7 @@ class Scorer:
         elif ask and bid:
             mv, src = (ask["price"] + bid["price"]) / 2, "board mid"
         elif d_sell:
-            mv, src = d_sell, "abuela fills"
+            mv, src = d_sell[0], d_sell[2]
         else:
             mv, src = c["book"], "book"
         nxt, keep, peer = v.next_value(ref), v.keep_value(ref), v.peer(ref)
@@ -420,13 +506,13 @@ class Scorer:
             "sell_edge": None if (sell_at is None or not v.counts[ref]) else sell_at - keep,
             "demand": sorted(t for t in self.demand.get(ref, ()) if t), "released": self.snap.released(ref),
         }
-        row["ask"] = self.suggest_ask(row, d_sell)
+        row["ask"] = self.suggest_ask(row, d_sell[0] if d_sell else None)
         row["action"] = self.action(row)
         return row
 
     def suggest_ask(self, row: dict, dealer_price):
-        """Where to list a copy: near what the best-placed peer would pay, never above what the dealer
-        charges all-in (nobody pays a team more than Abuela), never below what the copy is worth to us."""
+        """Where to list a copy: near what the best-placed peer would pay, never above what the cheapest
+        dealer charges all-in (nobody pays a team more), never below what the copy is worth to us."""
         if not row["held"]:
             return None
         target = 0.85 * row["peer_top"] if row["peer_top"] else row["mv"]
@@ -446,26 +532,95 @@ class Scorer:
             return f"BUY via {r['buy_via']} (+{r['buy_edge']:.0f})"
         return ""
 
+    def pull_values(self) -> dict:
+        """What one pull of each rarity is worth to us: the mean next-copy value over released cards with
+        copies left to mint. A sold-out rarity gives the next one down (the rules), so epic and legendary
+        slots in the better packs lose value as their 9 and 3 copies per card get minted."""
+        left = {}
+        for rar in RARITY_ORDER:
+            vals = [self.v.next_value(r) for r, c in self.snap.cards.items()
+                    if c["rarity"] == rar and self.snap.released(r)
+                    and (c.get("minted") is None or c.get("print_run") is None or c["minted"] < c["print_run"])]
+            left[rar] = statistics.mean(vals) if vals else None
+        out, below = {}, 0.0
+        for rar in RARITY_ORDER:
+            below = left[rar] if left[rar] is not None else below
+            out[rar] = below
+        return out
+
     def pack_ev(self) -> list[dict]:
+        """One row per pack and seller (every active dealer that sells it, and teams), priced from the
+        dealer's fills or its list price. A pack with no seller yet is still scored, so the day a new dealer
+        brings it we already know what it is worth to us."""
         out = []
-        released = [r for r in self.snap.cards if self.snap.released(r)]
-        by_rarity = defaultdict(list)
-        for r in released:
-            by_rarity[self.snap.cards[r]["rarity"]].append(self.v.next_value(r))
-        fills = defaultdict(list)
+        pull = self.pull_values()
+        team_fills = defaultdict(list)
         for f in self.hist:
-            if f["kind"] == "pack":
-                fills[f["ref"]].append(f["price"])
-        on_sale = {item.get("pack") for d in self.snap.dealers if d.get("status") == "active"
-                   for item in d.get("menu", {}).get("sells", [])}
+            if f["kind"] == "pack" and not f.get("dealer"):
+                team_fills[f["ref"]].append(f["price"])
         for p in self.snap.catalog.get("packs", []):
-            if p["id"] not in on_sale and not fills[p["id"]]:
-                continue  # nobody sells it yet
-            ev = sum(prob * statistics.mean(by_rarity[rar]) for slot in p["slots"] for rar, prob in slot.items()
-                     if by_rarity.get(rar))
-            paid = self.recent(fills[p["id"]])
-            out.append({"pack": p["id"], "name": p["name"], "expected_book": p["expected_book"], "ev_to_us": ev,
-                        "typical_price": paid, "edge": None if paid is None else ev - paid})
+            ev = sum(prob * pull.get(rar, 0.0) for slot in p["slots"] for rar, prob in slot.items())
+            base = {"pack": p["id"], "name": p["name"], "expected_book": p["expected_book"], "ev_to_us": ev}
+            sellers = [(d, self.menu_item(d, "dealer_sells", p["id"])) for d in sorted(self.active)]
+            for d, item in sellers:
+                if item is None:
+                    continue
+                price, src = self.dealer_estimate(d, "dealer_sells", p["id"])
+                out.append({**base, "seller": d, "can_trade": d in self.can_trade, "opening_ask": item.get("opening_ask"),
+                            "per_hour": item.get("per_team_per_hour"), "typical_price": price, "price_src": src,
+                            "edge": None if price is None else ev - price})
+            if team_fills[p["id"]]:
+                price = self.recent(team_fills[p["id"]])
+                out.append({**base, "seller": "teams", "can_trade": True, "opening_ask": None, "per_hour": None,
+                            "typical_price": price, "price_src": f"teams ({len(team_fills[p['id']])})", "edge": ev - price})
+            if not any(r["pack"] == p["id"] for r in out):
+                out.append({**base, "seller": None, "can_trade": False, "opening_ask": None, "per_hour": None,
+                            "typical_price": None, "price_src": "nobody sells it yet", "edge": None})
+        return out
+
+    def ladder(self) -> list[dict]:
+        """Every dealer, announced or in play: our deals with it, an estimate of the share of its price range
+        each deal captured (the ladder counts the best three per level, a missing one as zero, higher levels
+        weigh more), and how it unlocks. The capture is an estimate: we see the range other teams reached,
+        not the dealer's secret limits."""
+        threads = getattr(self.snap, "my_threads", None)
+        if threads is not None:  # exact: our own threads, the dealer's first price included
+            ours = [x for x in (thread_deal(t, self.snap.cards) for t in threads) if x]
+        else:  # no key: what the feed still shows, with the median opening quote as the first price
+            ours = []
+            for f in self.hist:
+                if f.get("dealer") and self.team_id in (f["buyer"], f["seller"]):
+                    key = f["ref"] if f["kind"] == "pack" else f["rarity"]
+                    q = self.quotes.get((f["dealer"], key)) or {}
+                    first = median(q.get("open_ask" if f["side"] == "dealer_sells" else "open_bid", []))
+                    ours.append({"dealer": f["dealer"], "side": f["side"], "key": key, "first": first,
+                                 "price": f["price"], "negotiated": first is None or f["price"] != first})
+        out = []
+        for d in sorted(self.snap.dealers, key=lambda d: (d.get("level") or 99, d["id"])):
+            did, unlock = d["id"], d.get("unlock") or {}
+            deals = [x for x in ours if x["dealer"] == did]
+            caps = []
+            for x in deals:
+                xs = self.dfills.get((did, x["side"], x["key"]), [])
+                q = self.quotes.get((did, x["key"])) or {}
+                if x["side"] == "dealer_sells":
+                    hi, lo = max(xs + q.get("open_ask", []) + [x["first"] or 0]), min(xs + [x["price"]])
+                    cap = (hi - x["price"]) / (hi - lo) if hi > lo else None
+                else:
+                    lo, hi = min(xs + q.get("open_bid", []) + [x["first"] or x["price"]]), max(xs + [x["price"]])
+                    cap = (x["price"] - lo) / (hi - lo) if hi > lo else None
+                if cap is not None:
+                    caps.append(max(0.0, min(1.0, cap)))
+            negotiated = sum(x["negotiated"] for x in deals)
+            prev = unlock.get("early_deals_with")
+            out.append({
+                "dealer": did, "name": d.get("name"), "status": d.get("status"), "level": d.get("level"),
+                "teaser": d.get("teaser"), "traits": d.get("traits"), "can_trade": did in self.can_trade,
+                "deals": len(deals), "negotiated": negotiated, "best3": sorted(caps, reverse=True)[:3],
+                "open_slots": max(0, 3 - len(deals)), "unlock_after": prev,
+                "unlock_need": unlock.get("early_min_deals"), "open_to_all": d.get("open_to_all"),
+                "deals_per_hour": (d.get("menu") or {}).get("deals_per_team_per_hour"),
+            })
         return out
 
     def pages(self, rows: dict) -> list[dict]:
@@ -543,21 +698,32 @@ class Scorer:
 
     def run(self) -> dict:
         rows = {r: self.card(r) for r in self.snap.cards}
-        q = self.quotes
-        dealer = {rar: {"sells_median": self.recent(self.by_rarity[rar]["dealer_sells"]),
-                        "sells_min": min(self.by_rarity[rar]["dealer_sells"], default=None),
-                        "buys_median": self.recent(self.by_rarity[rar]["dealer_buys"]),
-                        "open_ask": median(q[rar]["open_ask"]), "final_ask_min": min(q[rar]["final_ask"], default=None),
-                        "final_bid_max": max(q[rar]["final_bid"], default=None),
-                        "team_median": self.recent(self.by_rarity[rar]["team"]), "fills": sum(len(x) for x in self.by_rarity[rar].values())}
-                  for rar in ("common", "uncommon", "rare", "epic", "legendary", "pack")}
+        dealer = []  # price levels per dealer and item (rarity, or pack id): dealers price differently
+        packs = [p["id"] for p in self.snap.catalog.get("packs", [])]
+        for d in sorted(self.active):
+            menu = self.active[d].get("menu", {})
+            for key in (*RARITY_ORDER, *packs):
+                sells = next((i for i in menu.get("sells", []) if key in (i.get("rarity"), i.get("pack"))), None)
+                buys = next((i for i in menu.get("buys", []) if i.get("rarity") == key), None)
+                q = self.quotes.get((d, key)) or {}
+                s_all, b_all = self.dfills.get((d, "dealer_sells", key), []), self.dfills.get((d, "dealer_buys", key), [])
+                if not (sells or buys or s_all or b_all or q):
+                    continue
+                dealer.append({
+                    "dealer": d, "item": key, "list": (sells or {}).get("list_price"),
+                    "opening_ask": (sells or {}).get("opening_ask") or median(q.get("open_ask", [])),
+                    "final_ask_min": min(q.get("final_ask", []), default=None),
+                    "sells_median": self.recent(s_all), "sells_ours": self.recent(self.dfills_ours.get((d, "dealer_sells", key), [])),
+                    "buys_median": self.recent(b_all), "final_bid_max": max(q.get("final_bid", []), default=None),
+                    "team_median": self.recent(self.by_rarity[key]["team"]) if key in RARITY_ORDER else None,
+                    "fills": len(s_all) + len(b_all)})
         me = self.snap.me or {}
         held_value = me.get("collection_value", sum(sum(v) for v in self.v.copy_values.values()))
         return {
             "tick": self.snap.clock.get("tick"), "t_hours": self.snap.clock.get("t_hours"),
             "team": me.get("team") or me.get("name"), "cash": me.get("cash"), "level": me.get("level"),
             "score": me.get("score"), "held_value": held_value, "mult": self.v.mult, "calibration": self.v.calibration,
-            "cards": rows, "dealer": dealer, "packs": self.pack_ev(), "pages": self.pages(rows),
+            "cards": rows, "dealer": dealer, "dealers": self.ladder(), "packs": self.pack_ev(), "pages": self.pages(rows),
             "offers": self.board_offers(),
             "rivals": [{k: t.get(k) for k in ("team", "rank", "score", "negotiating", "market", "album_filled",
                                                "album_slots", "pages_complete", "deals", "venue")}
@@ -605,11 +771,19 @@ def sections(rep: dict) -> list[tuple[str, list[str], list[list]]]:
         ("Board offers, scored as if we accepted now", ["offer", "venue", "gets", "gives", "cash in", "cash out", "fee", "surplus", "expires"],
          [[o["offer"], o["venue"], " ".join(o["gets"]) or "-", " ".join(o["gives"]) or "-", o["cash_in"], o["cash_out"],
            o["fee"], f0(o["surplus"], True), o["expires"]] for o in rep["offers"][:15]]),
-        ("Packs", ["pack", "name", "", "book EV", "EV to us", "typical price", "edge"],
-         [[p["pack"], p["name"], "", f0(p["expected_book"]), f0(p["ev_to_us"]), f0(p["typical_price"]), f0(p["edge"], True)] for p in rep["packs"]]),
-        ("Price levels by rarity (all teams' fills)", ["rarity", "abuela sells", "min", "abuela buys", "open ask", "final ask min", "final bid max", "teams", "fills"],
-         [[r, f0(d["sells_median"]), f0(d["sells_min"]), f0(d["buys_median"]), f0(d["open_ask"]), f0(d["final_ask_min"]),
-           f0(d["final_bid_max"]), f0(d["team_median"]), d["fills"]] for r, d in rep["dealer"].items()]),
+        ("Dealers: ladder (best 3 deals per level count, higher levels weigh more) and unlocks",
+         ["dealer", "status", "level", "trade", "deals", "negotiated", "best 3 capture (est.)", "open slots", "unlock / teaser"],
+         [[d["dealer"], d["status"], d["level"] or "-", "yes" if d["can_trade"] else "no", d["deals"], d["negotiated"],
+           " ".join(f"{c:.0%}" for c in d["best3"]) or "-", d["open_slots"], unlock_note(d, rep["dealers"])] for d in rep["dealers"]]),
+        ("Packs: EV to us vs price, per seller (no seller yet: scored anyway, for the next dealer)",
+         ["pack", "name", "seller", "book EV", "EV to us", "open ask", "price", "from", "edge", "/hour"],
+         [[p["pack"], p["name"], (p["seller"] or "-") + ("" if p["can_trade"] or not p["seller"] else " (locked)"),
+           f0(p["expected_book"]), f0(p["ev_to_us"]), f0(p["opening_ask"]), f0(p["typical_price"]), p["price_src"],
+           f0(p["edge"], True), p["per_hour"] or "-"] for p in sorted(rep["packs"], key=lambda p: -(p["edge"] if p["edge"] is not None else -1e9))]),
+        ("Price levels per dealer (all teams' haggles; ours apart: some dealers price by how they like you)",
+         ["dealer", "item", "", "list", "open ask", "final ask min", "sells", "sells us", "buys", "final bid max", "teams", "fills"],
+         [[d["dealer"], d["item"], "", f0(d["list"]), f0(d["opening_ask"]), f0(d["final_ask_min"]), f0(d["sells_median"]),
+           f0(d["sells_ours"]), f0(d["buys_median"]), f0(d["final_bid_max"]), f0(d["team_median"]), d["fills"]] for d in rep["dealer"]]),
         ("Rivals (public board)", ["team", "rank", "score", "neg", "mkt", "album", "pages", "deals"],
          [[t["team"], t["rank"], t["score"], t["negotiating"], t["market"], f"{t['album_filled']}/{t['album_slots']}",
            t["pages_complete"], t["deals"]] for t in rep["rivals"]]),
@@ -617,12 +791,49 @@ def sections(rep: dict) -> list[tuple[str, list[str], list[list]]]:
     return out
 
 
+def unlock_note(d: dict, dealers: list[dict]) -> str:
+    """How a dealer opens for us. An announced one shows only its teaser; the rules say a dealer opens early
+    to teams with a few negotiated deals with the one before, so show our count with the top dealer in play."""
+    if d["status"] == "announced":
+        prev = max((x for x in dealers if x["status"] == "active"), key=lambda x: x["level"] or 0, default=None)
+        need = (prev or {}).get("unlock_need") or 3
+        mine = f" · likely needs {need} negotiated with {prev['dealer']}: we have {prev['negotiated']}" if prev else ""
+        return f"{d['teaser'] or ''}{mine}"
+    if d["can_trade"]:
+        return f"open to us · {d['deals_per_hour'] or '?'} deals/team/hour"
+    if d["unlock_after"]:
+        prev = next((x for x in dealers if x["dealer"] == d["unlock_after"]), {})
+        return (f"locked: {d['unlock_need']} negotiated with {d['unlock_after']} (we have {prev.get('negotiated', 0)})"
+                + ("; open to all now" if d["open_to_all"] else "; opens to all after the head start"))
+    return "locked"
+
+
 def header(rep: dict) -> str:
     s = rep.get("score") or {}
     mult = "  ".join(f"{k} {v:.2f}" for k, v in sorted(rep["mult"].items(), key=lambda kv: -kv[1]))
     who = f"{rep['team']}: {rep['cash']} P, level {rep['level']}, cards worth {rep['held_value']:.0f} P, score {s.get('score', '-')} (rank {s.get('rank', '-')})" \
         if rep["team"] else "No BAZAAR_KEY: market view as a neutral team (every multiplier 1.0)"
-    return f"tick {rep['tick']} (game hour {rep['t_hours']})  |  {who}\nmultipliers: {mult}  [{rep['calibration'].get('source')}]"
+    dealers = "  ".join(f"{d['dealer']} " + (f"L{d['level']} {'open' if d['can_trade'] else 'LOCKED'}" if d["status"] == "active"
+                                             else d["status"]) for d in rep.get("dealers", []))
+    return (f"tick {rep['tick']} (game hour {rep['t_hours']})  |  {who}\nmultipliers: {mult}  [{rep['calibration'].get('source')}]"
+            f"\ndealers: {dealers}")
+
+
+def dealer_changes(before: dict, rep: dict) -> list[str]:
+    """What changed among the dealers since the last pass: a new one announced, activated, opened to us."""
+    out, first_pass = [], not before
+    for d in rep.get("dealers", []):
+        now = (d["status"], d["can_trade"])
+        if first_pass:
+            pass
+        elif d["dealer"] in before and before[d["dealer"]] != now:
+            out.append(f"DEALER {d['name'] or d['dealer']}: {before[d['dealer']][0]} -> {d['status']}"
+                       + (f", level {d['level']}" if d["level"] else "") + (", OPEN TO US" if d["can_trade"] else ", locked for us")
+                       + f". New prices from the menu until fills arrive; check /api/levels and agent/dealers.py.")
+        elif d["dealer"] not in before:
+            out.append(f"DEALER announced: {d['name'] or d['dealer']} {d['teaser'] or ''}")
+        before[d["dealer"]] = now
+    return out
 
 
 def render_text(rep: dict) -> str:
@@ -682,10 +893,13 @@ def main() -> None:
     key = None if args.public else os.environ.get("BAZAAR_KEY")
     snap = Snapshot(os.environ.get("BAZAAR_URL", "https://bazaar.causaprima.ai"), key)
     recal = args.recalibrate
+    seen = {}  # dealer -> (status, can_trade), to shout when one opens
     while True:
         try:
             rep = score_once(snap, recal)
             recal = False
+            for line in dealer_changes(seen, rep):
+                print(f"\a[scorer] *** {line}", file=sys.stderr)
             if args.json:
                 print(json.dumps(rep, default=str))
             else:

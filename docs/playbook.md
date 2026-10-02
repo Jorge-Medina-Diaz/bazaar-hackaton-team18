@@ -67,6 +67,14 @@ En cada tick: alertas de niveles y duelos → juega los duelos activos → **ace
 3. **Raras sueltas de El Chato** = fuente de LAT-09 y LAT-10 para la página. Pero las ganancias con vendedores no suman `neg_points` (E9): **la última carta de una página conviene comprarla a un equipo** (cuenta) y las anteriores, a vendedores a ≤ valor.
 4. **No comprar sobres de plata** salvo que su `your_value` ≥ precio (E9).
 
+**El scorer ya está preparado (tick 93):**
+- `python -m agent.scorer --watch 60` avisa en cuanto El Chato pasa de `announced` a `active` y cuando se nos abre.
+- Cada vendedor tiene su propio precio. Primero cuentan nuestros tratos con él, porque su precio depende de si le caemos bien; después los de todos los equipos y, por último, el `list_price` del menú. El día que abra no tendrá historial, así que lo valoramos con el menú.
+- Solo los vendedores de `me.unlocked` fijan `buy_at` y `sell_at`. Un vendedor bloqueado sale como `(locked)` en la tabla de sobres.
+- Los sobres que nadie vende todavía (bienvenida, plata, oro) ya tienen su valor esperado para nosotros. Cuando se agota una rareza, el sobre da la inferior (las épicas solo tienen 9 copias y las legendarias 3). En el tick 93, para nosotros: plata ≈ 95 P y oro ≈ 286 P.
+- La tabla de la escalera cuenta los tratos negociados a partir de nuestros hilos. Un trato al precio de salida no cuenta: el primer sobre a 17 P no contó. Llevamos 3 de 4.
+- `agent/dealers.py["chato"]` es **provisional**: primera oferta al 60 % y límite al 80 %, en tono amable. Hay que reajustarlo con sus `traits` y `scout.py chato`.
+
 ## 🎯 Tácticas que funcionan (con evidencia)
 | Táctica | Herramienta | Evidencia |
 |---|---|---|

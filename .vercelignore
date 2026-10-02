@@ -1,0 +1,11 @@
+# Only the dashboard goes to Vercel: never the key, logs or the rest of the agent.
+.env
+.env.*
+*.key
+logs/
+runs/
+.venv/
+__pycache__/
+docs/
+tests/
+santi/
