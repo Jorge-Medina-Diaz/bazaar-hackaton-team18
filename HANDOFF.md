@@ -1,5 +1,17 @@
 # Traspaso del equipo — 2026-10-02
 
+## Observación local de puntuación y clasificación
+
+- Durante el análisis previo solo se hicieron cambios locales. Rubén autorizó después organizar y subir este análisis a `codex/plan-negociacion`. Se hizo `git pull --ff-only`: ya actualizado. SDK y agentes de compañeros conservados; sin despliegues ni operaciones de juego.
+- Análisis organizado en `ANALISIS_RENDIMIENTO.md`: reglas, tabla histórica por tick, distinción entre beneficio y clasificación, criterios de venta, ciclo propuesto, verificación y pendientes. README enlaza el documento e indica el fallo real de login; no se presentan datos históricos como estado actual.
+- Añadidos `observe_performance.py` y seis pruebas: consumo del artefacto cada cinco segundos, complemento de puntuación mediante un GET `/api/me` por nuevo tick, log compacto solo de cambios con rotación, sin llamadas a modelos. Clave y cookie solo en memoria; los logs no incluyen respuestas privadas completas.
+- Verificación: seis pruebas locales pasaron. La prueba real del panel recibió primero HTTP 403 código 1010 con el User-Agent por defecto; con identificación `BazaarPerformanceObserver/1.0` llegó al login, que devolvió HTTP 503 `connection_error`. Se incorporó esa identificación al cliente. No se afirma recorrido real del artefacto completado; no se modificó ni publicó el Worker.
+- Lectura directa del juego tick 129: score 21,42, puesto 6, neg_points 77,6, ladder_points 0,051, cash 268 y collection_value 511,2. Frente a tick 122 (score 22,02, puesto 5) los componentes medidos y recursos permanecen iguales. No demuestra pérdida en un trato ni permite reconstruir por sí sola la fórmula de normalización.
+- Leaderboard consultado era snapshot tick 125, próximo refresco 130: tercero t17 con 23,73. Comparar filas de un mismo snapshot; `/api/me` es la lectura propia en vivo. Revisadas reglas: valor creado, tres mejores tratos por nivel con dealers, ganancias privadas entre equipos, Market Test y evaluación de jueces. No puntúa el número de tratos ni completar páginas por separado: sus bonus cambian la valoración.
+- Actualización final tick 130 y leaderboard snapshot 130: propios 20,15 puntos, puesto 6; tercero t08 con 23,93. Recursos y componentes medidos siguen iguales. Baseline real guardado en `runs/performance-observations.jsonl`, identificado como API directa de diagnóstico porque el login del artefacto está bloqueado; no confundirlo con una lectura del panel.
+- Posible venta a evaluar: una copia duplicada LAT-01 tiene valor privado 2,2. No se ofertó ni vendió. Recalcular marginal y comisiones antes de proponer precio; proteger últimas copias de páginas completas. Sigue pendiente el defecto de `keep_value` que puede duplicar el bonus ya incluido en `your_value`; no corregido en este análisis.
+- Siguiente paso: diagnosticar la conexión saliente del Worker con autorización para actualizar el artefacto, verificar login y dos ciclos reales, y después conectar el resumen de cambios al único ejecutor. La clasificación no es un permiso para negociar automáticamente.
+
 ## Publicación del panel para el equipo
 
 - Rubén autorizó push y publicación para que sus compañeros puedan entrar por URL.

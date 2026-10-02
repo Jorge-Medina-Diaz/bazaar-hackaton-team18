@@ -8,7 +8,7 @@ Abrir la URL e introducir la clave del Bazaar del equipo. La página pública no
 
 La versión alojada está en `website/`: `node --test website/worker.test.mjs` comprueba autenticación, privacidad, consulta de las cuatro fuentes y refresco de cinco segundos. Las respuestas recientes se reutilizan entre peticiones con la misma clave en el mismo punto de presencia. El caché es temporal; los movimientos observados no constituyen un historial contable permanente.
 
-La entrada con una clave real deberá confirmarse por un miembro del equipo: esta sesión no tuvo disponible la clave corregida. La publicación y sus pruebas con respuestas simuladas sí están verificadas.
+La publicación y sus pruebas con respuestas simuladas están verificadas. En la comprobación posterior del 2 de octubre, el login con la clave real devolvió HTTP 503 `connection_error`; el recorrido completo del panel sigue pendiente. La API directa del juego sí funcionó.
 
 El observador consulta saldo e inventario, ofertas, conversaciones y reloj cada **5 segundos**, independientemente del agente y de sus pruebas. Cada fuente muestra la hora de la última verificación; si falla, se conserva el dato anterior y se señala como no verificado. Todas las consultas al juego son GET. Para usar la versión local:
 
@@ -157,3 +157,17 @@ python3 recheck.py --candidate
 ```
 
 La entrega incluye 50 pruebas propias (17 anteriores y 33 del núcleo). El recheck del candidato verifica los cuatro fallos originales contra los módulos corregidos. Los logs quedan en `runs/` y `logs/`, fuera de Git.
+
+## Observación de puntuación sin negociar
+
+El análisis de reglas, métricas observadas y estrategia de venta está en [ANALISIS_RENDIMIENTO.md](ANALISIS_RENDIMIENTO.md).
+
+`observe_performance.py` consume el estado del artefacto cada cinco segundos y registra solo cambios. Como el panel desplegado aún omite puntuación, consulta `/api/me` una vez por nuevo tick del panel; las métricas pueden retrasarse dentro del tick. No llama a modelos ni envía órdenes al juego. La autenticación al propio panel es su único POST.
+
+```bash
+python3 observe_performance.py --key-file /ruta/local/clave --cycles 12
+```
+
+El log compacto está en `runs/performance-observations.jsonl`, ignorado por Git, con rotación y permisos privados. `--cycles 0` observa hasta interrumpir; `--reserve-cash` configura una reserva opcional. Distingue cambios de puntos sin cambios económicos medidos y mejoras de puntos acompañadas de peor puesto, sin atribuir automáticamente causas.
+
+Estado verificado el 2 de octubre: seis pruebas locales pasan; el acceso real al panel devuelve HTTP 503 `connection_error` al validar la sesión. La API directa del juego funciona. El recorrido completo por el artefacto sigue pendiente.
