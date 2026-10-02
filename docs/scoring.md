@@ -1,67 +1,124 @@
-# Puntuación: qué cuenta y qué priorizar
+# Sistema de puntuación: guía completa
 
-Fuentes: [RULES.md](../RULES.md), la presentación del kickoff (diapositivas 8 y 9), `/api/catalog`, `/api/schedule`, `/api/leaderboard` y el feed (vie 2 oct, tick 25).
+*Para todo el equipo. Actualizado el vie 2 oct, tick 71. Etiquetas: ✅ medido con nuestras propias jugadas · 📜 dicho en las reglas o el kickoff · 🔌 dato de la API · ❓ hipótesis/inferencia.*
 
-## El marcador (100 puntos)
-| Bloque | Peso | Qué lo compone |
-|---|---|---|
-| Negociación | 30 | **Duelos** (parte del pastel capturada) · **escalera de vendedores** (parte del rango de precios capturada; tus **3 mejores tratos por nivel**, los que faltan valen 0, los niveles altos pesan más) · **valor ganado comerciando con otros equipos**, a tus valores privados |
-| Mercado | 30 | **Eficiencia en el Market Test** (la mitad de los puntos por igualar al puesto gratuito; los puntos completos van a la media del top 3) · valor creado entre otros equipos en tu mercado |
-| Jueces | 40 | Ideas y calidad del trabajo |
+**Fuentes:** [RULES.md](../RULES.md) (sección *Scoring* y demás) · presentación del kickoff (diapositivas 6, 8 y 9) · API (`/api/catalog → values`, `/api/me → affinity, score`, `/api/schedule`, `/api/leaderboard`) · nuestras mediciones ([experiments.md](experiments.md): EXP-005, EXP-007 y la verificación de la fórmula en el tick 33).
 
-**No cuenta nunca:** el número de operaciones, las comisiones cobradas, la suerte con los sobres (`luck`), los regalos, los easter eggs ni las concesiones de los organizadores. **El dinero (cash) no puntúa por sí mismo**: solo es un medio.
+---
 
-**Rondas:** cada día es una ronda (viernes ×½, sábado y domingo ×1) y se promedian. Una ronda en curso cuenta según la parte del día ya jugada (`rounds[].phase`), así que la puntuación pública **baja o sube sola** con el tiempo. Ejemplo: 1 trato daba 7,29 en el tick 15 y 5,91 en el tick 25.
+## 1. El marcador: 100 puntos
+| Bloque | Peso | De dónde sale | Campo en `/api/me → score` |
+|---|---|---|---|
+| **Negociación** | 30 | Comercio con otros equipos · escalera de vendedores · duelos 📜 | ❓ `negotiating` combina `neg_points`, `ladder_points` y `duel_points` (deducido de los nombres; la fórmula no se conoce) |
+| **Mercado** | 30 | Market Test · valor creado entre otros equipos en nuestro mercado 📜 | ❓ `market` combina `bench_points` y `mm_points` (deducido de los nombres) |
+| **Jueces** | 40 | Ideas y calidad del trabajo | — (fuera de la API) |
 
-## Desglose medible (`GET /api/me → score`)
-`ladder_points`, `duel_points`, `neg_points` (comercio entre equipos), `mm_points`, `bench_efficiency`/`bench_points`, `negotiating`, `market`. Con solo el trato de bienvenida tenemos `ladder_points` 0,022 y negociación 5,25 (tick 30). **Cómo pasa `*_points` a los 30 puntos aún no lo sabemos**: se mide antes y después de cada trato (`run_dealer.py` lo registra).
+📜 **No puntúa nunca:** el número de tratos, las comisiones cobradas, la suerte con los sobres (`luck`), los regalos, los easter eggs ni las concesiones de los organizadores. **El dinero no puntúa por sí mismo**: solo sirve para comprar lo que sí puntúa.
 
-## ✅ Medido: `neg_points` = primas de valor ganadas (EXP-005)
-Vender LAT-04 (para nosotros 2,2) a 9 P dio `neg_points` **+6,8** exactos, y la negociación pasó de 7,39 a 10,46 (+3,07). Por comparación, el trato de SAL-02 con la Abuela solo movió `ladder_points` +0,014. **Cada prima de valor ganada con otros equipos cuenta**: vender caro lo que valoramos poco y comprar barato lo que valoramos mucho (RET 1,3 y CHA 1,6 llegan sábado y domingo).
+📜 **Penalizaciones:** un porcentaje de la ronda por saltarse las reglas: compartir clave, varios equipos o regalar valor a otro equipo a propósito. ❓ Probablemente aparecen en `score.adjustments`.
 
-## Dónde está el valor entre equipos
-El valor de una carta para nosotros depende de lo que ya tenemos. Cuando falte una sola carta de una página, esa carta vale su catálogo × affinity **más el bonus de página** (25 % de la página). Comprarla a otro equipo por menos es la mayor ganancia de `neg_points` posible. Al revés, nuestros repetidos (25 % o 10 %) valen mucho para quien los necesita: hay que venderlos.
+## 2. Rondas: el tiempo también cuenta
+- 📜 Cada día es una ronda: **viernes ×½**, sábado ×1 y domingo ×1. Las rondas se **promedian**.
+- 📜 La ronda en curso pesa en proporción a la parte del día ya jugada (`leaderboard.rounds[].phase`). Por eso **la puntuación pública sube o baja sola** aunque no hagamos nada.
+- 🔌 El leaderboard se refresca cada 5 ticks (`next_refresh_tick`). ✅/❓ El `score` de `/api/me` parece ir igual: `neg_points` subió a 20,9 y `negotiating` siguió en 10,3 hasta el snapshot siguiente. **Para medir un trato, hay que comparar `*_points`, no `negotiating`.**
+- Consecuencia: **el sábado (14 h, peso completo) es la ronda decisiva**. Lo de hoy es entrenamiento que puntúa poco.
 
-## ¿Penaliza no cerrar trato?
-| Dónde | No cerrar trato | Cerrar un trato malo |
-|---|---|---|
-| Vendedores | **Sin penalización directa**: ese hueco vale 0 hasta que lo llenes. Lo que se pierde es tiempo y posiblemente cupo (`persona_quota` cuenta conversaciones **o** tratos por hora). La Abuela tiene memoria 0,15 y perdona | Un trato a su precio de salida **no cuenta para desbloquear nivel** |
-| Duelos | **0 puntos** | **Resta** si el trato queda fuera de tu límite. El pastel se reduce con cada ronda (decay de 0,06 a 0,10) |
-| Comercio entre equipos | 0 | Resta valor si vendes por debajo de tu `your_value` o compras por encima |
-| Etiquetar mensajes (`flags`) | — | Un flag acertado puntúa y uno erróneo resta |
+---
 
-## Valor de las cartas: fórmula verificada (tick 33)
-`valor de la copia k de una carta = catálogo(rareza) × affinity(set) × copy_marginals[k]`, con k = 0, 1, 2+ → 1,0 · 0,25 · 0,1.
-- Comprobada contra la API: la suma da exactamente `collection_value` (251,6), y `GET /api/me/value?card=` coincide en 5 de 5 casos.
-- **`your_value` de cada copia que tenemos = valor de la última copia**, que es lo que perdemos si vendemos una. `value?card=` = lo que ganamos con una copia más.
-- **Bonus de página (sin verificar aún):** se supone un +25 % de la página (sus 10 cartas, 1.ª copia) al completarla, y un +10 % más con la épica y la legendaria. Se verificará con `value?card=SAL-10` cuando solo falte esa.
-- **Valor para otros equipos:** los mismos 6 multiplicadores {0,5 · 0,7 · 0,9 · 1,1 · 1,3 · 1,6} repartidos de otra forma (media 1,017). Una común vale para otro entre 5 y 16 P (7,5 de media); la 1.ª copia de una rara, entre 35 y 112. Qué multiplicador tiene cada uno se puede **inferir** de lo que compra, guarda o vende (feed).
+## 3. El valor de las cartas: la fórmula (✅ verificada)
+```
+valor de la copia k = catálogo(rareza) × affinity(set) × marginal[k]        marginal = [1.0, 0.25, 0.1]
+```
+| Rareza | Catálogo | Copias | Para nosotros en SAL (×1,1) | En CHA (×1,6) |
+|---|---|---|---|---|
+| Común | 10 | 300 | 11 | 16 |
+| Infrecuente | 25 | 90 | 27,5 | 40 |
+| Rara | 70 | 30 | 77 | 112 |
+| Épica | 180 | 9 | 198 | 288 |
+| Legendaria | 450 | 3 | 495 | 720 |
 
-## Valor de las cartas (`/api/catalog → values`)
-- `copy_marginals [1.0, 0.25, 0.1]`: la 1.ª copia vale el 100 %, la 2.ª el 25 % y la 3.ª el 10 %. **Los repetidos valen muy poco para ti** y por eso conviene venderlos.
-- `page_bonus 0.25`: una página completa (comunes, infrecuentes y raras de un set) suma un 25 %. `master_bonus 0.1`: la épica y la legendaria encima suman un 10 % más.
-- Valor de catálogo por rareza: común 10, infrecuente 25, rara 70, épica 180, legendaria 450. Cada equipo lo multiplica por su multiplicador privado de set.
-- Valor esperado de catálogo por sobre: barrio 33,8 · bienvenida 78 · plata 160,8 · oro 410,5. La Abuela solo vende el de barrio.
+### Los multiplicadores (`affinity`)
+- 📜 Todos los equipos tienen **los mismos 6 multiplicadores {0,5 · 0,7 · 0,9 · 1,1 · 1,3 · 1,6}**, repartidos entre los 6 sets de forma distinta. Son privados.
+- ✅ **Los nuestros (t18): CHA 1,6 · RET 1,3 · SAL 1,1 · LAT 0,9 · LAV 0,7 · MAL 0,5.** Salen en `GET /api/me → affinity`.
+- Una misma carta vale entre ×0,5 y ×1,6 según quién la tenga: **hasta 3,2 veces más para un equipo que para otro**. Ese desfase es la fuente de todo el valor comerciable.
+- Los multiplicadores de los rivales se **deducen** de lo que compran y venden (mapa en [playbook.md](playbook.md)).
 
-## Lo que muestra el leaderboard (tick 25, todos en nivel 1)
-| Equipo | Tratos con la Abuela (precio) | Negociación |
-|---|---|---|
-| t06 | sobre 17 (bienvenida), infrecuente 21, infrecuente 22, sobre 24 | 12,5 |
-| t13 | infrecuente 17 (bienvenida), común 10, común 10 | 11,73 |
-| t05 | sobre 17 (bienvenida), sobre 22, sobre 22, común 9 | 9,7 |
-| t10 | infrecuente 17 (bienvenida), infrecuente 24 | 9,66 |
-| t07 | sobre 17 (bienvenida), sobre 24 | 5,91 |
-| t12 | vende una común a 13, sobre 24, vende una común a 5 | 5,91 |
-| t18 (nosotros) y otros 4 | solo el de bienvenida a 17 (o una común a 7) | 5,91 |
+### Copias repetidas
+- 🔌✅ La 2.ª copia vale el 25 % y la 3.ª el 10 % (`copy_marginals`; verificado contra `collection_value`). **Un repetido casi no vale nada para nosotros** y vale la copia entera para quien no la tiene.
+- ✅ `your_value` de una carta que tenemos = **valor de la última copia** (lo que perdemos si vendemos una). `GET /api/me/value?card=X` = lo que **ganamos** con una copia más.
 
-Lecturas (hipótesis, pendientes de confirmar con el desglose de `/api/me`):
-- **H1.** Un sobre a 24 P (su penúltimo o último precio) **no añade nada** (t07, t12). Uno a 22 P sí (t05). En los sobres solo puntúa capturar rango por debajo de unas 24 P.
-- **H2.** Las **cartas sueltas** sí puntúan: infrecuentes a 21–24 (t06, t10) y comunes a 10 tras pedir 12 (t13). t13 hizo 11,73 gastando solo 37 P. **Llenar los 3 huecos con comunes o infrecuentes es mucho más barato que con sobres.**
-- **H3.** El trato de bienvenida a 17 P (precio fijo) da el valor base de 5,91 (tanto t18 como t17, con una común a 7).
+### Páginas
+- Una **página** = las 10 cartas de un set: 5 comunes, 3 infrecuentes y 2 raras. La épica y la legendaria no forman parte de ella.
+- ✅ **Completarla suma un 25 % del valor de la página.** Medido: con SAL en 9/10, SAL-10 pasó de valer 77 a **149,9** (77 + 0,25 × 291,6).
+- 🔌 `catalog.values.master_bonus = 0.1`; las reglas dicen *"the epic and legendary on top add a little more"*. ❓ Aplicación exacta sin medir.
+- **La última carta de una página vale casi el doble que cualquier otra.**
 
-## Prioridades (por puntos por esfuerzo)
-1. **Llenar los 3 huecos del nivel 1 con buenos tratos** (H2: cartas baratas que nos falten, empujando hasta su suelo). Además desbloquean el nivel 2 antes que al resto.
-2. **Duelos**: los de práctica son en la hora 2 de juego; Duelos I (precio) en la 6,5; II en la 13; III en la 20; la final en la 23. Hay que tener el módulo listo antes de Duelos I.
-3. **Market Test** desde la hora 3 y cada 2 horas: necesitamos nivel 2 para abrir un mercado de tipo `board` con broker propio. Sin él, el puesto gratuito saca la mitad de los puntos.
-4. **Comercio entre equipos**: vender repetidos (valen el 25 % para nosotros) a quien le falten y completar páginas.
-5. **Jueces (40 %)**: la trazabilidad de `docs/` y los logs es nuestra historia.
+---
+
+## 4. Las fuentes de puntos, de más a menos rentable
+
+### 4.1 Comercio con otros equipos → `neg_points` ✅ (la más rentable hoy)
+- **`neg_points` = primas de valor ganadas, 1 a 1**, a nuestros valores privados.
+  - Vender: precio cobrado − nuestro valor de esa copia.
+  - Comprar: nuestro valor − precio pagado.
+- ✅ Evidencia: vendimos LAT-04 (valor 2,2) a 9 → **+6,8** exactos. Con tres repetidos vendidos: **+20,9**.
+- Lo hacen los líderes: t08 llegó a 4.º con 4 tratos vendiendo una **rara** a 70; t13 es 1.º comprando MAL barato y vendiendo una rara de LAT.
+- 📜 Los dos lados pueden ganar a la vez (cada uno a sus valores), y eso es lo que el juego premia.
+- 📜 En El Rastro, **quien acepta paga la comisión** (5 % + 1 P por carta). Si publicamos y otro acepta, cobramos el precio entero.
+- 📜 Regalar valor a otro equipo a propósito no cuenta y se revisa.
+
+### 4.2 Escalera de vendedores → `ladder_points` ✅📜
+- 📜 Puntúa la **parte del rango de precios del vendedor que capturamos**. Cuentan los **3 mejores tratos por nivel**, los que faltan valen 0 y los niveles altos pesan más.
+- ✅ Cada trato con la Abuela ha movido `ladder_points` entre +0,000 y +0,015: **poco**. ❓ Cómo pesa `ladder_points` dentro de los 30 puntos no se conoce. (Corrección: la subida de 10,3 a 14,55 del tick 68 fue casi seguro el snapshot atrasado de los `neg_points` de las ventas, no el trato de SAL-08.)
+- 📜 **Desbloquea niveles**: unos cuantos tratos *negociados* (no al precio de salida) dan acceso anticipado al siguiente vendedor y al nivel 2, que permite tener mercado propio.
+- ✅ No cerrar trato no resta, y un trato malo tampoco (un hueco vacío vale 0).
+
+### 4.3 Duelos → `duel_points` 📜
+- 1 contra 1 con cada equipo, dos veces: una como vendedor y otra como comprador. Solo vemos nuestro límite.
+- 📜 Puntúa la **parte del pastel capturada** en cada trato (*"share of each deal's pie you captured"*). El pastel es el margen entre el límite del vendedor y el del comprador; nosotros solo vemos el nuestro.
+- **No cerrar trato = 0. Un trato fuera de nuestro límite RESTA.**
+- El pastel **se reduce cada ronda** (decay de 0,06 a 0,10): conviene cerrar pronto.
+- En Duelos II y III se negocian también los **días de entrega** (0–10). Cada lado tiene un peso privado por día, y el pastel crece si se cambia aquello que al otro le importa más.
+- Calendario (horas de juego): práctica en la 2 (no puntúa) · I en la 6,5 · II en la 13 · III en la 20 · final en la 23.
+
+### 4.4 Mercado propio → `bench_points` y `mm_points` (30 puntos enteros) 📜
+- **Market Test**, cada 2 horas: todos los mercados reciben el mismo libro sintético. Puntúa el porcentaje de las ganancias posibles que realizamos.
+  - Igualar al puesto gratuito da **la mitad** de los puntos; los puntos completos van a la media del top 3.
+  - Para superarlo, el broker tiene que **estimar los límites ocultos** de los traders (cotizan lejos de su límite) y saber quién está a punto de irse.
+  - Cada sesión cuenta con nuestro mejor mercado abierto durante ella; sin mercado abierto, cuenta 0.
+- **Valor creado entre otros equipos en nuestro mercado.** Nosotros no podemos comerciar en él.
+- Requisitos: **nivel 2** (fianza de 250 P, reembolsable, + 20 P). Los mercados de equipo abren a partir de la hora 3; sin mercado propio, tenemos un puesto gratuito de tipo `auto`.
+
+### 4.5 Jueces (40 puntos) 📜
+"Ideas y calidad del trabajo". Lo que tenemos para enseñar: la arquitectura (el código decide y el texto solo acompaña), el proceso de experimentos medidos, el playbook con errores y lecciones, y las herramientas (`scout`, `probe`, `market`).
+
+### 4.6 Flags 📜
+`POST /api/flags` sobre un mensaje de mala fe de un vendedor: un flag acertado puntúa y uno erróneo resta. Solo con evidencia clara: por ejemplo, que la oferta estructurada no coincida con lo que dice el texto.
+
+---
+
+## 5. Estrategias para ganar puntos (ordenadas por valor esperado)
+1. **Llevar las páginas a 9/10 con cartas baratas y comprar la última a otro equipo.** La última carta vale ~2× (SAL-10: 149,9 para nosotros, frente a 35–112 para un poseedor cualquiera). Con una puja pública por debajo de nuestro valor ganan los dos. *En curso: puja de 80 P por SAL-10.*
+2. **Vender lo que valoramos poco a quien lo valora mucho.** Repetidos (+7 cada uno), y cartas de MAL (×0,5) y LAV (×0,7) a los equipos que coleccionan esos sets. `market.py sell-dups 9`.
+3. **Comprar lo que valoramos mucho por debajo de nuestro valor:** CHA (×1,6) y RET (×1,3) cuando salgan. Una común de CHA vale 16 para nosotros y se vende a unas 10; una rara, 112 frente a ~70.
+4. **Raras cruzadas:** vender raras de sets bajos a sus coleccionistas y comprar raras de sets altos. Es el mayor salto de valor por trato.
+5. **Duelos:** cerrar pronto, dentro del límite y nunca fuera. En Duelos II y III, ceder en los días que nos importan poco.
+6. **Nivel 2 y broker propio** para el Market Test: son 30 puntos enteros y el puesto gratuito solo saca la mitad.
+7. **Escalera:** 3 buenos tratos por nivel, sobre todo para desbloquear niveles.
+
+## 6. Lo que NO hay que hacer
+- Comprar a otros equipos por encima de nuestro valor o venderles por debajo: resta `neg_points`.
+- Aceptar en un duelo fuera de nuestro límite: resta.
+- Vender la **última copia** de una carta que forma parte de una página que podemos completar.
+- Fijar los límites con el dinero en vez de con el valor (error E2: perdimos SAL-08 a 23 cuando valía 27,5).
+- Llamar a `/api/admin/*`, compartir la clave o regalar valor: sanción.
+
+## 7. Dónde mirar cada número
+| Pregunta | Llamada |
+|---|---|
+| ¿Cuánto llevamos y de dónde viene? | `GET /api/me → score` (`neg_points`, `ladder_points`, `duel_points`, `bench_*`) |
+| ¿Cuánto nos vale una carta más? | `GET /api/me/value?card=SAL-10` |
+| ¿Cuáles son nuestros multiplicadores? | `GET /api/me → affinity` |
+| ¿Quién tiene una carta? | `GET /api/leaderboard → teams[].rarest`, el feed (`pack.opened`, `settlement`) |
+| ¿Hay gangas? | `python3 market.py scan` |
+| ¿Cuándo hay duelos o Market Test? | `GET /api/schedule` |

@@ -14,13 +14,22 @@ Lo no confirmado va en [experiments.md](experiments.md) hasta que lo esté.
 ## ✅ Bonus de página confirmado (tick 68)
 Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × página (291,6). **La última carta de una página vale casi el doble.** Hay que llevar las páginas a 9/10 con cartas baratas (comunes e infrecuentes de la Abuela) y comprar después la última carta a otro equipo: es la jugada de más valor.
 
+## ✅ Página SAL completa (tick 72): reglas nuevas
+- Compramos SAL-10 a t12 por 80 (EXP-008). **Con la página completa, cada carta de la página nos vale su valor + todo el bonus** (SAL-04: 11 → **83,9**; SAL-09: 77 → 149,9), porque perder cualquiera rompe la página. **No vender nunca ninguna carta de SAL-01 a SAL-10** (la copia repetida de SAL-01 sí, vale 2,8).
+- Épica (SAL-11, 198) y legendaria (SAL-12, 495): `value?` no muestra bonus "master" mientras falte una de las dos. 📜 El master bonus (+10 %) requiere ambas.
+- ❓ `neg_points` subió **+50,0** cuando esperábamos +69,9 (149,9 − 80). Pendiente: ¿tope por trato?
+
+## 🆕 Nivel 2 anunciado: **El Chato**
+*«Better packs, friendly prices. If I like you.»* (`/api/levels`, tick 74, estado `announced`). Lo que podemos deducir de la frase: vende sobres mejores (¿plata/oro?) y su precio depende de cómo le tratemos. **Cuando se active**: `probe.py` + `levels()` → leer el `how` antes de tocar nada. Tenemos 3 tratos negociados con la Abuela (SAL-02, LAT-01, SAL-08), así que deberíamos tener acceso anticipado.
+
 ## 🎯 Tácticas que funcionan (con evidencia)
 | Táctica | Herramienta | Evidencia |
 |---|---|---|
 | Vender repetidos a 9 P en El Rastro, por debajo de los 10–12 del resto | `market.py sell-dups 9` | EXP-005: 3 vendidos en ~15 ticks, +21 `neg_points` |
 | Comprar comunes a la Abuela con pasos de 1 P desde 7 | `run_dealer.py --card X --anchor 7 --limit 10 --rounds 3` | EXP-006: 10 P en 3 rondas; SAL-02 a 9 |
 | Buscar gangas antes de cada ronda (ganancia = nuestro valor − precio − comisión) | `market.py scan` | Cuando la ganancia es negativa, no se compra |
-| Pujar públicamente por la carta que cierra una página, por debajo de nuestro valor y por encima de la puja rival | `list_offer({"cash": X}, {"cards": [ref]})` | SAL-10: puja de 80 (t13 ofrece 55); para nosotros vale 149,9 |
+| Pujar públicamente por la carta que cierra una página, por debajo de nuestro valor y por encima de la puja rival | `list_offer({"cash": X}, {"cards": [ref]})` | ✅ SAL-10: puja de 80 frente a 55 de t13 → t12 aceptó en 3 ticks. +50 `neg_points` y página completa |
+| **Pujar por debajo de nuestro valor por todas las cartas que faltan de una página**: cada puja es positiva por sí sola y juntas desbloquean el bonus. Las pujas no bloquean el dinero | `list_offer({"cash": p}, {"cards": [ref]})` con p < `value?card` | EXP-009 (LAT) en curso |
 | Grabar el feed (los rivales delatan su affinity) | `scout.py abuela --save` | Mapa de affinity de abajo |
 
 ## ❌ Errores cometidos (no repetir)
@@ -31,6 +40,7 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 | E3 | Suponer que una oferta aceptada queda en `accepted` (en realidad `settled`) | Precio no registrado | Verificar formas con datos reales (`probe.py`) |
 | E4 | `market.py scan` mostraba nuestras propias ofertas: el tablón también nos pone seudónimo | Ninguno (detectado a tiempo) | Filtrar por los ids de `/api/me/offers` |
 | E5 | Creer que la duración de una oferta tenía un tope de 30 | Ofertas que caducaban antes de tiempo | Medido: la duración pedida se divide entre (60 s / 15 s) = 4. `market.expiry()` lo corrige |
+| E7 | Atribuir a SAL-08 la subida de la negociación de 10,3 a 14,55, que era el snapshot atrasado de los `neg_points` | Una conclusión falsa en scoring.md (ya corregida) | Medir cada trato con el Δ de `*_points`, nunca con `negotiating`/`score`, que van por snapshots y fases |
 | E6 | El precio registrado salía 0 cuando era ella quien aceptaba nuestra oferta (el dinero va en `give`) | Log incorrecto en EXP-007 | `haggle.py` toma el dinero del lado que lo lleve |
 
 ## 📈 El Rastro (tick 65)
@@ -82,7 +92,7 @@ Ficha: paciencia 0.85, generosidad 0.8, astucia 0.2, memoria 0.15. Vende 3 sobre
 **Regalos:** a algunos equipos la Abuela les regala una carta ("gift from Abuela Carmen"), a nosotros LAT-05. Probablemente por ser amables. No puntúa, pero es una carta.
 
 ## Duelos
-Pendiente. Diseño previo en [negotiation-design.md](negotiation-design.md). Ojo: el pastel se reduce con cada ronda (decay 0.06–0.08).
+`agent/duels.py` v0 (tick 69): abre con límite/0,6 si vende y límite×0,6 si compra, cede rápido (β = 1,6) y acepta cualquier oferta dentro del límite desde el 75 % del tiempo. Probado sin conexión: nunca cruza el límite y nunca retrocede. **Los duelos de práctica (hora 2) sirven para conocer la forma real de los datos**: primero `run_duels.py --watch` y después jugar. Diseño previo en [negotiation-design.md](negotiation-design.md). Ojo: el pastel se reduce con cada ronda (decay 0.06–0.08).
 
 ## Market Test / broker
 Pendiente. El broker de ejemplo solo saca la mitad de los puntos; para más hay que estimar los límites ocultos de los traders.

@@ -1,6 +1,8 @@
 # Síntesis: dónde estamos y qué sabemos
 
-*Última actualización: vie 2 oct, tick 30 (≈21:00). Mantener al día: es lo primero que hay que leer.*
+*Última actualización: vie 2 oct, tick 74 (≈22:05). Mantener al día: es lo primero que hay que leer.*
+
+> **Ahora mismo:** 287 P · **página SAL completa** · `neg_points` 70,9 · 8 tratos · puesto 7 (pendiente de snapshot) · **El Chato (nivel 2) anunciado**.
 
 | Documento | Para qué |
 |---|---|

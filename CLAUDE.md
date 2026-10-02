@@ -8,8 +8,10 @@ bazaar_sdk.py       SDK oficial: no editar (se puede actualizar)
 agent/
   haggle.py         regateo genérico con vendedores (curva de concesión + AC_next), compra y venta
   dealers.py        PROFILES: lo que sabemos de cada vendedor, como datos (precios, frases)
+  duels.py          duelos: step() por tick, curva con decay, nunca fuera de your_limit
   journal.py        log(stream, **row) -> logs/<stream>.jsonl
   client.py         client(): Bazaar con BAZAAR_KEY del entorno o de .env
+run_duels.py        CLI: jugar los duelos activos (--watch = solo observar y registrar)
 run_dealer.py       CLI: regatear con un vendedor (sobres, cartas, ventas)
 market.py           El Rastro: scan (gangas por ganancia de valor) y sell-dups (vender repetidos)
 probe.py            snapshot de todos los GET en logs/probe/<tick>/ (formas de respuesta, cambios)
