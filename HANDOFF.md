@@ -1,5 +1,39 @@
 # Traspaso del equipo — 2026-10-02
 
+## Observación local de puntuación y clasificación
+
+- Durante el análisis previo solo se hicieron cambios locales. Rubén autorizó después organizar y subir este análisis a `codex/plan-negociacion`. Se hizo `git pull --ff-only`: ya actualizado. SDK y agentes de compañeros conservados; sin despliegues ni operaciones de juego.
+- Análisis organizado en `ANALISIS_RENDIMIENTO.md`: reglas, tabla histórica por tick, distinción entre beneficio y clasificación, criterios de venta, ciclo propuesto, verificación y pendientes. README enlaza el documento e indica el fallo real de login; no se presentan datos históricos como estado actual.
+- Añadidos `observe_performance.py` y seis pruebas: consumo del artefacto cada cinco segundos, complemento de puntuación mediante un GET `/api/me` por nuevo tick, log compacto solo de cambios con rotación, sin llamadas a modelos. Clave y cookie solo en memoria; los logs no incluyen respuestas privadas completas.
+- Verificación: seis pruebas locales pasaron. La prueba real del panel recibió primero HTTP 403 código 1010 con el User-Agent por defecto; con identificación `BazaarPerformanceObserver/1.0` llegó al login, que devolvió HTTP 503 `connection_error`. Se incorporó esa identificación al cliente. No se afirma recorrido real del artefacto completado; no se modificó ni publicó el Worker.
+- Lectura directa del juego tick 129: score 21,42, puesto 6, neg_points 77,6, ladder_points 0,051, cash 268 y collection_value 511,2. Frente a tick 122 (score 22,02, puesto 5) los componentes medidos y recursos permanecen iguales. No demuestra pérdida en un trato ni permite reconstruir por sí sola la fórmula de normalización.
+- Leaderboard consultado era snapshot tick 125, próximo refresco 130: tercero t17 con 23,73. Comparar filas de un mismo snapshot; `/api/me` es la lectura propia en vivo. Revisadas reglas: valor creado, tres mejores tratos por nivel con dealers, ganancias privadas entre equipos, Market Test y evaluación de jueces. No puntúa el número de tratos ni completar páginas por separado: sus bonus cambian la valoración.
+- Actualización final tick 130 y leaderboard snapshot 130: propios 20,15 puntos, puesto 6; tercero t08 con 23,93. Recursos y componentes medidos siguen iguales. Baseline real guardado en `runs/performance-observations.jsonl`, identificado como API directa de diagnóstico porque el login del artefacto está bloqueado; no confundirlo con una lectura del panel.
+- Posible venta a evaluar: una copia duplicada LAT-01 tiene valor privado 2,2. No se ofertó ni vendió. Recalcular marginal y comisiones antes de proponer precio; proteger últimas copias de páginas completas. Sigue pendiente el defecto de `keep_value` que puede duplicar el bonus ya incluido en `your_value`; no corregido en este análisis.
+- Siguiente paso: diagnosticar la conexión saliente del Worker con autorización para actualizar el artefacto, verificar login y dos ciclos reales, y después conectar el resumen de cambios al único ejecutor. La clasificación no es un permiso para negociar automáticamente.
+
+## Publicación del panel para el equipo
+
+- Rubén autorizó push y publicación para que sus compañeros puedan entrar por URL.
+- Publicado mediante Sites: `https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site`. Estado de despliegue `succeeded`, revisión de entorno 1.
+- El acceso a los datos requiere la clave del equipo, validada contra `/api/me`. Sesión cifrada AES-GCM de ocho horas en cookie Secure, HttpOnly y SameSite=Strict; el secreto de sesión se configuró en Sites y no figura en el repositorio. La página pública no contiene respuestas privadas.
+- El Worker consulta cuatro fuentes cada cinco segundos mientras el panel está abierto. Usa únicamente GET contra el juego y conserva los datos anteriores marcando fallos por fuente. Caché separado por clave mediante HMAC; su ruta interna devuelve 404 al público. Los movimientos observados son temporales y no se atribuyen a compras/ventas históricas sin evidencia.
+- Fuente compartida en `website/`; checkout de despliegue separado en `/Users/ruben/projects/hackathon/deploy/mesa-cartas`. Identidad en `website/.openai/hosting.json`; reutilizar ese Site en próximos despliegues.
+- Verificación: 59 pruebas Python y cinco pruebas del Worker pasaron, JavaScript válido, compilación y empaquetado correctos, publicación verificada mediante estado de Sites. No se tuvo disponible la clave real para comprobar una entrada del equipo; esa verificación sigue pendiente y no se afirma como completada.
+- Se conservó el trabajo anterior; estos cambios del panel se suben a `codex/plan-negociacion`, sin mezclar ni modificar los agentes de compañeros.
+- Siguiente paso concreto: abrir la URL con la clave del equipo y comprobar las cuatro horas de verificación tras dos ciclos; informar de cualquier fuente que marque `invalid_response`.
+
+## Panel de inventario y observación cada 5 segundos
+
+- Rubén pidió un artefacto para cartas, compras y ventas; precisó que quiere actualizaciones cada 5 segundos independientes de las pruebas del agente.
+- Añadidos `panel.html`, `panel.py`, `inventory_panel.py`, `live_monitor.py` y pruebas del panel y del observador. El laboratorio exporta el estado en `runs/panel-state.json` con reemplazo atómico. Se conservaron el resto de cambios y el commit de la otra sesión.
+- El modo `--live` hace únicamente GET a saldo/inventario, ofertas, conversaciones y reloj en un proceso independiente cada 5 segundos. Cada fuente lleva hora de verificación y marca fallos sin borrar el último dato conocido. Las claves del broker de `/api/me` se excluyen de la respuesta al navegador.
+- El inventario real usa valores privados, no costes de compra inventados. Los cambios de activos se muestran como entradas/salidas observadas; no se convierten automáticamente en compraventas. Las ofertas muestran su estructura y estado, incluida la espera de liquidación.
+- Verificación: 26 pruebas pasaron (incluye dos consultas automáticas separadas por 5 segundos sin agente), sintaxis JavaScript válida y `git diff --check`. Vista de ejemplo comprobada en Brave: una aceptación mantuvo saldo e inventario, y la liquidación del siguiente tick incorporó la carta y descontó el importe.
+- Bloqueo del modo real en esta sesión: la clave corregida no está en el entorno ni en un `.env` de las dos carpetas del proyecto. Se pidió únicamente la ruta local donde está guardada. Las pruebas del observador usaron respuestas simuladas; no se afirma conexión real verificada.
+- Panel de ejemplo iniciado en `http://127.0.0.1:8766/`; el puerto 8765 pertenece al visor previo `negotiation_lab.py` y se respetó ese proceso. No se reutilizó su código ni su base de datos.
+- Siguiente paso: iniciar `python3 panel.py --live --key-file /ruta/local/a/la/clave` y comprobar dos ciclos reales separados por 5 segundos. No se hicieron commits ni publicaciones desde el trabajo del panel.
+
 ## Repositorio y autorización
 
 - Repositorio: `https://github.com/Jorge-Medina-Diaz/bazaar-hackaton-team18.git`.

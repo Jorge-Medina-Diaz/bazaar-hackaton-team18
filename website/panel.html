@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesa de cartas · Bazaar</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#25342e;background:#f4f3ed;font-synthesis:none;--green:#235641;--muted:#657369;--line:#dce1d8}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,select{cursor:pointer}button{border:1px solid var(--line);border-radius:8px;background:#fff;padding:10px 14px;color:inherit}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--green);color:white;border-color:var(--green)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #cf9a27;outline-offset:3px}header{background:#203f31;color:white;padding:24px max(20px,calc((100% - 1200px)/2))}header small{color:#cad9ce;letter-spacing:.13em;text-transform:uppercase;font-size:11px}h1{font-size:30px;letter-spacing:-.04em;margin:6px 0 8px}header p{margin:0;color:#d8e3d9;font-size:14px}.header-top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.tag{padding:6px 10px;border:1px solid #758e7b;border-radius:20px;font-size:12px}.wrap{max-width:1240px;padding:24px 20px;margin:auto}.toolbar{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:20px}.sources{display:flex;gap:4px;padding:4px;background:#e7eae2;border-radius:10px}.sources button{background:transparent;border-color:transparent}.sources button[aria-pressed=true]{background:white;border-color:var(--line);box-shadow:0 2px 3px #00000008}.status{font-size:13px;color:var(--muted)}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px}.stat{background:white;padding:18px;border:1px solid var(--line);border-radius:12px}.stat span{font-size:12px;color:var(--muted)}.stat strong{display:block;font-size:29px;font-weight:600;letter-spacing:-.03em;margin:7px 0}.stat small{color:var(--muted);font-size:12px}.layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:22px}section{background:white;border:1px solid var(--line);border-radius:12px;padding:20px;min-width:0}h2{font-size:18px;margin:0;font-weight:600;letter-spacing:-.02em}.section-title{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-bottom:16px}.count{font-size:12px;color:var(--muted)}.filters{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}input,select{min-width:0;border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 12px;color:inherit}input{flex:1;min-width:120px}select{max-width:100%}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px}.card{padding:0;border:1px solid #dde2d8;border-radius:10px;overflow:hidden;background:#fafbf7}.card-art{height:105px;background:#e5ead8;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#36543c}.card[data-set=MAL] .card-art{background:#ebe3d4;color:#6c5237}.card-art strong{font-family:Georgia,serif;font-size:32px;letter-spacing:-.03em}.card-art span{font-size:10px;letter-spacing:.12em;text-transform:uppercase}.card-info{padding:12px}.card-heading{display:flex;align-items:center;justify-content:space-between;gap:6px}.copies{background:#e6eddc;color:#38552f;border-radius:12px;padding:3px 7px;font-size:11px}.card p{margin:7px 0;color:var(--muted);font-size:12px}.asset-line{font-size:11px;color:var(--muted)}.empty{padding:35px 16px;color:var(--muted);text-align:center;font-size:14px;line-height:1.6}.pending{margin:0 0 14px;padding:14px;background:#fff7df;border:1px solid #eddfae;border-radius:9px;font-size:13px;line-height:1.6}.pending strong{display:block;color:#795519}.side-stack{display:flex;flex-direction:column;gap:20px}.movement{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;justify-content:space-between;align-items:start}.movement:last-child{border-bottom:0}.movement strong{font-size:13px}.movement small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}.amount{font-weight:600;font-size:14px;white-space:nowrap}.sell{color:#226543}.buy{color:#835d35}.event{border-left:2px solid #dce4d5;padding:0 0 14px 12px;font-size:12px;line-height:1.5}.event:last-child{padding-bottom:0}.event small{color:var(--muted)}.event p{margin:3px 0}.demo-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px}.demo-controls small{color:var(--muted);font-size:12px}.note{color:var(--muted);font-size:12px;line-height:1.6;margin:20px 0 0}.error{color:#9a3826}.legend{font-size:12px;color:var(--muted);margin:14px 0 0}footer{margin:22px 0;font-size:12px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:800px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:420px){.wrap{padding:16px 12px}header{padding:20px 16px}h1{font-size:26px}.stat{padding:14px}.stats{gap:10px}.stat strong{font-size:25px}section{padding:16px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.card-art{height:85px}.card-art strong{font-size:26px}.card-heading{flex-wrap:wrap}.sources{width:100%}.sources button{flex:1;padding:10px 8px;font-size:13px}}
+</style>
+</head>
+<body>
+<header><div class="header-top"><small>The Bazaar · Equipo 18</small><span id="source-tag" class="tag">Conectando</span></div><h1>Mesa de cartas</h1><p>Qué tenemos, qué estamos negociando y qué ha cambiado de manos.</p></header>
+<main class="wrap">
+<section id="login-section" hidden style="max-width:520px;margin:0 auto 22px"><h2>Acceso al equipo</h2><p>Introduce la clave del Bazaar para consultar las cartas y ofertas de tu equipo.</p><form id="login-form" class="filters"><input id="team-key" type="password" autocomplete="off" aria-label="Clave del equipo" placeholder="Clave del equipo" required><button id="login-button" class="primary" type="submit">Entrar</button></form><p id="login-error" class="status error" role="alert"></p></section>
+<div class="toolbar"><div class="sources" aria-label="Fuente de los datos"><button id="live" aria-pressed="true">Estado actual · cada 5 s</button><button id="demo" aria-pressed="false">Ejemplo de compra y venta</button></div><div id="status" class="status" role="status" aria-live="polite">Consultando el estado…</div><button id="logout" hidden>Salir</button></div>
+<div class="stats"><div class="stat"><span>Saldo disponible</span><strong id="cash">—</strong><small>Primas confirmadas</small></div><div class="stat"><span>Cartas en la mano</span><strong id="total">—</strong><small id="unique">Sin estado todavía</small></div><div class="stat"><span>Copias repetidas</span><strong id="duplicates">—</strong><small>Además de la primera copia</small></div><div class="stat"><span id="trade-label">Compras / ventas</span><strong id="trade-count">—</strong><small id="trade-help">Solo operaciones liquidadas</small></div></div>
+<section id="verification" hidden style="margin-bottom:20px"><div class="section-title"><h2>Comprobación de cada dato</h2><span class="count">Consulta independiente cada 5 segundos</span></div><div id="checks"></div></section>
+<div class="layout"><section><div class="section-title"><h2>Nuestra colección</h2><span id="inventory-count" class="count">0 tipos</span></div><div class="filters"><input id="search" aria-label="Buscar carta por referencia" placeholder="Buscar carta, ej. LAV-03"><select id="filter" aria-label="Filtrar cartas"><option value="all">Todas las cartas</option><option value="duplicates">Solo repetidas</option><option value="LAV">Lavapiés</option><option value="MAL">Malasaña</option><option value="LAT">La Latina</option><option value="SAL">Salamanca</option><option value="RET">El Retiro</option><option value="CHA">Chamberí</option></select></div><div id="cards" class="cards"></div><p class="legend">Cada # identifica un activo distinto. Los importes son costes de compra simulados.</p></section>
+<div class="side-stack"><section><div class="section-title"><h2>Compras y ventas</h2><span id="movement-count" class="count">0 movimientos</span></div><div id="pending" class="pending" hidden></div><div id="offers"></div><div id="movements"></div></section><section><div class="section-title"><h2>Último turno</h2><span id="tick" class="count">Tick —</span></div><div id="events"></div></section></div></div>
+<div id="demo-controls" class="demo-controls" hidden><button id="next" class="primary">Avanzar turno</button><button id="reset">Reiniciar ejemplo</button><small id="demo-progress"></small></div>
+<p id="note" class="note">Actualización cada 5 segundos, con hora de verificación de cada fuente.</p>
+<footer id="footer">Conectando con la fuente de datos.</footer>
+</main>
+<script>
+"use strict";
+const el = id => document.getElementById(id);
+const sets = {LAV:"Lavapiés",MAL:"Malasaña",LAT:"La Latina",SAL:"Salamanca",RET:"El Retiro",CHA:"Chamberí"};
+let mode="live", state=null, request=0, busy=false, lastRendered="";
+const hosted=window.BAZAAR_HOSTED===true;
+function text(tag,value,className){const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;}
+function money(value){return new Intl.NumberFormat("es-ES").format(value)+" P";}
+function empty(target,message){target.replaceChildren(text("div",message,"empty"));}
+function render(){
+ const real=state?.mode==="live",verified=state?.cash!=null;
+ const assets=(state?.assets||[]).filter(a=>a.kind!=="pack"), movements=state?.movements||[], groups=new Map();
+ el("source-tag").textContent=real?"Bazaar real · Solo lectura":"Simulación local";
+ el("footer").textContent=real?"Observador independiente del agente · Las consultas no compran, venden ni abren sobres.":"Datos de simulación · No conectado a las operaciones reales del Bazaar.";
+ el("verification").hidden=!real;el("checks").replaceChildren();
+ if(real){for(const name of ["inventario y saldo","ofertas","conversaciones","reloj"]){
+  const check=state.checks[name];const stale=!check?.verified_at||Date.now()-Date.parse(check.verified_at)>12000;
+  const stamp=check?.verified_at?new Date(check.verified_at).toLocaleTimeString("es-ES"):"todavía sin verificar";
+  const label=check?.ok&&!stale?"Verificado":check?.error?"Falló la consulta · "+check.error:"Pendiente / desactualizado";
+  el("checks").append(text("p",name+" · "+label+" · "+stamp,check?.ok&&!stale?"status":"status error"));
+ }}
+ for(const a of assets){if(!groups.has(a.ref))groups.set(a.ref,[]);groups.get(a.ref).push(a);}
+ el("cash").textContent=verified?money(state.cash):"—";el("total").textContent=verified?assets.length:"—";
+ el("unique").textContent=state?groups.size+" tipos diferentes":"Sin estado todavía";
+ el("duplicates").textContent=verified?assets.length-groups.size:"—";
+ el("trade-label").textContent=real?"Entradas / salidas":"Compras / ventas";
+ el("trade-help").textContent=real?"Observadas desde que abriste el monitor":"Solo operaciones liquidadas";
+ el("trade-count").textContent=verified?movements.filter(m=>m.side===(real?"in":"buy")).length+" / "+movements.filter(m=>m.side===(real?"out":"sell")).length:"—";
+ el("inventory-count").textContent=groups.size+" tipos";el("movement-count").textContent=movements.length+" movimientos";
+ const cards=el("cards");cards.replaceChildren();
+ const query=el("search").value.trim().toUpperCase(),filter=el("filter").value;
+ for(const [ref,copies] of [...groups.entries()].sort(([a],[b])=>a.localeCompare(b))){
+  const set=ref.split("-")[0];if(!ref.toUpperCase().includes(query)||(filter==="duplicates"&&copies.length<2)||(filter!=="all"&&filter!=="duplicates"&&filter!==set))continue;
+  const card=text("article","","card");card.dataset.set=set;
+  const art=text("div","","card-art");art.append(text("strong",ref),text("span",sets[set]||set));
+  const info=text("div","","card-info"),heading=text("div","","card-heading");heading.append(text("strong",ref),text("span","×"+copies.length,"copies"));info.append(heading);
+  info.append(text("p",real?"Valor privado: "+(copies.every(a=>a.value!=null)?money(copies.reduce((sum,a)=>sum+a.value,0)):"sin verificar"):"Coste total: "+money(copies.reduce((sum,a)=>sum+a.paid,0))));
+  info.append(text("div",copies.map(a=>"#"+a.id+(a.paid!=null?" · "+money(a.paid):"")).join(" / "),"asset-line"));card.append(art,info);cards.append(card);
+ }
+ if(!cards.childElementCount)empty(cards,assets.length?"No hay cartas con este filtro.":"Aún no hay cartas liquidadas. Aparecerán aquí al completar una compra.");
+ const pending=el("pending");pending.replaceChildren();pending.hidden=!state?.pending;
+ if(state?.pending){const p=state.pending;pending.append(text("strong",(p.side==="sell"?"Venta":"Compra")+" pendiente · "+p.ref),text("div",money(p.price)+" · Se liquida en el siguiente tick"));}
+ const offers=el("offers");offers.replaceChildren();
+ function sideLabel(side){const refs=[...(side?.assets||[]).map(a=>typeof a==="object"?(a.ref||"#"+a.id):"#"+a),...(side?.types||side?.cards||[])];if(side?.cash)refs.push(money(side.cash));return refs.join(", ")||"—";}
+ for(const o of state?.offers||[]){const row=text("div","","movement"),detail=text("div","");detail.append(text("strong","Oferta #"+o.id+" · "+o.status),text("small","De "+o.maker+" · Da: "+sideLabel(o.give)+" · Pide: "+sideLabel(o.want)));offers.append(detail);}
+ if(real&&!state.offers.length)offers.append(text("p","No hay ofertas en la última consulta.","status"));
+ const list=el("movements");list.replaceChildren();
+ for(const m of [...movements].reverse()){
+  const labels={buy:"Compra",sell:"Venta",in:"Entrada",out:"Salida"};
+  const row=text("div","","movement"),detail=text("div","");detail.append(text("strong",labels[m.side]+" · "+m.card),text("small","Activo #"+m.asset_id+" · "+(m.tick!=null?"Tick "+m.tick:new Date(m.observed_at).toLocaleTimeString("es-ES"))+" · "+m.counterparty));
+  if(m.side==="sell"&&m.paid!=null)detail.append(text("small","Coste previo "+money(m.paid)+" · Diferencia "+money(m.price-m.paid)));
+  row.append(detail,text("div",m.price!=null?(m.side==="sell"?"+":"−")+money(m.price):"Confirmado","amount "+m.side));list.append(row);
+ }
+ if(!movements.length)empty(list,"Las compras y ventas aparecerán tras la liquidación.");
+ el("tick").textContent="Tick "+(state?.tick??"—");const events=el("events");events.replaceChildren();
+ for(const e of [...(state?.events||[])].slice(-3).reverse()){
+  const node=text("div","","event");node.append(text("small","Tick "+e.tick+" · "+e.card+(e.price!=null?" · "+money(e.price):"")),text("p",e.reply||e.reason));if(e.message)node.append(text("p",e.message));events.append(node);
+ }
+ if(real){for(const thread of state.threads||[])events.append(text("p","Conversación #"+thread.id+" · "+(thread.with||"")+" · "+thread.status,"status"));}
+ if(!events.childElementCount)empty(events,real?"No hay conversaciones en la última consulta.":"Esperando el primer turno.");
+ el("demo-controls").hidden=mode!=="demo";
+ el("next").disabled=busy||!!state?.finished;el("reset").disabled=busy;
+ el("demo-progress").textContent=state&&mode==="demo"?"Paso "+(state.demo_step+1)+" de "+state.demo_steps:"";
+ el("note").textContent=mode==="demo"?"Ejemplo independiente: tres compras y una venta de un duplicado a 8 P. Todos los precios son inventados.":real?"Saldo, inventario, ofertas y conversaciones se consultan cada 5 segundos, aunque el agente no se ejecute. Las entradas y salidas son cambios de inventario; el coste de compras anteriores no está verificado.":"Fuente de simulación: se relee cada 5 segundos. Para observar el juego real, inicia el servidor con --live.";
+}
+async function refresh(){
+ const serial=++request, selected=mode;
+ try{
+  const response=await fetch(selected==="demo"?"/api/demo":"/api/state",{cache:"no-store"});const data=await response.json();
+  if(serial!==request||selected!==mode)return;
+  if(!response.ok){
+   if(response.status===401&&hosted){state=null;lastRendered="";render();el("login-section").hidden=false;el("logout").hidden=true;el("status").textContent="Acceso pendiente · Los datos del equipo están protegidos";return;}
+   if(response.status===404&&data.error==="waiting"){state=null;render();el("status").textContent="Esperando al laboratorio · Inicia laboratorio.py --step";el("status").className="status";return;}
+   throw new Error(data.message||"No se pudo actualizar");
+  }
+  state=data;if(hosted){el("login-section").hidden=true;el("logout").hidden=false;}const signature=JSON.stringify(data);if(signature!==lastRendered){lastRendered=signature;render();}
+  const updated=data.updated_at?new Date(data.updated_at).toLocaleTimeString("es-ES"):"sin verificar";
+  const failed=data.mode==="live"&&(data.monitor_error||Object.values(data.checks).some(c=>!c.ok));
+  el("status").textContent=(selected==="demo"?"Ejemplo local":data.scenario)+" · "+(failed?"Hay datos sin verificar":data.finished?"Finalizado":data.pending?"Liquidación pendiente":"Último estado")+" · "+updated;
+  el("status").className=failed?"status error":"status";
+ }catch(error){if(serial===request){el("status").textContent="Sin conexión · "+error.message+". Se conserva el último estado.";el("status").className="status error";}}
+}
+function selectMode(selected){mode=selected;request++;state=null;lastRendered="";el("live").setAttribute("aria-pressed",selected==="live");el("demo").setAttribute("aria-pressed",selected==="demo");render();refresh();}
+async function demoAction(action){if(busy)return;busy=true;render();try{const response=await fetch("/api/demo/"+action,{method:"POST",headers:{"X-Panel-Action":"demo"}});if(!response.ok)throw new Error("No se pudo avanzar");await refresh();}catch(error){el("status").textContent=error.message;el("status").className="status error";}finally{busy=false;render();}}
+el("live").addEventListener("click",()=>selectMode("live"));el("demo").addEventListener("click",()=>selectMode("demo"));
+el("search").addEventListener("input",render);el("filter").addEventListener("change",render);
+el("next").addEventListener("click",()=>demoAction("next"));el("reset").addEventListener("click",()=>demoAction("reset"));
+el("login-form").addEventListener("submit",async event=>{
+ event.preventDefault();el("login-button").disabled=true;el("login-error").textContent="";
+ try{const key=el("team-key").value.trim();el("team-key").value="";const response=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key})});const data=await response.json();if(!response.ok)throw new Error(data.message||"No se pudo verificar el acceso");await refresh();}catch(error){el("login-error").textContent=error.message;}finally{el("login-button").disabled=false;}
+});
+el("logout").addEventListener("click",async()=>{try{const response=await fetch("/api/logout",{method:"POST"});if(!response.ok)throw new Error("No se pudo cerrar la sesión");state=null;lastRendered="";el("team-key").value="";await refresh();}catch(error){el("status").textContent=error.message;}});
+if(hosted)el("demo").hidden=true;
+if(!hosted&&new URLSearchParams(location.search).get("demo")==="1")selectMode("demo");else{render();refresh();}
+setInterval(()=>{if(!busy)refresh();},5000);
+</script>
+</body>
+</html>
