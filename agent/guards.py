@@ -46,6 +46,7 @@ from typing import Any, Mapping, Optional
 
 from agent.contracts import (ARGS, KINDS, RASTRO, TALK_KINDS, TEAM, Book, Intent, Outcome, Verdict,
                              domains_of, make_intent)
+from agent.offer_safety import offer_ok
 from agent.valuation import fee as _fee
 
 REF_RE = re.compile(r"[A-Z]{3}-\d{2}")
@@ -376,8 +377,9 @@ def _thread_buy_ref(t: Mapping) -> Optional[str]:
 
 
 def _thread_standing(t: Mapping) -> Optional[int]:
-    """Price of the dealer's live offer in a buy thread (the price we could be charged), or None."""
-    dealer = t.get("with")
+    """Price of the live offer in a buy thread (the price we could be charged), or None. A dealer offer that fails
+    offer_safety.offer_ok (the Pícaros trick: another card at the asked price) can never be accepted: ignored."""
+    dealer, topic = t.get("with"), t.get("topic")
     best = None
     offers = list(t.get("standing_offers") or [])
     for m in t.get("messages") or []:
@@ -385,9 +387,29 @@ def _thread_standing(t: Mapping) -> Optional[int]:
             offers.append(m["offer"])
     for o in offers:
         if isinstance(o, Mapping) and o.get("status") == "open" and o.get("maker") in (dealer, TEAM):
+            if o.get("maker") == dealer and not offer_ok(o, topic, buying=True):
+                continue
             p = _offer_price(o, "want") if o.get("maker") == dealer else _offer_price(o, "give")
             best = p if best is None else max(best, p)
     return best
+
+
+def _own_thread_prices(t: Mapping) -> tuple:
+    """Our prices in a dealer thread, oldest first. Live messages have no top-level price (keys id, offer, sender,
+    tick): the price is the cash of the offer the message carries (give.cash when we buy, want.cash when we sell),
+    as gate._foreign_writer reads it. A top-level price (fake server, tests) is the fallback."""
+    side = "give" if _thread_buy_ref(t) else "want"
+    out = []
+    for m in t.get("messages") or []:
+        if not isinstance(m, Mapping) or m.get("sender") != TEAM:
+            continue
+        o = m.get("offer")
+        p = _offer_price(o, side) if isinstance(o, Mapping) else 0
+        if not p and _int(m.get("price")):
+            p = m["price"]
+        if p > 0:
+            out.append(p)
+    return tuple(out)
 
 
 def _rows(journal, kinds) -> list:
@@ -437,7 +459,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
             commit += p
 
     # dealer threads opened by us
-    thread_limit, thread_prices, thread_ref, thread_by_dealer = {}, {}, {}, {}
+    thread_limit, thread_prices, thread_ref, thread_by_dealer, thread_res = {}, {}, {}, {}, {}
     deals_hour: Counter = Counter()
     abuela_open = False
     hour_ago = world.tick - cfg.TICKS_PER_GAME_HOUR
@@ -448,8 +470,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
         if t.get("status") == "deal" and isinstance(dealer, str) and _int(t.get("created_tick")) \
                 and t["created_tick"] >= hour_ago:
             deals_hour[dealer] += 1
-        prices = tuple(m.get("price") for m in (t.get("messages") or [])
-                       if isinstance(m, Mapping) and m.get("sender") == TEAM and _int(m.get("price")))
+        prices = _own_thread_prices(t)
         thread_prices[tid] = prices
         if t.get("status") != "open":
             continue
@@ -463,7 +484,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
             standing = _thread_standing(t)
             if standing is not None:
                 projected[ref] += 1
-            commit += max([standing or 0] + list(prices))
+            thread_res[tid] = max([standing or 0] + list(prices))    # capped at the thread's limit below
         else:
             topic = t.get("topic") or {}
             sell = topic.get("sell") if isinstance(topic, Mapping) else None
@@ -531,6 +552,12 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                 if args.get("dealer") not in thread_by_dealer:
                     paths[args["ref"]] += 1
                     commit += args.get("limit") if _int(args.get("limit")) else 0
+
+    # open buy threads reserve max(dealer ask, our prices), never above the limit the thread was opened with (we
+    # never pay more: a dealer asking 95 on a limit-90 thread held 95); unknown limit -> the full max (fail closed)
+    for tid, res in thread_res.items():
+        lim = thread_limit.get(tid)
+        commit += min(lim, res) if _int(lim) else res
 
     protect = frozenset(plan_cfg.get("protect_sets") or ("SAL", "RET", "CHA", "LAT"))
     keep = {}

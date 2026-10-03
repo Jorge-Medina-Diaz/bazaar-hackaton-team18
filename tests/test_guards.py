@@ -764,3 +764,60 @@ class ThreadOfferCountedOnce(unittest.TestCase):
         self.assertEqual(base.book.cash_free - c.book.cash_free, 70)
         from agent.tactics import hygiene
         self.assertEqual(hygiene.bid_watch(c.world, c.book, c.valuer, c.cfg, PLAN), [])
+
+
+class _OpenedJournal:
+    """Journal with one open_thread intent (limit) answered ok with thread `tid`; extra rows appended."""
+
+    def __init__(self, tid, limit, dealer="chato", ref="RET-10", extra=()):
+        self._rows = [{"kind": "intent", "id": "o1", "intent_kind": "open_thread", "tick": 207,
+                       "args": {"dealer": dealer, "side": "buy", "ref": ref, "asset_ids": [], "limit": limit}},
+                      {"kind": "result", "id": "o1", "status": "ok", "code": None, "response": {"id": tid},
+                       "tick": 207}] + list(extra)
+
+    def rows(self, kinds):
+        return iter([r for r in self._rows if r["kind"] in kinds])
+
+    def pending(self):
+        return []
+
+    def unknown_domains(self):
+        return set()
+
+
+def _live_thread(tid=392, ref="RET-10", ask=95, ask_types=None, dealer="chato"):
+    """Live 3 Oct t210 shape: messages carry only id/offer/sender/tick (no top-level price)."""
+    def offer(oid, maker, cash_give, cash_want, types_give, types_want, status, tick):
+        return {"id": oid, "maker": maker, "to": "t18" if maker != "t18" else dealer, "venue": None, "thread": tid,
+                "status": status, "final": False, "created_tick": tick, "expires_tick": tick + 4,
+                "give": {"cash": cash_give, "assets": [], "types": types_give},
+                "want": {"cash": cash_want, "assets": [], "types": types_want}}
+    mine0 = offer(3506, "t18", 70, 0, [], [f"card:{ref}"], "cancelled", 208)
+    mine1 = offer(3515, "t18", 74, 0, [], [f"card:{ref}"], "open", 209)
+    hers = offer(3519, dealer, 0, ask, ask_types or [f"card:{ref}"], [], "open", 210)
+    msgs = [{"id": 1, "offer": mine0, "sender": "t18", "tick": 208}, {"id": 2, "offer": mine1, "sender": "t18", "tick": 209},
+            {"id": 3, "offer": hers, "sender": dealer, "tick": 210}]
+    return {"id": tid, "team": "t18", "with": dealer, "status": "open", "topic": {"buy": {"card": ref}},
+            "created_tick": 207, "messages": msgs, "standing_offers": [mine1, hers]}, mine1
+
+
+class ThreadPricesAndReserve(unittest.TestCase):
+    def test_prices_read_from_the_message_offer(self):
+        th, mine = _live_thread()
+        c = Ctx(my_offers=(mine,), threads={392: th})
+        self.assertEqual(c.book.thread_prices[392], (70, 74))
+
+    def test_reserve_capped_at_thread_limit(self):
+        base = Ctx(my_offers=())
+        th, mine = _live_thread(ask=95)                       # chato asks 95 on a limit-90 thread
+        c = Ctx(my_offers=(mine,), threads={392: th}, journal=_OpenedJournal(392, 90))
+        self.assertEqual(base.book.cash_free - c.book.cash_free, 90)
+        unknown = Ctx(my_offers=(mine,), threads={392: th})   # no opening limit in the journal: full max (fail closed)
+        self.assertEqual(base.book.cash_free - unknown.book.cash_free, 95)
+
+    def test_trick_offer_not_reserved(self):
+        base = Ctx(my_offers=())
+        th, mine = _live_thread(ask=130, ask_types=["card:LAT-06"], dealer="picaros")   # another card: never ours
+        c = Ctx(my_offers=(mine,), threads={392: th}, journal=_OpenedJournal(392, 160, "picaros"))
+        self.assertEqual(base.book.cash_free - c.book.cash_free, 74)
+        self.assertEqual(guards._thread_standing(th), 74)
