@@ -823,6 +823,31 @@ class ThreadPricesAndReserve(unittest.TestCase):
         self.assertEqual(guards._thread_standing(th), 74)
 
 
+class ClosedThreadBlocks(unittest.TestCase):
+    """closed_reason / until_tick of our closed dealer threads -> dealer_block (the tactic must not reopen them)."""
+
+    @staticmethod
+    def _closed(tid, dealer, reason, last_tick, **kw):
+        return {"id": tid, "team": "t18", "with": dealer, "status": "walked", "closed_reason": reason,
+                "topic": {"buy": {"card": "RET-06"}}, "created_tick": last_tick - 3, "standing_offers": [],
+                "messages": [{"id": 1, "tick": last_tick, "sender": dealer}], **kw}
+
+    def test_blocks_from_closed_reason(self):
+        # tick 200 at t_hours 5.5 with 30 s ticks: this hour began at tick 140 and ends at 260
+        th = {1: self._closed(1, "abuela", "persona_budget", 190),
+              2: self._closed(2, "chato", "cooloff", 195, until_tick=230),
+              3: self._closed(3, "picaros", "final_offer_refused", 198),
+              4: self._closed(4, "pilar", "persona_quota", 130),           # previous hour: quota reset
+              5: self._closed(5, "ernesto", "cooloff", 150, until_tick=170)}
+        b = Ctx(tick=200, t_hours=5.5, threads=th).book
+        self.assertEqual(dict(b.dealer_block), {"abuela": 260, "chato": 230})
+
+    def test_world_keeps_until_tick(self):
+        from agent import world as W
+        t, _ = W._p_thread(self._closed(2, "chato", "cooloff", 195, until_tick=230))
+        self.assertEqual((t["closed_reason"], t["until_tick"]), ("cooloff", 230))
+
+
 class PackTypesOnlyPacks(unittest.TestCase):
     def test_unknown_asset_kind_is_not_a_pack(self):
         me = copy.deepcopy(ME)

@@ -29,7 +29,8 @@ NOTES (M4a, night build)
 - Rival venues (D2): accept on a venue != "rastro" needs the venue open in World.venues, owner != t18
   (INV-20), a known leaderboard with the owner outside the top RIVAL_TOP_N, and neg_lo >= RIVAL_VENUE_MIN_GAIN.
 - Not done tonight: dealer_block / thread_limit / recent_rastro are rebuilt from the journal best effort
-  (the M2 row shapes were not final); delivery_risk does not yet look at "new dealer level announced";
+  (the M2 row shapes were not final; dealer_block also comes from our threads' closed_reason / until_tick, see
+  _closed_thread_blocks); delivery_risk does not yet look at "new dealer level announced";
   dup_min_price (RET/CHA >= 30) is a tactic rule, not a guard here.
 """
 from __future__ import annotations
@@ -423,6 +424,36 @@ def _own_thread_prices(t: Mapping) -> tuple:
     return tuple(out)
 
 
+_HOUR_BLOCK_REASONS = ("persona_quota", "persona_budget", "sold_out")
+
+
+def _closed_thread_blocks(world, tph: int) -> dict:
+    """dealer -> until_tick from our threads the dealer closed in the current game hour (closed_reason; live Sat:
+    status "walked", closed_reason "persona_budget"): cooloff until its until_tick (end of the hour without one),
+    persona_quota / persona_budget / sold_out until the end of the current game hour, so the dealers tactic does
+    not reopen them. The closing tick is the thread's last message (or created_tick)."""
+    out: dict = {}
+    t_h = world.t_hours if _finite(world.t_hours) else None
+    frac = t_h - math.floor(t_h) if t_h is not None else 0.0
+    hour_start = world.tick - int(math.floor(frac * tph + 1e-9)) if t_h is not None else world.tick - tph
+    hour_end = world.tick + max(1, math.ceil((1.0 - frac) * tph))
+    for t in (world.threads or {}).values():
+        if not isinstance(t, Mapping) or t.get("status") == "open" or not isinstance(t.get("with"), str):
+            continue
+        reason = t.get("closed_reason")
+        if not isinstance(reason, str) or not reason:
+            continue
+        until = t.get("until_tick") if "cooloff" in reason and _int(t.get("until_tick")) else None
+        if until is None and ("cooloff" in reason or any(c in reason for c in _HOUR_BLOCK_REASONS)):
+            ticks = [m.get("tick") for m in t.get("messages") or () if isinstance(m, Mapping) and _int(m.get("tick"))]
+            last = max(ticks) if ticks else t.get("created_tick")
+            if _int(last) and last >= hour_start:
+                until = hour_end
+        if until is not None and until >= world.tick:
+            out[t["with"]] = max(until, out.get(t["with"], until))
+    return out
+
+
 def _rows(journal, kinds) -> list:
     if journal is None:
         return []
@@ -564,6 +595,9 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                 if args.get("dealer") not in thread_by_dealer:
                     paths[args["ref"]] += 1
                     commit += args.get("limit") if _int(args.get("limit")) else 0
+
+    for dealer, until in _closed_thread_blocks(world, tph).items():
+        dealer_block[dealer] = max(until, dealer_block.get(dealer, until))
 
     # open buy threads reserve max(dealer ask, our prices), never above the limit the thread was opened with (we
     # never pay more: a dealer asking 95 on a limit-90 thread held 95); unknown limit -> the full max (fail closed)
