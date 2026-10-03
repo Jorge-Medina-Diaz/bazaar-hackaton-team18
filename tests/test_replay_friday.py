@@ -200,6 +200,23 @@ class TestFridayLosses(unittest.TestCase):
         v = Friday(155).dealer_sell("chato", "LAV-06", 509, 19)    # LAV uncommon 17.5 for us
         self.assertTrue(v.ok, v)
 
+    def test_dealer_sale_with_frozen_world_thread(self):
+        # live 3 Oct t728: the World freezes the sell topic {"assets": [879]} to a tuple; the fresh thread is raw
+        # JSON with a list -> G10.shape topic refused every dealer sale until the topics were compared as plain data
+        from agent.world import freeze
+        f = Friday(155)
+        th, oid = dealer_thread("chato", "LAV-06", 19, f.tick, side="sell", asset_id=509)
+        g = Friday.__new__(Friday)
+        g.__dict__.update(f.__dict__)
+        g.world = dataclasses.replace(f.world, threads=freeze({TID: th}))
+        b = guards.build_book(g.world, None, f.valuer, f.cfg, PLAN, {}, {})
+        g.book = dataclasses.replace(b, valuation_ok=True, thread_limit=MappingProxyType({TID: 19}))
+        it = make_intent("accept", "dealers", {"offer_id": oid, "source": "dealer", "ref": "LAV-06", "side": "sell",
+                                               "price": 19, "thread_id": TID, "give_asset": None, "fingerprint": "",
+                                               "resupply": False, "venue": "chato"}, "replay", "replay", PRED0)
+        v = g.check(it, fresh=th)
+        self.assertTrue(v.ok, v)
+
     def test_lat03_at_9(self):
         v = Friday(147).bid("LAT-03", 9, closer=False)
         self.assertTrue(refused(v), v)

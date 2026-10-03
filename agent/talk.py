@@ -191,6 +191,15 @@ def _num(x: Any) -> bool:
     return type(x) in (int, float) and math.isfinite(x)
 
 
+def _plain(x: Any) -> Any:
+    """Frozen World data (MappingProxyType / tuple) and raw JSON (dict / list) compare equal after this."""
+    if isinstance(x, Mapping):
+        return {k: _plain(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_plain(v) for v in x]
+    return x
+
+
 def _get(m: Any, k: str, default: Any = None) -> Any:
     return m.get(k, default) if isinstance(m, Mapping) else default
 
@@ -416,7 +425,7 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
     dealer = _get(t, "with")
     _need(ft.get("with") == dealer, "G10.shape", "dealer")
     topic = ft.get("topic")
-    _need(topic == t.get("topic"), "G10.shape", "topic")
+    _need(_plain(topic) == _plain(_get(t, "topic")), "G10.shape", "topic")   # World freezes lists to tuples
     match = [o for o in _offers_of(ft) if o.get("id") == a["offer_id"]]
     _need(len(match) >= 1, "G32.no_offer")
     o = match[-1]
