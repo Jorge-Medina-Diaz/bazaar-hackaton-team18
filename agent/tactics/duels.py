@@ -371,8 +371,8 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
 
     # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise
     if late and ok_r and not v.rival_spoke_now:
-        p = r if (r >= mine if buyer else r <= mine) else mine
-        return ("say", _clamp(v, p, need_say), say_days)
+        p = _clamp(v, r if (r >= mine if buyer else r <= mine) else mine, need_say)
+        return ("say", p, say_days) if p != mine else wait          # never resend our own price (G50.repeat)
     last_our_tick = v.ours[-1][0] if v.ours else -1
     if v.tick >= v.deadline - P["final"] and not ok_r and last_our_tick < v.deadline - P["final"]:
         p = _clamp(v, mine + P["final_frac"] * (Lm - mine), need_say)
