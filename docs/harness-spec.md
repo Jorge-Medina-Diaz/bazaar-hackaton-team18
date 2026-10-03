@@ -466,7 +466,7 @@ def main(argv: Sequence[str]) -> int
 
 | Id | Invariante | Lo impone | Test (criterio) |
 |---|---|---|---|
-| INV-01 | **Punto único.** Ningún método distinto de GET sale del proceso salvo desde `Gate.execute`, con un permiso de un uso que coincide en (método, ruta, sha256 del cuerpo) y ruta de `WRITE_ROUTES`. GET solo a `GET_ALLOWLIST` con `fullmatch`. Nunca admin, venues, flags ni broker. | `GuardedTransport.send`/`_call`; audit hook; `broker()` desactivado; test AST | `test_transport.py`: POST sin permiso, con permiso de otra ruta/cuerpo, reutilizado, `/api//admin`, `/API/admin`, `/api/%61dmin`, ruta con `\n` → `GateViolation` y 0 peticiones. `test_architecture.py`: los nombres prohibidos de §0 no aparecen en `agent/` ni `bazaar.py` fuera de `transport.py`/`gate.py`; `/api/admin` solo como literal en `transport.py` y `sim/fake_server.py`. |
+| INV-01 | **Punto único.** Ningún método distinto de GET sale del proceso salvo desde `Gate.execute`, con un permiso de un uso que coincide en (método, ruta, sha256 del cuerpo) y ruta de `WRITE_ROUTES`. GET solo a `GET_ALLOWLIST` con `fullmatch`. Nunca admin, venues, flags ni broker (las excepciones manuales con el OK de Jorge quedan fuera del arnés: §15). | `GuardedTransport.send`/`_call`; audit hook; `broker()` desactivado; test AST | `test_transport.py`: POST sin permiso, con permiso de otra ruta/cuerpo, reutilizado, `/api//admin`, `/API/admin`, `/api/%61dmin`, ruta con `\n` → `GateViolation` y 0 peticiones. `test_architecture.py`: los nombres prohibidos de §0 no aparecen en `agent/` ni `bazaar.py` fuera de `transport.py`/`gate.py`; `/api/admin` solo como literal en `transport.py` y `sim/fake_server.py`. |
 | INV-02 | **Ninguna escritura** fuera de `live`, con la táctica sin armar o pausada, con STOP, o pasado `tick_deadline`; con reloj en pausa o puertas cerradas solo `cancel` y `close_thread`. | Transport (modo, STOP en cada envío); Gate G01, G03 | `test_dry.py`: 1.000 ticks en dry → 0 escrituras. `test_transport.py`: `STOP.txt` creado entre la decisión y el envío → 0 POST. `test_gate.py`: pausa, puertas cerradas (cancel sí, accept no), decisión tardía. |
 | INV-03 | **Presupuestos por tick:** aceptaciones ≤ `limits.accepts` (los duel_accept cuentan); ≤ 1 mensaje por hilo o duelo; publicaciones + cancelaciones ≤ min(6, `limits.listings` − 2); ofertas propias (maker t18) ≤ `limits.open_offers` − 4; hilos propios ≤ `limits.threads` − 1; ≤ 2,5 req/s con 1 ficha reservada. | Gate G04; `RateLimiter`; `Limits.from_clock` con `LIMIT_KEYS` | `test_contracts.py`: `clock.json` del harvest → `Limits(1,1,6,30,12)`. `test_gate.py`: 100 intents → 1 aceptación; 30 ofertas dirigidas a nosotros no bloquean publicaciones. `test_e2e_fake.py`: 0 429 y tasa ≤ 2,5 req/s. |
 | INV-04 | **Ningún trato con pérdida predicha.** Equipos: neg_lo ≥ 3 al aceptar y ≥ 2 al publicar; cierre ≥ 20; reabastecimiento ≥ 15. Dealers: ΔV_lo − p ≥ 1 al comprar, p − ΔV_hi ≥ 1 al vender. | G12, G20, G21, G31, G32 | `sim/invariants.py` + `test_e2e_fake.py`: Δneg ≥ 0 del oráculo en cada liquidación nuestra (dealers: == 0). `test_replay_friday.py`: rechaza los 5 tratos con pérdida. |
@@ -485,7 +485,7 @@ def main(argv: Sequence[str]) -> int
 | INV-17 | **Calibración:** toda escritura lleva predicción. `hard_fail` → pausa persistente. El STOP por liquidación fuera de banda solo aplica a ofertas creadas por el arnés (por `intent_id`); las heredadas usan su banda de `state/baseline.json`. Las ventanas que cruzan un cambio de ronda se excluyen. | Calibrator | `test_calibrate.py`: 2504 cumplida en t170 → `pass`, sin STOP; neg 74,5 → 0 al cambiar de ronda → 0 pausas; la misma caída a mitad de ronda → pausa. |
 | INV-18 | **Secretos:** ni en diario, snapshots, dashboard ni consola; redacción por patrón y por igualdad con el valor real; sin redirecciones; `Secrets` fuera del World. | `redact`; abridor sin redirecciones; sensor | `test_transport.py`; escaneo de `logs/run/**` tras e2e: 0 `tk-`, `bk_`, `*_key` ni el valor de la clave de test. |
 | INV-19 | **Aislamiento:** una excepción en una táctica solo la salta; una forma rara en una relectura del Gate → `refused`, no STOP; un tipo de sobre desconocido → `valuation_ok = false`. | runner; Gate paso 4; Valuer | `test_runner.py`; `test_gate.py` con `type_swap`/`missing_field` en la relectura; `test_valuation.py` con `sobre_nuevo`. |
-| INV-20 | **Juego limpio:** nunca operar en un venue propio, sin órdenes complementarias, sin ida y vuelta de una ref en El Rastro en 60 ticks (según nuestras liquidaciones del diario), sin flags. | `ARGS` (venue fijo); G12 | `test_guards.py`. |
+| INV-20 | **Juego limpio:** nunca operar en un venue propio, sin órdenes complementarias, sin ida y vuelta de una ref en El Rastro en 60 ticks (según nuestras liquidaciones del diario), sin flags desde la Gate (las denuncias manuales con OK: §15). | `ARGS` (venue fijo); G12 | `test_guards.py`. |
 | INV-21 | **Aislamiento de los tests:** ningún test alcanza un host distinto de 127.0.0.1 ni toca `logs/run`, `state/` o `.env` del repo. | `tests/__init__.py`; `Paths` temporal; `GuardedTransport` con `BAZAAR_TEST` | `test_isolation.py`: con un `.env` de aspecto real presente, `selftest` hace 0 conexiones fuera de 127.0.0.1 (audit hook) y el hash de `logs/run/` y `state/` no cambia. |
 | INV-22 | **Escritor único:** todo `run` (dry incluido) y todo `do` de un disparo toman `state/writer.lock`; el CLI nunca escribe el diario ni `armed/pauses`. | `writer_lock`; inbox | `test_cli.py`: `arm` con el runner vivo no toca el diario; dos `run` → el segundo sale con código 3. |
 | INV-23 | **Compromisos en pie:** ningún hilo de compra abierto al abrir un sobre ni a ≤ `grant_lookahead_ticks` de una subvención con sobre; ninguna puja de cierre abierta mientras `delivery_risk` (sobre pendiente o subvención cercana, hilo con la Abuela abierto, o hilo con dealer abierto con un nivel nuevo anunciado). | G40, G30, G21; `hygiene.watch` | `test_e2e_fake.py`: el servidor da un sobre con un hilo con precio en pie y el bot acepta ese mismo tick → 0 liquidaciones con Δneg < 0. |
@@ -744,6 +744,8 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 
 ## 12. Limpieza del repositorio (M18)
 
+> **Hecho** (M18 partes 1 y 2). Lo que aquí dice `santi/` está ahora en `archive/docs/santi/`, salvo el kickoff, que está en `docs/official/kickoff.pdf`.
+
 **Reglas:** archivar = `git mv <ruta> archive/<ruta>` (parte 2, una persona, el sábado a las 23:15 y `selftest` después). El `SystemExit` de los `.py` se pone en la parte 1, después de cualquier `from __future__`. Las fusiones se hacen dentro de los módulos dueños y se archivan solo cuando sus tests están en verde: casos de `offer_safety` de `test_agent_core` → `test_guards` (M4a); los de `team_writer` → `test_gate` (M5); `haggle.curve` → M10; frases de `agent/dealers.py` y `negotiation-design` → `talk.TEMPLATES` (M4b); `agent/duels.py` → M12.
 
 | Ruta | Acción | Motivo |
@@ -804,7 +806,7 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 13. **Caída:** relanzar el mismo `run`.
 14. **22:55** la higiene cierra los hilos con dealer; **23:00** `stop "cierre sábado"`; **23:15** M18 parte 2 (`git mv`) y `selftest`.
 
-**Domingo:** añadir "CHA" a `page_sets`; **08:40** `selftest`; **08:55** `run --live --arm hygiene,dealers,rastro,closer,duels` (las que estén en verde); último trato con dealer 13:45 (N); **15:00** `stop`.
+**Domingo:** superado por [DOMINGO.md](DOMINGO.md) §1 y §2 (CHA ya está en `page_sets`; calendario en tres escenarios; los puestos de dealers cierran probablemente a las ~14:00).
 
 **Nunca:** lanzar scripts archivados; usar la clave para escribir fuera de la máquina A; tocar `/api/admin/*`; editar `bazaar_sdk.py`; correr `selftest` con un `.env` de producción sin `tests/__init__.py` intacto.
 
@@ -896,3 +898,19 @@ STOP con `--flatten`; tipo de sobre desconocido sin excepción; cola rota del di
 - Si el servidor cuenta contra nuestros hilos los que abre un rival (E17).
 - Si los regalos de la Abuela se repiten en la ronda 2 (se trata como riesgo de entrega mientras haya un hilo con ella).
 - Si `duel_accept` comparte la aceptación del tick (E9; se supone que sí).
+
+---
+
+## 15. Cambios desde el sábado 03:30 (código en `harness-v2` `5ee5593`)
+
+Las secciones 0–14 son el contrato congelado de la noche del viernes. Aquí se recoge en qué difiere hoy el código; si algo choca, manda el código y esta lista.
+
+- **§2.2:** `GET_ALLOWLIST` vive en `agent/contracts.py:136`, no en `transport.py`, y admite `venues/[a-z0-9_-]+/offers` (D2), no solo `venues/rastro/offers`. `/api/broker/*` no está, así que `bench_rec.py` lee el libro con su propio GET, fuera del arnés.
+- **§2.5, `talk.TEMPLATES`:** hay 10 plantillas (`abuela_buy`, `abuela_sell`, `chato_buy`, `chato_sell`, `pilar_sell`, `picaros_buy`, `picaros_sell`, `banco_sell`, `duel`, `duel_days`). `EGG_LINES` marca cuántas variantes del final de cada plantilla son huevos que solo se mandan a mano (`dealers._variant` no las rota).
+- **§2.5, `guards.Cfg`:** además de lo listado, tiene `RIVAL_TOP_N`, `RIVAL_VENUE_MIN_GAIN`, `GRANT_LOOKAHEAD_TICKS`, `DAYS_SIGN`, `DAYS_WEIGHT_FALLBACK`, `ABUELA_DEALS_HOUR_MAX`, `TICKS_PER_GAME_HOUR`, `MIN_EXPIRES` y `MAX_EXPIRES`. Un hilo cerrado por el servidor con `persona_budget` bloquea a ese dealer una hora de juego, no el resto del día (`5681cfc`).
+- **§2.1, `PlanCfg` / `config/plan.json`:** añade `duels {anchor 0,65, slow_cap 0,78, days_weight_fallback 1,0}`, `closer.freeze_at`, `closer.endgame_hours` por día, `grant_lookahead_ticks` 12 (no 3), `dup_min_price` con SAL 70 y LAT 18, y `profiles.*.fallback_dealer`. Solo valen como perfil los dealers `abuela`, `chato` y `picaros`.
+- **G50, días:** desde `5ee5593`, `world.py` deriva `days_sign` del `days_meaning` del servidor (comprador −1, vendedor +1, si no `None`) y solo deja el signo en el World, nunca el texto. `plan.days_sign` es la anulación manual. Fórmula medida y fallo de Duels II: knowledge S-26 y S-27.
+- **Escrituras fuera de la Gate:** el contrato no tiene KIND para denuncias, venues ni broker. Las excepciones manuales con el OK de Jorge (sábado: `PATCH /api/venues/v18`, `POST /api/broker/announce`, 9 × `POST /api/flags`) son la regla de CLAUDE.md, no del arnés. INV-01 e INV-20 siguen valiendo para todo lo que sale por la Gate.
+- **Calendario:** `day_end_hours` y `closer.endgame_hours` son horas de juego fijas. Fallan si el reloj salta o si hay pausas (knowledge S-17, S-18; DOMINGO.md §1). El arreglo, en vivo desde `clock.closes` y las entradas `persona enabled:false`, está en la rama `night-build`.
+- **Sin conectar:** `pages.protect_sets` (solo existe la definición), `Calibrator.recheck`, `duels.e16_settled` y el grabador L1 dentro del runner (lo hace `bench_rec.py` aparte). LAT ya está completa, así que J9 no aplica.
+- **Fallos conocidos y no arreglados en `5ee5593`:** la lista está en DOMINGO.md §6.
