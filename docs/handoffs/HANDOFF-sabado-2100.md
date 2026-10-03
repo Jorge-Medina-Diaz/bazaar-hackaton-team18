@@ -6,6 +6,7 @@
 > - **§6, días en duelos.** «Margen 1 + 10·|w| con `days_sign` fijado» describe la rama `audit-fixes` y es demasiado estricto. La fórmula medida es `resultado = (s·(p − L) + signo·|w|·días)·(1 − decay)^rondas` (S-26). Antes de `5ee5593` enviábamos siempre 5 días, no «el peor día» (S-27).
 > - **§8, calendario.** Superado. El sábado cerró en t 13,367 (no 13,68). Para el domingo, ver [../DOMINGO.md](../DOMINGO.md) §1.
 > - **§1.** Son cifras de las 21:00. El cierre fue 2.º con 31,26.
+> - **§6.** "774 tests OK" es la cifra de la rama `audit-fixes`, que no está fusionada. `harness-v2` `5ee5593` da 747 OK (2 omitidos).
 
 
 Para la sesión que opere el bot. Todo lo de aquí está medido con datos públicos o con nuestros snapshots, salvo lo marcado como hipótesis.
