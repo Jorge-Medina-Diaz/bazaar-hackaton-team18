@@ -926,7 +926,8 @@ class Gate:
             if mine + c.offers_opened >= cap:
                 raise _Refuse("G04.open_offers", f"{mine}+{c.offers_opened}/{cap}")
         if k == "open_thread":
-            mine = sum(1 for th in (world.threads or {}).values() if _get(th, "team", TEAM) == TEAM)
+            mine = sum(1 for th in (world.threads or {}).values()
+                       if _get(th, "team", TEAM) == TEAM and _get(th, "status") == "open")   # World.threads keeps every status
             cap = L.threads - int(self._cfg("THREADS_MARGIN", 1))
             if mine + c.threads_opened >= cap:
                 raise _Refuse("G04.threads", f"{mine}+{c.threads_opened}/{cap}")

@@ -745,3 +745,22 @@ class SourcesTable(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ThreadOfferCountedOnce(unittest.TestCase):
+    """Live 3 Oct t191: our standing offer in a dealer thread is also in my_offers (thread=360). Counting it twice
+    valued RET-09 as a 2nd copy (91 -> 22.8), doubled the commitment and made hygiene cancel every dealer thread."""
+
+    def test_projected_and_commit_once(self):
+        offer = {"id": 3238, "maker": "t18", "to": "chato", "venue": None, "thread": 360, "status": "open",
+                 "give": {"cash": 70, "assets": [], "types": []},
+                 "want": {"cash": 0, "assets": [], "types": ["card:RET-09"]}, "expires_tick": None}
+        th = {"id": 360, "team": "t18", "with": "chato", "status": "open", "topic": {"buy": {"card": "RET-09"}},
+              "messages": [{"tick": 190, "sender": "t18", "price": 70, "offer": offer}], "standing_offers": [],
+              "created_tick": 189}
+        base = Ctx(my_offers=())
+        c = Ctx(my_offers=(offer,), threads={360: th})
+        self.assertEqual(c.book.projected.get("RET-09", 0), base.book.projected.get("RET-09", 0) + 1)
+        self.assertEqual(base.book.cash_free - c.book.cash_free, 70)
+        from agent.tactics import hygiene
+        self.assertEqual(hygiene.bid_watch(c.world, c.book, c.valuer, c.cfg, PLAN), [])

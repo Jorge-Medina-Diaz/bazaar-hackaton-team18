@@ -336,7 +336,9 @@ def _is_closer(world, book, valuer, plan_cfg, v: dict, counts: Mapping) -> bool:
 def bid_watch(world, book, valuer, cfg, plan_cfg, state: Optional[dict] = None) -> list:
     if book is None:
         return []
-    bids = [v for v in _live_own(world) if v["side"] == "bid"]
+    in_thread = {o.get("id") for o in _seq(getattr(world, "my_offers", ())) if isinstance(o, Mapping)
+                 and o.get("thread") is not None}               # dealer-thread prices: thread_watch owns them
+    bids = [v for v in _live_own(world) if v["side"] == "bid" and v["id"] not in in_thread]
     out, cancelled = [], set()
     risk = delivery_risk(world, book, plan_cfg)
     cap = _cfg(cfg, "NEG_CAP", 50.0)
