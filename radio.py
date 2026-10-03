@@ -317,8 +317,9 @@ def diff(prev, now, team=TEAM, announced=()):
             added = item in x["buys"]
             sets = item.split("@", 1)[1]
             ours = sets != "released"
-            out.append(("ALTA" if ours else "MEDIA",
-                        f"{x['name']} {'ahora compra' if added else 'ya no compra'} {item.replace('@', ' de ')}", (d,)))
+            out.append(("ALTA" if ours and added else "MEDIA",
+                        f"{x['name']} {'ahora compra' if added else 'ya no compra'} {item.replace('@', ' de ')}",
+                        (d, f"{'+' if added else '-'}buy:{sets}")))
     for st in sorted(set(now["released"]) - set(prev["released"])):
         out.append(("ALTA", f"Barrio publicado: {st} ({ROLE.get(st, 'sin rol')})", ()))
     for ref, n in sorted(now["minted_top"].items()):
@@ -431,6 +432,25 @@ def show(item, c, clock=None):
     return "\n".join(lines)
 
 
+_hit = [None]
+
+
+def attribute(tags, watches):
+    """«confirma» solo si el dealer empieza a comprar justo los barrios de una noticia de demanda; «fin» si los
+    deja de comprar. Cualquier otro cambio no se atribuye a ninguna noticia (un rumor sin barrios nunca se
+    confirma por un cambio de menú)."""
+    dealers = {t for t in tags if not t.startswith(("+", "-", "@"))}
+    for t in tags:
+        if t[:5] not in ("+buy:", "-buy:"):
+            continue
+        sets = set(t[5:].split(","))
+        for w in sorted(watches, key=lambda w: -(w.get("news") or 0)):
+            if dealers & set(w.get("dealers", ())) and sets & set(w.get("sets") or ()) and w.get("side") == "compra":
+                _hit[0] = w
+                return "confirma" if t[0] == "+" else "fin"
+    return None
+
+
 def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=None, out=print, clock=None):
     """Una lectura: noticias nuevas, comprobación de menús y estado actualizado. Devuelve las noticias nuevas."""
     news = get("/api/news").get("news", [])
@@ -446,7 +466,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
         out(show(n, c, clock))
         if c["dealers"]:
             state["watch"][str(n.get("id"))] = {
-                "until": now + 3600, "news": n.get("id"), "headline": n.get("headline"), "tick": n.get("tick") or 0,
+                "until": now + 3 * 3600, "start": now, "news": n.get("id"), "headline": n.get("headline"), "tick": n.get("tick") or 0,
                 "dealers": c["dealers"], "sets": c["sets"], "side": c["side"], "rarity": "rare" if c["rare"] else None,
                 "obs": [], "verdict": None}
         if not first and do_notify:   # toda noticia nueva suena; ALTA además deja una alerta en pantalla
@@ -457,7 +477,8 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
     for key, w in list(state["watch"].items()):
         if now > w.get("until", 0) or "dealers" not in w:
             state["watch"].pop(key)
-    live = [w for w in state["watch"].values() if w["sets"] and w["side"]]
+    live = [w for w in state["watch"].values() if w["sets"] and w["side"]
+            and now - w.get("start", w["until"] - 3600) <= 3600]
     if live:
         try:
             events = get("/api/feed?limit=500").get("events", [])
@@ -488,9 +509,11 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
         return fresh
     changes = []
     for level, text, tags in diff(state.get("obs"), obs, announced=state.setdefault("announced", [])):
-        hits = [w for w in state["watch"].values() if set(tags) & set(w.get("dealers", ()))]
-        if hits:   # el cambio confirma una noticia reciente sobre ese dealer
-            level, text = "ALTA", text + f" — confirma la noticia «{hits[0]['headline']}»"
+        link = attribute(tags, state["watch"].values())
+        if link == "confirma":
+            level, text = "ALTA", text + f" — confirma la noticia «{_hit[0]['headline']}»"
+        elif link == "fin":
+            level, text = "MEDIA", text + f" — fin de la ventana de la noticia «{_hit[0]['headline']}»"
         state["announced"] += [t[1:] for t in tags if t.startswith("@")]
         changes.append((level, text))
     state["obs"] = obs

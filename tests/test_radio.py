@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -127,7 +128,7 @@ class DiffTests(unittest.TestCase):
                     released=["CHA", "LAT", "LAV", "MAL", "RET", "SAL"], minted_top={"RET-12": 1})
         got = {t: (lvl, tags) for lvl, t, tags in radio.diff(obs(), after)}
         self.assertEqual(got["El Chato vende rare@released: lista 77, pide None → lista 85, pide None"][0], "MEDIA")
-        self.assertEqual(got["El Chato ahora compra rare de MAL"], ("ALTA", ("chato",)))
+        self.assertEqual(got["El Chato ahora compra rare de MAL"], ("ALTA", ("chato", "+buy:MAL")))
         self.assertEqual(got["Doña Pilar: abierto a todos no → sí"][0], "ALTA")
         self.assertIn("Nuevo dealer: La Cámara (nivel 4, active)", got)
         self.assertEqual(got["Barrio publicado: CHA (objetivo del domingo (×1,6))"][0], "ALTA")
@@ -268,6 +269,45 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(w["verdict"][0], "confirmada")
         self.assertEqual(sum("CONFIRMADA" in s[0] for s in sent), 1)
         self.assertTrue(any("mediana 86,50 (n=2) frente a 61,50" in x for x in lines))
+
+
+class AttributionTests(unittest.TestCase):
+    MAL = {"news": 3, "headline": "El Chato is looking for rare Malasaña cards", "dealers": ["chato"],
+           "sets": ["MAL"], "side": "compra"}
+    HELLO = {"news": 4, "headline": "El Chato gives a legendary to anyone who says hello!", "dealers": ["chato"],
+             "sets": [], "side": None}
+
+    def test_only_matching_sets_confirm_and_a_removal_is_the_end_of_the_window(self):
+        both = [self.MAL, self.HELLO]
+        self.assertEqual(radio.attribute(("chato", "+buy:MAL"), both), "confirma")
+        self.assertEqual(radio._hit[0]["news"], 3)
+        self.assertEqual(radio.attribute(("chato", "-buy:MAL"), both), "fin")
+        self.assertEqual(radio._hit[0]["news"], 3)
+
+    def test_rumour_without_sets_or_other_sets_or_dealers_is_never_confirmed(self):
+        self.assertIsNone(radio.attribute(("chato", "-buy:MAL"), [self.HELLO]))
+        self.assertIsNone(radio.attribute(("chato", "+buy:LAV"), [self.MAL]))
+        self.assertIsNone(radio.attribute(("abuela", "+buy:MAL"), [self.MAL]))
+        self.assertIsNone(radio.attribute(("chato",), [self.MAL]))      # cambio de precio: sin atribución
+
+    def test_the_real_13_03_case_reads_as_end_of_window(self):
+        d, sent, lines = tempfile.mkdtemp(), [], []
+        base = obs()
+        ch = base["dealers"]["chato"]
+        photos = [obs(dealers=dict(base["dealers"], chato=dict(ch, buys=["rare@MAL", "rare@released"]))), base]
+        with patch.object(radio, "LOG_DIR", d), \
+                patch.object(radio, "get", lambda p, timeout=10: {"news": [], "events": []}), \
+                patch.object(radio, "observe", lambda: photos.pop(0) if len(photos) > 1 else photos[0]), \
+                patch.object(radio, "notify", lambda *a, **k: sent.append(k.get("level")) or True):
+            state = radio.load_state(os.path.join(d, "s.json"))
+            state["watch"] = {"3": dict(self.MAL, until=time.time() + 9000, start=time.time() - 4000, obs=[]),
+                              "4": dict(self.HELLO, until=time.time() + 9000, start=time.time() - 300, obs=[])}
+            radio.step(state, {}, out=lines.append)
+            radio.step(state, {}, out=lines.append)
+        line = next(x for x in lines if "ya no compra rare de MAL" in x)
+        self.assertIn("fin de la ventana de la noticia «El Chato is looking for rare Malasaña cards»", line)
+        self.assertNotIn("hello", line)
+        self.assertNotIn("ALTA", sent)
 
 
 class TimeTests(unittest.TestCase):
