@@ -71,7 +71,7 @@ TEMPLATES: Mapping[str, tuple] = {
         "Precio justo: {p} P.",
     ),
     "banco_sell": (
-        "Buenas tardes, don Ernesto. Le traigo una pieza para su reserva. ¿{p} P?",
+        "Buenas tardes, don Ernesto. Le traigo una pieza para su cámara. ¿{p} P?",
         "Pieza de primera, sin prisa por mi parte. ¿Qué tal {p} P?",
         "Me ajusto por usted: {p} P.",
         "Gracias por su tiempo, don Ernesto. ¿La dejamos en {p} P?",
