@@ -90,19 +90,27 @@
       <div class="verdict" id="dverdict"></div>
     </section>
 
-    <section class="panel c6">
-      <header><h2>Caja para CHA</h2><span class="small muted">costes de RET de hoy, editables</span></header>
-      <div class="form">
-        <label>Caja hoy (P)<input id="cash" type="number" value="116"></label>
-        <label>Subvención domingo<input id="grant" type="number" value="150"></label>
-        <label>Ventas LAT y J13 hoy<input id="extra" type="number" value="0"></label>
-        <label>Raras (2 ×)<input id="pr" type="number" value="86"></label>
-        <label>Infrecuentes (3 ×)<input id="pu" type="number" value="22"></label>
-        <label>Comunes (4 ×)<input id="pc" type="number" value="9.5" step="0.5"></label>
-        <label>Cierre con equipo<select id="pk"><option value="49">49 (como RET)</option><option value="72" selected>72 (plan CHA)</option><option value="102">102 (final)</option></select></label>
-        <label>Reserva del Gate<input id="res" type="number" value="10"></label>
+    <section class="panel c12">
+      <header><h2>Caja para CHA</h2><span class="small muted" id="cashsrc">se calcula sola: equipo.json, feed, calendario y catálogo · escribe un valor para fijarlo a mano</span></header>
+      <div class="form" id="cashform">
+        <label>Caja hoy (P)<input id="cash" type="number"><small class="muted" data-src="cash"></small></label>
+        <label>Subvención domingo<input id="grant" type="number"><small class="muted" data-src="grant"></small></label>
+        <label>Ventas previstas<input id="extra" type="number"><small class="muted" data-src="extra"></small></label>
+        <label>Rara (precio)<input id="pr" type="number"><small class="muted" data-src="pr"></small></label>
+        <label>Infrecuente (precio)<input id="pu" type="number"><small class="muted" data-src="pu"></small></label>
+        <label>Común (precio)<input id="pc" type="number" step="0.5"><small class="muted" data-src="pc"></small></label>
+        <label>Cierre con equipo<input id="pk" type="number" list="pklist"><datalist id="pklist"><option value="49"><option value="72"><option value="102"></datalist><small class="muted" data-src="pk"></small></label>
+        <label>Reserva del Gate<input id="res" type="number"><small class="muted" data-src="res"></small></label>
+        <label>Sobres de barrio a abrir el domingo<input id="packs" type="number" min="0" placeholder="0"><small class="muted" data-src="packs"></small></label>
       </div>
+      <p class="small"><button id="cashauto" type="button">Todo automático</button> <span class="muted" id="cashovr"></span></p>
       <div id="cashbar"></div>
+      <div style="margin-top:10px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))">
+        <div><h3>Sobres el domingo (V-11, catálogo en vivo)</h3><div class="scroll"><table class="tbl" id="chapacks"></table></div>
+          <p class="small muted" id="chashare"></p></div>
+        <div><h3>Precio por rareza y dealer (feed)</h3><div class="scroll"><table class="tbl" id="chaprices"></table></div>
+          <p class="small muted">Ventas de dealer a cualquier equipo en lo grabado. El cálculo usa CHA si ya hay ventas, si no RET, si no lo pagado el sábado. Un dealer más barato es una pista para el operador, no cambia los topes de <code>config/plan.json</code>.</p></div>
+      </div>
     </section>
   </div>
 </main>
@@ -111,6 +119,7 @@
 <script src="plan-public.js"></script>
 <script src="evidence.js"></script>
 <script src="assets/core.js"></script>
+<script src="assets/chacash.js"></script>
 <script>
 "use strict";
 const {$, $$, esc, fmt, hhmm, cd, US} = Core;
@@ -224,16 +233,58 @@ function renderDays() {
     <span class="big">days_sign = ${val} <span class="pill ${ok ? "ok" : "warn"}">${ok ? "fijar" : "dejar null"}</span></span><span>${esc(why)}</span>
     <span class="small muted">Margen de la Gate sin signo: 1 + |w|·max(d, 10 − d), hasta ${fmt(margin, 1)} P. Es una propuesta manual; ante rechazos en cadena o anomalías, avisar al operador y seguir su protocolo de pausa.</span><pre>"days_sign": ${val}</pre>`;
 }
-function renderCash() {
-  const n = k => Number(Core.setting(k, $("#" + k).value)) || 0;
-  const cash = n("cash") + n("grant") + n("extra");
-  const seg = [["raras", 2 * n("pr"), "var(--s1)"], ["infr.", 3 * n("pu"), "var(--s3)"], ["com.", 4 * n("pc"), "var(--s4)"], ["cierre", n("pk"), "var(--s2)"], ["reserva", n("res"), "var(--muted)"]];
-  const need = seg.reduce((s, x) => s + x[1], 0), scale = Math.max(need, cash) * 1.05, gap = need - cash;
-  $("#cashbar").innerHTML = `<div class="bar" role="img" aria-label="Coste ${need} frente a caja ${cash}">${seg.map(([l, v, c]) => `<span style="width:${v / scale * 100}%;background:${c}">${l} ${fmt(v, 0)}</span>`).join("")}
-      <span class="cashline" style="left:${Math.min(cash / scale * 100, 99.5)}%" title="caja ${cash}"></span></div>
-    <div class="verdict"><span class="big ${gap > 0 ? "down" : "up"}">${gap > 0 ? `Faltan ${fmt(gap, 0)} P` : `Sobran ${fmt(-gap, 0)} P`}</span>
-    <span>Necesario ${fmt(need, 0)} P (con reserva) · caja prevista ${fmt(cash, 0)} P (línea verde). ${gap > 0 ? "Sin cambios en la configuración: el orden rara → infrecuente → común compra primero lo escaso y el cierre puja min(72, caja libre)." : "Lo que sobre el domingo a las 15:00 vale 0: gastarlo en compras con ganancia."}</span></div>`;
+const CASHK = ["cash", "grant", "extra", "pr", "pu", "pc", "pk", "res", "packs"];
+const RN = {common: "común", uncommon: "infrecuente", rare: "rara"};
+let catalog = null;
+const loadCatalog = () => Core.get("/api/catalog").then(c => { catalog = c; Core.emit(); }).catch(() => {});
+loadCatalog(); setInterval(loadCatalog, 300000);            // las acuñadas cambian: las odds de los sobres también
+function equipoMe() { try { return JSON.parse(localStorage.getItem("t18-equipo-me") || "null"); } catch (e) { return null; } }
+function cashModel() {
+  const ov = Object.fromEntries(CASHK.map(k => [k, Core.setting("cha_" + k, "")]));
+  const events = [...Core.feedOf("settlement"), ...Core.feedOf("gift.given"), ...Core.feedOf("pack.opened")].sort((a, b) => a.tick - b.tick);
+  return T18ChaCash.compute({catalog, me: equipoMe(), events, schedule: Core.state.schedule, nowHours: Core.state.clock && Core.state.clock.t_hours, caps: Core.DEALER_MAX, ov});
 }
+function renderCash() {
+  const M = cashModel(), F = M.f, act = document.activeElement, n0 = v => fmt(v, v % 1 ? 1 : 0);
+  CASHK.forEach(k => {
+    const el = $("#" + k), v = Core.setting("cha_" + k, ""), x = F[k], src = $(`[data-src="${k}"]`);
+    if (el !== act) el.value = v;
+    if (x) el.placeholder = n0(x.auto);
+    if (k === "packs") src.textContent = M.packs.length ? `${M.packs.length} en total (${M.packs.join(", ")})` : "ninguno conocido";
+    else src.innerHTML = v === "" ? esc(x.src) : `<b>manual</b> · auto ${n0(x.auto)}`;
+  });
+  const manual = CASHK.filter(k => Core.setting("cha_" + k, "") !== "");
+  $("#cashovr").textContent = manual.length ? `fijados a mano: ${manual.join(", ")}` : "todo en automático";
+  const c = M.count, cash = M.cash, need = M.need, gap = M.gap, gapE = M.gapExp;
+  const closerRar = c.common ? "common" : c.uncommon ? "uncommon" : "rare";
+  const nDeal = r => c[r] - (r === closerRar && M.missing.length ? 1 : 0);
+  const seg = [["raras", nDeal("rare") * M.price.rare, "var(--s1)", nDeal("rare")], ["infr.", nDeal("uncommon") * M.price.uncommon, "var(--s3)", nDeal("uncommon")],
+    ["com.", nDeal("common") * M.price.common, "var(--s4)", nDeal("common")], ["cierre", M.missing.length ? F.pk.value : 0, "var(--s2)", 1], ["reserva", F.res.value, "var(--muted)", 1]];
+  const packSave = M.base - M.expected, scale = Math.max(need, cash) * 1.05;
+  const who = M.known ? `faltan ${M.missing.length}/10 de CHA según equipo.json` : "sin equipo.json: se suponen las 10 de CHA por comprar (cárgalo en Equipo)";
+  const barrio = M.packRows.find(p => p.id === "sobre_barrio");
+  $("#cashbar").innerHTML = `<div class="bar" role="img" aria-label="Coste ${fmt(need, 0)} frente a caja ${fmt(cash, 0)}">${seg.filter(x => x[1] > 0).map(([l, v, col, n]) => `<span style="width:${v / scale * 100}%;background:${col}" title="${l}: ${n > 1 ? n + " × " : ""}${fmt(v, 0)} P">${l} ${fmt(v, 0)}</span>`).join("")}
+      <span class="cashline" style="left:${Math.min(cash / scale * 100, 99.5)}%" title="caja ${fmt(cash, 0)}"></span></div>
+    <div class="verdict"><span class="big ${gap > 0 ? "down" : "up"}">${gap > 0 ? `Faltan ${fmt(gap, 0)} P` : `Sobran ${fmt(-gap, 0)} P`}${M.packs.length ? ` <span class="small">· abriendo ${M.packs.length} sobre${M.packs.length > 1 ? "s" : ""}: ${gapE > 0 ? "faltan " + fmt(gapE, 0) : "sobran " + fmt(-gapE, 0)} P de media</span>` : ""}</span>
+    <span>Necesario ${fmt(need, 0)} P con reserva (${nDeal("rare")} raras × ${fmt(M.price.rare, 1)} + ${nDeal("uncommon")} infr. × ${fmt(M.price.uncommon, 1)} + ${nDeal("common")} com. × ${fmt(M.price.common, 1)} + cierre ${n0(F.pk.value)} + reserva ${n0(F.res.value)}) · caja prevista ${fmt(cash, 0)} P (línea verde) · ${esc(who)}.</span>
+    ${M.packs.length ? `<span>Sobres: abrirlos el domingo <b>después de las 09:00</b> (con CHA publicado) y antes de comprar ahorra ${fmt(packSave, 1)} P de media; ${fmt(100 * (1 - M.pNone), 0)} % de que traigan alguna carta de las que faltan. Abiertos hoy no pueden traer CHA.</span>`
+      : `<span class="small muted">Sin sobres por abrir, los sobres no cambian la caja. Si llega uno gratis (regalo o nivel), guardarlo para abrirlo el domingo tras las 09:00 ahorra ${barrio ? fmt(barrio.saving, 1) : "—"} P de media si es de barrio.</span>`}
+    ${M.over.length ? `<span class="down">El precio usado supera el tope del bot en ${esc(M.over.join(", "))}: no las compraría y la página no se cerraría.</span>` : ""}
+    <span>${gap > 0 ? "Sin cambios en la configuración: el orden rara → infrecuente → común compra primero lo escaso y el cierre puja min(cierre, caja libre)." : "Lo que sobre el domingo a las 15:00 vale 0: gastarlo en compras con ganancia."}</span></div>`;
+  const pc = v => fmt(100 * v, 0) + " %";
+  $("#chapacks").innerHTML = `<thead><tr><th>Sobre</th><th class="num">CHA esp.</th><th class="num">≥1 CHA</th><th class="num">≥1 que falta</th><th class="num">Ahorro esp.</th></tr></thead><tbody>` +
+    (M.packRows.map(p => `<tr><td>${esc(p.name)}</td><td class="num">${fmt(p.expSet, 2)}</td><td class="num">${pc(p.anySet)}</td><td class="num">${pc(p.pMissing)}</td><td class="num"><b>${fmt(p.saving, 1)} P</b></td></tr>`).join("") ||
+      '<tr><td colspan="5" class="empty">cargando /api/catalog…</td></tr>') + "</tbody>";
+  const sh = M.shareCHA;
+  $("#chashare").innerHTML = sh.rare ? `Con CHA publicado y 0 acuñadas, CHA es el ${pc(sh.common.share)} de las comunes que quedan, el ${pc(sh.uncommon.share)} de las infrecuentes y el ${pc(sh.rare.share)} de las raras (quedan ${sh.rare.left} raras en total). Por hueco, una CHA concreta sale con ${fmt(100 * sh.common.perCard, 1)} % (común), ${fmt(100 * sh.uncommon.perCard, 1)} % (infr.) y ${fmt(100 * sh.rare.perCard, 1)} % (rara). «Ahorro esp.» = coste sin sobre − coste esperado abriendo uno (la carta que sale ya no se compra; si era la última, se ahorra el cierre). No compramos sobres (strategy §2.1): vale para los que lleguen gratis.` : "";
+  $("#chaprices").innerHTML = `<thead><tr><th>Rareza</th><th class="num">Usado</th><th>Fuente</th><th>Dealers (mediana · n)</th></tr></thead><tbody>` + ["rare", "uncommon", "common"].map(r => {
+    const P = M.prices[r], used = M.price[r], cheap = P.dealers[0], k = nDeal(r);
+    const hint = cheap && k > 0 && cheap.median < used - 0.5 ? ` <span class="pill ok">${esc(cheap.dealer)}: −${fmt((used - cheap.median) * k, 0)} P si vende CHA</span>` : "";
+    return `<tr><td>${RN[r]} × ${k}</td><td class="num"><b>${fmt(used, 1)}</b></td><td class="small">${esc(P.src)}</td><td class="small">${P.dealers.map(d => `${esc(d.dealer)} ${fmt(d.median, 0)} · ${d.n}`).join(" · ") || "—"}${hint}</td></tr>`;
+  }).join("") + "</tbody>";
+}
+$("#cashauto").onclick = () => { CASHK.forEach(k => Core.D.settings["cha_" + k] = ""); Core.save(); Core.emit(); };
+window.addEventListener("storage", e => { if (e.key === "t18-equipo-me") Core.emit(); });   // Equipo relee equipo.json en otra pestaña
 function renderAlerts() {
   const out = [], thr = Number(Core.setting("vthr", 3)), have = haveSet(), minb = Number(Core.setting("minbid", 30));
   (Core.state.venues || []).forEach(v => { const r = Core.venueRate(v.venue);
@@ -248,8 +299,9 @@ function renderAlerts() {
   Core.alerts(out);
 }
 
-["vthr", "minbid", "have", "dw", "dsur", "cash", "grant", "extra", "pr", "pu", "pc", "res"].forEach(k => Core.bind("#" + k, k));
-["dmean", "dgate", "pk", "watch"].forEach(k => Core.bind("#" + k, k, "change"));
+["vthr", "minbid", "have", "dw", "dsur"].forEach(k => Core.bind("#" + k, k));
+CASHK.forEach(k => $("#" + k).addEventListener("input", e => Core.set("cha_" + k, e.target.value)));
+["dmean", "dgate", "watch"].forEach(k => Core.bind("#" + k, k, "change"));
 $$("#metric button").forEach(b => b.onclick = () => Core.set("metric", b.dataset.m));
 $("#export").onclick = async () => {
   const button = $("#export"); button.disabled = true;
