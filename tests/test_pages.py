@@ -260,7 +260,8 @@ class DealerNeedsTest(unittest.TestCase):
         return [n for n in needs if n.ref == "SAL-11"]
 
     def test_real_plan_has_sal11_for_picaros(self):
-        self.assertEqual(self.cfg["dealer_needs"], ["SAL-11"])
+        self.assertEqual(self.cfg["dealer_needs"], ["SAL-11", "RET-11"])
+        self.assertEqual(self.cfg["profiles"]["RET-11"]["dealer"], "picaros")
         self.assertEqual(self.cfg["profiles"]["SAL-11"]["dealer"], "picaros")
         self.assertIn("SAL-11", self.cfg["protect_except"])
 
@@ -288,3 +289,18 @@ class DealerNeedsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_off_page_epic_of_a_page_set(self):
+        w = make_world()
+        cards = pages._cards(w.catalog)
+        self.assertFalse(cards["RET-11"].get("page"))                   # the epic is not a page card
+        got = [n for n in pages.plan(w, valuer_for(w), self.cfg, {})[0] if n.ref == "RET-11"]
+        self.assertEqual([(n.source, n.closer) for n in got], [("picaros", False)])
+        self.assertTrue(1 <= got[0].max_price <= 180)
+
+    def test_page_card_of_a_page_set_is_never_a_dealer_need(self):
+        cfg = dict(self.cfg, dealer_needs=["RET-01"],
+                   profiles=dict(self.cfg["profiles"], **{"RET-01": {"dealer": "picaros", "anchor": 5, "step": 1, "limit": 9}}))
+        w = make_world()
+        got = [n for n in pages.plan(w, valuer_for(w), cfg, {})[0] if n.ref == "RET-01" and n.source == "picaros"]
+        self.assertEqual(got, [])

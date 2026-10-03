@@ -384,8 +384,8 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
             needs.extend(set_needs)
         except Exception:
             continue                                # fail closed for this set: no Needs
-    # single-card dealer Needs outside the page sets (docs/picaros.md: SAL-11 from Los Pícaros). Never a closer
-    # and never a page set's card (those come from the loop above); capped like any dealer Need.
+    # single-card dealer Needs off the pages (docs/picaros.md: SAL-11, RET-11 from Los Pícaros). Never a closer and
+    # never a page card of a page set (those come from the loop above); capped like any dealer Need.
     planned = {n.ref for n in needs}
     for ref in plan_cfg.get("dealer_needs") or ():
         try:
@@ -393,7 +393,7 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
             set_id = card.get("set") or ref.rsplit("-", 1)[0]
             prof = (plan_cfg.get("profiles") or {}).get(ref)
             if (no_dealers or not prof or ref in planned or held[ref] >= 1 or set_id not in (world.released_sets or ())
-                    or set_id in (plan_cfg.get("page_sets") or ())):
+                    or (card.get("page") is True and set_id in (plan_cfg.get("page_sets") or ()))):
                 continue
             dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
             cap = min(int(prof["limit"]), int((plan_cfg.get("dealer_max") or {}).get(ref, prof["limit"])),
