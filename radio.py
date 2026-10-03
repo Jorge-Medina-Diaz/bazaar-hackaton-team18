@@ -533,7 +533,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                    f"(mensaje {t['message']}, hilo {t['thread']}, {t['team']}, tick {t['tick']})")
             record({"event": "picaros_trick", **t})
             out(f"{'‼️' if level == 'ALTA' else '⚠️'} [{level}] [{when(clock)}] {msg}")
-            if do_notify and not first:
+            if do_notify and not first and (ours or t["level"] == "firme"):   # los «posibles» ajenos: solo registro
                 notify("🃏 Los Pícaros · truco" + (" contra t18" if ours else ""),
                        f"🕒 {when(clock)}\n{msg}" + ("\nEvidencia para POST /api/flags (decide el operador)."
                                                       if t["level"] == "firme" else ""), level=level)

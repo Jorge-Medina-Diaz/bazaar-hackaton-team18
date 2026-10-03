@@ -116,5 +116,20 @@ class WatcherTests(unittest.TestCase):
             self.assertEqual(len(f.readlines()), 2)
 
 
+class QuietPossibleTests(unittest.TestCase):
+    def test_possible_tricks_on_other_teams_are_logged_but_silent(self):
+        d, sent, lines = tempfile.mkdtemp(), [], []
+        ev = [opened(1, "t04", BUY, 1), msg(2, 1, "t04", CARD, {"cash": 80}, text="Only 60 P for you!")]
+
+        def fake_get(path, timeout=10):
+            return {"news": []} if path == "/api/news" else {"events": ev}
+        with patch.object(radio, "LOG_DIR", d), patch.object(radio, "get", fake_get), \
+                patch.object(radio, "observe", lambda: None), \
+                patch.object(radio, "notify", lambda *a, **k: sent.append(a) or True):
+            radio.step(radio.load_state(os.path.join(d, "s.json")), {}, out=lines.append)
+        self.assertEqual(sent, [])
+        self.assertTrue(any("POSIBLE" in x for x in lines))
+
+
 if __name__ == "__main__":
     unittest.main()
