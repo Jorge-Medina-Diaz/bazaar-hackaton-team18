@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Equipo · Mesa del Analista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/nav.css">
+<style>
+.wrap{gap:12px}
+.pagehead h1{margin:0}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{padding:10px 12px}
+.kpi .v{font-size:24px}
+.grid{gap:12px}
+.panel{padding:12px;gap:8px}
+.src{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.src .drop{padding:6px 10px;border-width:1px;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.src input[type=file]{display:none}
+.album{display:grid;gap:6px}
+.set{display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px;align-items:center}
+.set.off{opacity:.55}
+.set .nm{display:grid;gap:1px;font-size:12px;line-height:1.2}
+.set .nm b{font:800 15px/1 var(--f-display)}
+.set .nm.target b::after{content:" ★";color:var(--foil)}
+.cards{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.cd{position:relative;border-radius:5px;padding:4px 2px 3px;text-align:center;font:500 11px/1.15 var(--f-mono);min-width:0;border:1.5px solid var(--rc);background:color-mix(in srgb,var(--rc) 22%,var(--sheet))}
+.cd small{display:block;font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd.miss{background:transparent;border-style:dashed;color:var(--muted)}
+.cd.miss.tgt{border-color:var(--bad);color:var(--bad)}
+.cd.unk{background:transparent;border-style:dotted;color:var(--muted)}
+.cd.xtra{opacity:.5}
+.cd .dup{position:absolute;top:-6px;right:-4px;background:var(--ink);color:var(--sheet);border-radius:999px;font-size:9px;padding:1px 4px}
+.cd .mv{position:absolute;top:-6px;left:-4px;border-radius:999px;font-size:9px;padding:1px 4px;color:#fff}
+.cd .mv.in{background:var(--ok)} .cd .mv.out{background:var(--bad)}
+.r-common{--rc:var(--muted)} .r-uncommon{--rc:var(--ok)} .r-rare{--rc:var(--cobalt)} .r-epic{--rc:var(--s4)} .r-legendary{--rc:var(--foil)}
+.leg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;border:1.5px solid var(--rc);margin-right:4px;vertical-align:-1px;background:color-mix(in srgb,var(--rc) 22%,transparent)}
+.vs td,.vs th{padding:5px 6px}
+.vs td.us{font-weight:600;background:color-mix(in srgb,var(--foil) 9%,transparent)}
+.vs .d{font-size:11px;margin-left:4px}
+#alerts{display:grid;gap:4px}
+#alerts .alert{padding:5px 10px;font-size:13px}
+.mini{display:grid;gap:4px;font-size:12.5px}
+.mini div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--rule);padding:3px 0}
+.mini div:last-child{border-bottom:0}
+.mini b{font-variant-numeric:tabular-nums}
+.chart svg{max-height:150px}
+.scroll.short{max-height:190px;overflow:auto}
+@media (max-width:700px){.cards{grid-template-columns:repeat(6,minmax(0,1fr))}.set{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="pagehead">
+    <div><span class="eyebrow">Una pantalla · t18 frente al top 3</span><h1>Equipo</h1></div>
+    <div class="src" id="src">
+      <label class="drop" id="drop" title="equipo.json: lo genera el operador (comando abajo). No sale de este navegador.">
+        <input type="file" id="file" accept=".json,application/json">
+        <strong id="droplbl">Elegir equipo.json</strong>
+      </label>
+      <span id="srcinfo" class="muted">sin fichero: caja y cartas exactas desconocidas</span>
+      <button type="button" id="forget" hidden>Olvidar</button>
+    </div>
+  </div>
+  <div id="alerts" aria-live="polite"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <section class="panel c7">
+      <header><h2>Álbum</h2><span class="small muted" id="albsum">—</span></header>
+      <div class="album" id="album"></div>
+      <div class="leg"><span class="r-common"><i></i>común</span><span class="r-uncommon"><i></i>infrecuente</span><span class="r-rare"><i></i>rara</span>
+        <span>relleno = tenemos · discontinuo = falta (precio = tope de dealer) · <b style="color:var(--bad)">rojo</b> = falta en página objetivo ★ · ×n = copias</span></div>
+    </section>
+
+    <section class="panel c5">
+      <header><h2>Contra el top 3</h2><span class="small muted">diferencia = t18 − rival</span></header>
+      <div class="scroll"><table class="vs" id="vs"><thead></thead><tbody></tbody></table></div>
+      <div class="chart" id="chart"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="panel c4">
+      <header><h2>Caja y objetivo</h2></header>
+      <div class="mini" id="cash"></div>
+    </section>
+    <section class="panel c4">
+      <header><h2>Próximos eventos</h2></header>
+      <div class="mini" id="events"></div>
+    </section>
+    <section class="panel c4">
+      <header><h2>Nuestros últimos tratos</h2><span class="small muted">feed público</span></header>
+      <div class="scroll short"><table id="trades"><tbody></tbody></table></div>
+    </section>
+  </div>
+
+  <details class="small muted">
+    <summary>Cómo generar <code>equipo.json</code> (operador, máquina A, solo lectura)</summary>
+    <pre>python3 equipo_json.py --every 60      # escribe state/equipo.json cada minuto (solo lectura)</pre>
+    <p>Con Chrome o Edge, «Elegir equipo.json» (o arrastrarlo) deja la página releyendo el fichero cada 15 s: si el script sigue corriendo, se actualiza sola. Para que se actualice en otra máquina, el fichero tiene que llegar allí sincronizado (por ejemplo, una carpeta de Drive). En otros navegadores hay que volver a cargarlo a mano. También sirve el <code>data.json</code> del panel del equipo (trae <code>me</code>). Los datos se guardan solo en este navegador. A partir de su tick, la caja y las cartas se ajustan con los tratos públicos del feed (≈).</p>
+  </details>
+</main>
+<footer class="foot">Público: <code>/api/leaderboard</code>, <code>/api/catalog</code>, <code>/api/feed</code>, <code>/api/schedule</code>, sin clave. Privado: <code>equipo.json</code> arrastrado, que no sale del navegador. Topes de dealer: <code>plan-public.js</code> (repo).</footer>
+
+<script src="assets/core.js"></script>
+<script>
+"use strict";
+const {$, esc, fmt, US} = Core;
+const RN = {common: "común", uncommon: "infrecuente", rare: "rara", epic: "épica", legendary: "legendaria"};
+const MEKEY = "t18-equipo-me";
+const TARGETS = new Set(Object.keys(Core.DEALER_MAX).map(Core.setOf));
+let catalog = null, me = null;
+const drop = $("#drop");
+
+try { me = JSON.parse(localStorage.getItem(MEKEY) || "null"); } catch (e) {}
+Core.get("/api/catalog").then(c => { catalog = c; Core.emit(); }).catch(() => {});
+
+// ---------- fichero privado ----------
+function loadMe(obj) {
+  const m = obj && (obj.me || obj);
+  if (!m || !Array.isArray(m.assets) || m.cash == null) throw new Error("no parece /api/me (faltan assets o cash)");
+  me = {cash: m.cash, tick: m.tick, assets: m.assets.filter(a => a.kind === "card").map(a => ({ref: a.ref, rarity: a.rarity, your_value: a.your_value})),
+    packs: m.assets.filter(a => a.kind === "pack").length, collection_value: m.collection_value, loaded: Date.now()};
+  try { localStorage.setItem(MEKEY, JSON.stringify(me)); } catch (e) {}
+  Core.emit();
+}
+$("#file").addEventListener("change", e => { handle = null; readFile(e.target.files[0]); });
+// Chrome/Edge: se guarda el handle del fichero y se relee cada 15 s si cambió (equipo_json.py --every 60 lo reescribe).
+let handle = null, lastMod = 0;
+if (window.showOpenFilePicker) {
+  drop.addEventListener("click", async e => {
+    e.preventDefault();
+    try { [handle] = await showOpenFilePicker({types: [{description: "equipo.json", accept: {"application/json": [".json"]}}]}); lastMod = 0; await reread(); }
+    catch (err) { if (err.name !== "AbortError") $("#srcinfo").textContent = "no se pudo abrir: " + err.message; }
+  });
+}
+async function reread() {
+  if (!handle) return;
+  try { const f = await handle.getFile(); if (f.lastModified !== lastMod) { lastMod = f.lastModified; await readFile(f); } }
+  catch (err) { $("#srcinfo").textContent = "no se puede releer el fichero: " + err.message; handle = null; }
+}
+setInterval(reread, 15000);
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", async e => { e.preventDefault(); drop.classList.remove("over");
+  const it = [...e.dataTransfer.items].find(i => i.kind === "file");
+  if (it && it.getAsFileSystemHandle) { try { const h = await it.getAsFileSystemHandle(); if (h && h.kind === "file") { handle = h; lastMod = 0; return reread(); } } catch (err) {} }
+  handle = null; readFile(e.dataTransfer.files[0]); });
+function readFile(f) {
+  if (!f) return;
+  return f.text().then(t => loadMe(JSON.parse(t))).catch(err => { $("#srcinfo").textContent = "fichero no válido: " + err.message; });
+}
+$("#forget").onclick = () => { me = null; handle = null; try { localStorage.removeItem(MEKEY); } catch (e) {} Core.emit(); };
+
+// ---------- derivados ----------
+function ourMoves(sinceTick) {        // tratos públicos con t18 (después del tick del fichero, si lo hay)
+  return Core.feedOf("settlement").filter(e => (e.payload.parties || []).includes(US) && (sinceTick == null || e.tick > sinceTick)).map(e => {
+    const p = e.payload, cards = (p.items || []).filter(i => i.kind === "card");
+    const buy = cards.some(i => i.to === US), sell = cards.some(i => i.frm === US);
+    const cash = buy && !sell ? -p.price : sell && !buy ? p.price - (p.fee || 0) : 0;
+    return {tick: e.tick, where: p.persona || p.venue || "—", other: (p.parties || []).find(x => x !== US) || p.persona, cards, cash, price: p.price, buy, sell};
+  });
+}
+function holdings() {
+  const cnt = {}, moved = {};
+  if (me) me.assets.forEach(a => cnt[a.ref] = (cnt[a.ref] || 0) + 1);
+  const mv = ourMoves(me ? me.tick : null);
+  mv.forEach(m => m.cards.forEach(i => { const d = i.to === US ? 1 : i.frm === US ? -1 : 0; moved[i.ref] = (moved[i.ref] || 0) + d; if (me) cnt[i.ref] = Math.max(0, (cnt[i.ref] || 0) + d); }));
+  const cash = me ? me.cash + mv.reduce((a, m) => a + m.cash, 0) : null;
+  return {cnt, moved, cash, adj: mv.length};
+}
+const lbTeams = () => (Core.state.lb && Core.state.lb.teams) || [];
+const usRow = () => lbTeams().find(t => t.team === US);
+const rivals = () => [...lbTeams()].filter(t => t.team !== US).sort((a, b) => a.rank - b.rank).slice(0, 3);
+const sign = (v, d = 2) => v == null ? "—" : (v > 0 ? "+" : "") + fmt(v, d);
+const cls = v => v > 0 ? "up" : v < 0 ? "down" : "muted";
+
+function pageCards() {
+  if (!catalog) return [];
+  return catalog.sets.map(s => ({id: s.id, name: Core.fixText(s.name), released: s.released, release: s.release, target: TARGETS.has(s.id),
+    cards: s.cards.filter(c => !c.hidden).map(c => ({ref: c.id, name: Core.fixText(c.name), rarity: c.rarity, page: c.page}))}));
+}
+
+// ---------- render ----------
+function renderKpis(H) {
+  const u = usRow(), T = lbTeams(), ago = Core.histAgo(3600e3);
+  const first = [...T].sort((a, b) => a.rank - b.rank)[0], next = T.find(t => u && t.rank === u.rank + 1), prev = T.find(t => u && t.rank === u.rank - 1);
+  const gap = !u ? "" : u.rank === 1 ? `+${fmt(u.score - (next ? next.score : 0))} sobre ${next ? next.team : "—"}` : `${fmt(u.score - prev.score)} frente a ${prev.team}` + (prev === first ? "" : ` · ${fmt(u.score - first.score)} del 1.º`);
+  const d1 = u && ago && ago.teams[US] ? u.score - ago.teams[US].score : null;
+  const missing = pageCards().filter(s => s.target && s.released).flatMap(s => s.cards.filter(c => c.page && !(H.cnt[c.ref] > 0)));
+  const cost = missing.reduce((a, c) => a + (Core.DEALER_MAX[c.ref] || 0), 0);
+  const tiles = [
+    ["Puesto", u ? `${u.rank}.º de ${T.length}` : "—", gap, true],
+    ["Puntos", u ? fmt(u.score) : "—", u ? `neg ${fmt(u.negotiating)} · mercado ${fmt(u.market)}${d1 != null ? ` · 1 h ${sign(d1)}` : ""}` : ""],
+    ["Caja", H.cash == null ? "—" : `${me && H.adj ? "≈ " : ""}${H.cash} P`, me ? `fichero tick ${me.tick}${H.adj ? ` · ${H.adj} tratos después` : ""}` : "carga equipo.json"],
+    ["Álbum", u ? `${u.album_filled}/${u.album_slots}` : "—", u ? `${u.pages_complete} páginas completas · ${u.deals} tratos` : ""],
+    ["Faltan en objetivo", me && catalog ? missing.length : "—", me && catalog ? `${pageCards().filter(s => s.target && s.released).map(s => s.id).join(", ")} · ~${cost} P a topes de dealer` : "requiere equipo.json"],
+    ["Carta más rara", u && u.rarest ? u.rarest.ref : "—", u && u.rarest ? `${Core.fixText(u.rarest.name)} · ${u.rarest.serial}/${u.rarest.print_run}` : ""],
+  ];
+  $("#kpis").innerHTML = tiles.map(([k, v, s, hl]) => `<div class="kpi ${hl ? "hl" : ""}"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s)}</span></div>`).join("");
+  return {missing, cost};
+}
+function renderAlbum(H) {
+  const S = pageCards();
+  if (!S.length) { $("#album").innerHTML = '<div class="empty">cargando catálogo…</div>'; return; }
+  $("#album").innerHTML = S.map(s => {
+    const page = s.cards.filter(c => c.page), have = page.filter(c => H.cnt[c.ref] > 0).length;
+    const cells = s.cards.filter(c => c.page || H.cnt[c.ref] > 0).map(c => {
+      const n = H.cnt[c.ref] || 0, mv = H.moved[c.ref] || 0, num = c.ref.split("-")[1];
+      const st = me ? (n > 0 ? "have" : "miss" + (s.target && s.released ? " tgt" : "")) : "unk";
+      const sub = me ? (n > 0 ? (c.page ? "" : "extra") : (Core.DEALER_MAX[c.ref] ? Core.DEALER_MAX[c.ref] + " P" : fmt(Core.value(c.ref, c.rarity), 0) + " v")) : RN[c.rarity].slice(0, 4);
+      const tip = `${c.ref} ${c.name} · ${RN[c.rarity] || c.rarity}` + (me ? ` · tenemos ${n}` : "") + ` · valor ${fmt(Core.value(c.ref, c.rarity), 1)}` + (Core.DEALER_MAX[c.ref] ? ` · tope ${Core.DEALER_MAX[c.ref]}` : "") + (mv ? ` · feed ${mv > 0 ? "+" : ""}${mv}` : "");
+      return `<div class="cd ${st} r-${c.rarity} ${c.page ? "" : "xtra"}" title="${esc(tip)}"><b>${esc(num)}</b><small>${esc(sub)}</small>${n > 1 ? `<span class="dup">×${n}</span>` : ""}${mv ? `<span class="mv ${mv > 0 ? "in" : "out"}">${mv > 0 ? "+" : ""}${mv}</span>` : ""}</div>`;
+    }).join("");
+    return `<div class="set ${s.released ? "" : "off"}"><div class="nm ${s.target ? "target" : ""}"><b>${esc(s.id)}</b><span>${esc(s.name)}</span>
+      <span class="muted">${s.released ? (me ? `${have}/${page.length}${have === page.length ? " ✓" : ""}` : `×${fmt(Core.MULT[s.id], 1)}`) : "sale " + esc(s.release)}</span></div><div class="cards">${cells}</div></div>`;
+  }).join("");
+  const u = usRow();
+  $("#albsum").textContent = me ? `${S.flatMap(s => s.cards).filter(c => H.cnt[c.ref] > 0).length} distintas · ${Object.values(H.cnt).reduce((a, n) => a + Math.max(0, n - 1), 0)} duplicados` + (me.packs ? ` · ${me.packs} sobres` : "")
+    : u ? `${u.album_filled}/${u.album_slots} (público) · carga equipo.json para ver cuáles` : "—";
+}
+function renderVs() {
+  const u = usRow(), R = rivals(); if (!u) return;
+  const ago = Core.histAgo(3600e3);
+  const d1 = t => ago && ago.teams[t.team] ? t.score - ago.teams[t.team].score : null;
+  const rows = [["Puesto", t => t.rank, 0, -1], ["Puntos", t => t.score, 2], ["Negociación", t => t.negotiating, 2], ["Mercado", t => t.market, 2],
+    ["Álbum", t => t.album_filled, 0], ["Páginas", t => t.pages_complete, 0], ["Tratos", t => t.deals, 0], ["Suerte", t => t.luck, 1], ["Δ puntos 1 h", d1, 2]];
+  $("#vs thead").innerHTML = `<tr><th></th><th class="num">t18</th>${R.map(t => `<th class="num">${esc(t.team)}</th>`).join("")}</tr>`;
+  $("#vs tbody").innerHTML = rows.map(([k, f, d, better = 1]) => {
+    const mine = f(u);
+    return `<tr><td>${k}</td><td class="num us">${mine == null ? "—" : fmt(mine, d)}</td>${R.map(t => {
+      const v = f(t), diff = mine != null && v != null ? mine - v : null;
+      return `<td class="num">${v == null ? "—" : fmt(v, d)}<span class="d ${cls(diff * better)}">${sign(diff, d)}</span></td>`;
+    }).join("")}</tr>`;
+  }).join("");
+  const H = Core.D.hist.filter(h => h.round === Core.state.lb.round).slice(-240);
+  const s = [US, ...R.map(t => t.team)].map(t => ({name: t, bold: t === US, pts: H.filter(h => h.teams[t]).map(h => [h.ts, h.teams[t].score])}));
+  $("#chart").innerHTML = Core.lineChart(s, {xfmt: Core.hhmm, h: 120, empty: "la evolución aparece tras dos fotos de la clasificación", label: "puntos t18 y top 3"});
+  $("#legend").innerHTML = Core.legend(s);
+}
+function renderCash(H, k) {
+  const sc = Core.state.schedule, grants = (sc && sc.upcoming || []).filter(e => e.action === "grant_all");
+  const g = grants.reduce((a, e) => a + ((e.params && e.params.cash) || 0), 0);
+  const rows = [["Caja", H.cash == null ? "— (carga equipo.json)" : `${me && H.adj ? "≈ " : ""}${H.cash} P`]];
+  if (me && me.collection_value != null) rows.push(["Valor de colección (fichero)", fmt(me.collection_value, 1)]);
+  if (me) rows.push([`Completar ${pageCards().filter(s => s.target && s.released).map(s => s.id).join(" + ")} a topes`, `${k.cost} P · ${k.missing.length} cartas`]);
+  if (g) rows.push(["Ingresos programados", `+${g} P`]);
+  if (H.cash != null) { const left = H.cash + g - k.cost - 10; rows.push(["Margen tras completar (reserva 10)", `<span class="${cls(left)}">${sign(left, 0)} P</span>`]); }
+  const hint = k.missing.slice().sort((a, b) => (Core.DEALER_MAX[b.ref] || 0) - (Core.DEALER_MAX[a.ref] || 0)).slice(0, 6).map(c => c.ref).join(", ");
+  if (me && hint) rows.push(["Faltan (más caras primero)", esc(hint)]);
+  $("#cash").innerHTML = rows.map(([a, b]) => `<div><span>${esc(a)}</span><b>${b}</b></div>`).join("");
+}
+function renderEvents() {
+  const E = Core.upcoming(e => /^(duels|set_release|grant_all|round|day_opens|day_closes|persona_opens|persona_closes|bench)/.test(e.action)).slice(0, 6);
+  $("#events").innerHTML = E.map(e => { const w = Core.wallOf(e.at_hours);
+    return `<div><span>${esc(Core.fixText((e.params && e.params.name) || e.note || e.action)).slice(0, 44)}</span><b>${w ? esc(Core.hhmm(w)) + " · " + esc(Core.cd(w - Date.now())) : "t " + fmt(e.at_hours, 2)}</b></div>`; }).join("")
+    || '<div class="empty">sin eventos próximos</div>';
+}
+function renderTrades() {
+  const M = ourMoves(null).slice(-25).reverse();
+  $("#trades tbody").innerHTML = M.map(m => `<tr><td class="num">${m.tick}</td><td>${m.buy ? "compra" : m.sell ? "vende" : "cambio"}</td><td>${esc(m.cards.map(i => i.ref).join(" "))}</td>
+    <td class="small muted">${esc(m.other || m.where)}</td><td class="num ${cls(m.cash)}">${m.cash ? sign(m.cash, 0) : m.price}</td></tr>`).join("")
+    || '<tr><td class="empty">aún no hay tratos de t18 grabados (deja la página abierta)</td></tr>';
+}
+function renderSrc() {
+  $("#srcinfo").textContent = me ? `equipo.json · tick ${me.tick} · ${handle ? "se relee solo · " : ""}leído ${Core.hhmm(me.loaded)}` : "sin fichero: caja y cartas exactas desconocidas";
+  $("#forget").hidden = !me;
+}
+function renderAlerts(H, k) {
+  const out = [], u = usRow(), R = rivals();
+  if (u && R[0] && u.rank > 1) out.push(["warn", `Vamos ${u.rank}.º, a ${fmt(R[0].score - u.score)} de ${R[0].team}.`]);
+  if (u) R.forEach(t => { if (t.market - u.market >= 2) out.push(["info", `${t.team} nos saca ${fmt(t.market - u.market)} en mercado.`]); });
+  if (me && Core.state.clock && Core.state.clock.tick - me.tick > 240) out.push(["warn", `equipo.json tiene ${Core.state.clock.tick - me.tick} ticks: pedir uno nuevo al operador.`]);
+  if (H.cash != null && k.cost > H.cash) out.push(["bad", `Caja ${H.cash} P < ${k.cost} P para completar las páginas objetivo publicadas.`]);
+  Core.alerts(out.slice(0, 4));
+}
+
+Core.on(() => { const H = holdings(); renderSrc(); const k = renderKpis(H); renderAlbum(H); renderVs(); renderCash(H, k); renderEvents(); renderTrades(); renderAlerts(H, k); });
+Core.onSecond(renderEvents);
+Core.start("equipo.html");
+</script>
+</body>
+</html>
