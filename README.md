@@ -1,5 +1,28 @@
 # Bazaar SDK for Python
 
+## Harness offline: rendimiento, decisiones y seguridad
+
+```bash
+python3 run_harness.py --output runs/harness-baseline.json
+```
+
+Compara el selector actual con un candidato experimental en los mismos casos,
+prueba conflictos y decisiones tardías, y reutiliza el simulador del broker.
+Mide ganancia por tick, selecciones inválidas, consultas y p50/p95 local. Cero
+llamadas reales a API o modelos; no cambia el ejecutor del equipo.
+[Guía, resultados y límites](docs/harness.md).
+
+Evaluación de la recuperación para RAG con historial local de dealers:
+[fuentes reales, métricas y comandos](docs/rag-evaluation.md). `run_rag_eval.py`
+compara SQL, FTS y contexto con filtros; no usa modelos ni cambia el ejecutor.
+
+Evaluación de JEV con controles de entrada, salida y cupo:
+`python3 run_jev_eval.py` usa respuestas simuladas por defecto, sin red.
+[Seguridad, límites y modo real](docs/jev-security.md).
+
+[Resultados de JEV real y patrones de rivales](docs/jev-real-testing.md).
+[Entrega al equipo e integración en main](docs/integration-handoff.md).
+
 ## Recolector de información para el agente y Claude
 
 Python estándar, cuatro GET cada **5 segundos**, memoria persistente de tratos confirmados y contexto local sin llamadas a modelos. Arranque en una terminal del equipo, con `BAZAAR_KEY` ya configurada:

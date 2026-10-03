@@ -1,0 +1,44 @@
+[
+  {
+    "id": "thread-64",
+    "dealer": "abuela",
+    "side": "buy",
+    "item": "sobre_barrio",
+    "phase": "negotiation",
+    "body": "{\"opening_visible\": true, \"dealer_prices\": [30, 25, 23, 22, 21], \"outcome\": \"unknown_in_feed_window\", \"messages\": [{\"tick\": 34, \"role\": \"dealer\", \"price\": 30, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": \"Welcome, hijo! Look, Neighbourhood pack, 30 P. Made for beginners.\"}, {\"tick\": 34, \"role\": \"team\", \"price\": 10, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": null}, {\"tick\": 35, \"role\": \"dealer\", \"price\": 25, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": \"Let's meet in the middle, cariño: 25 P. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!\"}, {\"tick\": 35, \"role\": \"team\", \"price\": 11, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": null}, {\"tick\": 36, \"role\": \"dealer\", \"price\": 23, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": \"Let's meet in the middle, cariño: 23 P.\"}, {\"tick\": 36, \"role\": \"team\", \"price\": 16, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": null}, {\"tick\": 37, \"role\": \"dealer\", \"price\": 22, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": \"Let's meet in the middle, cariño: 22 P.\"}, {\"tick\": 37, \"role\": \"team\", \"price\": 18, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": null}, {\"tick\": 38, \"role\": \"dealer\", \"price\": 21, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": \"Oh, oh... 21 P, and only because you have a kind face.\"}, {\"tick\": 38, \"role\": \"team\", \"price\": 19, \"final\": false, \"refs\": [\"sobre_barrio\"], \"text\": null}, {\"tick\": 39, \"role\": \"dealer\", \"price\": null, \"final\": false, \"refs\": [], \"text\": \"Deal! Neighbourhood pack for 19 P. Enjoy it, cariño.\"}]}",
+    "source": "public-history#thread-64",
+    "evidence": "public_partial_thread",
+    "tick": 39,
+    "visibility": "public",
+    "version": "oct2-observations",
+    "status": "active"
+  },
+  {
+    "id": "thread-68",
+    "dealer": "abuela",
+    "side": "buy",
+    "item": "SAL-02",
+    "phase": "negotiation",
+    "body": "{\"opening_visible\": true, \"dealer_prices\": [12, 10, 9], \"outcome\": \"unknown_in_feed_window\", \"messages\": [{\"tick\": 38, \"role\": \"dealer\", \"price\": 12, \"final\": false, \"refs\": [\"SAL-02\"], \"text\": \"Welcome, hijo! Look, El Portero, 12 P. Made for beginners. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!\"}, {\"tick\": 39, \"role\": \"team\", \"price\": 5, \"final\": false, \"refs\": [\"SAL-02\"], \"text\": null}, {\"tick\": 40, \"role\": \"dealer\", \"price\": 10, \"final\": false, \"refs\": [\"SAL-02\"], \"text\": \"Let's meet in the middle, cariño: 10 P.\"}, {\"tick\": 41, \"role\": \"team\", \"price\": 7, \"final\": false, \"refs\": [\"SAL-02\"], \"text\": null}, {\"tick\": 42, \"role\": \"dealer\", \"price\": 9, \"final\": false, \"refs\": [\"SAL-02\"], \"text\": \"Look, 9 P. My grandchildren would pay more!\"}]}",
+    "source": "public-history#thread-68",
+    "evidence": "public_partial_thread",
+    "tick": 42,
+    "visibility": "public",
+    "version": "oct2-observations",
+    "status": "active"
+  },
+  {
+    "id": "note-chato188",
+    "dealer": "chato",
+    "side": "buy",
+    "item": "LAT-06",
+    "phase": "repeated",
+    "body": "Observación documental hilo 188, ticks 100–103. Ofertas nuestras 16,19,22; Chato 33,33,33,32. Cierre sin trato. Criticó la subida de tres puntos. No demuestra que saltos mayores mejoren el precio.",
+    "source": "public-history#note-chato188",
+    "evidence": "documented_observation",
+    "tick": 103,
+    "visibility": "local-team",
+    "version": "oct2-observations",
+    "status": "active"
+  }
+]
