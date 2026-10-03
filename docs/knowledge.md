@@ -295,3 +295,15 @@ Afirmaciones de los propios analistas refutadas por su escéptico (no deben cita
 - Vender repetidos publicando (sin comisión), no aceptando.
 - Venue: solo con broker supervisado y caja suficiente; si no, el puesto gratuito.
 - Duelos: no salirse nunca del límite, releer antes de aceptar, pasar el tick a step() y hacer el experimento de reactividad.
+
+## Sábado en vivo: aprendido y medido (diario `logs/run/journal.jsonl`, ticks 160–300)
+
+- **S-01** `[medido · alta]` El reloj del sábado va 1:1 con la hora de pared (t 3,2833 a las 10:06:42), ticks de 30 s. El juego se despausó a las ~09:29, así que todo el calendario va ~29 min tarde respecto al PDF de pistas (Duelos I ~11:58, Duelos II ~18:29). Las puertas cierran a las 23:00 de pared (t ≈ 16,17), antes del `day_closes` de t 16,65.
+- **S-02** `[medido · alta]` Abuela, comunes: abre 12, cierra 9–10 en 2–3 rondas (nuestro 7→8→9). Infrecuentes: abre 29, cierra 22 en 3 rondas (16→18→20, acepta 22). 6/6 compras de RET.
+- **S-03** `[medido · alta]` El Chato, raras: abre 97 y con pasos de +4 desde 70 cierra en 86 (2/2: RET-09, RET-10). Infrecuentes: abre 33 y se planta en 31 (final): **las infrecuentes, a la Abuela** (RET-08 a 22 tras fallar con El Chato). Aplicado a CHA-08 en `config/plan.json`.
+- **S-04** `[medido · alta]` Escalera: 8 compras por debajo de valor dieron +0,016/+0,013/+0,014/+0,015/+0,018/0/+0,002; la 4.ª compra a la Abuela no sube (cuentan sus 3 mejores). Total 0,078. El calibrador dio `pass` a 8/8.
+- **S-05** `[medido · alta]` La puja de cierre de RET-02 a 49 P se llenó en ≤ 1 tick y sumó **+50,0 exactos** (P-07 confirmado: tope 50 por trato). Puntuación 14,0 → 27,31, puesto 8.º → 2.º.
+- **S-06** `[medido · alta]` El Rastro sigue sin liquidez para vender: 0 de 19 ventas publicadas (sobrantes a 7–11, infrecuentes de LAT a 25) se llenaron en ~100 ticks.
+- **S-07** `[medido · media]` Duelos de la sesión 1 (viernes, aún vivos a las 09:30): 2 de 4 cerrados (aceptamos 112 con límite 121 y ~+21 en otro); los 2 sin respuesta del rival dieron 0. Con la pista oficial ("un duelo sin respuesta puntúa 0"; "< 1/2 de los duelos de práctica cerraron") el ancla pasa de 0,60 a 0,75.
+- **S-08** `[medido · alta]` Nivel 3 = **Doña Pilar** (coleccionista: paga por encima de catálogo lo que le gusta, vende sobres de oro). Activa en t 3,508, abierta a todos en t 5,508. t13 entró antes con "3 deals with chato"; nosotros tenemos 2. t13 le pidió 49 P por LAV-08 (catálogo 25).
+- **S-09** `[medido · alta]` Fallos encontrados en vivo y corregidos con prueba: la Gate contaba hilos cerrados como abiertos (bloqueaba todo `open_thread`); la oferta propia de un hilo de dealer se contaba dos veces (valoraba RET-09 como 2.ª copia y cancelaba los hilos); las escrituras sin cuerpo enviaban `null`. Pendientes: `cash_free` del runner a veces más bajo que el reconstruido (lado seguro) y `pages.protect_sets` (abandono de LAT) no está conectado: se hizo por configuración.

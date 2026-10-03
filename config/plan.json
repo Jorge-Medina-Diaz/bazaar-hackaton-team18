@@ -15,7 +15,7 @@
     "RET-01": 11, "RET-02": 11, "RET-03": 11, "RET-04": 11, "RET-05": 11,
     "RET-06": 25, "RET-07": 25, "RET-08": 31, "RET-09": 90, "RET-10": 90,
     "CHA-01": 12, "CHA-02": 12, "CHA-03": 12, "CHA-04": 12, "CHA-05": 12,
-    "CHA-06": 25, "CHA-07": 25, "CHA-08": 31, "CHA-09": 100, "CHA-10": 100
+    "CHA-06": 25, "CHA-07": 25, "CHA-08": 25, "CHA-09": 100, "CHA-10": 100
   },
   "profiles": {
     "RET:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null},
@@ -23,7 +23,6 @@
     "RET:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "RET:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 11,  "fallback_after": null},
     "CHA:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 100, "fallback_after": null},
-    "CHA-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null}
   },
