@@ -273,6 +273,7 @@ class J13Tests(unittest.TestCase):
             "abuela quota": (w, self.base(deals={"abuela": 7})),
             "expires soon": (world(tick=200, assets=[card(1, "RET-03")], board=[bid(5, "RET-03", 35, exp=201)]),
                              self.base()),
+            "endgame": (world(assets=[card(1, "RET-03")], board=[bid(5, "RET-03", 35)], t_hours=12.5), self.base()),
         }
         for name, (ww, bb) in cases.items():
             with self.subTest(name):

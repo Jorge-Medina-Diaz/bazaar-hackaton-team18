@@ -632,6 +632,8 @@ def _any_copy(cx: _Ctx, ref: str) -> Optional[int]:
 
 def _j13_ok(cx: _Ctx, o: Mapping, ref: str) -> bool:
     """G13 resupply exception: every condition, or no."""
+    if cx.endgame():          # no time left to buy it back from the Abuela (dealer Needs stop at day end)
+        return False
     s = _set_of(ref)
     info = cx.idx.get(ref) or {}
     if s not in ("RET", "CHA") or info.get("rarity") not in ("common", "uncommon"):
