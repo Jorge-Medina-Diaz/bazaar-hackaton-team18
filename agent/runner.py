@@ -839,8 +839,8 @@ def _make_cfg(plan_cfg: Mapping) -> Any:
     from agent.guards import Cfg
     cfg = Cfg()
     upd = {}
-    if plan_cfg.get("days_sign") in (1, -1):
-        upd["DAYS_SIGN"] = plan_cfg["days_sign"]
+    # plan days_sign is not copied: one sign for both duel roles is wrong by construction (talk.days_sign_of reads
+    # the duel: sensor days_sign, server days_meaning, then role)
     if type(plan_cfg.get("grant_lookahead_ticks")) is int:
         upd["GRANT_LOOKAHEAD_TICKS"] = plan_cfg["grant_lookahead_ticks"]
     fb = (plan_cfg.get("duels") or {}).get("days_weight_fallback") if isinstance(plan_cfg.get("duels"), Mapping) else None

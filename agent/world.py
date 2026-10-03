@@ -320,16 +320,10 @@ def _duel_offer(o: Any, what: str) -> Optional[dict]:
 
 
 def _days_sign(m: Any):
-    """Server duel field days_meaning -> -1 (fewer days better: 'each delivery day costs you ...'),
-    +1 ('each delivery day adds ... to your side'), else None. Exact phrases (Duels II live)."""
-    if not isinstance(m, str):
-        return None
-    m = m.strip().lower()
-    if m.startswith("each delivery day costs you"):
-        return -1
-    if m.startswith("each delivery day adds") and "to your side" in m:
-        return 1
-    return None
+    """Server duel field days_meaning -> -1 / +1 / None, with the Gate's own parser (talk.sign_from_meaning) so the
+    sensor and G50/G51 can never read the same text differently. The text itself stays out of the World."""
+    from agent.talk import sign_from_meaning
+    return sign_from_meaning(m)
 
 
 def _p_duel(d: Any) -> tuple:

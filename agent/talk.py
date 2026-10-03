@@ -6,14 +6,14 @@ module: the World carries no text, and the only text we ever look at is the one 
 NOTES (M4b, night build)
 - check() covers open_thread (G30), say (G31), accept with source "dealer" (G32), duel_say (G50) and
   duel_accept (G51). Any other kind -> Verdict(False, "G02.kind"). Every exception -> refuse (fail closed).
-- plan_cfg is not part of the check() signature, so `grant_lookahead_ticks` and `days_sign` are read from
-  cfg with getattr(cfg, "GRANT_LOOKAHEAD_TICKS", 3) / getattr(cfg, "DAYS_SIGN", None). Lead: either add them
-  to guards.Cfg or have guards copy them from plan_cfg.
-- Two-issue duels (price + days): W(d) is modelled as your_days_weight * d (unknown in reality, U-13). The
-  worst-case bound (surplus >= 1 + |w| * max(d, 10 - d)) applies unless the server's days_meaning gives the
-  sign (World days_sign, see days_sign_of): then the loss vs our best days, |w| * |best - d| (best 0 for -1,
-  10 for +1), the same rule as agent.tactics.duels._days_model. With your_days_weight null and no plan
-  fallback every two-issue price is refused (G50.days_unknown).
+- plan_cfg is not part of the check() signature, so `grant_lookahead_ticks` is read from cfg with
+  getattr(cfg, "GRANT_LOOKAHEAD_TICKS", 3). The days sign never comes from config (one sign for both roles is wrong
+  by construction): days_sign_of reads the duel itself.
+- Two-issue duels (price + days): the measured value is s*(p-L) + sign*|w|*d (44/44 Duels II deals; sign -1 for the
+  buyer, +1 for the seller). G50/G51 need s*(p-L) >= 1 + _days_penalty: |w|*d when each day costs us (or the sign
+  is unknown), 0 when days only add (the price itself never goes outside the limit). Same rule as
+  agent.tactics.duels._days_model. With your_days_weight null and no plan fallback every two-issue price is
+  refused (G50.days_unknown).
 - duel_accept needs guards.duel_fingerprint (M4a). If agent.guards cannot be imported, G51 refuses
   ("G51.no_fingerprint"). A dealer accept does not compare guards.fingerprint (G32 does not ask for it); it
   matches offer id, maker, recipient, status, expiry, exact shape (offer_safety) and price.
@@ -528,44 +528,66 @@ def _duel_basics(d: Mapping) -> tuple:
     return (1 if role == "seller" else -1), float(lim), ("days" in issues)
 
 
-def days_sign_of(duel: Mapping) -> Optional[int]:
-    """Sign of the days issue from the SERVER's own duel field days_meaning (not rival text). Exact phrases seen
-    in Duels II: buyer "each delivery day costs you this much cash" (-1: fewer days is better), seller "each
-    delivery day adds this much cash to your side" (+1). Anything else -> None (worst case)."""
-    if isinstance(duel, Mapping) and duel.get("days_sign") in (1, -1):   # World: the sensor's derived field
-        return duel["days_sign"]
-    m = duel.get("days_meaning") if isinstance(duel, Mapping) else None
+_DAYS_MINUS = frozenset({"cost", "costs", "costing", "lose", "loses", "losing", "loss", "penalty", "penalises",
+                         "penalizes", "deduct", "deducts", "subtract", "subtracts", "reduce", "reduces"})
+_DAYS_PLUS = frozenset({"add", "adds", "adding", "earn", "earns", "earning", "gain", "gains", "bonus", "credit",
+                        "credits"})
+
+
+def sign_from_meaning(m: Any) -> Optional[int]:
+    """Server duel field days_meaning -> -1 (each day costs us), +1 (each day adds to our side), None.
+    Duels II phrases: buyer "each delivery day costs you this much cash", seller "each delivery day adds this much
+    cash to your side". Night audit: any wording that names a delivery day plus exactly one of the two families
+    (cost/lose... vs add/earn/gain...) is read; both or neither -> None. Shared by the sensor and the Gate."""
     if not isinstance(m, str):
         return None
     m = m.strip().lower()
-    if m.startswith("each delivery day costs you"):
-        return -1
-    if m.startswith("each delivery day adds") and "to your side" in m:
-        return 1
-    return None
+    if "day" not in m and "deliver" not in m:
+        return None
+    words = set(re.findall(r"[a-z]+", m))
+    minus, plus = bool(words & _DAYS_MINUS), bool(words & _DAYS_PLUS)
+    if minus == plus:
+        return None
+    return -1 if minus else 1
+
+
+ROLE_DAYS_SIGN = {"buyer": -1, "seller": 1}   # Duels II: 34/34 buyers "costs you", 34/34 sellers "adds" (44/44 deals)
+
+
+def days_sign_of(duel: Mapping) -> Optional[int]:
+    """Sign of the days issue: the sensor's days_sign (World), else the SERVER's own days_meaning (raw re-read,
+    never rival text), else by role (buyer -1, seller +1: the value formula s*(p-L) + sign*|w|*d fits 44/44
+    Duels II deals with that mapping). None only for a duel without a buyer/seller role."""
+    if not isinstance(duel, Mapping):
+        return None
+    if duel.get("days_sign") in (1, -1):              # World: the sensor's derived field
+        return duel["days_sign"]
+    sign = sign_from_meaning(duel.get("days_meaning"))
+    if sign is not None:
+        return sign
+    return ROLE_DAYS_SIGN.get(duel.get("role"))
 
 
 DUEL_DAYS_MAX = 10
 
 
 def days_worst_case(w: float, days: int) -> float:
-    """THE days penalty (shared by G50/G51 and agent.tactics.duels): max_d |W(d) - W(days)|, W(d) = w * d."""
-    return abs(float(w)) * max(days, DUEL_DAYS_MAX - days)
+    """Days penalty with the sign unknown: the worst sign makes each day cost |w|, so |w| * days (day 0 costs 0)."""
+    return abs(float(w)) * days
 
 
 def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
-    """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d.
+    """P of surplus the days issue can take from us, on an absolute baseline (value = s*(p-L) + sign*|w|*d,
+    44/44 Duels II deals). sign -1: |w|*days. sign +1: 0 (days only add; the price alone stays inside the limit,
+    RULES: a deal outside your limit loses points). Unknown: |w|*days (worst sign).
     A null weight uses cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback); none -> refuse."""
     w = d.get("your_days_weight")
     if w is None:
         w = _cfg(cfg, "DAYS_WEIGHT_FALLBACK", None)
     _need(_num(w), "G50.days_unknown")
-    sign = days_sign_of(d)
-    if sign == -1:
-        return abs(float(w)) * days              # loss vs our best (0 days); same rule as duels._days_model
-    if sign == 1:
-        return abs(float(w)) * (DUEL_DAYS_MAX - days)   # loss vs our best (10 days)
-    return days_worst_case(w, days)
+    if days_sign_of(d) == 1:
+        return 0.0
+    return days_worst_case(w, days)        # same rule as agent.tactics.duels._days_model
 
 
 def _g50_say(a, world, cfg, counters) -> None:

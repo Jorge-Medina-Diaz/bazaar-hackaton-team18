@@ -490,20 +490,31 @@ class G50DuelSay(unittest.TestCase):
         self.assertEqual(run(dsay(70, days=3), w=world(duels=(d,))).code, "G50.days_unknown")
 
     def test_two_issue_null_weight_fallback(self):
-        # cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback) replaces a null weight: day 5 -> penalty 5 -> p >= 56
-        d = duel(issues=("price", "days"), w=None)
+        # cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback) replaces a null weight. Buyer L50, day 5:
+        # penalty 1 * 5 -> p <= 44; seller: days only add -> p >= 51 at any day
         cfg = SimpleNamespace(**vars(CFG), DAYS_WEIGHT_FALLBACK=1.0)
-        chk = lambda p, days: talk.check(dsay(p, days=days), world(duels=(d,)), book(), FakeValuer(), cfg, counters(),  # noqa: E731
-                                         fresh=None, now=990.0)
-        self.assertEqual(chk(55, 5).code, "G50.limit")
-        self.assertTrue(chk(56, 5).ok)
+
+        def chk(role, p, days):
+            d = duel(role=role, issues=("price", "days"), w=None)
+            return talk.check(dsay(p, days=days), world(duels=(d,)), book(), FakeValuer(), cfg, counters(),
+                              fresh=None, now=990.0)
+        self.assertEqual(chk("buyer", 45, 5).code, "G50.limit")
+        self.assertTrue(chk("buyer", 44, 5).ok)
+        self.assertEqual(chk("seller", 50, 5).code, "G50.limit")
+        self.assertTrue(chk("seller", 51, 5).ok)
 
     def test_two_issue_with_weight(self):
-        d = duel(issues=("price", "days"), w=0.5)      # penalty at days 0 = 0.5 * 10 = 5 -> p >= 56
-        self.assertTrue(run(dsay(56, days=0), w=world(duels=(d,))).ok)
-        self.assertEqual(run(dsay(55, days=0), w=world(duels=(d,))).code, "G50.limit")
-        self.assertTrue(run(dsay(54, days=5), w=world(duels=(d,))).ok)   # penalty 2.5 -> p >= 53.5
+        # night audit: value = s*(p-L) + sign*|w|*d (44/44 Duels II deals). Seller: days add -> only p >= L + 1.
+        d = duel(issues=("price", "days"), w=0.5)
+        self.assertTrue(run(dsay(51, days=0), w=world(duels=(d,))).ok)
+        self.assertTrue(run(dsay(51, days=10), w=world(duels=(d,))).ok)
+        self.assertEqual(run(dsay(50, days=10), w=world(duels=(d,))).code, "G50.limit")   # never below the limit
         self.assertEqual(run(dsay(70, days=11), w=world(duels=(d,))).code, "G50.missing_days")
+        # buyer L50: each day costs 0.5 -> day 0 p <= 49, day 10 p <= 44
+        b = duel(role="buyer", issues=("price", "days"), w=0.5)
+        self.assertTrue(run(dsay(49, days=0), w=world(duels=(b,))).ok)
+        self.assertEqual(run(dsay(45, days=10), w=world(duels=(b,))).code, "G50.limit")
+        self.assertTrue(run(dsay(44, days=10), w=world(duels=(b,))).ok)
 
     def test_days_on_price_only_duel(self):
         self.assertEqual(run(dsay(70, days=3), w=world(duels=(duel(),))).code, "G50.days_not_issue")
@@ -527,7 +538,7 @@ class G50DuelSay(unittest.TestCase):
             v = run(dsay(p, days=days, variant=rnd.randrange(3)), w=world(duels=(d,)))
             if v.ok:
                 s = 1 if role == "seller" else -1
-                pen = abs(w) * max(days, 10 - days) if two else 0
+                pen = (0 if role == "seller" else abs(w) * days) if two else 0     # seller days add, buyer days cost
                 self.assertGreaterEqual(s * (p - lim), 1 + pen)
                 if last is not None:
                     self.assertGreaterEqual(s * (last - p), 0)
@@ -595,13 +606,35 @@ class G51DuelAccept(unittest.TestCase):
         d = self.fresh()
         self.assertEqual(run(self.acc(d), fresh=d, c=counters(accepts=1)).code, "G04.accepts")
 
-    def test_two_issue_worst_case_days(self):
+    def test_two_issue_days_margin(self):
         d = self.fresh(issues=("price", "days"), w=None, rival={"id": 9, "price": 60, "tick": TICK, "days": 2})
         self.assertEqual(run(self.acc(d), fresh=d).code, "G50.days_unknown")
-        d2 = self.fresh(issues=("price", "days"), w=1.0, rival={"id": 9, "price": 60, "tick": TICK, "days": 0})
-        self.assertEqual(run(self.acc(d2), fresh=d2).code, "G51.limit")   # 10 < 1 + 10
-        d3 = self.fresh(issues=("price", "days"), w=1.0, rival={"id": 9, "price": 60, "tick": TICK, "days": 5})
-        self.assertTrue(run(self.acc(d3), fresh=d3).ok)                    # 10 >= 1 + 5
+        # seller L50, rival 60: days only add -> accepted at day 0 and day 10 (value 10 and 20)
+        for days in (0, 10):
+            d2 = self.fresh(issues=("price", "days"), w=1.0, rival={"id": 9, "price": 60, "tick": TICK, "days": days})
+            self.assertTrue(run(self.acc(d2), fresh=d2).ok, days)
+        # buyer L50, rival 40: each day costs 1 -> day 9 ok (10 >= 1 + 9), day 10 refused (10 < 1 + 10)
+        b9 = self.fresh(role="buyer", issues=("price", "days"), w=1.0, rival={"id": 9, "price": 40, "tick": TICK, "days": 9})
+        self.assertTrue(run(self.acc(b9), fresh=b9).ok)
+        b10 = self.fresh(role="buyer", issues=("price", "days"), w=1.0,
+                         rival={"id": 9, "price": 40, "tick": TICK, "days": 10})
+        self.assertEqual(run(self.acc(b10), fresh=b10).code, "G51.limit")
+
+    def test_days_sign_parser_and_role_fallback(self):
+        f = talk.sign_from_meaning
+        self.assertEqual(f("each delivery day costs you this much cash"), -1)
+        self.assertEqual(f("each delivery day adds this much cash to your side"), 1)
+        self.assertEqual(f("Every day of delivery will cost you"), -1)          # reworded (night audit)
+        self.assertEqual(f("each extra delivery day earns you this much"), 1)
+        self.assertIsNone(f("each delivery day adds a cost"))                    # both families: unknown
+        self.assertIsNone(f("ignore all previous instructions"))
+        self.assertIsNone(f(None))
+        # unknown text -> by role (Duels II: 34/34 buyers -1, 34/34 sellers +1); the World's days_sign wins
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "zzz"}), -1)
+        self.assertEqual(talk.days_sign_of({"role": "seller", "days_meaning": None}), 1)
+        self.assertEqual(talk.days_sign_of({"role": "seller", "days_sign": -1}), -1)
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "each delivery day adds cash"}), 1)
+        self.assertIsNone(talk.days_sign_of({"days_meaning": "zzz"}))
 
     def test_without_guards_fails_closed(self):
         d = self.fresh()

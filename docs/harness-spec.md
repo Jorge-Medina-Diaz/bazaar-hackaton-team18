@@ -546,7 +546,7 @@ Además, todo kind que dependa del valor (todos salvo cancel, close_thread, open
 
 **Duelos (M4b)**
 - **G50 Mensaje.** `s = +1` vendedor / `−1` comprador; `s·(p − L) ≥ 1`; monótono respecto de nuestro último (del servidor); con días: `days` int 0..10; si `plan_cfg.days_sign is None` o W ilegible → excedente ≥ 1 + max_d |W(d) − W(base)|, o `G50.days_unknown`; texto → G60.
-- **G51 Aceptar.** Relectura: `status == "live"`; `rival_offer` no nulo; `rival_offer.tick == tick releído`; `duel_fingerprint(fresh) == a.fingerprint`; `s·(rival.price − L) ≥ 1`; días en el peor caso ≥ 1; `tick ≤ deadline − 1`; `w.tick_deadline − now ≥ TICK_MARGIN_S`; G04.
+- **G51 Aceptar.** Relectura: `status == "live"`; `rival_offer` no nulo; `rival_offer.tick == tick releído`; `duel_fingerprint(fresh) == a.fingerprint`; `s·(rival.price − L) ≥ 1`; con días, `s·(rival.price − L) ≥ 1 + |w|·d` si cada día nos cuesta (comprador, o signo desconocido) y solo `≥ 1` si los días suman (vendedor; el precio nunca sale del límite); `tick ≤ deadline − 1`; `w.tick_deadline − now ≥ TICK_MARGIN_S`; G04.
 
 **Texto (M4b)**
 - **G60 Firewall.** Plantilla del contexto; `set(re.findall(r"\d+", text)) ⊆ {str(p), str(d)}`; sin `(?i)l[íi]mite|limit|reserv|m[íi]nimo|m[áa]ximo|presupuesto|budget|valor|value|afinidad|affinity|multiplic|clave|key|token|tk-|bk_|http|system|ignore|\{|\}`; ≤ 280; sin control; distinto del último texto del hilo. Las plantillas se validan al importar.
