@@ -31,7 +31,8 @@ P_REPEAT = 0.75  # chance a seller's copy is a repeat (worth 25 %): teams mostly
 # a tenth of it (an ordinary card of the page) or all of it (the card that closes the page). Mixture weights:
 PAGE_SHARE = ((0.0, 0.35), (0.1, 0.5), (1.0, 0.15))
 PAGE_BOOK = 5 * 10 + 3 * 25 + 2 * 70  # book value of a page: 265
-WEIGHT = {"trade_buy": 1.0, "trade_sell": 0.7, "dealer_buy": 0.35, "dealer_sell": 0.2,
+# Dealer trades weigh little: everyone overpays dealers, so their prices bound multipliers badly (knowledge X-10).
+WEIGHT = {"trade_buy": 1.0, "trade_sell": 0.7, "dealer_buy": 0.15, "dealer_sell": 0.1,
           "bid": 0.5, "ask": 0.25, "score": 1.0}
 DEALERS = {"abuela", "chato"}
 
