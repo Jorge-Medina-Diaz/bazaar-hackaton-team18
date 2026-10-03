@@ -965,8 +965,10 @@ class Gate:
         cost = None
         if k == "list_offer" and a["side"] == "bid":
             cost = a["price"]
-        elif k == "accept" and a["side"] == "buy":           # dealer deals pay no venue fee (M17: venue = dealer id)
-            cost = a["price"] + (self._fee(world, a.get("venue", RASTRO), a["price"], 1) if a["source"] == "team" else 0)
+        elif k == "accept" and a["side"] == "buy" and a["source"] == "team":
+            cost = a["price"] + self._fee(world, a.get("venue", RASTRO), a["price"], 1)
+        # (audit Sat) a dealer accept's cash is checked by talk G32 with its own thread reserve added back; here
+        # cash_free already excludes that reserve, so it demanded 2x the price (SAL-11 at 159 refused, cash 303)
         elif k == "open_thread" and a["side"] == "buy":
             cost = a["limit"]
         if cost is not None and cost > b.cash_free:

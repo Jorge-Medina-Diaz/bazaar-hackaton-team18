@@ -270,6 +270,11 @@ def _final_guard(v: DuelView, P: Mapping, act: tuple) -> tuple:
                 return wait
         elif days is not None:
             return wait
+        ro = v.rival_offer                     # audit Sat: never offer worse than the rival's standing offer
+        if ro is not None and type(ro[0]) is int and v.s * (price - ro[0]) < 0:
+            price = ro[0]                      # (G50.worse_than_rival refused it every tick: opening anchor case)
+            if v.mine == price and (not v.two_issue or (v.ours and v.ours[-1][2] == days)):
+                return wait                    # G50.repeat
         if surplus(v, price) < _need(v, P, extra, days):
             return wait
         if v.mine is not None and v.s * (price - v.mine) > 0:            # monotone: never retract a concession
@@ -422,8 +427,7 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
             v = view(d, tick)
             if not v.ok:
                 continue
-            if v.rival_double and not state.get("duel_accepts_paused"):
-                state["duel_accepts_paused"] = f"E16.two_msgs:{v.duel_id}"
+            # (audit Sat) a rival's double message no longer pauses ALL duels: _final_guard refuses accepts in that duel
             p = dict(P, accept_paused=bool(P["accept_paused"] or state.get("duel_accepts_paused")))
             e8 = state.get("e8")
             if e8 is None and v.rivals:

@@ -436,11 +436,19 @@ class TestPropose(unittest.TestCase):
         st = {}
         out = D.propose(make_world([d], 114), None, {}, {}, st)
         self.assertFalse(any(i.kind == "duel_accept" for i in out))
-        self.assertTrue(st["duel_accepts_paused"].startswith("E16.two_msgs"))
-        # and the pause holds for other duels too
+        # audit Sat: the pause is per duel (G51 re-reads + fingerprints before any accept); other duels still accept
+        self.assertNotIn("duel_accepts_paused", st)
         d2 = duel(did=6, L=100, deadline=116, msgs=[msg("you", 104, 60), msg("R", 114, 70)],
                   rival_offer={"price": 70, "days": None, "tick": 114, "id": 3})
-        self.assertFalse(any(i.kind == "duel_accept" for i in D.propose(make_world([d2], 114), None, {}, {}, st)))
+        self.assertTrue(any(i.kind == "duel_accept" for i in D.propose(make_world([d2], 114), None, {}, {}, st)))
+
+    def test_opening_never_worse_than_rival(self):
+        # audit Sat: rival already asks 55 (buyer, L=100, anchor 60): we open at 55, not at the anchor (G50 refused)
+        d = duel(did=7, L=100, deadline=116, msgs=[msg("R", 103, 55)],
+                 rival_offer={"price": 55, "days": None, "tick": 103, "id": 4})
+        act = D.decide(D.view(d, 105), {})
+        self.assertEqual(act[0], "say")
+        self.assertLessEqual(act[1], 55)
 
     def test_e16_settled_price(self):
         st = {"duel_accepts": {8: {"tick": 114, "price": 70, "days": None}}}
