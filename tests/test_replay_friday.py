@@ -194,6 +194,11 @@ class TestFridayLosses(unittest.TestCase):
         self.assertEqual(lav06, [509])
         v = f.dealer_sell("chato", "LAV-06", 509, 13)
         self.assertTrue(refused(v), v)
+        self.assertIn(v.code, ("G32.limit", "G32.margin"), v)     # refused for price, not as "listed" (live 3 Oct)
+
+    def test_dealer_sale_above_value_passes(self):
+        v = Friday(155).dealer_sell("chato", "LAV-06", 509, 19)    # LAV uncommon 17.5 for us
+        self.assertTrue(v.ok, v)
 
     def test_lat03_at_9(self):
         v = Friday(147).bid("LAT-03", 9, closer=False)

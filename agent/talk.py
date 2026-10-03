@@ -27,6 +27,7 @@ from __future__ import annotations
 import math
 import re
 import unicodedata
+from dataclasses import replace
 from typing import Any, Mapping, Optional
 
 from agent.contracts import TEAM, Verdict
@@ -233,9 +234,15 @@ def _free(book, ref: str) -> int:
     return (int(book.held.get(ref, 0)) - int(book.listed.get(ref, 0)) - int(book.pending_out.get(ref, 0)))
 
 
-def _protected_ok(world, book, ref: str, asset_ids, code: str) -> None:
-    """G13 without the J13 exception (dealers never get protected copies)."""
+def _protected_ok(world, book, ref: str, asset_ids, code: str, own_thread: bool = False) -> None:
+    """G13 without the J13 exception (dealers never get protected copies).
+    own_thread: the assets are the topic of our own open sell thread, which build_book already counts as listed;
+    they are not listed elsewhere, so they are not refused as listed and are counted back as free (live 3 Oct)."""
     ids = list(asset_ids)
+    if own_thread:
+        n = len(set(ids) & set(book.listed_assets))
+        book = replace(book, listed_assets=frozenset(set(book.listed_assets) - set(ids)),
+                       listed={**dict(book.listed), ref: max(0, int(book.listed.get(ref, 0)) - n)})
     _need(len(ids) >= 1 and len(ids) == len(set(ids)), code + ".assets")
     assets = {a.get("id"): a for a in (_get(world.me, "assets") or ()) if isinstance(a, Mapping)}
     for aid in ids:
@@ -428,7 +435,7 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
         _need(p <= book.cash_free, "G16.cash")
     else:
         ids = tuple((topic.get("sell") or {}).get("assets") or ())
-        _protected_ok(world, book, ref, ids, "G32")
+        _protected_ok(world, book, ref, ids, "G32", own_thread=True)
         _need(p >= lim, "G32.limit", f"{p} < {lim}")
         _need(p - _dv_rm(world, book, valuer, ref) >= margin, "G32.margin")
 

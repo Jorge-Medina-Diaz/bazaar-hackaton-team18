@@ -332,17 +332,32 @@ class TestTwoIssues(unittest.TestCase):
         self.assertEqual(D.decide(D.view(self.two(w=2.0, meaning=None), 100), {})[0], "say")
 
     def test_sign_unknown_worst_case_margin(self):
-        # w = 3 -> every price needs surplus >= 1 + 30
+        # w = 3, sign unknown -> we send day 5 and need surplus >= 1 + 3*max(d, 10-d) (the Gate's G50/G51 rule)
         d = self.two(L=100, w=3.0, meaning="delivery days", msgs=[msg("you", 100, 60, 0)])
         for t in range(101, 116):
             kind, p, days = D.decide(D.view(d, t), {})
             if kind == "say":
-                self.assertLessEqual(p, 69)
-                self.assertIsInstance(days, int)
+                self.assertEqual(days, 5)
+                self.assertLessEqual(p, 84)                                     # 1 + 15
                 d["messages"].append(msg("you", t, p, days))
-        ro = {"price": 75, "days": 5, "tick": 114, "id": 3}
-        d2 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 75, 5)], rival_offer=ro)
-        self.assertNotEqual(D.decide(D.view(d2, 114), {})[0], "accept")       # 25 < 31
+        ro = {"price": 80, "days": 0, "tick": 114, "id": 3}
+        d2 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 5), msg("R", 114, 80, 0)], rival_offer=ro)
+        self.assertNotEqual(D.decide(D.view(d2, 114), {})[0], "accept")       # day 0: 20 < 1 + 30
+        ro5 = {"price": 80, "days": 5, "tick": 114, "id": 4}
+        d3 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 5), msg("R", 114, 80, 5)], rival_offer=ro5)
+        self.assertEqual(D.decide(D.view(d3, 114), {})[0], "accept")          # day 5: 20 >= 1 + 15
+
+    def test_default_T_by_decay(self):
+        self.assertEqual(D._default_T(0.06), 16)
+        self.assertEqual(D._default_T(0.08), 16)     # Duels II: duel_ticks 16
+        self.assertEqual(D._default_T(0.10), 12)     # Sunday: duel_ticks 12
+
+    def test_accept_when_rival_retreats_inside_limit(self):
+        # D2304: rival came to 135 (inside L=167), we countered, it moved back up to 140: accept, do not chase
+        d = duel(L=167, msgs=[msg("you", 100, 108), msg("R", 100, 187), msg("you", 102, 124), msg("R", 103, 135),
+                              msg("you", 104, 132), msg("R", 105, 140)],
+                 rival_offer={"price": 140, "days": 0, "tick": 105, "id": 9})
+        self.assertEqual(D.decide(D.view(d, 105), {"anchor": 0.65}), ("accept", 140, 0))
         ro = {"price": 69, "days": 5, "tick": 114, "id": 3}
         d3 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 69, 5)], rival_offer=ro)
         self.assertEqual(D.decide(D.view(d3, 114), {})[0], "accept")

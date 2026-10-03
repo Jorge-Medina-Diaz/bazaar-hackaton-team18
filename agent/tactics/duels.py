@@ -144,7 +144,7 @@ class DuelView:
 
 
 def _default_T(decay: float) -> int:
-    return 16 if abs(decay - 0.06) < 1e-9 else 12   # U-12
+    return 12 if decay >= 0.095 else 16   # U-12 + schedule: decay 0.06/0.08 -> 16 ticks (Duels I/II), 0.10 -> 12 (Sunday)
 
 
 def view(duel: Mapping, tick: int) -> DuelView:
@@ -220,7 +220,7 @@ def _days_model(v: DuelView, P: Mapping):
     sign = P.get("days_sign")
     aw = abs(w)
     if sign not in (1, -1):
-        return True, None, (lambda d: aw * DAYS_MAX)          # max_d |W(d) - W(base)|
+        return True, None, (lambda d: aw * max(d, DAYS_MAX - d))   # worst case vs any rival days, as talk G50/G51
     best = DAYS_MAX if sign > 0 else 0
     W = lambda d: sign * aw * d                                 # noqa: E731
     top = W(best)
@@ -306,7 +306,7 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
     rd = ro[1] if ro else None
     say_days = our_days
     if v.two_issue and say_days is None:                                # sign unknown: margin covers any days
-        say_days = rd if type(rd) is int and 0 <= rd <= DAYS_MAX else 0
+        say_days = DAYS_MAX // 2                                        # day 5 minimises the worst case (5|w|)
     need_say = _need(v, P, extra, say_days)
     Lm = L - need_say if buyer else L + need_say                        # closest price we may offer
     ok_r = r is not None and surplus(v, r) >= _need(v, P, extra, rd)
@@ -328,7 +328,8 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
         good = surplus(v, r) >= surplus(v, nxt) or (mine is not None and surplus(v, r) >= surplus(v, mine))
         opening = mine is None and surplus(v, r) >= surplus(v, anchor)
         elapsed = (v.tick - v.start) >= P["close_frac"] * total
-        if good or firm or late or opening or elapsed:
+        retreat = len(v.rivals) >= 2 and surplus(v, v.rivals[-1][1]) < surplus(v, v.rivals[-2][1])  # moving away (D2304)
+        if good or firm or late or opening or elapsed or retreat:
             return ("accept", r, rd)
 
     if spoke_this_tick:
