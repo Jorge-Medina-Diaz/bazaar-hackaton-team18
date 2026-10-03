@@ -19,7 +19,7 @@ from agent.execution import writer_lock
 from sim.world import FakeGame
 
 REPO = Path(__file__).resolve().parents[1]
-PLAN = REPO / "config" / "plan.json"
+PLAN = REPO / "tests" / "fixtures" / "plan_night.json"   # frozen: config/plan.json changes during the game
 NONE_P = Prediction(0.0, 0.0, "0", 0, None, "none")
 STAGES = ("core", "hygiene", "dealers", "rastro", "closer", "duels")
 

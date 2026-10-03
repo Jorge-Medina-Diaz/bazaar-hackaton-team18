@@ -14,7 +14,7 @@ from agent.tactics import pages
 from agent.valuation import Valuer
 
 ROOT = Path(__file__).resolve().parents[1]
-PLAN = ROOT / "config" / "plan.json"
+PLAN = ROOT / "tests" / "fixtures" / "plan_night.json"   # frozen: config/plan.json changes during the game
 
 
 def _load(name):

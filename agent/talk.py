@@ -63,6 +63,12 @@ TEMPLATES: Mapping[str, tuple] = {
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
     ),
+    "pilar_sell": (
+        "¡Buenas, doña Pilar! Le traigo una pieza para su colección. ¿{p} P?",
+        "Se la he guardado a usted, que la sabe apreciar. ¿Qué tal {p} P?",
+        "Me ajusto por usted: {p} P, ¿le parece?",
+        "Gracias por atenderme, doña Pilar. ¿La dejamos en {p} P?",
+    ),
     "duel": (
         "Propuesta justa para cerrar pronto y que ganemos los dos: {p} P.",
         "Me muevo para acercarnos: {p} P.",

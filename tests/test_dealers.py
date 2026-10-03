@@ -517,7 +517,7 @@ class RebuildTest(unittest.TestCase):
 
 def _real_plan():
     from pathlib import Path
-    return json.loads((Path(__file__).resolve().parents[1] / "config" / "plan.json").read_text(encoding="utf-8"))
+    return json.loads((Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "plan_night.json").read_text(encoding="utf-8"))
 
 
 class RealPlanTest(Base):

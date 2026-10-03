@@ -602,8 +602,8 @@ class Misc(unittest.TestCase):
         self.assertEqual(run(it).code, "G02.kind")
 
     def test_templates_cover_spec_names(self):
-        self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell", "duel",
-                                               "duel_days"})
+        self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell", "pilar_sell",
+                                               "duel", "duel_days"})
 
 
 if __name__ == "__main__":
