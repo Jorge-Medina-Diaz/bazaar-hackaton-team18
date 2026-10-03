@@ -35,7 +35,7 @@ Reglas de la casa:
  python3 bazaar.py run [--live] [--arm a,b]       (un proceso, un hilo, máquina A; candado state/writer.lock)
  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
  │ Inbox (state/inbox/*.json, órdenes del CLI) → diario → armed/pauses/do/flatten                   │
- │ Sensor (agent/world.py): GET priorizados, limitador 2,5 req/s con 1 ficha reservada              │
+ │ Sensor (agent/world.py): GET priorizados, limitador 3,5 req/s con 2 fichas reservadas            │
  │   → World inmutable (campos de lista blanca, sin texto) + Secrets (solo memoria)                 │
  │   → texto ajeno a logs/run/untrusted.jsonl                                                       │
  │ Gate.begin_tick: Book.build + línea base + escritor ajeno · Gate.reconcile                       │
@@ -468,7 +468,7 @@ def main(argv: Sequence[str]) -> int
 |---|---|---|---|
 | INV-01 | **Punto único.** Ningún método distinto de GET sale del proceso salvo desde `Gate.execute`, con un permiso de un uso que coincide en (método, ruta, sha256 del cuerpo) y ruta de `WRITE_ROUTES`. GET solo a `GET_ALLOWLIST` con `fullmatch`. Nunca admin, venues, flags ni broker. | `GuardedTransport.send`/`_call`; audit hook; `broker()` desactivado; test AST | `test_transport.py`: POST sin permiso, con permiso de otra ruta/cuerpo, reutilizado, `/api//admin`, `/API/admin`, `/api/%61dmin`, ruta con `\n` → `GateViolation` y 0 peticiones. `test_architecture.py`: los nombres prohibidos de §0 no aparecen en `agent/` ni `bazaar.py` fuera de `transport.py`/`gate.py`; `/api/admin` solo como literal en `transport.py` y `sim/fake_server.py`. |
 | INV-02 | **Ninguna escritura** fuera de `live`, con la táctica sin armar o pausada, con STOP, o pasado `tick_deadline`; con reloj en pausa o puertas cerradas solo `cancel` y `close_thread`. | Transport (modo, STOP en cada envío); Gate G01, G03 | `test_dry.py`: 1.000 ticks en dry → 0 escrituras. `test_transport.py`: `STOP.txt` creado entre la decisión y el envío → 0 POST. `test_gate.py`: pausa, puertas cerradas (cancel sí, accept no), decisión tardía. |
-| INV-03 | **Presupuestos por tick:** aceptaciones ≤ `limits.accepts` (los duel_accept cuentan); ≤ 1 mensaje por hilo o duelo; publicaciones + cancelaciones ≤ min(6, `limits.listings` − 2); ofertas propias (maker t18) ≤ `limits.open_offers` − 4; hilos propios ≤ `limits.threads` − 1; ≤ 2,5 req/s con 1 ficha reservada. | Gate G04; `RateLimiter`; `Limits.from_clock` con `LIMIT_KEYS` | `test_contracts.py`: `clock.json` del harvest → `Limits(1,1,6,30,12)`. `test_gate.py`: 100 intents → 1 aceptación; 30 ofertas dirigidas a nosotros no bloquean publicaciones. `test_e2e_fake.py`: 0 429 y tasa ≤ 2,5 req/s. |
+| INV-03 | **Presupuestos por tick:** aceptaciones ≤ `limits.accepts` (los duel_accept cuentan); ≤ 1 mensaje por hilo o duelo; publicaciones + cancelaciones ≤ min(6, `limits.listings` − 2); ofertas propias (maker t18) ≤ `limits.open_offers` − 4; hilos propios ≤ `limits.threads` − 1; ≤ 3,5 req/s (ráfaga 8) con 2 fichas reservadas (dom 4 oct: era 2,5). | Gate G04; `RateLimiter`; `Limits.from_clock` con `LIMIT_KEYS` | `test_contracts.py`: `clock.json` del harvest → `Limits(1,1,6,30,12)`. `test_gate.py`: 100 intents → 1 aceptación; 30 ofertas dirigidas a nosotros no bloquean publicaciones. `test_e2e_fake.py`: 0 429 y tasa ≤ 2,5 req/s. |
 | INV-04 | **Ningún trato con pérdida predicha.** Equipos: neg_lo ≥ 3 al aceptar y ≥ 2 al publicar; cierre ≥ 20; reabastecimiento ≥ 15. Dealers: ΔV_lo − p ≥ 1 al comprar, p − ΔV_hi ≥ 1 al vender. | G12, G20, G21, G31, G32 | `sim/invariants.py` + `test_e2e_fake.py`: Δneg ≥ 0 del oráculo en cada liquidación nuestra (dealers: == 0). `test_replay_friday.py`: rechaza los 5 tratos con pérdida. |
 | INV-05 | **Estructura exacta:** solo se acepta una forma canónica cuya huella, releída en el mismo tick, coincide con la del intent. | G10, G11 (`canonical_offer`, `offer_safety`) | `test_shapes.py`: `tests/fixtures/twisted_offers.json` (60) + 1.000 mutaciones → 0 aprobaciones. Las 56 ofertas reales de dealer: 56/56 pasan `offer_ok` tal cual; 56/56 pasan `executable_offer` con `status="open"` y `tick=created_tick`; 56/56 se rechazan con su estado real o con `tick=expires_tick+1`. |
 | INV-06 | **Copias protegidas:** `free(ref) = held − listed − pending_out`; nada entrega un activo si `free(ref) − 1 < keep(ref)`, salvo el reabastecimiento J13 con todas sus condiciones. | G13; vigilancia G19 | `test_guards.py` / `test_hygiene.py`: con el harvest, la vigilancia propone exactamente {2463, 1652}; nunca hay más de `held − keep` copias publicadas o comprometidas. |
@@ -558,7 +558,7 @@ Además, todo kind que dependa del valor (todos salvo cancel, close_thread, open
 - Puja de cierre con `b.delivery_risk` → `cancel` (la táctica `closer` la repone cuando desaparece).
 - Hilo de compra con precio en pie > `dv_add − DEALER_MARGIN` → `close_thread`.
 - Sobre en `me.assets` o subvención con sobre a ≤ `grant_lookahead_ticks` → `close_thread` de todos los hilos de compra; el sobre se abre al tick siguiente.
-- `t_hours ≥ day_end_hours` → `close_thread` de todos los hilos con dealer.
+- `t_hours ≥ day_end_hours` → `close_thread` de todos los hilos con dealer. Desde el dom 4 oct el runner fija cada tick la hora de hoy con el calendario vivo (`pages.effective_plan`): mín(`day_closes` − 5 min, cierre de puestos − 6 min); el endgame del closer, `day_closes` − 35 min; las horas de `config/plan.json` solo valen si el calendario se lee pero no trae `day_closes`.
 - Hilo abierto por otro equipo con nosotros → diario `untrusted`; `close_thread` si E17 muestra que cuenta contra nuestros 6.
 
 **Escritor ajeno (`Gate.begin_tick`)**
@@ -786,7 +786,7 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 
 **Custodia de la clave.** La usan para escribir solo la máquina A (`.env`). Los paneles alojados la guardan del lado del servidor y solo emiten GET (medido: `website/worker.mjs` usa `method: "GET"` y `redirect: "error"`; `api/index.py` pasa por `client("read")`). Ninguna otra máquina ejecuta código con la clave. La exclusión entre máquinas es custodia, no candado.
 
-**Presupuesto de peticiones (5 req/s por clave, ráfagas de 20, C-07):** runner 2,5 req/s; paneles ≤ 1 req/s en total = un solo visor (worker: 4 GET cada 5 s ≈ 0,8 req/s) **o** Vercel (`CACHE_S` 30 ≈ 0,25 req/s), no los dos; `live_monitor.py` y `panel.py` no se lanzan el sábado.
+**Presupuesto de peticiones (5 req/s por clave, ráfagas de 20, C-07):** runner 3,5 req/s (domingo, ticks de 15 s; era 2,5); paneles ≤ 1 req/s en total (`client.PANEL_RATE`) = un solo visor (worker: 4 GET cada 5 s ≈ 0,8 req/s) **o** Vercel (`CACHE_S` 30 ≈ 0,25 req/s), no los dos; `live_monitor.py` y `panel.py` no se lanzan el sábado.
 
 **Sábado:**
 1. **08:00** `git pull`; `python3 bazaar.py selftest`. Núcleo + higiene en verde → live. **E0 (núcleo en rojo):** dos personas, en un REPL con el SDK, cancelan solo 2463 y 1652 y releen `/api/me/offers`; no se arranca nada más hasta tener el núcleo en verde.
