@@ -1,10 +1,13 @@
 {
   "_notes": [
-    "M8 plan data (docs/harness-spec.md 2.1 PlanCfg, docs/strategy.md J0-J13). Keys starting with '_' are ignored by load_plan.",
-    "Sunday (night audit): the runner derives today's day end and closer endgame from the LIVE schedule every tick (pages.effective_plan): day end = min(day_closes - 5 min, stalls close - 6 min), endgame = day_closes - 35 min. It follows a late start, a clock jump to 16.65 or a pause. day_end_hours / closer.endgame_hours below are only the fallback when the schedule is readable but has no day_closes entry (no trigger at all on a cold start). Sat closed at t13.367; Sun 09:00-15:00 is t13.367-19.367 if the clock resumes, t16.65-22.65 if it jumps. The runner reads this file at start: config changes need a restart.",
-    "startup_cancels: the lead cancelled 2463, 2592 (LAT-01) and 1652, 2591 (LAT-05) at 01:30; the harvest fixtures still show them open, so they stay listed: a cancel of an offer that is not open in my_offers is a no-op (G23).",
-    "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N are owned by guards.Cfg (contracts D2 defaults); not repeated here.",
-    "profiles lookup order: exact ref, then 'SET:rarity', then 'rarity'. anchor/step/limit in P; fallback_after in ticks."
+    "Datos del plan M8 (docs/harness-spec.md 2.1 PlanCfg, docs/strategy.md J0-J13). Las claves que empiezan por '_' las ignora load_plan. El runner lee este fichero al arrancar: cualquier cambio necesita reinicio.",
+    "Domingo (medido): el reloj solo avanza con las puertas abiertas; el sábado siguió en 2,65 y los eventos del día se desplazaron -1,35. Escenario esperado C: el domingo sigue en 13,367; R3/CHA a las 09:00, Duels III ~11:00, cierre de puestos + Gran Final ~14:00, congelación 15:00 (t19,367).",
+    "Fin del día de dealers y endgame se derivan en cada tick (pages.effective_plan): cierre = el antes de clock.closes (pared: t + (closes - ahora)/3600) y del day_closes / end_round del schedule en vivo; fin de dealers = min(cierre, primer 'persona enabled:false' de >= 3 puestos) - day_end_min_before_close; endgame = cierre - closer.endgame_min_before_close. day_end_hours y closer.endgame_hours son solo el respaldo (schedule legible sin cierre y sin clock.closes).",
+    "Compras domingo: CHA comunes de la Abuela (<= 12), CHA-06/07/08 de El Chato (<= 31, Abuela de respaldo), CHA raras de los Pícaros (<= 60) con El Chato de respaldo (<= 90, perfil 'rare'), CHA-11 y RET-11 de los Pícaros (extra_needs, <= 170 / <= 150; solo con CHA publicado). Ventas a Pilar/Banco: solo a mano (load_plan solo admite abuela/chato/picaros).",
+    "resupply_min 999 apaga J13 el último día (vender la única copia de una común CHA podía dejar la página por debajo de 9/10). endgame_buy_any: tras el fin de dealers o en el endgame, J6 compra primeras copias fuera de las páginas por debajo de nuestro valor (el efectivo a las 15:00 vale 0).",
+    "startup_cancels: los cinco ids ya están cancelados (no-op por G23).",
+    "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N son de guards.Cfg (valores D2 de contracts); no se repiten aquí.",
+    "profiles: orden de búsqueda ref, 'SET:rarity', 'rarity'. anchor/step/limit en P; fallback_after en ticks."
   ],
   "page_sets": ["RET", "LAT", "CHA"],
   "protect_sets": ["SAL", "RET", "CHA", "LAT"],
@@ -13,31 +16,35 @@
   "dealer_max": {
     "RET-01": 11, "RET-02": 11, "RET-03": 11, "RET-04": 11, "RET-05": 11,
     "RET-06": 25, "RET-07": 25, "RET-08": 31, "RET-09": 90, "RET-10": 90,
-    "LAT-09": 58, "LAT-10": 58,
     "CHA-01": 12, "CHA-02": 12, "CHA-03": 12, "CHA-04": 12, "CHA-05": 12,
-    "CHA-06": 31, "CHA-07": 31, "CHA-08": 31, "CHA-09": 100, "CHA-10": 100
+    "CHA-06": 31, "CHA-07": 31, "CHA-08": 31, "CHA-09": 90, "CHA-10": 90,
+    "CHA-11": 170, "RET-11": 150
   },
+  "extra_needs": [{"ref": "CHA-11", "max_price": 170}, {"ref": "RET-11", "max_price": 150}],
   "profiles": {
     "RET:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null},
     "RET-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
     "RET:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "RET:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 11,  "fallback_after": null},
-    "SAL-11":       {"dealer": "picaros", "anchor": 130, "step": 3, "limit": 160, "fallback_after": 24},
-    "LAT:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 58, "fallback_after": 16},
+    "RET-11":       {"dealer": "picaros", "anchor": 115, "step": 3, "limit": 150, "fallback_after": 24},
+    "CHA-11":       {"dealer": "picaros", "anchor": 130, "step": 4, "limit": 170, "fallback_after": 24},
     "CHA:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24, "fallback_dealer": "chato"},
     "CHA-06":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-07":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-08":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null},
-    "rare":         {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null}
+    "rare":         {"dealer": "chato",  "anchor": 70, "step": 2, "limit": 90,  "fallback_after": null}
   },
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
+             "endgame_min_before_close": 35,
              "endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}},
-  "resupply_min": 15,
+  "resupply_min": 999,
   "dup_min_price": {"RET": 30, "CHA": 30, "LAT": 18},
   "days_sign": null,
-  "duels": {"anchor": 0.65, "slow_cap": 0.78, "days_weight_fallback": 1.0},
+  "duels": {"anchor": 0.62, "slow_cap": 0.85, "acc_late": 2, "e8_ticks": 0, "days_weight_fallback": 1.0},
+  "day_end_min_before_close": 5,
   "day_end_hours": {"sun": 19.283},
+  "endgame_buy_any": true,
   "grant_lookahead_ticks": 12
 }

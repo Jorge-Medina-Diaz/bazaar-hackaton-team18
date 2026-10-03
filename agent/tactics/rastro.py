@@ -16,6 +16,8 @@ NOTES (M11, night build)
   -1 per relist (60 ticks), never below ceil(dv_rm + 2), capped at 4 x book x affinity (G20).
   J9 needs no code here: when LAT leaves protect_sets, keep goes to 0 and J5/J13-style bid sales pick LAT up.
 - J6: buy only refs in `needs`, gain after the venue fee >= MIN_GAIN_TEAM (20 if it closes a page), p <= max_price.
+  M9 (plan endgame_buy_any): after the dealer day end or in the endgame, also a first copy (held 0) of a card
+  outside the page sets with gain after the fee >= MIN_GAIN_TEAM, paid from cash_free.
 - Bids into rival bids (sell): gain >= MIN_GAIN_TEAM, protected copies never; J13 resupply exception with all its
   conditions (resupply=True, gain >= RESUPPLY_MIN).
 - D1 swaps: accepted when V(received) - V(given) - fee >= threshold, the copy handed over is never protected;
@@ -225,6 +227,8 @@ class _Ctx:
         self.rival_top = int(_c(cfg, "RIVAL_TOP_N", RIVAL_TOP_N))
         self.dup_min = dict(self.plan.get("dup_min_price") or {})
         self.not_spare = _plan_refs(self.plan, ("extra_needs", "resale"))   # bought for dealers: never El Rastro
+        self.page_sets = frozenset(self.plan.get("page_sets") or ())
+        self.buy_any = self._buy_any_on()
         self.venues = self._venues()
         self.own_ids = set(book.own_offer_ids) | {o.get("id") for o in world.my_offers if isinstance(o, Mapping)}
         self.own_makers = {TEAM} | ({world.own_pseudonym} if world.own_pseudonym else set())
@@ -387,6 +391,16 @@ class _Ctx:
             return False
         return o.get("id") not in self.own_ids and o.get("maker") not in self.own_makers
 
+    def _buy_any_on(self) -> bool:
+        """M9 endgame buy-any: plan.endgame_buy_any and (dealer day ended or closer endgame). Error -> off."""
+        if self.plan.get("endgame_buy_any") is not True:
+            return False
+        try:
+            from agent.tactics.pages import past_day_end
+            return bool(past_day_end(self.w, self.plan)) or self.endgame()
+        except Exception:
+            return False
+
     def endgame(self) -> bool:
         eh = self.endgame_hours
         if not isinstance(eh, Mapping):
@@ -471,6 +485,14 @@ def _buy_ok(cx: _Ctx, vid: str, ref: str, price: int, gain_lo: float) -> bool:
     closes = bool(cx.v.closes_page(cx.proj, ref))
     base = cx.accept_min if closes else cx.min_team
     return gain_lo >= cx.min_gain(vid, base)
+
+
+def _any_ok(cx: _Ctx, vid: str, ref: str, gain_lo: float) -> bool:
+    """M9: once the dealer day has ended (or in the endgame) a first copy of a card outside the page sets is worth
+    buying from a team below our value: cash held at the freeze scores 0. Page-set refs keep their Needs only."""
+    return (cx.buy_any and _set_of(ref) not in cx.page_sets and cx.counts(cx.proj, ref) == 0
+            and cx.counts(cx.b.held, ref) == 0 and not cx.round_trip(ref, "buy")
+            and gain_lo >= cx.min_gain(vid, cx.min_team))
 
 
 def _j4_closer(cx: _Ctx, offers: list) -> None:
@@ -560,13 +582,17 @@ def _j6_buys(cx: _Ctx, offers: list) -> None:
             continue
         ref = p["ref"]
         need = cx.needs.get(ref)
-        if need is None or need.closer:
+        if need is not None and need.closer:
+            continue
+        if need is None and not cx.buy_any:
             continue
         vn = cx.venue_ok(vid)
         if vn is None:
             continue
         pred = _pred_team(cx.dv_add(ref), p["price"], "buy", True, vn)
-        if not _buy_ok(cx, vn["id"], ref, p["price"], pred.neg_lo) or -pred.cash > cx.cash_free:
+        ok = (_buy_ok(cx, vn["id"], ref, p["price"], pred.neg_lo) if need is not None
+              else _any_ok(cx, vn["id"], ref, pred.neg_lo))
+        if not ok or -pred.cash > cx.cash_free:
             continue
         cands.append((pred.neg_hi, o, vn, pred, p))
     for _, o, vn, pred, p in sorted(cands, key=lambda c: -c[0]):

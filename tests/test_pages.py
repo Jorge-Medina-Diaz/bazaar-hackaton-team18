@@ -484,5 +484,41 @@ class WallCloseTest(unittest.TestCase):
                 os.unlink(fh.name)
 
 
+
+class SundayPlanTest(unittest.TestCase):
+    """The live config/plan.json for Sunday 4 Oct (strategy of the night audit): loads, and its keys do what the
+    plan notes say."""
+
+    def setUp(self):
+        self.cfg = pages.load_plan(ROOT / "config" / "plan.json")
+
+    def test_sunday_keys(self):
+        c = self.cfg
+        self.assertNotIn("sat", c["day_end_hours"])               # a stale today='sat' must not close Sunday threads
+        self.assertEqual(c["day_end_min_before_close"], 5)
+        self.assertEqual(c["closer"]["endgame_min_before_close"], 35)
+        self.assertNotIn("SAL", c["dup_min_price"])
+        self.assertGreater(c["resupply_min"], 50)                  # > NEG_CAP: J13 resupply can never pass
+        self.assertIs(c["endgame_buy_any"], True)
+        self.assertIsNone(c["days_sign"])
+        self.assertEqual(c["page_sets"], ["RET", "LAT", "CHA"])
+        self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 170, "RET-11": 150})
+
+    def test_cha_rare_need_cap_reaches_the_chato_fallback(self):
+        card = {"set": "CHA", "rarity": "rare"}
+        self.assertEqual(pages.profile_for(self.cfg, "CHA-09", card)["dealer"], "picaros")
+        self.assertEqual(pages.need_limit(self.cfg, "CHA-09", card), 90)
+        self.assertEqual(self.cfg["dealer_max"]["CHA-09"], 90)
+
+    def test_extra_needs_only_after_the_cha_release(self):
+        cfg = dict(self.cfg, page_sets=[])
+        w = make_world(t_hours=13.5, today="sun")
+        self.assertEqual([(n.ref, n.source) for n in pages.plan(w, valuer_for(w), cfg, {})[0]], [("RET-11", "picaros")])
+        rel = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5, today="sun")
+        needs = pages.plan(rel, valuer_for(rel), cfg, {})[0]
+        self.assertEqual(sorted((n.ref, n.source) for n in needs), [("CHA-11", "picaros"), ("RET-11", "picaros")])
+        self.assertTrue(all(n.max_price <= {"CHA-11": 170, "RET-11": 150}[n.ref] for n in needs))
+
+
 if __name__ == "__main__":
     unittest.main()

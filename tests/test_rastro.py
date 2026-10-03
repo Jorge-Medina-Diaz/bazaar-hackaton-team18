@@ -499,3 +499,42 @@ class RealBookTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BuyAnyTests(unittest.TestCase):
+    """M9 (night audit): after the dealer day end or in the endgame, J6 also buys a first copy outside the page
+    sets below our value (cash held at the 15:00 freeze scores 0); never a 2nd copy, never a page-set ref."""
+    PLAN_ANY = dict(PLAN, endgame_buy_any=True, page_sets=["RET"], day_end_hours={"default": 11.0})
+    VAL_ANY = dict(add=dict(VAL["add"], **{"SAL-04": 40.0}), rm=VAL["rm"])
+
+    def go(self, t, held=None, offers=None, plan=None):
+        w = world(t_hours=t, board=offers or [sale(41, "SAL-04", 20)])
+        return rastro.propose(w, book(held=held), FakeValuer(**self.VAL_ANY), None, plan or self.PLAN_ANY, [], {})
+
+    def accepts(self, out):
+        return [(i.args["ref"], i.args["price"]) for i in out if i.kind == "accept"]
+
+    def test_off_before_the_dealer_day_end(self):
+        self.assertEqual(self.accepts(self.go(10.0)), [])
+
+    def test_on_after_the_dealer_day_end(self):
+        out = self.go(11.2)
+        self.assertEqual(self.accepts(out), [("SAL-04", 20)])
+        self.assertGreaterEqual([i for i in out if i.kind == "accept"][0].prediction.neg_lo, 3)
+
+    def test_on_in_the_endgame(self):
+        plan = dict(self.PLAN_ANY, day_end_hours={})
+        self.assertEqual(self.accepts(self.go(12.1, plan=plan)), [("SAL-04", 20)])     # endgame_hours N 12.0
+
+    def test_never_a_second_copy(self):
+        self.assertEqual(self.accepts(self.go(11.2, held={"SAL-04": 1})), [])
+
+    def test_never_a_page_set_ref_without_a_need(self):
+        self.assertEqual(self.accepts(self.go(11.2, offers=[sale(42, "RET-03", 5)])), [])
+
+    def test_flag_off(self):
+        plan = dict(self.PLAN_ANY, endgame_buy_any=False)
+        self.assertEqual(self.accepts(self.go(11.2, plan=plan)), [])
+
+    def test_not_below_min_gain(self):
+        self.assertEqual(self.accepts(self.go(11.2, offers=[sale(43, "SAL-04", 37)])), [])
