@@ -384,6 +384,15 @@ class TestLiveDayTimes(unittest.TestCase):
         self.assertAlmostEqual(r.plan_now["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
         self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["*"], 19.367 - 35 / 60, places=3)
 
+    def test_wall_comes_from_the_clock_when_it_has_one(self):
+        import time as _time
+        r, _ = bare_runner(make_world(), FakeClock())
+        self.assertIs(r.wall, _time.time)                          # production clock: the system epoch
+        clk = FakeClock()
+        clk.wall = lambda: 1234.5                                  # a sim clock maps game time to a Sunday epoch
+        r2, _ = bare_runner(make_world(), clk)
+        self.assertEqual(r2.wall(), 1234.5)
+
 
 # ----------------------------------------------------------------------------------------- end to end
 

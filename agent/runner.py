@@ -364,7 +364,7 @@ class Runner:
         self._valuer_key = None
         self.frozen: dict = dict(_read_json(paths.frozen, {}) or {}) if isinstance(_read_json(paths.frozen, {}), dict) else {}
         self.ticks_done = 0
-        self.wall = time.time                       # epoch for pages.effective_plan's wall close (tests patch it)
+        self.wall = getattr(clock, "wall", None) or time.time   # epoch for the wall close (a sim clock gives its own)
         for t in armed or ():
             self._arm(t, "run --arm", at_start=True)
         self._save_armed()

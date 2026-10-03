@@ -558,7 +558,7 @@ Además, todo kind que dependa del valor (todos salvo cancel, close_thread, open
 - Puja de cierre con `b.delivery_risk` → `cancel` (la táctica `closer` la repone cuando desaparece).
 - Hilo de compra con precio en pie > `dv_add − DEALER_MARGIN` → `close_thread`.
 - Sobre en `me.assets` o subvención con sobre a ≤ `grant_lookahead_ticks` → `close_thread` de todos los hilos de compra; el sobre se abre al tick siguiente.
-- `t_hours ≥ day_end_hours` → `close_thread` de todos los hilos con dealer. Desde el dom 4 oct el runner fija cada tick la hora de hoy con el calendario vivo (`pages.effective_plan`): mín(`day_closes` − 5 min, cierre de puestos − 6 min); el endgame del closer, `day_closes` − 35 min; las horas de `config/plan.json` solo valen si el calendario se lee pero no trae `day_closes`.
+- `t_hours ≥ day_end_hours` → `close_thread` de todos los hilos con dealer. Desde el dom 4 oct el runner fija cada tick la hora de hoy (`pages.effective_plan`): cierre = el antes de `day_closes` / `end_round` del calendario vivo y de `clock.closes` (pared: t + (closes − ahora)/3600; un cierre ya pasado no cuenta); fin de dealers = mín(cierre, cierre de puestos) − `day_end_min_before_close` (5 min); endgame del closer = cierre − `closer.endgame_min_before_close` (35 min); tras el fin de dealers o en el endgame J6 compra también cualquier primera copia fuera de las páginas por debajo de nuestro valor (`endgame_buy_any`); las horas de `config/plan.json` solo valen si el calendario se lee pero no trae cierre y no hay `clock.closes`.
 - Hilo abierto por otro equipo con nosotros → diario `untrusted`; `close_thread` si E17 muestra que cuenta contra nuestros 6.
 
 **Escritor ajeno (`Gate.begin_tick`)**
