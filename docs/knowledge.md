@@ -85,6 +85,11 @@ Estado: sábado 3 oct 2026, ~00:45, juego cerrado. Datos hasta el cierre del vie
 
 ## 4. El Rastro (mercado entre equipos)
 
+- **D-20** `[API · alta]` Nivel 3 = **Doña Pilar**, coleccionista: anunciada en t=3,425 y activada en t=3,508. Abre a todos a las +2,0 h (t=5,51). Desbloqueo anticipado con 3 tratos con El Chato: solo lo tiene t13 (tick 262). Estrategia en [pilar.md](pilar.md).
+- **D-21** `[API · alta]` Pilar compra infrecuentes, raras y épicas. SAL y RET aparecen aparte como favoritas ("pays over book for the cards she loves") y también compra las de cualquier set publicado. **No compra comunes.** Solo vende `sobre_oro` (apertura 504, lista 420, 1 por equipo y hora); 6 tratos por equipo y hora.
+- **D-22** `[API · alta]` Rasgos de Pilar: paciencia 0,6, generosidad 0,5, astucia 0,75, memoria 0,7, rigor 0,6, charla 0,55. Es el dealer más duro y el que más recuerda.
+- **D-23** `[medido · baja]` Un solo dato de precio: a la petición de 49 de t13 por LAV-08 (infrecuente no favorita) respondió con **16** (0,64 × libro), con final:false (hilo 456, tick 294).
+- **D-24** `[medido · alta]` La Gate no vende a un dealer por debajo de `ceil(dv_rm + DEALER_MARGIN)` (G30–G32). Una LAT infrecuente (22,5) no se vende a Pilar por menos de 24.
 - **R-01** `[medido · alta]` Comisión = ceil(0,05 × precio + 1 P por carta), 44/44 liquidaciones. La paga quien acepta, no quien publica (caja reconstruida 10/10). Los tratos con dealers no tienen comisión (131/131).
 - **R-02** `[medido · alta]` Mercado pequeño: 46 tratos entre equipos en todo el viernes (9 nuestros), 484 ofertas de venta y 161 pujas; se cumplieron 26 ventas y 15 pujas. Medianas: común 9, infrecuente 24,5, rara 70.
 - **R-03** `[medido · alta]` Las ventas por encima del catálogo casi nunca se llenan: comunes a ≥ 1,2× catálogo, 1/153; infrecuentes, 0/26. El mercado es poco líquido incluso a precio de catálogo o por debajo.

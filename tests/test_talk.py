@@ -596,14 +596,63 @@ class G51DuelAccept(unittest.TestCase):
                 sys.modules.pop("agent.guards", None)
 
 
+class PilarSell(unittest.TestCase):
+    """docs/pilar.md: we only sell to Doña Pilar, by hand (bazaar.py do), never below our value + DEALER_MARGIN.
+    LAT-07 at its real value (22.5 with LAT at 8/10) -> floor ceil(22.5 + 1) = 24."""
+    V = FakeValuer(add={"LAT-09": 100.0}, rm={"LAT-07": 22.5, "SAL-02": 9.0})
+    W = dict(me={"id": "t18", "unlocked": ["abuela", "chato", "pilar"], "assets": ASSETS})
+
+    def sell_thread(self, ours=(31,), theirs=((16, False),)):
+        t = thread(dealer="pilar", ref="LAT-07", side="sell", ours=ours, theirs=theirs)
+        return t, world(threads={7: t}, **self.W)
+
+    def sell_book(self, limit=24, prices=(31,)):
+        return tb(thread_limit={7: limit}, thread_prices={7: prices}, thread_ref={7: "LAT-07"},
+                  thread_by_dealer={"pilar": 7}, keep={"SAL-02": 1})
+
+    def test_open_needs_unlock(self):
+        it = open_thread(dealer="pilar", side="sell", ref="LAT-07", asset_ids=(267,), limit=24)
+        self.assertEqual(run(it, v=self.V, b=book(keep={})).code, "G30.locked")
+        self.assertTrue(run(it, w=world(**self.W), v=self.V, b=book(keep={})).ok)
+
+    def test_open_floor_is_value_plus_margin(self):
+        it = open_thread(dealer="pilar", side="sell", ref="LAT-07", asset_ids=(267,), limit=23)
+        self.assertEqual(run(it, w=world(**self.W), v=self.V, b=book(keep={})).code, "G30.limit")
+
+    def test_never_sells_a_protected_page_card(self):
+        it = open_thread(dealer="pilar", side="sell", ref="SAL-02", asset_ids=(256,), limit=40)
+        self.assertEqual(run(it, w=world(**self.W), v=self.V).code, "G13.protected")
+
+    def test_say_down_to_floor(self):
+        t, w = self.sell_thread()
+        b = self.sell_book()
+        self.assertTrue(run(say(27, ref="LAT-07", template="pilar_sell", variant=1), w=w, b=b, v=self.V).ok)
+        self.assertEqual(run(say(23, ref="LAT-07", template="pilar_sell"), w=w, b=b, v=self.V).code, "G31.limit")
+        self.assertEqual(run(say(31, ref="LAT-07", template="pilar_sell"), w=w, b=b, v=self.V).code, "G31.repeat")
+
+    def test_templates_are_per_dealer_and_side(self):
+        t, w = self.sell_thread()
+        b = self.sell_book()
+        self.assertEqual(run(say(27, ref="LAT-07", template="chato_sell"), w=w, b=b, v=self.V).code, "G60.template")
+        self.assertNotIn("pilar_buy", talk.TEMPLATES)   # gold packs only: we never buy from her
+
+    def test_accept_her_offer_only_at_or_over_floor(self):
+        for price, ok in ((24, True), (23, False)):
+            t, w = self.sell_thread(theirs=((price, False),))
+            t["messages"][-1]["offer"]["want"] = {"cash": 0, "assets": [{"id": 267}], "types": []}
+            oid = t["messages"][-1]["offer"]["id"]
+            v = run(dealer_accept(oid, price, ref="LAT-07", side="sell"), w=w, b=self.sell_book(), v=self.V, fresh=t)
+            self.assertEqual(v.ok, ok, v)
+
+
 class Misc(unittest.TestCase):
     def test_other_kinds_refused(self):
         it = make_intent("cancel", "hygiene", {"offer_id": 1, "ref": None}, "t", "t", PRED)
         self.assertEqual(run(it).code, "G02.kind")
 
     def test_templates_cover_spec_names(self):
-        self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell", "duel",
-                                               "duel_days"})
+        self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell",
+                                               "pilar_sell", "duel", "duel_days"})
 
 
 if __name__ == "__main__":
