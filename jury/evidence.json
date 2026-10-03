@@ -1,0 +1,1037 @@
+{
+  "schema": 1,
+  "source": "public_api",
+  "fetched_at": "2026-10-03T08:56:16.346363+00:00",
+  "snapshot_tick": 330,
+  "round": 2,
+  "clock": {
+    "tick": 332,
+    "paused": false,
+    "doors": "open"
+  },
+  "teams": [
+    {
+      "team": "t18",
+      "rank": 1,
+      "score": 28.32,
+      "negotiating": 20.82,
+      "market": 7.5,
+      "pages_complete": 2,
+      "album_filled": 32,
+      "album_slots": 50
+    },
+    {
+      "team": "t05",
+      "rank": 2,
+      "score": 27.83,
+      "negotiating": 15.33,
+      "market": 12.5,
+      "pages_complete": 2,
+      "album_filled": 32,
+      "album_slots": 50
+    },
+    {
+      "team": "t02",
+      "rank": 3,
+      "score": 27.23,
+      "negotiating": 19.73,
+      "market": 7.5,
+      "pages_complete": 0,
+      "album_filled": 27,
+      "album_slots": 50
+    },
+    {
+      "team": "t12",
+      "rank": 4,
+      "score": 26.47,
+      "negotiating": 13.97,
+      "market": 12.5,
+      "pages_complete": 1,
+      "album_filled": 33,
+      "album_slots": 50
+    },
+    {
+      "team": "t14",
+      "rank": 5,
+      "score": 22.7,
+      "negotiating": 15.2,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 24,
+      "album_slots": 50
+    },
+    {
+      "team": "t13",
+      "rank": 6,
+      "score": 21.66,
+      "negotiating": 18.33,
+      "market": 3.33,
+      "pages_complete": 1,
+      "album_filled": 29,
+      "album_slots": 50
+    },
+    {
+      "team": "t04",
+      "rank": 7,
+      "score": 21.06,
+      "negotiating": 13.56,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 27,
+      "album_slots": 50
+    },
+    {
+      "team": "t01",
+      "rank": 8,
+      "score": 20.56,
+      "negotiating": 13.06,
+      "market": 7.5,
+      "pages_complete": 0,
+      "album_filled": 27,
+      "album_slots": 50
+    },
+    {
+      "team": "t10",
+      "rank": 9,
+      "score": 20.54,
+      "negotiating": 13.04,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 26,
+      "album_slots": 50
+    },
+    {
+      "team": "t17",
+      "rank": 10,
+      "score": 17.4,
+      "negotiating": 9.9,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 25,
+      "album_slots": 50
+    },
+    {
+      "team": "t03",
+      "rank": 11,
+      "score": 16.72,
+      "negotiating": 9.22,
+      "market": 7.5,
+      "pages_complete": 0,
+      "album_filled": 26,
+      "album_slots": 50
+    },
+    {
+      "team": "t15",
+      "rank": 12,
+      "score": 14.85,
+      "negotiating": 7.35,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 30,
+      "album_slots": 50
+    },
+    {
+      "team": "t06",
+      "rank": 13,
+      "score": 14.7,
+      "negotiating": 5.15,
+      "market": 9.56,
+      "pages_complete": 0,
+      "album_filled": 26,
+      "album_slots": 50
+    },
+    {
+      "team": "t16",
+      "rank": 14,
+      "score": 14.16,
+      "negotiating": 6.66,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 25,
+      "album_slots": 50
+    },
+    {
+      "team": "t08",
+      "rank": 15,
+      "score": 14.11,
+      "negotiating": 6.7,
+      "market": 7.41,
+      "pages_complete": 1,
+      "album_filled": 27,
+      "album_slots": 50
+    },
+    {
+      "team": "t09",
+      "rank": 16,
+      "score": 10.68,
+      "negotiating": 3.18,
+      "market": 7.5,
+      "pages_complete": 0,
+      "album_filled": 20,
+      "album_slots": 50
+    },
+    {
+      "team": "t07",
+      "rank": 17,
+      "score": 10.49,
+      "negotiating": 2.99,
+      "market": 7.5,
+      "pages_complete": 1,
+      "album_filled": 28,
+      "album_slots": 50
+    },
+    {
+      "team": "t11",
+      "rank": 18,
+      "score": 7.5,
+      "negotiating": 0.0,
+      "market": 7.5,
+      "pages_complete": 0,
+      "album_filled": 13,
+      "album_slots": 50
+    }
+  ],
+  "affinity": {
+    "classification": "inferred",
+    "model": "agent.affinity / 720 permutations",
+    "events": 500,
+    "skipped_events": 0,
+    "tick_range": [
+      311,
+      332
+    ],
+    "teams": [
+      {
+        "team": "t01",
+        "top_set": "SAL",
+        "probability": 0.2075,
+        "evidence_rows": 11,
+        "entropy_bits": 9.388,
+        "expected": {
+          "LAV": 0.977,
+          "MAL": 1.086,
+          "LAT": 0.96,
+          "SAL": 1.101,
+          "RET": 0.988,
+          "CHA": 0.988
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            0.5,
+            0.7,
+            0.9,
+            1.6,
+            1.1
+          ],
+          "CHA": [
+            0.5,
+            0.7,
+            0.9,
+            1.6,
+            1.1
+          ]
+        }
+      },
+      {
+        "team": "t02",
+        "top_set": "RET",
+        "probability": 0.1838,
+        "evidence_rows": 19,
+        "entropy_bits": 9.414,
+        "expected": {
+          "LAV": 0.986,
+          "MAL": 0.969,
+          "LAT": 1.058,
+          "SAL": 1.054,
+          "RET": 1.064,
+          "CHA": 0.969
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.6,
+            1.1
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.6
+          ],
+          "LAT": [
+            0.9,
+            1.1,
+            1.3,
+            1.6,
+            0.7
+          ],
+          "SAL": [
+            1.3,
+            1.6,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            1.3,
+            1.1,
+            1.6,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.6
+          ]
+        }
+      },
+      {
+        "team": "t03",
+        "top_set": "LAT",
+        "probability": 0.1739,
+        "evidence_rows": 6,
+        "entropy_bits": 9.484,
+        "expected": {
+          "LAV": 0.98,
+          "MAL": 1.01,
+          "LAT": 1.027,
+          "SAL": 1.027,
+          "RET": 1.027,
+          "CHA": 1.027
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "SAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t04",
+        "top_set": "LAV",
+        "probability": 0.1797,
+        "evidence_rows": 6,
+        "entropy_bits": 9.476,
+        "expected": {
+          "LAV": 1.036,
+          "MAL": 0.976,
+          "LAT": 1.025,
+          "SAL": 1.036,
+          "RET": 0.991,
+          "CHA": 1.036
+        },
+        "credible80": {
+          "LAV": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "SAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t05",
+        "top_set": "RET",
+        "probability": 0.1806,
+        "evidence_rows": 9,
+        "entropy_bits": 9.486,
+        "expected": {
+          "LAV": 1.008,
+          "MAL": 1.014,
+          "LAT": 1.008,
+          "SAL": 0.996,
+          "RET": 1.037,
+          "CHA": 1.037
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.7,
+            0.5,
+            0.9,
+            1.1,
+            1.6
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t09",
+        "top_set": "LAV",
+        "probability": 0.1767,
+        "evidence_rows": 4,
+        "entropy_bits": 9.484,
+        "expected": {
+          "LAV": 1.034,
+          "MAL": 0.982,
+          "LAT": 1.01,
+          "SAL": 1.024,
+          "RET": 1.024,
+          "CHA": 1.024
+        },
+        "credible80": {
+          "LAV": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t10",
+        "top_set": "LAT",
+        "probability": 0.1742,
+        "evidence_rows": 6,
+        "entropy_bits": 9.487,
+        "expected": {
+          "LAV": 1.016,
+          "MAL": 1.013,
+          "LAT": 1.027,
+          "SAL": 0.991,
+          "RET": 1.027,
+          "CHA": 1.027
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t12",
+        "top_set": "RET",
+        "probability": 0.1813,
+        "evidence_rows": 12,
+        "entropy_bits": 9.483,
+        "expected": {
+          "LAV": 0.994,
+          "MAL": 1.016,
+          "LAT": 1.025,
+          "SAL": 0.991,
+          "RET": 1.037,
+          "CHA": 1.037
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.9,
+            0.7,
+            1.1,
+            0.5,
+            1.3
+          ],
+          "LAT": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t13",
+        "top_set": "MAL",
+        "probability": 0.2269,
+        "evidence_rows": 18,
+        "entropy_bits": 9.366,
+        "expected": {
+          "LAV": 0.937,
+          "MAL": 1.134,
+          "LAT": 0.973,
+          "SAL": 0.995,
+          "RET": 1.055,
+          "CHA": 1.007
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            0.5,
+            0.7,
+            0.9,
+            1.6,
+            1.1
+          ]
+        }
+      },
+      {
+        "team": "t14",
+        "top_set": "RET",
+        "probability": 0.1891,
+        "evidence_rows": 12,
+        "entropy_bits": 9.463,
+        "expected": {
+          "LAV": 0.989,
+          "MAL": 0.989,
+          "LAT": 1.043,
+          "SAL": 1.002,
+          "RET": 1.065,
+          "CHA": 1.012
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            1.3,
+            1.6,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.6
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            0.5,
+            1.6,
+            0.7,
+            1.3,
+            0.9
+          ]
+        }
+      },
+      {
+        "team": "t15",
+        "top_set": "SAL",
+        "probability": 0.1734,
+        "evidence_rows": 5,
+        "entropy_bits": 9.488,
+        "expected": {
+          "LAV": 1.015,
+          "MAL": 1.013,
+          "LAT": 0.992,
+          "SAL": 1.026,
+          "RET": 1.026,
+          "CHA": 1.026
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t16",
+        "top_set": "RET",
+        "probability": 0.1731,
+        "evidence_rows": 5,
+        "entropy_bits": 9.489,
+        "expected": {
+          "LAV": 1.026,
+          "MAL": 1.004,
+          "LAT": 1.015,
+          "SAL": 1.004,
+          "RET": 1.026,
+          "CHA": 1.026
+        },
+        "credible80": {
+          "LAV": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            0.7,
+            0.9,
+            0.5,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      },
+      {
+        "team": "t17",
+        "top_set": "MAL",
+        "probability": 0.2143,
+        "evidence_rows": 2,
+        "entropy_bits": 9.451,
+        "expected": {
+          "LAV": 1.002,
+          "MAL": 1.1,
+          "LAT": 0.992,
+          "SAL": 1.002,
+          "RET": 1.002,
+          "CHA": 1.002
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "RET": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "CHA": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ]
+        }
+      },
+      {
+        "team": "t18",
+        "top_set": "SAL",
+        "probability": 0.1745,
+        "evidence_rows": 6,
+        "entropy_bits": 9.489,
+        "expected": {
+          "LAV": 1.006,
+          "MAL": 1.006,
+          "LAT": 1.006,
+          "SAL": 1.028,
+          "RET": 1.028,
+          "CHA": 1.028
+        },
+        "credible80": {
+          "LAV": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "MAL": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "LAT": [
+            0.5,
+            0.7,
+            0.9,
+            1.1,
+            1.3
+          ],
+          "SAL": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "RET": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ],
+          "CHA": [
+            1.6,
+            1.3,
+            1.1,
+            0.9,
+            0.7
+          ]
+        }
+      }
+    ],
+    "exact_rival_profit": null
+  },
+  "journal": {
+    "status": "missing",
+    "live_measurements": 0,
+    "verdicts": {}
+  }
+}

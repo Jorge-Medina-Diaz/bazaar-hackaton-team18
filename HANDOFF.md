@@ -53,3 +53,18 @@ Las sesiones anteriores siguen en archive/docs/HANDOFF.md.
 - `bazaar.py status` local: sin STOP, candado libre, sin tácticas armadas ni diario
   operativo. Escaneo de credenciales/archivos runtime y diff --check correctos.
 - Selftest final: seis etapas GREEN: core 396, hygiene 27, dealers 155, rastro 42, closer 63 y duels 122. Exit 0. Las etapas comparten pruebas; no sumar esas cifras como casos independientes. El archivo de aprobación local no se publica y el operador debe repetir selftest tras actualizar.
+
+
+## Entrega para jurado — 2026-10-03, Codex
+
+- Pull de main 98bdfe0 antes de trabajar; rama codex/jury-evidence. El analizador se llama affinity.py, no infinity.py.
+- SHOWCASE actualizado a arquitectura v2: corregidos pesos de rondas, fórmula simplificada de ganancias y referencias obsoletas. Tres fixes con commits; solo 5dcbab1 añade una regresión específica en ese commit.
+- Demo de cuatro secciones en jury/demo.html, plantilla y CLI python3 -m jury.report --refresh. Cuatro GET públicos, una sola vez, sin clave, escritor ni modelo. Informe agregado en jury/evidence.json; no contiene feed ni diario bruto.
+- Snapshot oficial 330, captura 2026-10-03T08:56:16Z: t18 primero, 28,32 puntos, dos páginas, 32/50 casillas. Reloj separado tick 332, abierto/activo. Feed: 500 eventos, ticks 311–332; probabilidades Affinity inferidas solo sobre esa ventana.
+- Lectura opcional del diario: verifica snapshot de bytes y cadena sin reparar; cuenta ventanas live, nunca convierte HTTP ok ni dry en liquidación. Cadena consistente no demuestra autenticidad. No hay diario operativo en este ordenador; RET/40 minutos y 8.º→2.º siguen pendientes.
+- docs/jury-runbook.md: guion provisional de tres minutos, rotación, mensaje para organización, instrucciones de integración. docs/scoring-evidence.md: fórmulas con etiquetas oficial/medido/inferido y huecos.
+- Validación: 33/33 tests pasaron (11 jury, 10 Affinity, 12 arquitectura) con Python 3.14; diff --check correcto. Demo abierta en navegador; navegación, filtros y marcador comprobados. Affinity de main requiere Python 3.10+; Python 3.9 local falla en ese módulo. CLI nueva avisa claramente, no modifica el modelo.
+- agent/, bazaar.py, SDK y config/plan.json idénticos a origin/main; code_hash operativo intacto. No se ejecutó el bot ni se reinició ningún operador.
+- Rubén autoriza subir esta entrega. Publicación por fast-forward, sin force y conservando avances remotos. Próximo paso: abrir demo; obtener formato del jurado y reporte agregado del diario de Jorge para completar afirmaciones pendientes. Aviso running remote sin captura: origen sin identificar; acceso GitHub funciona.
+
+- Antes del push main avanzó a adfd048 (merge de Santi: rivals.py, affinity --history y notas). Rebase limpio sobre ese commit, conservando todas sus modificaciones; 33/33 tests y diff --check repetidos correctamente. Ningún diff en agent/, bazaar.py, SDK ni plan frente a ese main actualizado.

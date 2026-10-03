@@ -112,3 +112,16 @@ Offline evaluation remains separate from the live Gate:
 - [Shared trace viewer](docs/traces.md): read-only, including the harness-v2 journal.
 
 `python3 run_harness.py` compares frozen Friday selectors on synthetic cases, not live v2 tactics. `python3 run_jev_patterns.py` validates the historical plan without network. Neither command arms tactics.
+
+## Jury evidence (no team key)
+
+Open [jury/demo.html](jury/demo.html) locally: four sections with a dated public
+snapshot, Affinity probabilities and engineering evidence. Story:
+[SHOWCASE.md](SHOWCASE.md); script and rotation:
+[docs/jury-runbook.md](docs/jury-runbook.md); formula certainty:
+[docs/scoring-evidence.md](docs/scoring-evidence.md).
+
+With Python 3.10+: `python3 -m jury.report --refresh` builds a fresh static demo in
+`runs/jury/` using four public GETs. It does not read credentials, trade or call a
+model. Optional local `--journal logs/run/journal.jsonl` exports aggregate verified
+chain counts, never raw journal contents. It is independent of the runner.
