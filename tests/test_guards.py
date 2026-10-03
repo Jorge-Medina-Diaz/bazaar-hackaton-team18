@@ -853,6 +853,18 @@ class _UnsettledJournal:
         return set()
 
 
+class RefusalBlocksFromTheJournal(unittest.TestCase):
+    def test_gate_end_of_hour_block_is_rebuilt(self):
+        # the Gate journals {dealer: end of the game hour} on a persona_budget / sold_out / cooloff refusal;
+        # build_book must rebuild that block, not a rolling hour from the refusal tick
+        extra = [{"kind": "intent", "id": "o2", "intent_kind": "open_thread", "tick": 205,
+                  "args": {"dealer": "picaros", "side": "buy", "ref": "CHA-09", "asset_ids": [], "limit": 60}},
+                 {"kind": "result", "id": "o2", "status": "refused", "code": "persona_budget", "response": {},
+                  "tick": 205, "dealer_block": {"picaros": 230}}]
+        b = Ctx(my_offers=(), journal=_OpenedJournal(392, 90, extra=extra)).book
+        self.assertEqual(b.dealer_block.get("picaros"), 230)
+
+
 class AcceptedUnsettledCountedOnce(unittest.TestCase):
     """Night audit: the server settles an accept at T+1 (settles_at_tick); from then on the World shows the card and
     the cash, so the pending row must not add price / projected / paths again (Sat ticks 212-213: cash_free < 0)."""

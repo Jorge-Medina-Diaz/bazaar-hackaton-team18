@@ -557,9 +557,11 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                 if it.get("intent_kind") == "open_thread" and r.get("status") == "ok" and isinstance(resp, Mapping) \
                         and _int(resp.get("id")) and _int(args.get("limit")):
                     thread_limit[resp["id"]] = args["limit"]
-                if any(c in code for c in ("cooloff", "persona_quota")):
+                if any(c in code for c in ("cooloff", "persona_quota", "persona_budget", "sold_out")):
                     dealer = args.get("dealer") or (world.threads.get(args.get("thread_id")) or {}).get("with")
                     until = r.get("until_tick") or (resp.get("until_tick") if isinstance(resp, Mapping) else None)
+                    if not _int(until) and isinstance(r.get("dealer_block"), Mapping):
+                        until = r["dealer_block"].get(dealer)   # the Gate's own end-of-hour block on that refusal
                     if isinstance(dealer, str):
                         dealer_block[dealer] = until if _int(until) else (r.get("tick") or world.tick) + tph
                 if it.get("intent_kind") == "accept" and r.get("status") == "ok" and args.get("venue", RASTRO) == RASTRO:

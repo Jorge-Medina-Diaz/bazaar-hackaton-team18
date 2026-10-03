@@ -534,6 +534,19 @@ class TestInFlightThreadOffers(GateCase):
         self.assertEqual(self.gate.book.dealer_block.get("abuela"), TICK + 60)
 
 
+    def _refusal_blocks(self, code):
+        w = self.start(world())
+        self.transport.reply = lambda m, p, b: tr.Response("refused", 409, code, {"error": code})
+        out = self.gate.execute(open_thread("RET-01", 20), w)
+        self.assertEqual((out.status, out.code), ("refused", code))
+        self.assertEqual(self.gate.book.dealer_block.get("abuela"), TICK + 60, code)
+
+    def test_persona_budget_refusal_blocks_the_dealer(self):
+        self._refusal_blocks("persona_budget")             # RULES: dealers have per-hour budgets
+
+    def test_sold_out_refusal_blocks_the_dealer(self):
+        self._refusal_blocks("sold_out")
+
 class TestBudgetsAndBook(GateCase):
     def test_100_accepts_one_send(self):
         offers = [offer(5000 + i, ref="LAT-09", price=5) for i in range(100)]
