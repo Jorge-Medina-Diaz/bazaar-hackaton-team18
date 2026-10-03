@@ -1,6 +1,6 @@
 # Investigación previa del equipo (destilado del estudio "torneo 1v1 de negociación")
 
-*Origen: estudio de Jorge escrito **antes** de conocer las reglas (se esperaba un torneo 1v1 de precio). El juego real es The Bazaar ([RULES.md](../RULES.md)). Aquí queda solo lo que sigue siendo aplicable y **dónde** se aplica. Etiquetas del estudio original: **[H]** hecho con fuente verificada · **[S]** síntesis del equipo · **[?]** referencia clásica no re-verificada. Nada de esto está contrastado contra el juego: es material para diseñar, no evidencia. La evidencia del juego está en [experiments.md](experiments.md).*
+*Origen: estudio de Jorge escrito **antes** de conocer las reglas (se esperaba un torneo 1v1 de precio). El juego real es The Bazaar ([RULES.md](../RULES.md)). Aquí queda solo lo que sigue siendo aplicable y **dónde** se aplica. Etiquetas del estudio original: **[H]** hecho con fuente verificada · **[S]** síntesis del equipo · **[?]** referencia clásica no re-verificada. Nada de esto está contrastado contra el juego: es material para diseñar, no evidencia. La evidencia del juego está en [knowledge.md](knowledge.md) (los experimentos del viernes, en [archive/docs/experiments.md](../archive/docs/experiments.md)).*
 
 ## 1. Tesis que siguen valiendo
 1. [S] Con el mismo modelo para todos, **el modelo no diferencia; el andamiaje sí** (herramientas, memoria aprendida, simulación, defensas). Refuerzo [H]: hackathon Technion (dic. 2025, arXiv:2605.12411), 34 equipos con el mismo modelo: ganó el *scaffolding* (lógica de control, pipelines, fallbacks).
@@ -65,4 +65,4 @@
 - [S] No hacer: frameworks pesados, UI, infraestructura elaborada, RL.
 
 ## 8. Lo que NO aplica
-El juego no es un único torneo 1v1: los duelos son una parte de los 30 puntos de negociación. El grueso está en comercio entre equipos a valores privados, la escalera de vendedores y el Market Test (ver [scoring.md](scoring.md)). No hay "narrador LLM" en nuestro agente actual: los mensajes son plantillas.
+El juego no es un único torneo 1v1: los duelos son una parte de los 30 puntos de negociación. El grueso está en comercio entre equipos a valores privados, la escalera de vendedores y el Market Test (ver [knowledge.md](knowledge.md) §1, P-01..P-19, y S-23 para el mercado). No hay "narrador LLM" en nuestro agente actual: los mensajes son plantillas.

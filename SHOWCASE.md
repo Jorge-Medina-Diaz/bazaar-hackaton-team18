@@ -8,7 +8,9 @@ Team: Jorge, Rubén, Santi (t18)
 | Rank | **13th of 18** (tied with the teams that had only the welcome deal) | **2nd of 18** |
 | Negotiating score | 5.91 | **27.39** (0.44 behind 1st) |
 | Deals | 1 | 8 (1st and 3rd place each have 11) |
-| Complete album pages | 0 | **1, the only one in the game** |
+| Complete album pages | 0 | **1**, the first in the game at that moment |
+
+*Friday story below; Saturday (round 2: 7th → 2nd) is in the [last section](#saturday-round-2-from-7th-to-2nd).*
 
 We made fewer deals than the teams around us and still passed them. The change was not about doing more. We measured what the scorer actually pays for, and then we did that.
 
@@ -43,7 +45,7 @@ rank
 | ~tick 60 | Sold SAL-01 and LAV-03 at 9 as well. `neg_points` went from 6.8 to 20.9. | ~13 | — |
 | ~tick 65 | **SAL-08 bought at 24.** Abuela accepted our price after 2 rounds. SAL page at 9/10. | 14.55 | **6th** |
 | ~tick 68 | Measured the page bonus: SAL-10 was now worth **149.9** to us, up from 77. Posted a public bid of 80 P (t13 was bidding 55). | — | — |
-| tick 75 | We hold SAL-10. The SAL page is complete, the only full page on the board. | **27.39** | **2nd** |
+| tick 75 | We hold SAL-10. The SAL page is complete, the first full page on the board (9 teams had one by Friday's close). | **27.39** | **2nd** |
 
 ---
 
@@ -72,7 +74,7 @@ El Rastro had a wall of commons listed at 10-12 P, probably from teams opening p
 In EXP-004 we walked away from SAL-08 at 23 P because it was above the seller's floor we had observed. That card was worth **27.5** to us, and t13 bought it at 24. We wrote it up as decision **D-007**: *for a card we want, the walk-away price is our `your_value`, not the seller's floor. Money does not score; card value does.* In the next attempt (EXP-007) we used steps of 3 P with the new limit. Abuela accepted our 24 in 2 rounds. Rank 6.
 
 ### 5. We went for the page bonus while others bought packs
-We tested whether the page bonus was real by checking `value("SAL-10")` once SAL reached 9/10. It jumped from **77 to 149.9** (+25% of the page). The last card of a page is worth almost double. We bid 80 for it in public, well under our 149.9 and well over t13's 55. We now own the only complete page in the game.
+We tested whether the page bonus was real by checking `value("SAL-10")` once SAL reached 9/10. It jumped from **77 to 149.9** (+25% of the page). The last card of a page is worth almost double. We bid 80 for it in public, well under our 149.9 and well over t13's 55. At that moment it was the only complete page in the game. The +50 it scored turned out to be the per-deal cap (knowledge P-07, S-05).
 
 ---
 
@@ -82,22 +84,52 @@ Three people, three tools (Claude Code, Codex, scripts), one key, and Friday tic
 
 | Who | Contribution |
 |---|---|
-| **Jorge** | The live engine: generic haggler (`agent/haggle.py`, concession curve + `AC_next` acceptance), dealer profiles as data, `market.py` (deal scanner + `sell-dups`), `scout.py` feed reader. Ran the experiments that produced the climb. Kept the playbook. |
-| **Rubén** | Offline negotiation lab: `negotiation_policy.py`, a step-by-step simulator, **17 tests** and comparative evaluation. Ran the first real pilot (SAL-02 at 9). Ran a cross-review (`RECHECK.md`) that **found 4 bugs** in teammates' code before they cost anything. |
-| **Santi** | Strategy v1 → v2: the scoring breakdown, the read on how t10 was leading, the corrected calendar (first Market Test is *tonight*, Sunday weighs as much as Saturday). Built `agent/scorer.py`, which prices every card, offer and pack in our private primas, plus the shared fill history. |
+| **Jorge** | The live engine: generic haggler (`agent/haggle.py`, concession curve + `AC_next` acceptance), dealer profiles as data, `market.py` (deal scanner + `sell-dups`), `scout.py` feed reader. Ran the experiments that produced the climb. Kept the playbook. *(Friday code, now in `archive/`; replaced on Saturday by the v2 harness.)* |
+| **Rubén** | Offline negotiation lab: `negotiation_policy.py`, a step-by-step simulator, **17 tests** and comparative evaluation. Ran the first real pilot (SAL-02 at 9). Ran a cross-review (`archive/docs/RECHECK.md`) that **found 4 bugs** in teammates' code before they cost anything. |
+| **Santi** | Strategy v1 → v2: the scoring breakdown, the read on how t10 was leading, the corrected calendar (first Market Test is *tonight*, Sunday weighs as much as Saturday). Built `agent/scorer.py` (now `archive/agent/scorer.py`), which prices every card, offer and pack in our private primas, plus the shared fill history. |
 
 **Habits that made the difference:**
-- **Hypothesis before the run, result after.** Every action against the game is a row in `docs/experiments.md` (EXP-001 to EXP-008), with parameters, outcome and the score change.
-- **Decisions are dated and reversible.** `docs/decisions.md` records each decision with its evidence and a "revisit if…" condition. D-005 and D-006 were overturned by D-007 within an hour, based on data.
+- **Hypothesis before the run, result after.** Every action against the game is a row in `archive/docs/experiments.md` (EXP-001 to EXP-008), with parameters, outcome and the score change.
+- **Decisions are dated and reversible.** `archive/docs/decisions.md` records each decision with its evidence and a "revisit if…" condition. D-005 and D-006 were overturned by D-007 within an hour, based on data.
 - **We keep a list of our mistakes.** The playbook keeps a table of errors (wrong limit source, rejecting a card we valued above its price, wrong status name, misread offer durations, price logged as 0). Each has its cost and the fix.
 - **Structure over words.** The code sets every price and every accept, and `offer_ok()` checks the structured offer before any accept. Text never binds us.
 - **One executor per key.** We share an accept quota and dealer threads, so only one person runs against the game at a time.
 
 ---
 
-## Next steps (Saturday and Sunday, which weigh 2× Friday combined)
+## Next steps as written on Friday (Saturday and Sunday each weigh 2× Friday, so together 4×)
 
 - **Market-making (30 points, we have 0 so far like everyone else):** reach level 2, open a near-zero-fee `board` venue, and run a broker that estimates traders' hidden limits instead of matching on quotes.
 - **Duels:** a price-and-days bot that never crosses our limit and closes fast while the pie shrinks.
 - **More pages:** El Retiro (Sat) and Chamberí (Sun) start at zero copies. If one is a high-multiplier set for us, the first hour of that day goes on its uncommons.
 - **Rare-for-rare swaps** with teams whose high set is our low one. This is the biggest trade in the game where both sides gain.
+
+---
+
+## Saturday (round 2): from 7th to 2nd
+
+Friday closed 7th (19.19). Saturday closed **2nd with 31.26** (negotiating 23.76, market 7.5), behind t10 (37.58). Every number below is rebuilt from our journal and the public feed (`docs/knowledge.md` S-17..S-33).
+
+**A new harness overnight.** Friday's scripts had cost us points: a seller-side bug listed every copy of a card, and a second writer sold below our limit. So on Friday night we rebuilt the agent as a harness with one write path:
+- every write is an `Intent` that passes the guards in one **Gate** and leaves through one transport;
+- a dry mode, a per-stage `selftest` before going live, a STOP file and a single-writer lock;
+- a hash-chained journal that pairs each write with its predicted and measured effect;
+- dealer and rival text never enters the agent's view of the world.
+
+On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from our own guards.
+
+| When | What happened | Score | Rank |
+|---|---|---|---|
+| 09:30–10:10 | El Retiro (×1.3 for us) built to 9/10 from the two dealers, always below our value, so each buy filled a ladder slot at no cost. The last card came from another team on a public bid at 49 P: **+50 exactly**, which confirmed a per-deal cap | 30.58 | **1st** |
+| 10:00–18:00 | Nothing in the agent aimed at empty ladder slots once the page was done, and the score drifted as other teams traded | 27.85 | 8th |
+| 12:00–13:20 | Duels I: 30 of 34 duels closed, never outside our limit | | |
+| 18:00–20:00 | Level 4 (Los Pícaros) tried 9 times to slip a different card into an offer. The Gate reads the structured offer, not the words, and accepted none. We bought SAL-11 at 139 from them and sold it to Pilar (level 3) at 199 | 30.01 | 4th |
+| 21:18–22:55 | Duels II added a second issue, delivery days, and our deal rate fell to 65 %. The fix for the days sign never reached the tactic, because the sensor drops free text by design, so we sent a neutral 5 days with a worst-case margin. Found live, fixed in the sensor (`5ee5593`), redeployed mid-session | 28.20 | 7th |
+| 22:15–22:40 | Last card of La Latina bought from another team (+50). We **flagged** the three clearest Pícaros tricks: +10 each | **31.26** | **2nd** |
+
+**What we measured on Saturday** (and the docs now use):
+- A ladder slot is worth (share of the dealer's range) × level/45.
+- Two-issue duels follow `(s·(p − L) + sign·w·days)·(1 − decay)^rounds`; this matches all 44 deals.
+- The duel part of the score is a mean per duel, so a no-deal pulls it down.
+- Market per round = 22.5 × bench + 7.5 × organic. Our free stall earns half the bench; t10's lead is trades between other teams on its venue.
+- The calendar re-anchors each day at its real opening time.

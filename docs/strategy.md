@@ -1,5 +1,7 @@
 # Estrategia sábado y domingo — Team 18 (t18) · v2 (tras el equipo rojo)
 
+> **Escrito para el sábado (02:00–03:30).** El orden de jugadas J0–J13 es el que implementan las tácticas y sigue valiendo. **Superado:** la situación de §1 y §3, el calendario de §4 (el domingo está en [DOMINGO.md](DOMINGO.md) §1) y las decisiones de venue (J11, D4: ver DOMINGO §3.4). Hechos del sábado: [knowledge.md](knowledge.md) S-17..S-33. Solo se ha corregido donde contradecía los datos.
+
 Escrito el sábado 3 oct 2026 entre las 02:00 y las 03:30, con el juego cerrado. Lo firma el arquitecto jefe. La v2 incorpora las críticas del equipo rojo (seguridad, escéptico de estrategia, jefe de ingeniería); la lista de cada problema y qué se hizo está en `docs/harness-spec.md` §14.
 La fuente de verdad es `docs/knowledge.md` (ids P-, V-, D-, R-, X-, U-, M-, C-, K-). Cualquier otro documento del repo es una lista de afirmaciones.
 El cómo se construye está en `docs/harness-spec.md`. Este documento dice **qué hacemos, en qué orden y por qué**.
@@ -46,7 +48,7 @@ El cómo se construye está en `docs/harness-spec.md`. Este documento dice **qu�
 
 | # | Hecho | Etiqueta |
 |---|---|---|
-| 1 | Al cierre: caja 260, nivel 2, sin venue ni starter_broker_key, neg 74,5, ladder 0,051, 0 hilos abiertos | `[medido esta noche · alta]` me.json |
+| 1 | Al cierre: caja 260, nivel 2, sin venue ni starter_broker_key, neg 74,5, ladder 0,051, 0 hilos abiertos. *(Desde el tick 201 hay puesto gratuito v18 con su starter_broker_key; cuenta en el Market Test con la mitad del banco, S-24)* | `[medido esta noche · alta]` me.json |
 | 2 | Ofertas abiertas: 1652 (LAT-05#8 a 12, para t15, t167); 2460/2462/2465/2466 (LAV-03, MAL-04, MAL-05, LAV-04 a 8, t173); 2463 (LAT-01#16 a 8, t173); pujas 2503 (LAT-09) y 2504 (LAT-10) de 62 hasta t205; 2591 (LAT-05#16 a 9) y 2592 (LAT-01#17 a 9) hasta t210. Las 2 copias de LAT-01 y las 2 de LAT-05 están a la venta. LAV-04 es copia única (your_value 7,0), no repetida. | `[medido esta noche · alta]` me_offers, me.json |
 | 3 | Valor de una copia más: RET 13 / 32,5 / 91; CHA 16 / 40 / 112; LAT-09 = LAT-10 = 63. La carta que cierra RET vale 99,1 (común) y la que cierra CHA 122 (común). | `[medido · alta]` V-05, V-06 |
 | 4 | Con dealers, neg solo baja: min(0, V − p). Modelo ponderado con tope 50: 11/12 puntos. | `[medido · alta]` P-04 |
@@ -83,7 +85,7 @@ Cada jugada la ejecuta una táctica del arnés y pasa por el Gate. "Armar" pasa 
 | **J7** | **Duelos** (Duels I: 11:30 N / 12:51 C): v0 corregido (K-06, K-07), estado desde el servidor; **ascenso lento** con el rival callado (lineal hasta L ± 1 en deadline − 2, guardando el último 25 % del excedente para los 3 últimos ticks); **aceptar solo cuando el rival ya ha hablado en el tick en curso**, releyendo a mitad de tick; si hace falta provocar su respuesta, mandar un mensaje (una ronda más de decay) y aceptar en la ventana tardía del mismo tick. Con varios duelos a punto de vencer, se reparte la única aceptación por orden de deadline. E8 en el primer rival que hable. | Duelos `live`; etapa C verde | 0 acuerdos fuera de límite; más acuerdos con rivales que solo aceptan (U-07) | Fin de la sesión | U-01, U-02, U-07, U-08, U-10 | G50, G51, G60, G04 |
 | **J8** | **Market Test con el puesto gratuito**; grabadora solo-GET (L1) si aparece `starter_broker_key` | Sesión de banco | Mitad de los puntos del banco sin riesgo | — | M-02..M-05, P-19 | solo lectura; INV-18 |
 | **J9** | **LAT condicional:** si se cumple 2503 o 2504, comprar la otra rara a El Chato a ≤ 100 (V = 122,6 con la primera en mano: neg 0, hueco de nivel 2), solo si no le quita caja a J3. Si se cumplen las dos, LAT se cierra con equipos (+1 y +50: mide E5). **Si en t205 no se ha cumplido ninguna, LAT se da por muerta:** sale de las páginas protegidas y sus cartas se venden como autor a ≥ V + 2 o a pujas con ganancia ≥ 3 (t14 necesita LAT-03 y LAT-08, X-12). | Puja cumplida / t205 | +1..+51 de neg, o caja para el domingo | t205 | X-02, X-06, X-12, V-07 | G32 (`ALLOW_DEALER_CLOSE`={LAT}), G16, G13 |
-| **J10** | **Duels II de dos asuntos:** ningún mensaje con precio hasta leer `days_meaning` y `your_days_weight`; una persona fija el signo en `config/plan.json` (`days_sign`); mientras no esté, excedente ≥ 1 + max_d \|W(d) − W(base)\|. El mensaje lleva `days` arriba y dentro de `offer` (el SDK solo lo pone dentro; el esquema PostMessage admite los dos). | Primer duelo con `"days" ∈ issues` | 0 acuerdos con utilidad negativa en 68 duelos | Pausa si un resultado sale ≤ 0 | U-12, U-13, OpenAPI | G50 |
+| **J10** | *(Fórmula medida y fallo de Duels II: S-26, S-27; desde `5ee5593` el signo lo deriva el sensor.)* **Duels II de dos asuntos:** ningún mensaje con precio hasta leer `days_meaning` y `your_days_weight`; una persona fija el signo en `config/plan.json` (`days_sign`); mientras no esté, excedente ≥ 1 + max_d \|W(d) − W(base)\|. El mensaje lleva `days` arriba y dentro de `offer` (el SDK solo lo pone dentro; el esquema PostMessage admite los dos). | Primer duelo con `"days" ∈ issues` | 0 acuerdos con utilidad negativa en 68 duelos | Pausa si un resultado sale ≤ 0 | U-12, U-13, OpenAPI | G50 |
 | **J11** | **Venue `auto` a comisión 0**, solo si E15 mide ≥ 3 tratos/h en venues de equipo durante 2 h y `cash_free − coste del plan de páginas ≥ 270`. Por el Gate (intent `open_venue` de la mejora L4), nunca a mano. Nunca operamos en él. | E15 | Acceso a mm_points por flujo ajeno | Una condición falla → puesto | M-02..M-09, RULES l.76, l.119 | Guarda propia de L4 |
 | **J12** | **Domingo, CHA:** el mismo patrón que J3 + J4 en un solo modo: raras a El Chato (≤ 100, valor 112) → infrecuentes (Abuela ≤ 25, El Chato patrón t03 ≤ 31) → comunes (≤ 12) → cierre con equipo a min(floor(122 − 50), cash_free) = 72. Sin hilos nuevos durante Duels III. Último trato con dealer a las 13:45 (N). | CHA publicado | +50 si se llega a 9/10 y se cumple la puja; nada se pierde si la caja no llega | Igual que J3 y J4 | V-05, V-06, D-10 | igual que J3 y J4 |
 
@@ -96,7 +98,7 @@ Cada jugada la ejecuta una táctica del arnés y pasa por el Gate. "Armar" pasa 
 6. **Tener una puja de cierre abierta con riesgo de entrega**, o un hilo de compra abierto al abrir un sobre o al llegar una subvención.
 7. **Aceptar ofertas de equipos con ganancia < 3.** Ofertas dirigidas como táctica, tampoco (0/8, R-05).
 8. **Bajar una puja de cierre.**
-9. **Flags o prompt injection.**
+9. **Prompt injection** contra la infraestructura o los equipos. **Las denuncias (flags)** solo a mano, con el OK de Jorge y por trucos estructurales verificados (la oferta da otra carta que el tema del hilo y el texto nombra la pedida). El sábado puntuaron las 3 primeras, +10 cada una; las de nivel B dieron 0 (knowledge S-28). `flag` no es un KIND de la Gate.
 10. **Ningún LLM decide cifras ni aceptaciones.** El texto ajeno es dato y no entra en el World.
 11. **Ningún script antiguo** ni un segundo ejecutor. Con el arnés, `agent.client.client()` devuelve un transporte de solo lectura, así que los scripts antiguos que lo usan ya no pueden escribir; los que construyen su propio cliente llevan `SystemExit`.
 12. **Nada de la Fase 4 del "estrangulamiento"** (C-12).
@@ -193,6 +195,8 @@ Con ticks de 30 s, el tick 160 cae a las 09:00:00 si el reloj no está en pausa.
 
 ### 4.5 Domingo (ticks de 15 s)
 
+> **Superado.** Esta tabla supone las lecturas N/C del sábado. El sábado demostró que el reloj sigue y lo anclado al día se re-ancla (S-17). Calendario vigente: [DOMINGO.md](DOMINGO.md) §1 (probable: ronda 3 y CHA a las 09:00, Duels III ~11:00, cierre de puestos y Gran Final ~14:00, congelación a las 15:00).
+
 | Bloque | N | C |
 |---|---|---|
 | Arranque | 08:40 selftest; 08:55 `run --live --arm hygiene,dealers,rastro,closer,duels` (las que estén en verde) con CHA en `page_sets` | igual |
@@ -257,4 +261,4 @@ Sábado ~08:30. Entradas tardías (consejos de t13; énfasis del jefe en robuste
 | D1 | **Swaps** carta por carta: se valoran V(recibida) − V(entregada) − comisión con el mínimo de una compra (≥ 3 aceptando); nunca se entrega una copia protegida (INV-06). Como autor solo en El Rastro, dando un sobrante (MAL, LAV, duplicados) por una carta del plan sin otra vía (nunca la carta de cierre: esa es J4) | J6 (aceptar) y J5 (publicar) | No hay medida de swaps del viernes: sin optimismo. Comisión calculada con 2 cartas. Forma inversa (el rival nombra lo que da) sin construir |
 | D2 | **Todos los venues:** se leen los tableros de todos los venues abiertos y `/api/me/offers`. Publicamos solo en El Rastro. Aceptar en el venue de otro equipo solo con neg_lo ≥ `RIVAL_VENUE_MIN_GAIN` (10, comisión de ese venue incluida, ceil(fee_bps/10000 · p + fee_per_card · cartas)) y dueño fuera del top `RIVAL_TOP_N` (5) del leaderboard; leaderboard desconocido = no | J6, J13, E15 | El dueño gana puntos de mercado con nuestros tratos (RULES l.119). Con el snapshot del viernes, v03 (t13, 1.º) y v02 (t12, 2.º) quedan fuera; v01 (t06) y v04 (t02) pasan |
 | D3 | **Pujas largas:** `expires_in_ticks` en unidades de 15 s: pedido = ticks deseados × segundos por tick / 15 (`contracts.expiry_units`) | J4, J5, J6 | Encaja con R-07 (a 60 s, lo pedido entre 4). No cambia la expectativa de cumplimiento (9 %, raras 4 %, R-05) |
-| D4 | **Sin venue propio** en esta versión (`open_venue` fuera de `KINDS`) | J11 sigue condicionado | M-04, M-05: greedy en `board` = puesto, cuesta 270 P y una caída da 0. Condición de cambio en `docs/LEEME-EQUIPO.md` §7.1 |
+| D4 | **Sin venue propio** en esta versión (`open_venue` fuera de `KINDS`). *Domingo: sigue siendo la opción por defecto; la condición para cambiarla está en DOMINGO §3.4 (no hay `bench.finished` público, S-23)* | J11 sigue condicionado | M-04, M-05: greedy en `board` = puesto, cuesta 270 P y una caída da 0. Condición de cambio en `docs/LEEME-EQUIPO.md` §7.1 |

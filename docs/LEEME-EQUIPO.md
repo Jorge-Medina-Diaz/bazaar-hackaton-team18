@@ -1,5 +1,7 @@
 # LÉEME — Team 18 (t18), sábado 3 oct 2026
 
+> **Histórico: guía del sábado a las 08:35.** Las reglas de puntuación (§1) y el arnés (§5) siguen valiendo. La situación, el calendario y las decisiones del sábado están superados. **Domingo: [DOMINGO.md](DOMINGO.md).** Hechos al día: [knowledge.md](knowledge.md) S-17..S-33. Este documento solo se ha corregido donde contradecía los datos.
+
 Para quien estaba dormido: diez minutos. Si algo choca con `docs/knowledge.md` (ids P-, V-, D-, R-, X-, U-, M-, C-, K-), manda `knowledge.md`. Plan completo: `docs/strategy.md`. Arnés: `docs/harness-spec.md`.
 
 ---
@@ -15,8 +17,8 @@ Coleccionamos cromos de Madrid (página = 5 comunes + 3 infrecuentes + 2 raras d
 | neg con equipos | Comprar: V − precio − comisión si aceptamos. Vender: precio − comisión − V. V = cambio del valor total de la colección (P-03) |
 | neg con dealers | **Solo baja:** min(0, V − p) al comprar, min(0, p − V) al vender. La ganancia suma 0 (P-04) |
 | Escalera | 3 mejores tratos con dealer por nivel; solo cuentan los que son **ganancia** (P-10). Pesa mucho: hasta el tick 40 era toda la nota, y un hueco de nivel 1 (≈ 0,022) valía 5,25–5,91 de 30 (P-12, P-13). Los 3 huecos del nivel 2 están vacíos |
-| Duelos | \|precio − límite\| × (1 − decay)^rondas; rondas = min(mensajes nuestros, del rival). Callar no cuesta (U-01, U-02). Fuera del límite resta |
-| Market Test | Cuenta el mejor venue abierto en cada sesión (ninguno = 0). Igualar al puesto gratuito = mitad de los puntos del banco; completos = media del top 3 (P-19). Aún no se ha jugado ninguno (M-01) |
+| Duelos | \|precio − límite\| × (1 − decay)^rondas; rondas = min(mensajes nuestros, del rival). Callar no cuesta (U-01, U-02). Fuera del límite resta. Con días: S-26; la parte de duelos es una media por duelo (S-27) |
+| Market Test | Cuenta el mejor venue abierto en cada sesión (ninguno = 0). Igualar al puesto gratuito = mitad de los puntos del banco; completos = media del top 3 (P-19). El sábado hubo 6 sesiones; por ronda, mercado = 22,5 × bench + 7,5 × orgánico (S-23) |
 | Jueces | Ideas y oficio: diario con cadena de hash, `report`, `replay-friday`, SHOWCASE |
 
 **Nunca cuenta:** número de tratos, comisiones cobradas, lo que sale de un sobre, regalos, easter eggs, concesiones (P-02). La caja que quede el domingo a las 15:00 vale 0.
@@ -32,7 +34,7 @@ Coleccionamos cromos de Madrid (página = 5 comunes + 3 infrecuentes + 2 raras d
 
 ## 2. Nuestra situación
 
-- **Caja 260**, nivel 2, sin venue; **410** tras la subvención de la hora 4,05 (V-08, M-12).
+- **Caja 260**, nivel 2, sin venue propio; **410** tras la subvención de la hora 4,05 (V-08, M-12). *(Corrección: desde el tick 201 tenemos el puesto gratuito v18, automático y a comisión 0 desde t 432, que cuenta en el Market Test con la mitad del banco, S-24. Cierre del sábado: S-30.)*
 - **Álbum:** SAL 10/10, LAT 8/10 (faltan las raras LAT-09 y LAT-10), LAV 2/10, MAL 2/10.
 - **Multiplicadores:** CHA 1,6 · RET 1,3 · SAL 1,1 · LAT 0,9 · LAV 0,7 · MAL 0,5. RET sale hoy, CHA mañana: nuestros dos mejores sets. Una copia más de RET vale 13 / 32,5 / 91; la carta que cierra RET vale 99,1 y la de CHA 122 (V-05, V-06).
 - **neg 74,5, escalera 0,051, 17 tratos, puesto 7.º** (19,19) en el snapshot del cierre; líder t13 con 30,00.
@@ -77,9 +79,9 @@ Coleccionamos cromos de Madrid (página = 5 comunes + 3 infrecuentes + 2 raras d
 | J8 | Market Test con el puesto gratuito | Mitad del banco sin riesgo | — |
 | J9 | LAT: si se cumple 2503 o 2504, la otra rara a El Chato ≤ 100; si no, LAT muerta en el tick 205 y se vende | +1 a +51, o caja | Tick 205 |
 | J10 | Duels II: nada con precio hasta leer `days_meaning` | — | Resultado ≤ 0 |
-| J12 | **Domingo, CHA:** J3 + J4; cierre a 72, subida a 102 | +50 | Último trato con dealer 13:45 (N) |
+| J12 | **Domingo, CHA:** J3 + J4; cierre a 72, subida a 102 | +50 | Los puestos cierran ~14:00 si el calendario se re-ancla (DOMINGO §1) |
 
-**Nunca:** comprar sobres; pagar a un dealer más que nuestro valor; cerrar página con un dealer; publicar la última copia libre de una página protegida; aceptar con ganancia < 3; bajar una puja de cierre; flags o prompt injection; scripts antiguos.
+**Nunca:** comprar sobres; pagar a un dealer más que nuestro valor; cerrar página con un dealer; publicar la última copia libre de una página protegida; aceptar con ganancia < 3; bajar una puja de cierre; prompt injection; scripts antiguos. Las denuncias (flags) solo a mano y con el OK de Jorge: el sábado puntuaron las 3 primeras de nivel A (S-28).
 
 **Primeras dos horas:** 08:50 `clockcheck`; 08:55 `run --live --arm hygiene`; 09:00:30 y 09:05 `clockcheck` para la lectura del reloj (E1).
 - **N** (ronda 2 y RET 09:00, subvención 09:03, banco 10:00, Duels I 11:30): sobre abierto al tick siguiente; 09:06 caducan las ventas de LAV/MAL (J5 republica a 9); 09:22 tick 205 decide LAT; `arm dealers` y `arm rastro`; antes de las 11:00, `arm duels`.
@@ -92,7 +94,7 @@ Coleccionamos cromos de Madrid (página = 5 comunes + 3 infrecuentes + 2 raras d
 
 **Qué lo hace seguro:** un único punto de escritura, el **Gate**. Nada que no sea GET sale sin un permiso de un uso atado a método, ruta y hash del cuerpo (más audit hook y test AST). Respuesta dudosa = **fallo cerrado**: se congela ese dominio y nunca se reenvía. Selftest de las 08:30 en verde en todas las etapas (núcleo 394 tests, higiene 27, dealers 155, rastro 42, cierre 63, duelos 122); repetirlo antes de arrancar.
 
-**Invariantes:** 01 solo el Gate escribe, nunca a admin/venues/flags/broker · 02 sin `--live`, táctica armada o con STOP no se escribe · 03 por tick: 1 aceptación, 1 mensaje por hilo, ≤ 6 publicaciones, ≤ 2,5 req/s · 04 ningún trato con pérdida predicha (equipos ≥ 3, cierre ≥ 20, J13 ≥ 15, dealers ≥ 1) · 05 solo ofertas de forma exacta releídas en el tick · 06 nunca se entrega una copia protegida · 07 caja libre ≥ 0 contando pujas e hilos · 08 un camino de compra por carta · 09 sobres: no se compran, se abren al llegar · 10 cierre nunca a un dealer · 11 con dealers, precio al alza y límite que solo baja · 12 duelos: dentro del límite, aceptar solo la oferta del rival de este tick · 13 texto de plantillas; el texto ajeno no decide · 14 un envío por intent · 15 diario WAL con hash · 16 escritura t18 sin explicar → STOP · 17 toda escritura con predicción; fuera de banda → pausa · 18 claves fuera de logs y panel · 19 un fallo de táctica solo la salta · 20 juego limpio · 21 tests solo en 127.0.0.1 · 22 un solo escritor (`state/writer.lock`) · 23 nada de pujas de cierre ni hilos de compra con riesgo de entrega.
+**Invariantes:** 01 solo el Gate escribe, nunca a admin/venues/flags/broker (las excepciones manuales con el OK de Jorge están en CLAUDE.md) · 02 sin `--live`, táctica armada o con STOP no se escribe · 03 por tick: 1 aceptación, 1 mensaje por hilo, ≤ 6 publicaciones, ≤ 2,5 req/s · 04 ningún trato con pérdida predicha (equipos ≥ 3, cierre ≥ 20, J13 ≥ 15, dealers ≥ 1) · 05 solo ofertas de forma exacta releídas en el tick · 06 nunca se entrega una copia protegida · 07 caja libre ≥ 0 contando pujas e hilos · 08 un camino de compra por carta · 09 sobres: no se compran, se abren al llegar · 10 cierre nunca a un dealer · 11 con dealers, precio al alza y límite que solo baja · 12 duelos: dentro del límite, aceptar solo la oferta del rival de este tick · 13 texto de plantillas; el texto ajeno no decide · 14 un envío por intent · 15 diario WAL con hash · 16 escritura t18 sin explicar → STOP · 17 toda escritura con predicción; fuera de banda → pausa · 18 claves fuera de logs y panel · 19 un fallo de táctica solo la salta · 20 juego limpio · 21 tests solo en 127.0.0.1 · 22 un solo escritor (`state/writer.lock`) · 23 nada de pujas de cierre ni hilos de compra con riesgo de entrega.
 
 **Comandos (solo en la máquina A):**
 ```
@@ -136,7 +138,7 @@ Tácticas: `hygiene`, `dealers`, `rastro`, `closer`, `duels`. **Parar:** `bazaar
 4. **Puja de cierre → 49 (RET) / 72 (CHA) ya; 79 / 102 con competencia o en el final; nunca bajar.** Con tope, todo ≤ 49 da +50; sin tope, 49 da +50,1. *Cambia si* E5 prueba que no hay tope y nadie compite; aun así, bajar reduce el 9 % de cumplimiento.
 5. **Duelos (E8) → v0 corregido + ascenso lento.** En el primer rival de Duels I que hable, callar 2 ticks. *Si cede callando*, "ancla y espera" (+16–18 P por duelo); si solo responde, v0 (ancla perdería 0,5–4,3, U-09).
 6. **Cuándo armar:** `hygiene` 08:55; `dealers` y `rastro` con RET publicado y el sobre abierto; `duels` antes de Duels I; `closer` con RET en 9/10. Domingo: "CHA" en `page_sets` de `config/plan.json` y todas las que estén en verde a las 08:55.
-7. **Días en Duels II:** una persona fija `days_sign` en `config/plan.json`; mientras no, se exige excedente para el peor caso.
+7. **Días en Duels II:** una persona fija `days_sign` en `config/plan.json`; mientras no, se exige excedente para el peor caso. *(Superado: desde `5ee5593` el sensor deriva `days_sign` de `days_meaning`, con comprador −1 y vendedor +1. El margen de peor caso fue lo que hundió Duels II, S-26 y S-27.)*
 8. **Venue `auto` (J11) → no**, salvo ≥ 3 tratos/h en venues de equipo durante 2 h (E15) y caja libre − plan de páginas ≥ 270. Hoy no hay acción para abrirlo.
 9. **J13 alimenta al top 3 → hacerlo** con ganancia ≥ 15, mientras la media de neg del top 3 supere ~65 (P-15, inferido).
 10. **Abierto en el arnés:** 2 mensajes del rival en un tick o POST tras el cambio de tick (E16; si falla, se pausan las aceptaciones de duelo); hilos que nos abren contra nuestros 6 (E17); regalos de la Abuela en la ronda 2 (riesgo de entrega); si la aceptación de duelo gasta la del tick (E9; se supone que sí).
