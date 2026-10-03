@@ -36,6 +36,12 @@
 - **Compran comunes:** abren a 4 y no se mueven (paso 0), `final` al 3.º. **Infrecuentes:** abren a 10, suben de 1 en 1, `final` al 4.º (13).
 - Prisas, «última palabra» y escasez del texto: falsas («Their deadlines never are»). Memoria 0,3 y rigidez 0,1: no castigan el regateo.
 
+### Cómo nos la cuelan a nosotros (hilos de t18, ticks 995–1057)
+
+- **Las rebajas van atadas a la carta falsa.** Hilo SAL-11: la carta buena solo apareció una vez (187); después 167 → 155 → 145, siempre con **SAL-10**. Hilo LAT-09: **ninguna** oferta con LAT-09; todo cebos (LAT-06 a 73 con texto que nombra LAT-09, LAT-08 a 66, LAT-07 a 62).
+- **Consecuencia:** perseguir «su precio» no sirve. La carta buena se consigue **cuando aceptan nuestra puja** (nuestra oferta estructurada pide la carta exacta: si la aceptan, entregan la buena). Así salió SAL-11 a 139. Pujar firme y paciente por la carta correcta; reabrir si solo hay cebos.
+- El vigilante explica cada intento en una línea: cebo y rareza, precio, última oferta real, nuestra puja, si el texto nombra la carta buena, `final` y nº de intento.
+
 **Receta para apretarles (comprar una rara):**
 1. Abrir en ~45–50 y subir **de 1 en 1**, un mensaje por tick (ellos bajan 5–9).
 2. **Ignorar `final` y «última palabra»:** seguir con pasos de 1 mientras sigan en el hilo.

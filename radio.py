@@ -529,6 +529,28 @@ def friendly(level, text):
     return QUIET, text
 
 
+RARITY_ES = {"common": "común", "uncommon": "infrecuente", "rare": "rara", "epic": "épica", "legendary": "legendaria"}
+
+
+def explain_trick(cx, t):
+    """Cómo nos la intentan colar, en una frase: cebo, precio, hueco con la oferta real, texto y «final»."""
+    if not cx.get("bait") or not cx.get("asked"):
+        return f"🃏 Truco de Los Pícaros: {t['motivo']} (el Gate no lo acepta)"
+    parts = [f"🃏 Pedimos {cx['asked']} ({RARITY_ES.get(cx['asked_rarity'], '?')}) y ofrecen "
+             f"{cx['bait']} ({RARITY_ES.get(cx['bait_rarity'], '?')}) a {cx['price']}"]
+    if cx.get("last_real") is not None:
+        parts.append(f"su última oferta real de {cx['asked']} fue {cx['last_real']}")
+    if cx.get("our_bid") is not None:
+        parts.append(f"nuestra puja va en {cx['our_bid']}")
+    if cx.get("text_names_good"):
+        parts.append(f"el texto habla de {cx['asked']}")
+    if cx.get("final"):
+        parts.append("lo marcan «final» (suele ser falso)")
+    if cx.get("attempts", 0) > 1:
+        parts.append(f"intento {cx['attempts']} en este hilo")
+    return " · ".join(parts) + ". El Gate no lo acepta."
+
+
 def collect(bucket, severity, line):
     if severity != QUIET:
         bucket.append((severity, line))
@@ -572,6 +594,7 @@ def attribute(tags, watches):
 
 
 def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=None, out=print, clock=None):
+    names = names or {}
     """Una lectura: noticias nuevas, comprobación de menús y estado actualizado. Devuelve las noticias nuevas."""
     news = get("/api/news").get("news", [])
     fresh = sorted((n for n in news if n.get("id") not in state["seen"]), key=lambda n: n.get("id", 0))
@@ -620,9 +643,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
             record({"event": "picaros_trick", **t})
             out(f"{'‼️' if level == 'ALTA' else '⚠️'} [{level}] [{when(clock)}] {msg}")
             if not first and ours and t["level"] == "firme":   # los ajenos: solo registro
-                sw = _RE["swap"].search(t["motivo"])
-                collect(bucket, INFO, (f"🃏 Los Pícaros intentaron colarnos {sw.group(1)} (pedimos {sw.group(2)}); "
-                                       "el Gate no lo acepta") if sw else f"🃏 Truco de Los Pícaros: {t['motivo']}")
+                collect(bucket, INFO, explain_trick(picaros.trick_context(events, t, names), t))
         state["tricks"] = state["tricks"][-500:]
     if live:
         for w in live:

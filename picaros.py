@@ -133,6 +133,46 @@ def tricks(events, topics):
     return out
 
 
+def trick_context(events, trick, names=None):
+    """Cómo intentan colarla en un hilo: carta y precio del cebo, su última oferta real, nuestra última puja,
+    si el texto nombra la carta buena, si lo marcan `final` y cuántos intentos van. Solo con datos del feed."""
+    tid, mid = trick.get("thread"), trick.get("message")
+    rev = {v: k for k, v in (names or {}).items()}               # ref -> nombre normalizado
+    asked, bait, price, final, text = None, None, None, False, ""
+    real, ours, attempts = None, None, 0
+    for e in events:
+        p = e.get("payload") or {}
+        if p.get("thread") != tid:
+            continue
+        if e.get("type") == "thread.opened":
+            asked = ((p.get("topic") or {}).get("buy") or {}).get("card") or asked
+        if e.get("type") != "thread.message" or not p.get("offer"):
+            continue
+        o = p["offer"]
+        if p.get("sender") == DEALER:
+            given = _refs(o.get("give"))
+            cash = (o.get("want") or {}).get("cash")
+            if asked and given and given != [asked]:
+                attempts += 1
+            elif given == [asked] and (p.get("message") or e.get("id")) != mid:
+                real = cash
+            if (p.get("message") or e.get("id")) == mid:
+                bait, price, final, text = (given[0] if given else None), cash, bool(o.get("final")), p.get("text") or ""
+                break
+        else:
+            ours = (o.get("give") or {}).get("cash")
+    t = _norm(text)
+
+    def named(ref):
+        core = re.sub(r"^(?:el|la|los|las|the)\s+", "", rev.get(ref) or "")
+        return bool(ref) and (ref.lower() in t or (len(core) >= 4 and core in t))
+    names_good, names_bait = named(asked), named(bait)
+    return {"asked": asked, "bait": bait, "bait_rarity": rarity(bait) if bait else None,
+            "asked_rarity": rarity(asked) if asked else None, "price": price, "last_real": real,
+            "our_bid": ours, "final": final, "attempts": attempts,
+            "text_names_good": names_good and not names_bait}
+
+
 def observations(events):
     """Cada mensaje con oferta de un hilo con Los Pícaros y cada liquidación suya, en forma compacta."""
     rows = []

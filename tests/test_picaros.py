@@ -131,5 +131,26 @@ class QuietPossibleTests(unittest.TestCase):
         self.assertTrue(any("POSIBLE" in x for x in lines))
 
 
+class ContextTests(unittest.TestCase):
+    def test_real_lat09_thread_explains_how_the_bait_is_placed(self):
+        lat = {"buy": {"card": "LAT-09"}}
+        ev = [opened(1346, "t18", lat, 1),
+              msg(2, 1346, "t18", {"cash": 0, "types": ["card:LAT-09"]}, {"cash": 73}),
+              msg(3, 1346, "t18", {"cash": 45}, {"types": ["card:LAT-09"]}, sender="t18"),
+              msg(4, 1346, "t18", {"cash": 0, "types": ["card:LAT-09"]}, {"cash": 66}),
+              msg(5, 1346, "t18", {"cash": 48}, {"types": ["card:LAT-09"]}, sender="t18"),
+              msg(6, 1346, "t18", {"cash": 0, "types": ["card:LAT-06"]}, {"cash": 62}, final=True,
+                  text="Mira, amigo, the Corrala, la de verdad, sixty-two")]
+        trick = {"thread": 1346, "message": 6, "motivo": "da LAT-06 en vez de LAT-09"}
+        cx = picaros.trick_context(ev, trick, names={"la corrala": "LAT-09", "la tabacalera": "LAT-06"})
+        self.assertEqual((cx["asked"], cx["bait"], cx["price"], cx["last_real"], cx["our_bid"], cx["final"],
+                          cx["attempts"], cx["text_names_good"]),
+                         ("LAT-09", "LAT-06", 62, 66, 48, True, 1, True))
+        line = radio.explain_trick(cx, trick)
+        self.assertEqual(line, "🃏 Pedimos LAT-09 (rara) y ofrecen LAT-06 (infrecuente) a 62 · su última oferta real "
+                               "de LAT-09 fue 66 · nuestra puja va en 48 · el texto habla de LAT-09 · lo marcan "
+                               "«final» (suele ser falso). El Gate no lo acepta.")
+
+
 if __name__ == "__main__":
     unittest.main()
