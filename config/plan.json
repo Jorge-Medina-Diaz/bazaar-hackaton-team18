@@ -1,7 +1,7 @@
 {
   "_notes": [
     "M8 plan data (docs/harness-spec.md 2.1 PlanCfg, docs/strategy.md J0-J13). Keys starting with '_' are ignored by load_plan.",
-    "Sunday: add \"CHA\" to page_sets (that is all). Game hours: Saturday 09:00 = 4.0, 23:00 = 18.0; Sunday 09:00 = 18.0, 12:00 = 21.0, 13:45 = 22.75.",
+    "Sunday: add \"CHA\" to page_sets (that is all). Server schedule (Sat 09:20): game paused at t=2.65; Saturday ends at t=16.65 (wall 23:00), Sunday runs 16.65-22.65 (09:00-15:00), dealers off at 21.65. day_end_hours = 5 min before (sat 16.5667, sun 21.5667) assumes 1 game h = 1 wall h from 09:00. If the unpause is late (T0), set sat = 2.65 + hours(22:55 - T0).",
     "startup_cancels: the lead cancelled 2463, 2592 (LAT-01) and 1652, 2591 (LAT-05) at 01:30; the harvest fixtures still show them open, so they stay listed: a cancel of an offer that is not open in my_offers is a no-op (G23).",
     "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N are owned by guards.Cfg (contracts D2 defaults); not repeated here.",
     "profiles lookup order: exact ref, then 'SET:rarity', then 'rarity'. anchor/step/limit in P; fallback_after in ticks."
@@ -32,6 +32,6 @@
   "resupply_min": 15,
   "dup_min_price": {"RET": 30, "CHA": 30},
   "days_sign": null,
-  "day_end_hours": {"sat": 17.9167, "sun": 22.75},
+  "day_end_hours": {"sat": 16.5667, "sun": 21.5667},
   "grant_lookahead_ticks": 3
 }
