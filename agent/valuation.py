@@ -8,7 +8,8 @@ NOTES (M3, night build)
   no Valuer means valuation_ok = False upstream).
 - 4th+ copy (never measured, V-10): worth 0 when we BUY it, MARG[-1] when we SELL it. collection_value() itself
   uses MARG[-1] (the vlib model), delta_add() uses the buy view, delta_remove() the sell view.
-- master_bonus (V-10) is published but never observed: NOT modelled (only matters with epic+legendary owned).
+- master_bonus (V-10, V-13): master_bonus x sum(base) of the set's 10 page cards + epic + legendary once each is held
+  (affinity sets). Measured Sat t950: server value?card SAL-12 593.5 = model with it (495 without) -> self_check needs it.
 - Pack slots draw from the released sets only, weighted by print_run - minted (V-02); `minted` defaults to the
   catalog's per-card "minted". A pack type that is not in the catalog -> UnknownPack (INV-19: valuation_ok = False).
 - An unknown card ref, or a set without affinity -> UnknownCard (a KeyError): callers refuse, never guess.
@@ -58,17 +59,22 @@ class Valuer:
             raise ValueError("catalog without values")
         marg = values.get("copy_marginals")
         pb = values.get("page_bonus")
-        if not (isinstance(marg, (list, tuple)) and marg and all(_finite(m) for m in marg) and _finite(pb)):
+        mb = values.get("master_bonus", 0.0)
+        if not (isinstance(marg, (list, tuple)) and marg and all(_finite(m) for m in marg) and _finite(pb)
+                and _finite(mb)):
             raise ValueError("catalog values malformed")
         self.marg = tuple(float(m) for m in marg)
         self.page_bonus = float(pb)
+        self.master_bonus = float(mb)
         self.affinity = {str(k): float(v) for k, v in dict(affinity).items() if _finite(v)}
         self.released_sets = frozenset(released_sets)
         self.cards: dict = {}          # ref -> {set, rarity, book, print_run, minted, page}
         self.pages: dict = {}          # set -> tuple of page refs
+        self.masters: dict = {}        # set -> page refs + epic + legendary (from main 3a44692; server-matched Sat)
         for s in catalog.get("sets") or ():
             sid = s.get("id")
             page_refs = []
+            top = {"epic": [], "legendary": []}
             for c in s.get("cards") or ():
                 ref = c.get("id")
                 if not isinstance(ref, str) or not _finite(c.get("book")):
@@ -78,7 +84,11 @@ class Valuer:
                                    "page": c.get("page") is True}
                 if c.get("page") is True:
                     page_refs.append(ref)
+                elif c.get("rarity") in top:
+                    top[c["rarity"]].append(ref)
             self.pages[sid] = tuple(page_refs)
+            if page_refs and top["epic"] and top["legendary"]:
+                self.masters[sid] = tuple(page_refs) + tuple(top["epic"]) + tuple(top["legendary"])
         self.packs: dict = {}
         for p in catalog.get("packs") or ():
             if isinstance(p, Mapping) and isinstance(p.get("id"), str) and isinstance(p.get("slots"), list):
@@ -137,6 +147,10 @@ class Valuer:
         for sid, refs in self.pages.items():
             if refs and sid in self.affinity and all(counts.get(r, 0) > 0 for r in refs):
                 v += self.page_bonus * sum(self.base(r) for r in refs)
+        if self.master_bonus:
+            for sid, refs in self.masters.items():
+                if sid in self.affinity and all(counts.get(r, 0) > 0 for r in refs):
+                    v += self.master_bonus * sum(self.base(r) for r in refs)
         return v
 
     def _slot_dist(self, rarity: str, minted: Optional[Mapping]) -> list:

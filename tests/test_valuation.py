@@ -197,6 +197,22 @@ class TestValueModel(unittest.TestCase):
         self.assertLess(d2, -50)                          # loses the SAL page bonus
 
 
+class TestMasterBonus(unittest.TestCase):
+    def test_master_bonus_fires_with_page_epic_legendary(self):
+        # Sat t950: the server valued SAL-12 at 593.5 with our page + SAL-11 held = page/master model (495 without)
+        import copy
+        cat = copy.deepcopy(CATALOG)
+        cat["values"]["master_bonus"] = 0.1
+        v = Valuer(cat, {"SAL": 1.1}, frozenset({"SAL"}))
+        refs = v.masters.get("SAL")
+        self.assertTrue(refs and len(refs) == len(v.pages["SAL"]) + 2)
+        held = {r: 1 for r in refs if r != refs[-1]}
+        base = sum(v.base(r) for r in refs)
+        self.assertAlmostEqual(v.delta_add(held, refs[-1], ()) - v.base(refs[-1]), 0.1 * base, places=6)
+        self.assertEqual(Valuer(CATALOG, {"SAL": 1.1}, frozenset({"SAL"})).master_bonus,
+                         float(CATALOG["values"].get("master_bonus", 0.0)))
+
+
 class TestNegLedger(unittest.TestCase):
     """11/12 measured neg points on Friday, from cards_all moves + feed prices (P-03, P-04, cap 50)."""
     # offer id -> (price, dealer, we_accepted)  [feed settlements; #2334 price from chato thread 268]
