@@ -41,6 +41,7 @@ class ClassifyTests(unittest.TestCase):
         c = radio.classify(hello)
         self.assertTrue(c["rumour"])
         self.assertTrue(c["todo"][0].startswith("No actuar sin evidencia"))
+        self.assertFalse(radio.classify(CHATO)["rumour"])   # «They say…» de la radio resultó cierta (menú cambió)
 
     def test_words_match_on_boundaries_only(self):
         c = radio.classify({"headline": "Unknown dog seen in Sol", "body": "Nowhere to be found"})
@@ -267,6 +268,42 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(w["verdict"][0], "confirmada")
         self.assertEqual(sum("CONFIRMADA" in s[0] for s in sent), 1)
         self.assertTrue(any("mediana 86,50 (n=2) frente a 61,50" in x for x in lines))
+
+
+class TimeTests(unittest.TestCase):
+    def test_aired_reports_tick_game_hour_estimated_wall_time_and_delay(self):
+        clock = {"tick": 410, "tick_seconds": 30.0, "next_tick_in": 10.0, "t_hours": 4.75}
+        now = 1_000_000.0
+        txt = radio.aired(CHATO | {"at_hours": 4.6833} if hasattr(dict, "__or__") else dict(CHATO, at_hours=4.6833),
+                          clock, now)
+        lag_s = 7 * 30 + 20   # 7 ticks y 20 s del tick en curso
+        self.assertIn("emitida tick 403 (h 4,68)", txt)
+        self.assertIn(f"≈ {radio.hhmmss(now - lag_s)} · detectada {radio.hhmmss(now)} (+7 ticks, ~4 min)", txt)
+        self.assertIn("detectada", radio.aired(CHATO))
+
+    def test_when_has_local_time_tick_and_game_hour(self):
+        self.assertRegex(radio.when({"tick": 560, "t_hours": 5.12}), r"^\d\d:\d\d:\d\d · tick 560 · h 5,12$")
+        self.assertRegex(radio.when(), r"^\d\d:\d\d:\d\d$")
+
+    def test_notifications_and_report_carry_the_time(self):
+        d, sent, lines = tempfile.mkdtemp(), [], []
+        news = [ATLETI]
+        clock = {"tick": 405, "tick_seconds": 30.0, "next_tick_in": 5.0, "t_hours": 4.7}
+        photos = [obs(), obs(released=["CHA", "LAT", "LAV", "MAL", "RET", "SAL"])]
+        with patch.object(radio, "LOG_DIR", d), \
+                patch.object(radio, "get", lambda p, timeout=10: {"news": list(reversed(news)), "events": []}), \
+                patch.object(radio, "observe", lambda: photos.pop(0) if len(photos) > 1 else photos[0]), \
+                patch.object(radio, "notify", lambda *a, **k: sent.append(a) or True):
+            state = radio.load_state(os.path.join(d, "s.json"))
+            radio.step(state, {}, first=True, out=lines.append, clock=clock)
+            news.append(CHATO)
+            radio.step(state, {}, out=lines.append, clock=clock)
+        self.assertTrue(all(m.startswith("🕒 ") for _, m in sent), sent)
+        self.assertIn("emitida tick 403", sent[0][1])
+        self.assertIn("detectada", sent[0][1])
+        self.assertIn("tick 405 · h 4,70", sent[1][1])
+        self.assertTrue(any(x.startswith("🔔 Cambios para t18 · 🕒 ") and "tick 405 · h 4,70" in x for x in lines))
+        self.assertTrue(any("🕒 emitida tick 403" in x for x in lines))
 
 
 if __name__ == "__main__":

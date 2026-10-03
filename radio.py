@@ -55,7 +55,7 @@ WORDS = {
     "team": ("team 18", "equipo 18", "t18"),
     "duels": ("duel", "duelo"),
     "market": ("venue", "market", "fee", "mercado", "comision"),
-    "hearsay": ("my cousin", "i swear", "they say", "rumour", "rumor", "someone said", "mi primo", "lo juro", "dicen"),
+    "hearsay": ("my cousin", "i swear", "rumour", "rumor", "someone said", "mi primo", "lo juro"),
 }
 
 
@@ -393,15 +393,45 @@ def verdict(obs, sets, side, rarity=None):
     return res
 
 
-def show(item, c):
+def hhmmss(ts=None):
+    return time.strftime("%H:%M:%S", time.localtime(ts if ts is not None else time.time()))
+
+
+def when(clock=None, ts=None):
+    """«11:52:07 · tick 560 · h 5,12»: hora local, tick y hora de juego del momento del aviso."""
+    parts = [hhmmss(ts)]
+    if clock and clock.get("tick") is not None:
+        parts.append(f"tick {clock['tick']}")
+    if clock and isinstance(clock.get("t_hours"), (int, float)):
+        parts.append(f"h {_f(clock['t_hours'])}")
+    return " · ".join(parts)
+
+
+def aired(item, clock=None, now=None):
+    """Cuándo se emitió una noticia (tick, hora de juego, hora local estimada) y con qué retraso la vemos."""
+    now = time.time() if now is None else now
+    t, h = item.get("tick"), item.get("at_hours")
+    txt = f"emitida tick {t}" + (f" (h {_f(h)})" if isinstance(h, (int, float)) else "")
+    if clock and type(t) is int and type(clock.get("tick")) is int and clock.get("tick_seconds"):
+        lag = max(0, clock["tick"] - t)
+        secs = lag * float(clock["tick_seconds"]) + max(0.0, float(clock["tick_seconds"]) -
+                                                       float(clock.get("next_tick_in") or 0))
+        txt += f" ≈ {hhmmss(now - secs)} · detectada {hhmmss(now)} (+{lag} ticks, ~{secs / 60:.0f} min)"
+    else:
+        txt += f" · detectada {hhmmss(now)}"
+    return txt
+
+
+def show(item, c, clock=None):
     mark = {"ALTA": "‼️ ", "MEDIA": "⚠️ ", "BAJA": "   "}[c["level"]]
     lines = [f"{mark}[{c['level']}] tick {item.get('tick')} · {item.get('source_name')}: {item.get('headline')}",
+             f"      🕒 {aired(item, clock)}",
              f"      {item.get('body', '')}", "      Por qué: " + "; ".join(c["why"])]
     lines += [f"      → {t}" for t in c["todo"]]
     return "\n".join(lines)
 
 
-def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=None, out=print):
+def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=None, out=print, clock=None):
     """Una lectura: noticias nuevas, comprobación de menús y estado actualizado. Devuelve las noticias nuevas."""
     news = get("/api/news").get("news", [])
     fresh = sorted((n for n in news if n.get("id") not in state["seen"]), key=lambda n: n.get("id", 0))
@@ -413,7 +443,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
             state["ticks"] = sorted(state["ticks"] + [n["tick"]])[-50:]
         record({"event": "news", "id": n.get("id"), "tick": n.get("tick"), "source": n.get("source"),
                 "headline": n.get("headline"), "body": n.get("body"), **c})
-        out(show(n, c))
+        out(show(n, c, clock))
         if c["dealers"]:
             state["watch"][str(n.get("id"))] = {
                 "until": now + 3600, "news": n.get("id"), "headline": n.get("headline"), "tick": n.get("tick") or 0,
@@ -422,7 +452,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
         if not first and do_notify:   # toda noticia nueva suena; ALTA además deja una alerta en pantalla
             tag = "RUMOR · " if c["rumour"] else ""
             notify(f"📻 Radio Rastro · {tag}{c['level']} para t18",
-                   f"{n.get('headline')} — {c['todo'][0] if c['todo'] else c['why'][0]}",
+                   f"🕒 {aired(n, clock)}\n{n.get('headline')} — {c['todo'][0] if c['todo'] else c['why'][0]}",
                    level=c["level"] if LEVELS.index(c["level"]) >= LEVELS.index(min_level) else "MEDIA")
     for key, w in list(state["watch"].items()):
         if now > w.get("until", 0) or "dealers" not in w:
@@ -448,9 +478,9 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                        f"(n={v['n_target']}) frente a {fmt(v['control'])} en otros barrios (n={v['n_control']}) → "
                        f"{v['verdict'].upper()}" + (f" ({v['premium']:+.0%})" if "premium" in v else ""))
                 record({"event": "evidence", "news": w["news"], **v})
-                out(("‼️ " if v["verdict"] == "confirmada" else "   ") + msg)
+                out(("‼️ " if v["verdict"] == "confirmada" else "   ") + f"[{when(clock)}] " + msg)
                 if do_notify and v["verdict"] == "confirmada":
-                    notify("✅ Radio Rastro · noticia CONFIRMADA", msg, level="ALTA")
+                    notify("✅ Radio Rastro · noticia CONFIRMADA", f"🕒 {when(clock)}\n{msg}", level="ALTA")
     try:
         obs = observe()
     except Exception as e:  # noqa: BLE001  la foto es un extra: las noticias ya se han procesado
@@ -467,13 +497,14 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
     if changes:
         changes.sort(key=lambda c: -LEVELS.index(c[0]))
         record({"event": "changes", "tick": obs.get("tick"), "changes": [list(c) for c in changes]})
-        out(f"🔔 Cambios para {TEAM} (tick {obs.get('tick')}):")
+        out(f"🔔 Cambios para {TEAM} · 🕒 {when(clock or {'tick': obs.get('tick')})}:")
         for level, text in changes:
             out(f"   {'‼️' if level == 'ALTA' else '⚠️' if level == 'MEDIA' else '·'} [{level}] {text}")
         top = changes[0][0]
         loud = [c for c in changes if LEVELS.index(c[0]) >= LEVELS.index(min_level)]
         if do_notify and loud:
-            notify(f"🔔 t18 · {top} · {len(loud)} cambio(s)", " | ".join(t for _, t in loud[:3]), level=top)
+            notify(f"🔔 t18 · {top} · {len(loud)} cambio(s)",
+                   f"🕒 {when(clock or {'tick': obs.get('tick')})}\n" + " | ".join(t for _, t in loud[:3]), level=top)
     return fresh
 
 
@@ -496,8 +527,12 @@ def main():
         names = {}
     first = not state["seen"]
     if not a.watch:
+        try:
+            clock = get("/api/clock")
+        except Exception:  # noqa: BLE001
+            clock = None
         for n in sorted(get("/api/news").get("news", []), key=lambda n: n.get("id", 0)):
-            print(show(n, classify(n, names, have)))
+            print(show(n, classify(n, names, have), clock))
         return
     print(f"Radio Rastro: vigilando {URL}/api/news (avisos desde {a.min_level}; Ctrl+C para parar)", flush=True)
     burst = 0
@@ -506,7 +541,7 @@ def main():
         try:
             clock = get("/api/clock")
             tick_s, doors = clock.get("tick_seconds") or 30.0, clock.get("doors", "open")
-            fresh = step(state, names, min_level=a.min_level, do_notify=not a.no_notify, first=first,
+            fresh = step(state, names, min_level=a.min_level, do_notify=not a.no_notify, first=first, clock=clock,
                          have=have)
             first = False
             burst = 10 if fresh else max(0, burst - 1)
@@ -516,7 +551,8 @@ def main():
                 wait = 600.0
             record({"event": "poll", "tick": clock.get("tick"), "new": len(fresh), "next_s": round(wait, 1),
                     "doors": doors})
-            print(f"   · tick {clock.get('tick')}: {len(fresh)} nuevas; próxima lectura en {wait:.0f} s", flush=True)
+            print(f"   · {when(clock)}: {len(fresh)} nuevas; próxima lectura a las {hhmmss(time.time() + wait)} "
+                  f"({wait:.0f} s)", flush=True)
         except Exception as e:  # noqa: BLE001  la red falla a veces: reintentar sin caerse
             wait = 60.0
             record({"event": "error", "error": type(e).__name__, "detail": str(e)[:200]})
