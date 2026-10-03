@@ -342,6 +342,7 @@ class Runner:
         self.plan_now: Mapping = plan_cfg          # plan_cfg with today's day end / endgame from the live schedule
         self._sched_seen: dict = {}                # pages.effective_plan memory (last live close, stalls hour)
         self._drop_counts: dict = {}               # choose() drops of this tick, by R04 code (tick row)
+        self._sign_noted: set = set()              # duel ids already alarmed for an unreadable days_meaning
         self.late_read_s: Optional[float] = None   # seconds the late-window re-read took (tick row)
         self.transport, self.journal, self.gate, self.sensor = transport, journal, gate, sensor
         self.calibrator, self.cfg, self.clock = calibrator, cfg, clock
@@ -670,6 +671,7 @@ class Runner:
             raise Fatal("calibrator: " + "; ".join(map(str, reasons))[:400])
 
         self.update_plan(world)
+        self.note_days_sign(world)
         needs = self.plan_needs(world, valuer)
         book = self.gate.book
 
@@ -745,6 +747,16 @@ class Runner:
                     iid = None
                 self.j("dropped", id=iid, tactic=it.tactic, intent_kind=it.kind, code=code, tick=world.tick)
         self._drop_counts = dict(counts)
+
+    def note_days_sign(self, world: World) -> None:
+        """One alarm per two-issue duel whose days_meaning the sensor could not read (days_sign None): tactic and Gate
+        then fall back to the role's sign (talk.days_sign_of), and the operator should know the wording changed."""
+        for d in world.duels or ():
+            did, issues = _g(d, "duel", _g(d, "id")), _g(d, "issues") or ()
+            if "days" in issues and _g(d, "days_sign") not in (1, -1) and did not in self._sign_noted:
+                self._sign_noted.add(did)
+                self.alarm("duel days_meaning not recognised: days sign taken from the role", duel=did,
+                           role=_g(d, "role"), tick=world.tick)
 
     def update_plan(self, world: World) -> None:
         """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""

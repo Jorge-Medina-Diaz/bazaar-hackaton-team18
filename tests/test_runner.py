@@ -332,6 +332,18 @@ class TestPausedTacticsOutOfBudgets(unittest.TestCase):
         self.assertEqual(r.split_would([early, da]), ([early, da], []))
 
 
+class TestDaysSignAlarm(unittest.TestCase):
+    def test_one_alarm_per_duel_with_an_unread_days_meaning(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        ds = ({"duel": 1, "issues": ("price", "days"), "days_sign": None, "role": "buyer"},
+              {"duel": 2, "issues": ("price", "days"), "days_sign": 1, "role": "seller"},
+              {"duel": 3, "issues": ("price",), "days_sign": None, "role": "buyer"})
+        r.note_days_sign(make_world(duels=ds))
+        r.note_days_sign(make_world(tick=101, duels=ds))
+        alarms = [x for x in r.journal.rows if x["kind"] == "alarm" and "days_meaning" in x.get("why", "")]
+        self.assertEqual([x["duel"] for x in alarms], [1])
+
+
 class TestLiveDayTimes(unittest.TestCase):
     """Night audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
 
