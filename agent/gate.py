@@ -45,7 +45,8 @@ NOTES (M5, night build)
   duel_accept by the duel's status; a dealer accept by its thread (status "deal", that offer accepted/settled or a
   journal settlement naming the intent -> landed; thread closed/walked or that offer cancelled/expired, or the
   thread still open >= 2 ticks later -> not landed); a team accept only "not landed" when the offer is still open
-  >= 2 ticks later, otherwise left frozen and reported {"action": "pause", "tactic": ...} once, after 3 ticks. accepted_unsettled released at until_tick with
+  >= 2 ticks later, otherwise left frozen and reported {"action": "pause", "tactic": ...} once, after 3 ticks.
+  A torn intent row (journal "truncated") is resolved at once: reconciled truncated=<seq> landed=False. accepted_unsettled released at until_tick with
   landed=False/evidence "timeout" (no /api/cards check tonight: open issue). execute refuses until reconcile ran
   once in this process (INV-15: reconcile before writing).
 """
@@ -610,6 +611,13 @@ class Gate:
                     self._j("reconciled", id=iid, landed=False, evidence="accepted_unsettled timeout",
                             tick=world.tick)
                     out.append({"id": iid, "landed": False, "evidence": "timeout"})
+                continue
+            if row.get("pending") == "truncated" and _int(row.get("seq")) is not None:
+                # a torn intent row was never sent (the WAL row is fsynced before the send, agent.journal NOTES):
+                # resolve it, or it alarms every tick, keeps its domains frozen and the fast path off for good
+                self._j("reconciled", truncated=row["seq"], landed=False, maybe_intent=row.get("maybe_intent"),
+                        evidence="torn intent row: never sent", tick=world.tick)
+                out.append({"truncated": row["seq"], "landed": False, "evidence": "torn intent row"})
                 continue
             if row.get("kind") != "intent":
                 out.append({"id": iid, "action": "alarm", "why": f"pending {row.get('pending')}"})

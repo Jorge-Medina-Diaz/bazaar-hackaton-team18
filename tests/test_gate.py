@@ -418,6 +418,25 @@ class TestIdempotencyAndUnknown(GateCase):
         pauses = [r for t in (3, 4, 5) for r in self.gate.reconcile(world(tick=TICK + t)) if r.get("action") == "pause"]
         self.assertEqual([(r["id"], r["tactic"]) for r in pauses], [("tacc1", "rastro")])
 
+    def test_torn_intent_row_is_resolved_not_alarmed_forever(self):
+        # a torn intent row was never sent (fsync before send); unresolved it alarmed every tick and froze domains
+        self.journal.write("tick", tick=TICK)
+        with open(self.paths.journal, "ab") as f:
+            f.write(b'{"seq":2,"ts":1,"tick":200,"day":"2026-10-03","mode":"test","kind":"intent","prev":"ab",'
+                    b'"id":"deadbeef00112233","tactic":"rastro","intent_kind":"accept","args":{"offer_id":2600,'
+                    b'"source":"team","ref":"RET-04","si')
+        self.journal = Journal(self.paths.journal, mode="test")                  # recovers: "truncated" row
+        self.assertEqual([p["pending"] for p in self.journal.pending()], ["truncated"])
+        self.gate.journal = self.journal
+        w = world(tick=TICK + 1)
+        self.gate.begin_tick(w)
+        self.assertEqual([r.get("truncated") for r in self.gate.reconcile(w)], [2])
+        self.assertEqual(self.journal.pending(), [])
+        self.assertEqual(self.journal.unknown_domains(), set())
+        rec = [r for r in self.journal.rows({"reconciled"})]
+        self.assertEqual([(r["truncated"], r["landed"]) for r in rec], [(2, False)])
+        self.assertEqual(self.gate.reconcile(world(tick=TICK + 2)), [])         # nothing left: no alarm
+
     def test_say_and_close_thread_evidence_from_live_shapes(self):
         # live messages are {id, offer, sender, tick} (price inside the offer); World keeps closed threads
         self.start(world())
