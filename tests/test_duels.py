@@ -343,6 +343,21 @@ class TestTwoIssues(unittest.TestCase):
         d3 = self.two(L=100, w=3.0, meaning=None, msgs=[msg("you", 100, 60, 5), msg("R", 114, 80, 5)], rival_offer=ro)
         self.assertEqual(D.decide(D.view(d3, 114), {"days_weight_fallback": 5.0})[0], "accept")   # 20 >= 1+15 (w=3)
 
+    def test_server_meaning_gives_the_sign(self):
+        # Duels II live: buyer "each delivery day costs you this much cash" -> day 0; seller "...adds ... to your side" -> 10
+        from agent import talk
+        cost = "each delivery day costs you this much cash"
+        add = "each delivery day adds this much cash to your side"
+        kind, p, days = D.decide(D.view(self.two(L=100, w=3.4, meaning=cost), 100), {})
+        self.assertEqual((kind, days), ("say", 0))
+        kind, p, days = D.decide(D.view(self.two(role="seller", L=79, w=1.98, meaning=add), 100), {})
+        self.assertEqual((kind, days), ("say", 10))
+        # the Gate uses the same rule: buyer at day 0 needs only the base margin, at day 10 it needs 1 + 34
+        self.assertEqual(talk._days_penalty({"your_days_weight": 3.4, "days_meaning": cost}, 0), 0.0)
+        self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 3.4, "days_meaning": cost}, 10), 34.0)
+        self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": add}, 0), 20.0)
+        self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": "?"}, 5), 10.0)
+
     def test_sign_unknown_worst_case_margin(self):
         # w = 3, sign unknown -> we send day 5 and need surplus >= 1 + 3*max(d, 10-d) (the Gate's G50/G51 rule)
         d = self.two(L=100, w=3.0, meaning="delivery days", msgs=[msg("you", 100, 60, 0)])

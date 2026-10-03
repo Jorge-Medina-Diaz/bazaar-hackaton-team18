@@ -523,6 +523,21 @@ def _duel_basics(d: Mapping) -> tuple:
     return (1 if role == "seller" else -1), float(lim), ("days" in issues)
 
 
+def days_sign_of(duel: Mapping) -> Optional[int]:
+    """Sign of the days issue from the SERVER's own duel field days_meaning (not rival text). Exact phrases seen
+    in Duels II: buyer "each delivery day costs you this much cash" (-1: fewer days is better), seller "each
+    delivery day adds this much cash to your side" (+1). Anything else -> None (worst case)."""
+    m = duel.get("days_meaning") if isinstance(duel, Mapping) else None
+    if not isinstance(m, str):
+        return None
+    m = m.strip().lower()
+    if m.startswith("each delivery day costs you"):
+        return -1
+    if m.startswith("each delivery day adds") and "to your side" in m:
+        return 1
+    return None
+
+
 def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
     """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d.
     A null weight uses cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback); none -> refuse."""
@@ -530,6 +545,11 @@ def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
     if w is None:
         w = _cfg(cfg, "DAYS_WEIGHT_FALLBACK", None)
     _need(_num(w), "G50.days_unknown")
+    sign = days_sign_of(d)
+    if sign == -1:
+        return abs(float(w)) * days              # loss vs our best (0 days); same rule as duels._days_model
+    if sign == 1:
+        return abs(float(w)) * (10 - days)       # loss vs our best (10 days)
     return abs(float(w)) * max(days, 10 - days)
 
 

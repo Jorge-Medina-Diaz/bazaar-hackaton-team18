@@ -134,6 +134,7 @@ class DuelView:
     two_issue: bool = False
     days_weight: Optional[float] = None
     days_meaning_known: bool = False
+    days_sign_srv: Optional[int] = None      # talk.days_sign_of(duel): the server's own days_meaning
     ours: tuple = ()               # ((tick, price, days, index), ...) our messages, server order
     rivals: tuple = ()             # same for the rival
     rival_offer: Optional[tuple] = None   # (price, days, tick, id)
@@ -142,6 +143,14 @@ class DuelView:
     rival_spoke_now: bool = False
     rival_double: bool = False     # E16: two rival messages in one tick
     fingerprint: str = ""
+
+
+def _srv_sign(duel: Mapping) -> Optional[int]:
+    try:
+        from agent.talk import days_sign_of
+        return days_sign_of(duel)
+    except Exception:  # noqa: BLE001 - unknown -> worst case
+        return None
 
 
 def _default_T(decay: float) -> int:
@@ -204,7 +213,8 @@ def view(duel: Mapping, tick: int) -> DuelView:
     return DuelView(
         duel_id=did, ok=True, why="", role=role, limit=limit, s=1 if role == "seller" else -1, tick=tick,
         deadline=deadline, start=start, T=deadline - start, decay=decay, two_issue=two, days_weight=w,
-        days_meaning_known=duel.get("days_meaning") not in (None, ""), ours=tuple(ours), rivals=tuple(rivals),
+        days_meaning_known=duel.get("days_meaning") not in (None, ""), days_sign_srv=_srv_sign(duel),
+        ours=tuple(ours), rivals=tuple(rivals),
         rival_offer=rival_offer, mine=mine, rounds=min(len(ours), len(rivals)), rival_spoke_now=spoke_now,
         rival_double=any(c > 1 for c in per_tick.values()), fingerprint=duel_fingerprint(duel))
 
@@ -220,7 +230,7 @@ def _days_model(v: DuelView, P: Mapping):
         w = P.get("days_weight_fallback")    # ponytail: plan duels.days_weight_fallback, used only when the server sends null
     if type(w) not in (int, float) or isinstance(w, bool):
         return False, None, None
-    sign = P.get("days_sign")
+    sign = v.days_sign_srv if v.days_sign_srv in (1, -1) else P.get("days_sign")   # server meaning first
     aw = abs(w)
     if sign not in (1, -1):
         return True, None, (lambda d: aw * max(d, DAYS_MAX - d))   # worst case vs any rival days, as talk G50/G51
