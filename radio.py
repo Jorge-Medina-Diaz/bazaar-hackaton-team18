@@ -184,14 +184,14 @@ def classify(item, names=None, have=None):
 
 
 def interval(ticks, tick_s, seen_new_recently):
-    """Segundos hasta la próxima lectura: nunca menos de un tick; nunca más de 5 minutos."""
+    """Segundos hasta la próxima lectura: nunca menos de un tick; nunca más de 1 minuto."""
     tick_s = max(5.0, float(tick_s or 30.0))
     if seen_new_recently:
         return tick_s
     gaps = [b - a for a, b in zip(ticks, ticks[1:]) if b > a]
     if not gaps:
         return max(tick_s, 60.0)
-    return max(tick_s, min(300.0, statistics.median(gaps) * tick_s / 8))
+    return max(tick_s, min(60.0, statistics.median(gaps) * tick_s / 8))
 
 
 SOUNDS = {"ALTA": "/System/Library/Sounds/Hero.aiff", "MEDIA": "/System/Library/Sounds/Glass.aiff",
@@ -465,6 +465,93 @@ def show(item, c, clock=None):
     return "\n".join(lines)
 
 
+GRAVE, INFO, QUIET = "grave", "info", "silencio"
+_RE = {
+    "rank": re.compile(r"Puesto de (\w+): (\d+)\.º → (\d+)\.º \(puntos ([\d,]+) → ([\d,]+)\)"),
+    "pts": re.compile(r"Puntos de \w+: ([\d,]+) → ([\d,]+) \(([+-]?[\d,]+)\)"),
+    "active": re.compile(r"^(?:Nivel )?(.+?): (?:estado )?announced → active"),
+    "open": re.compile(r"^(.+?): abierto a todos no → sí"),
+    "announced": re.compile(r"^Nivel (\w+): no anunciado → announced"),
+    "minted": re.compile(r"^(\w{3})-(\d+) acuñada: (\d+) → (\d+)"),
+    "soon": re.compile(r"^Próximo en ([\d,]+) h de juego: (.+)"),
+    "cal": re.compile(r"^Nuevo en el calendario \(h ([\d,]+)\): (.+)"),
+    "swap": re.compile(r"da ([A-Z]{3}-\d+) en vez de ([A-Z]{3}-\d+)"),
+}
+
+
+def _num(x):
+    return float(x.replace(",", "."))
+
+
+def friendly(level, text):
+    """(gravedad, frase corta y legible) para un cambio de diff(). Solo es GRAVE lo que exige actuar ya."""
+    m = _RE["rank"].search(text)
+    if m:
+        a, b = int(m.group(2)), int(m.group(3))
+        up = b < a
+        return (GRAVE if b - a >= 2 else INFO,
+                f"{'📈 Subimos' if up else '📉 Bajamos'} al {b}.º ({m.group(5)} puntos)")
+    m = _RE["pts"].search(text)
+    if m:
+        d = _num(m.group(3))
+        if abs(d) < 1.0:
+            return QUIET, text
+        return (GRAVE if d <= -1.0 else INFO), f"{'📈' if d > 0 else '📉'} {m.group(3)} puntos (ahora {m.group(2)})"
+    if "nos adelanta" in text or text.startswith("Adelantamos"):
+        return QUIET, text
+    m = _RE["active"].search(text)
+    if m and not text.startswith("Nivel"):
+        return INFO, f"🆕 {m.group(1)} ya está activo"
+    if m:
+        return QUIET, text
+    m = _RE["open"].search(text)
+    if m:
+        return INFO, f"🔓 {m.group(1)} ya está abierto a todos"
+    m = _RE["announced"].search(text)
+    if m:
+        return INFO, f"📢 Anunciado un nivel nuevo: {m.group(1)}"
+    if text.startswith("Nuevo dealer"):
+        return INFO, "📢 " + text.split(" (")[0]
+    if text.startswith("Barrio publicado"):
+        return INFO, "🗺️ " + text
+    m = _RE["minted"].search(text)
+    if m:
+        return (INFO if m.group(1) in STRONG else QUIET), f"✨ Primera {m.group(1)}-{m.group(2)} en circulación"
+    m = _RE["soon"].search(text)
+    if m:
+        mins = round(_num(m.group(1)) * 60)
+        return INFO, f"⏰ En ~{mins} min: {m.group(2)}"
+    m = _RE["cal"].search(text)
+    if m:
+        return (INFO if level == "ALTA" else QUIET), f"📅 Programado (h {m.group(1)}): {m.group(2)}"
+    if "confirma la noticia" in text:
+        return INFO, "✅ " + text.replace(" — confirma", " · confirma")
+    return QUIET, text
+
+
+def collect(bucket, severity, line):
+    if severity != QUIET:
+        bucket.append((severity, line))
+
+
+def deliver(bucket, clock, out=print, do_notify=True):
+    """Imprime lo legible y avisa: cada GRAVE por separado (sonido fuerte y alerta); lo INFO agrupado y suave."""
+    if not bucket:
+        return
+    stamp = when(clock)
+    for sev, line in bucket:
+        out(f"{'🚨 [GRAVE]' if sev == GRAVE else '🔔 [INFO]'} {stamp} · {line}")
+    if not do_notify:
+        return
+    for sev, line in bucket:
+        if sev == GRAVE:
+            notify("🚨 t18 · importante", f"{line}\n🕒 {stamp}", level="ALTA")
+    infos = [line for sev, line in bucket if sev == INFO]
+    if infos:
+        title = "🔔 t18" if len(infos) == 1 else f"🔔 t18 · {len(infos)} novedades"
+        notify(title, "\n".join(infos[:4]) + f"\n🕒 {stamp}", level="MEDIA")
+
+
 _hit = [None]
 
 
@@ -489,6 +576,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
     news = get("/api/news").get("news", [])
     fresh = sorted((n for n in news if n.get("id") not in state["seen"]), key=lambda n: n.get("id", 0))
     now = time.time()
+    bucket = []
     for n in fresh:
         c = classify(n, names, have)
         state["seen"].append(n.get("id"))
@@ -502,11 +590,9 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                 "until": now + 3 * 3600, "start": now, "news": n.get("id"), "headline": n.get("headline"), "tick": n.get("tick") or 0,
                 "dealers": c["dealers"], "sets": c["sets"], "side": c["side"], "rarity": "rare" if c["rare"] else None,
                 "obs": [], "verdict": None}
-        if not first and do_notify:   # toda noticia nueva suena; ALTA además deja una alerta en pantalla
-            tag = "RUMOR · " if c["rumour"] else ""
-            notify(f"📻 Radio Rastro · {tag}{c['level']} para t18",
-                   f"🕒 {aired(n, clock)}\n{n.get('headline')} — {c['todo'][0] if c['todo'] else c['why'][0]}",
-                   level=c["level"] if LEVELS.index(c["level"]) >= LEVELS.index(min_level) else "MEDIA")
+        if not first and c["level"] != "BAJA":   # ambiente (BAJA): solo consola
+            hint = "rumor, no actuar" if c["rumour"] else (c["todo"][0] if c["todo"] else c["why"][0])
+            collect(bucket, INFO, f"📻 «{n.get('headline')}» — {hint[:110]}")
     for key, w in list(state["watch"].items()):
         if now > w.get("until", 0) or "dealers" not in w:
             state["watch"].pop(key)
@@ -533,10 +619,10 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                    f"(mensaje {t['message']}, hilo {t['thread']}, {t['team']}, tick {t['tick']})")
             record({"event": "picaros_trick", **t})
             out(f"{'‼️' if level == 'ALTA' else '⚠️'} [{level}] [{when(clock)}] {msg}")
-            if do_notify and not first and (ours or t["level"] == "firme"):   # los «posibles» ajenos: solo registro
-                notify("🃏 Los Pícaros · truco" + (" contra t18" if ours else ""),
-                       f"🕒 {when(clock)}\n{msg}" + ("\nEvidencia para POST /api/flags (decide el operador)."
-                                                      if t["level"] == "firme" else ""), level=level)
+            if not first and ours and t["level"] == "firme":   # los ajenos: solo registro
+                sw = _RE["swap"].search(t["motivo"])
+                collect(bucket, INFO, (f"🃏 Los Pícaros intentaron colarnos {sw.group(1)} (pedimos {sw.group(2)}); "
+                                       "el Gate no lo acepta") if sw else f"🃏 Truco de Los Pícaros: {t['motivo']}")
         state["tricks"] = state["tricks"][-500:]
     if live:
         for w in live:
@@ -554,12 +640,13 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                        f"{v['verdict'].upper()}" + (f" ({v['premium']:+.0%})" if "premium" in v else ""))
                 record({"event": "evidence", "news": w["news"], **v})
                 out(("‼️ " if v["verdict"] == "confirmada" else "   ") + f"[{when(clock)}] " + msg)
-                if do_notify and v["verdict"] == "confirmada":
-                    notify("✅ Radio Rastro · noticia CONFIRMADA", f"🕒 {when(clock)}\n{msg}", level="ALTA")
+                if v["verdict"] == "confirmada":
+                    collect(bucket, INFO, f"✅ Confirmada: «{w['headline']}» ({v['premium']:+.0%} frente a otros barrios)")
     try:
         obs = observe()
     except Exception as e:  # noqa: BLE001  la foto es un extra: las noticias ya se han procesado
         record({"event": "observe_error", "error": type(e).__name__})
+        deliver(bucket, clock, out, do_notify)
         return fresh
     changes = []
     for level, text, tags in diff(state.get("obs"), obs, announced=state.setdefault("announced", [])):
@@ -574,14 +661,12 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
     if changes:
         changes.sort(key=lambda c: -LEVELS.index(c[0]))
         record({"event": "changes", "tick": obs.get("tick"), "changes": [list(c) for c in changes]})
-        out(f"🔔 Cambios para {TEAM} · 🕒 {when(clock or {'tick': obs.get('tick')})}:")
+        out(f"   Detalle de cambios · {when(clock or {'tick': obs.get('tick')})}:")
         for level, text in changes:
-            out(f"   {'‼️' if level == 'ALTA' else '⚠️' if level == 'MEDIA' else '·'} [{level}] {text}")
-        top = changes[0][0]
-        loud = [c for c in changes if LEVELS.index(c[0]) >= LEVELS.index(min_level)]
-        if do_notify and loud:
-            notify(f"🔔 t18 · {top} · {len(loud)} cambio(s)",
-                   f"🕒 {when(clock or {'tick': obs.get('tick')})}\n" + " | ".join(t for _, t in loud[:3]), level=top)
+            out(f"      [{level}] {text}")
+        for level, text in changes:
+            collect(bucket, *friendly(level, text))
+    deliver(bucket, clock or {"tick": (obs or {}).get("tick")}, out, do_notify)
     return fresh
 
 
@@ -632,9 +717,10 @@ def main():
             state["clock"] = {k: clock.get(k) for k in ("tick", "t_hours", "paused")}
             if change:
                 record({"event": "clock", "level": change[0], "text": change[1]})
-                print(f"‼️ [{change[0]}] 🕒 {when(clock)} · {change[1]}", flush=True)
-                if not a.no_notify:
-                    notify(f"⏸️ t18 · reloj del juego", f"🕒 {when(clock)}\n{change[1]}", level=change[0])
+                pause = "PAUSA" in change[1]
+                deliver([(GRAVE, ("⏸️ Juego en pausa: nada se liquida y los horarios se retrasan" if pause
+                                  else "▶️ El juego se ha reanudado"))], clock,
+                        lambda x: print(x, flush=True), not a.no_notify)
             fresh = step(state, names, min_level=a.min_level, do_notify=not a.no_notify, first=first, clock=clock,
                          have=have)
             first, limited = False, 0

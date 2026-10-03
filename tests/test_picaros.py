@@ -109,8 +109,8 @@ class WatcherTests(unittest.TestCase):
             radio.step(state, {}, out=lines.append)
             radio.step(state, {}, out=lines.append)
         self.assertEqual(len(sent), 1)
-        self.assertEqual(sent[0][1]["level"], "ALTA")
-        self.assertIn("contra t18", sent[0][0][0])
+        self.assertEqual(sent[0][1]["level"], "MEDIA")          # el Gate lo bloquea: informativo, no alarma
+        self.assertIn("🃏 Truco de Los Pícaros", sent[0][0][1])
         self.assertTrue(any("CONTRA NOSOTROS" in x for x in lines))
         with open(os.path.join(d, "picaros.jsonl")) as f:
             self.assertEqual(len(f.readlines()), 2)

@@ -73,11 +73,11 @@ class NotifyTests(unittest.TestCase):
 
 
 class PacingTests(unittest.TestCase):
-    def test_never_faster_than_a_tick_and_never_slower_than_five_minutes(self):
+    def test_never_faster_than_a_tick_and_never_slower_than_one_minute(self):
         self.assertEqual(radio.interval([], 30, False), 60.0)
         self.assertEqual(radio.interval([283, 331, 403], 30, True), 30.0)
-        self.assertEqual(radio.interval([283, 331, 403], 30, False), 225.0)  # mediana 60 ticks × 30 s / 8
-        self.assertEqual(radio.interval([0, 1000], 30, False), 300.0)
+        self.assertEqual(radio.interval([283, 331, 403], 30, False), 60.0)
+        self.assertEqual(radio.interval([0, 1000], 30, False), 60.0)
         self.assertEqual(radio.interval([1, 2], 1, False), 5.0)
 
 
@@ -169,7 +169,8 @@ class StepTests(unittest.TestCase):
         self.news.append(CHATO)
         self.assertEqual([n["id"] for n in self.step()], [3])
         self.assertEqual(len(self.sent), 1)
-        self.assertIn("ALTA", self.sent[0][0])
+        self.assertEqual(self.sent[0][0], "🔔 t18")
+        self.assertIn("«El Chato is looking for rare Malasaña cards»", self.sent[0][1])
         self.assertEqual(self.step(), [])
         self.assertEqual(len(self.sent), 1)
         self.assertEqual(self.state["ticks"], [331, 403])
@@ -179,12 +180,12 @@ class StepTests(unittest.TestCase):
         self.assertEqual(len(self.step(first=True)), 2)
         self.assertEqual(self.sent, [])
 
-    def test_every_new_item_rings_even_low_ones(self):
+    def test_ambient_news_is_console_only(self):
         self.step(first=True)
         self.news.append(dict(ATLETI, id=9, tick=500))
         self.step()
-        self.assertEqual(len(self.sent), 1)
-        self.assertEqual(self.sent[0][0], "📻 Radio Rastro · BAJA para t18")
+        self.assertEqual(self.sent, [])
+        self.assertTrue(any("Atleti" in x for x in self.lines))
         with open(os.path.join(self.dir, "radio.jsonl"), encoding="utf-8") as f:
             rows = [json.loads(line) for line in f]
         self.assertEqual([r["id"] for r in rows if r["event"] == "news"], [2, 9])
@@ -196,9 +197,9 @@ class StepTests(unittest.TestCase):
         d = self.photo["dealers"]
         self.photo = obs(dealers=dict(d, chato=dict(d["chato"], buys=["rare@MAL", "rare@released"])))
         self.step()
-        line = next(x for x in self.lines if "ahora compra rare de MAL" in x)
+        line = next(x for x in self.lines if "ahora compra rare de MAL" in x and "🔔" in x)
         self.assertIn("confirma la noticia «El Chato is looking for rare Malasaña cards»", line)
-        self.assertTrue(any(s[0].startswith("🔔 t18 · ALTA") for s in self.sent))
+        self.assertTrue(any("ahora compra rare de MAL" in s[1] for s in self.sent))
 
     def test_state_survives_restart_and_a_corrupt_file(self):
         path = os.path.join(self.dir, "state.json")
@@ -267,7 +268,7 @@ class EvidenceTests(unittest.TestCase):
         w = state["watch"]["3"]
         self.assertEqual(sorted(o["id"] for o in w["obs"]), [1, 2, 3, 4])
         self.assertEqual(w["verdict"][0], "confirmada")
-        self.assertEqual(sum("CONFIRMADA" in s[0] for s in sent), 1)
+        self.assertEqual(sum("✅ Confirmada" in s[1] for s in sent), 1)
         self.assertTrue(any("mediana 86,50 (n=2) frente a 61,50" in x for x in lines))
 
 
@@ -338,11 +339,8 @@ class TimeTests(unittest.TestCase):
             radio.step(state, {}, first=True, out=lines.append, clock=clock)
             news.append(CHATO)
             radio.step(state, {}, out=lines.append, clock=clock)
-        self.assertTrue(all(m.startswith("🕒 ") for _, m in sent), sent)
-        self.assertIn("emitida tick 403", sent[0][1])
-        self.assertIn("detectada", sent[0][1])
-        self.assertIn("tick 405 · h 4,70", sent[1][1])
-        self.assertTrue(any(x.startswith("🔔 Cambios para t18 · 🕒 ") and "tick 405 · h 4,70" in x for x in lines))
+        self.assertTrue(all("🕒 " in m and "tick 405 · h 4,70" in m for _, m in sent), sent)
+        self.assertTrue(any(x.startswith("🔔 [INFO]") and "tick 405 · h 4,70" in x for x in lines))
         self.assertTrue(any("🕒 emitida tick 403" in x for x in lines))
 
 
@@ -392,6 +390,37 @@ class ClockTests(unittest.TestCase):
         self.assertIn("REANUDADO: tick 630 → 631", radio.clock_change(stop, dict(run, tick=631))[1])
         self.assertIsNone(radio.clock_change(stop, stop))
         self.assertIsNone(radio.clock_change(None, stop))
+
+
+class FriendlyTests(unittest.TestCase):
+    def test_only_real_trouble_is_grave_and_texts_are_short(self):
+        f = radio.friendly
+        self.assertEqual(f("ALTA", "Puesto de t18: 5.º → 6.º (puntos 28,77 → 28,51)"),
+                         (radio.INFO, "📉 Bajamos al 6.º (28,51 puntos)"))
+        self.assertEqual(f("ALTA", "Puesto de t18: 4.º → 7.º (puntos 30,00 → 27,00)")[0], radio.GRAVE)
+        self.assertEqual(f("ALTA", "Puesto de t18: 6.º → 5.º (puntos 28,51 → 28,77)"),
+                         (radio.INFO, "📈 Subimos al 5.º (28,77 puntos)"))
+        self.assertEqual(f("MEDIA", "Puntos de t18: 28,51 → 29,43 (+0,92): negociación 21,01 → 21,93, mercado 7,50 → 7,50")[0],
+                         radio.QUIET)
+        self.assertEqual(f("MEDIA", "Puntos de t18: 30,00 → 28,50 (-1,50): negociación 1 → 2, mercado 7,50 → 7,50"),
+                         (radio.GRAVE, "📉 -1,50 puntos (ahora 28,50)"))
+        self.assertEqual(f("MEDIA", "Adelantamos a Team 10 (28,35 frente a 28,77)")[0], radio.QUIET)
+        self.assertEqual(f("ALTA", "Don Ernesto: estado announced → active"), (radio.INFO, "🆕 Don Ernesto ya está activo"))
+        self.assertEqual(f("ALTA", "Los Pícaros: abierto a todos no → sí"),
+                         (radio.INFO, "🔓 Los Pícaros ya está abierto a todos"))
+        self.assertEqual(f("MEDIA", "Próximo en 0,17 h de juego: The Market Test")[1], "⏰ En ~10 min: The Market Test")
+        self.assertEqual(f("MEDIA", "LAT-13 acuñada: 0 → 1 copias (épica/legendaria en circulación)")[0], radio.QUIET)
+        self.assertEqual(f("MEDIA", "El Chato vende rare@released: lista 77, pide None → lista 85, pide None")[0],
+                         radio.QUIET)
+
+    def test_grave_alerts_go_alone_and_infos_are_grouped(self):
+        sent, lines = [], []
+        with patch.object(radio, "notify", lambda *a, **k: sent.append((a, k.get("level")))):
+            radio.deliver([(radio.INFO, "a"), (radio.GRAVE, "b"), (radio.INFO, "c")],
+                          {"tick": 9, "t_hours": 1.0}, lines.append)
+        self.assertEqual([(a[0], lvl) for a, lvl in sent],
+                         [("🚨 t18 · importante", "ALTA"), ("🔔 t18 · 2 novedades", "MEDIA")])
+        self.assertEqual(len(lines), 3)
 
 
 if __name__ == "__main__":
