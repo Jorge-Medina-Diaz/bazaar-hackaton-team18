@@ -10,7 +10,7 @@ Rules implemented (acceptance of M10):
   a final above the limit closes the thread without accepting. If we cannot raise any more (limit reached) -> close.
 - Limit fixed at opening (min of profile limit, need.max_price, plan dealer_max, floor(dv_add - DEALER_MARGIN),
   cash_free) and it only goes down: every tick limit_t = min(opening limit, floor(dv_add - DEALER_MARGIN), need cap).
-- No new threads while >= 4 live duels (E-M6), with an unopened pack (G14), with a dealer blocked (cooloff/quota),
+- No new threads while > 4 live duels (E-M6; Sunday runs 4 at a time, so ladder threads keep opening), with an unopened pack (G14), with a dealer blocked (cooloff/quota),
   for the frozen closer card or a card that closes RET/CHA (INV-10), or more than one reopen per hour per (dealer, ref).
 - PROBE mode (profile {"probe": true}, for new dealer levels): haggle with prices capped at the safe limit but never
   accept; close on a final or after `fallback_after` of our messages. Intents carry experiment "PROBE:<dealer>:<ref>".
@@ -54,7 +54,7 @@ from agent.contracts import TEAM, Intent, make_intent
 
 TACTIC = "dealers"
 PAGE_SETS_NO_DEALER_CLOSE = frozenset({"RET", "CHA"})
-MAX_LIVE_DUELS_FOR_NEW_THREADS = 3          # >= 4 live duels -> no new threads
+MAX_LIVE_DUELS_FOR_NEW_THREADS = 4          # > 4 live duels -> no new threads (Sunday max_concurrent is 4)
 STALL_TICKS = 3                             # our message unanswered this long -> close
 WALKS_PER_HOUR = 2                          # first thread + 1 reopen per hour per (dealer, ref)
 REQUIRED_SOURCES = frozenset({"clock", "me", "me/offers", "me/threads", "threads"})

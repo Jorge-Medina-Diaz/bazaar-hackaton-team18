@@ -122,7 +122,9 @@ class TestChoose(unittest.TestCase):
         out = runner.choose([open_thread("RET-01"), open_thread("RET-02")], make_world(), Cfg())
         self.assertEqual(len(out), 2)
         four = tuple({"duel": i, "deadline_tick": 200} for i in range(4))
-        self.assertEqual(runner.choose([open_thread()], make_world(duels=four), Cfg()), [])
+        self.assertEqual(len(runner.choose([open_thread()], make_world(duels=four), Cfg())), 1)   # Sunday: 4 at a time
+        five = tuple({"duel": i, "deadline_tick": 200} for i in range(5))
+        self.assertEqual(runner.choose([open_thread()], make_world(duels=five), Cfg()), [])
         threads = MappingProxyType({i: {"status": "open", "team": TEAM} for i in range(5)})
         self.assertEqual(runner.choose([open_thread()], make_world(threads=threads), Cfg()), [])
         out = runner.choose([say(3, 10), say(3, 11), say(4, 10)], make_world(), Cfg())
@@ -131,6 +133,31 @@ class TestChoose(unittest.TestCase):
         self.assertEqual(sorted((it.kind, it.args["duel_id"]) for it in out), [("duel_accept", 5), ("duel_say", 6)])
         out = runner.choose([cancel(1, "hygiene"), cancel(1, "rastro"), cancel(1, "hygiene")], make_world(), Cfg())
         self.assertEqual(len(out), 1)
+
+
+    def test_duel_freeze_spares_manual_and_drops_are_reported(self):
+        five = tuple({"duel": i, "deadline_tick": 200, "status": "live"} for i in range(5))
+        man = make_intent("open_thread", "manual", dict(open_thread().args), "r", "e", NONE_P, priority=10000)
+        drops = []
+        out = runner.choose([open_thread("RET-02"), man], make_world(duels=five), Cfg(), drops)
+        self.assertEqual([it.tactic for it in out], ["manual"])
+        self.assertEqual([(it.tactic, code) for it, code in drops], [("dealers", "R04.duel_freeze")])
+        # thread room still binds a manual order (G04.threads is the Gate's)
+        threads = MappingProxyType({i: {"status": "open", "team": TEAM} for i in range(5)})
+        drops = []
+        self.assertEqual(runner.choose([man], make_world(threads=threads), Cfg(), drops), [])
+        self.assertEqual([code for _, code in drops], ["R04.thread_room"])
+        drops = []
+        runner.choose([accept(1), accept(2), cancel(3), cancel(3, "rastro")], make_world(), Cfg(), drops)
+        self.assertEqual(sorted(code for _, code in drops), ["R04.accept_budget", "R04.dup"])
+
+    def test_dropped_manual_order_is_journalled(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        man = make_intent("open_thread", "manual", dict(open_thread().args), "r", "e", NONE_P, priority=10000)
+        r.journal_drops(make_world(), [(man, "R04.thread_room"), (open_thread(), "R04.thread_room")])
+        rows = [x for x in r.journal.rows if x["kind"] == "dropped"]
+        self.assertEqual([(x["tactic"], x["code"]) for x in rows], [("manual", "R04.thread_room")])
+        self.assertEqual(r._drop_counts, {"R04.thread_room": 2})
 
     def test_garbage_is_ignored(self):
         self.assertEqual(runner.choose([None, "x", 3], make_world(), Cfg()), [])

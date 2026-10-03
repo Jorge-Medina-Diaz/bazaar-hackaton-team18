@@ -166,17 +166,23 @@ def _cfg(cfg: Any, name: str, default: Any) -> Any:
     return default if v is None else v
 
 
-def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
+def choose(intents: Sequence[Intent], world: World, cfg: Any, drops: Optional[list] = None) -> list:
     """Order and per-tick budgets (INV-03). Pure.
 
     Order: exposure reducers first (cancel, close_thread, open_pack), then priority (high first), then tactic order.
     Budgets: accepts (team/dealer + duel when DUEL_ACCEPT_SHARED) <= limits.accepts, given to the EARLIEST deadline
     (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, L, max(1, L - 2)), L = limits.listings;
     new list_offer <= room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= max(1, limits.threads -
-    THREADS_MARGIN) - own open threads, none while >= 4 duels are live; <= 1 message per thread / duel (a duel being
-    accepted gets no message); duplicates (same intent id, or same cancel/close/pack target) dropped.
-    The Gate re-checks every budget (G04); this only decides WHO gets the scarce slots.
+    THREADS_MARGIN) - own open threads, none from a tactic while more than MAX_LIVE_DUELS_FOR_THREADS (4: Sunday's
+    max_concurrent) duels are live (a manual order still goes); <= 1 message per thread / duel (a duel being accepted
+    gets no message); duplicates (same intent id, or same cancel/close/pack target) dropped.
+    The Gate re-checks every budget (G04); this only decides WHO gets the scarce slots. `drops`, when given, gets
+    (intent, code) for every intent left out (R04.*), so the runner can journal why an order did nothing.
     """
+    def drop(it, code):
+        if drops is not None:
+            drops.append((it, code))
+
     tick = world.tick
     seen_ids, seen_targets = set(), set()
     items = []
@@ -188,6 +194,7 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         except Exception:                                                # noqa: BLE001
             continue
         if iid in seen_ids:
+            drop(it, "R04.dup")
             continue
         seen_ids.add(iid)
         items.append((EXPOSURE.get(it.kind, 3), -int(it.priority), TACTIC_ORDER.get(it.tactic, 9), i, it))
@@ -216,8 +223,8 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
                       if _g(t, "status") == "open" and _g(t, "team", TEAM) == TEAM)
     tlim = int(getattr(L, "threads", 0) or 0)
     thread_room = max(0, min(tlim, max(1, tlim - int(_cfg(cfg, "THREADS_MARGIN", 1)))) - own_threads)
-    if len(world.duels or ()) >= 4:
-        thread_room = 0
+    live_duels = sum(1 for d in world.duels or () if _g(d, "status", "live") == "live")
+    duel_freeze = live_duels > int(_cfg(cfg, "MAX_LIVE_DUELS_FOR_THREADS", 4))
     msgs: set = set()
 
     out = []
@@ -226,32 +233,40 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         if k in ACCEPT_KINDS:
             if id(it) in chosen_acc:
                 out.append(it)
+            else:
+                drop(it, "R04.accept_budget")
             continue
         if k in ("cancel", "close_thread", "open_pack"):
             target = (k, a.get("offer_id", a.get("thread_id", a.get("asset_id"))))
             if target in seen_targets:
+                drop(it, "R04.dup")
                 continue
             seen_targets.add(target)
         if k in ("cancel", "list_offer"):
             if listings <= 0:
+                drop(it, "R04.listings")
                 continue
             if k == "list_offer":
                 if offer_room <= 0:
+                    drop(it, "R04.offer_room")
                     continue
                 offer_room -= 1
             listings -= 1
         elif k == "open_thread":
-            if thread_room <= 0:
+            if thread_room <= 0 or (duel_freeze and it.tactic != "manual"):
+                drop(it, "R04.thread_room" if thread_room <= 0 else "R04.duel_freeze")
                 continue
             thread_room -= 1
         elif k == "say":
             key = f"thread:{a.get('thread_id')}"
             if key in msgs:
+                drop(it, "R04.msg")
                 continue
             msgs.add(key)
         elif k == "duel_say":
             key = f"duel:{a.get('duel_id')}"
             if key in msgs or a.get("duel_id") in accepted_duels:
+                drop(it, "R04.msg")
                 continue
             msgs.add(key)
         out.append(it)
@@ -322,6 +337,7 @@ class Runner:
         self.mode, self.paths, self.plan_cfg = mode, paths, plan_cfg
         self.plan_now: Mapping = plan_cfg          # plan_cfg with today's day end / endgame from the live schedule
         self._sched_seen: dict = {}                # pages.effective_plan memory (last live close, stalls hour)
+        self._drop_counts: dict = {}               # choose() drops of this tick, by R04 code (tick row)
         self.transport, self.journal, self.gate, self.sensor = transport, journal, gate, sensor
         self.calibrator, self.cfg, self.clock = calibrator, cfg, clock
         self.started = time.time() if started is None else started
@@ -668,7 +684,9 @@ class Runner:
             flat = self.flatten_intents(world)
             intents = [it for it in intents if it.tactic == "manual"] + flat
 
-        chosen = choose(intents, world, self.cfg)
+        drops: list = []
+        chosen = choose(intents, world, self.cfg, drops)
+        self.journal_drops(world, drops)
         early = [it for it in chosen if it.kind != "duel_accept"]
         held = [it for it in chosen if it.kind == "duel_accept"]
         outs = self.execute(early, world)
@@ -692,6 +710,20 @@ class Runner:
         if world.tick % SNAP_EVERY == 0:
             self.snap(world)
         return True
+
+    def journal_drops(self, world: World, drops: list) -> None:
+        """A manual order left out by choose() gets its own 'dropped' row (operators must see why it did nothing);
+        tactic drops only count, in the tick row."""
+        counts: dict = defaultdict(int)
+        for it, code in drops:
+            counts[code] += 1
+            if it.tactic == "manual":
+                try:
+                    iid = intent_id(world.tick, it)
+                except Exception:                                        # noqa: BLE001
+                    iid = None
+                self.j("dropped", id=iid, tactic=it.tactic, intent_kind=it.kind, code=code, tick=world.tick)
+        self._drop_counts = dict(counts)
 
     def update_plan(self, world: World) -> None:
         """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""
@@ -790,9 +822,11 @@ class Runner:
         counts: dict = defaultdict(int)
         for _, o in outs:
             counts[o.status] += 1
+        extra = {"dropped": self._drop_counts} if getattr(self, "_drop_counts", None) else {}
+        self._drop_counts = {}
         self.j("tick", tick=world.tick, cash=_g(world.me, "cash"), cash_free=getattr(b, "cash_free", None),
                points=pts, round=world.round, reading=world.reading, down=sorted(world.down or ()),
-               outcomes=dict(counts), armed=sorted(self.armed_now()))
+               outcomes=dict(counts), armed=sorted(self.armed_now()), **extra)
 
     def snap(self, world: World) -> None:
         try:

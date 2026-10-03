@@ -473,11 +473,12 @@ class OpenTest(Base):
         its = self._open([need("RET-06", "abuela"), need("RET-02", "abuela")])
         self.assertEqual(len(its), 1)
 
-    def test_no_new_threads_with_four_live_duels(self):
-        w = make_world(duels=[{"status": "live"}] * 4)
+    def test_no_new_threads_with_five_live_duels(self):
+        # Sunday's Duels III and Grand Final run 4 at a time: ladder threads keep opening; only > 4 stops them
+        w = make_world(duels=[{"status": "live"}] * 5)
         self.assertEqual(self._open([need("RET-06", "abuela")], world=w), [])
-        w3 = make_world(duels=[{"status": "live"}] * 3)
-        self.assertEqual(len(self._open([need("RET-06", "abuela")], world=w3)), 1)
+        w4 = make_world(duels=[{"status": "live"}] * 4)
+        self.assertEqual(len(self._open([need("RET-06", "abuela")], world=w4)), 1)
 
     def test_skips_closer_frozen_and_page_closing(self):
         self.assertEqual(self._open([need("RET-06", "abuela", closer=True)]), [])
