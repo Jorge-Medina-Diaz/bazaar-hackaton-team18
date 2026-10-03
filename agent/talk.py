@@ -105,6 +105,10 @@ TEMPLATES: Mapping[str, tuple] = {
     ),
 }
 
+# Easter-egg probe lines sit LAST in these templates and are sent only by hand (do say ... variant=<last>);
+# automatic rotation (dealers._variant) must skip them.
+EGG_LINES: Mapping[str, int] = {"chato_buy": 1, "abuela_sell": 1, "pilar_sell": 1, "banco_sell": 1, "picaros_sell": 1}
+
 MAX_LEN = 280
 FORBIDDEN = re.compile(
     r"(?i)l[íi]mite|limit|reserv|m[íi]nimo|m[áa]ximo|presupuesto|budget|valor|value|afinidad|affinity"

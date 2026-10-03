@@ -366,6 +366,12 @@ class ProposeUnitTest(Base):
         its = self._step(self._haggled(23), [need("RET-06", "abuela")])
         self.assertEqual([(i.kind, i.args["price"], i.args["template"]) for i in its], [("say", 20, "abuela_buy")])
 
+    def test_variant_skips_egg_lines(self):
+        # the chato_buy name question (last line) is hand-sent only: rotation never reaches it
+        from agent import talk
+        n = len(talk.TEMPLATES["chato_buy"])
+        self.assertTrue(all(D._variant("chato_buy", k) < n - 1 for k in range(20)))
+
     def test_trick_offer_countered_never_accepted(self):
         # Pícaros trick: the dealer's only live offer gives another card (RET-07) at a low "final" price
         t = self._haggled(15, final=True)

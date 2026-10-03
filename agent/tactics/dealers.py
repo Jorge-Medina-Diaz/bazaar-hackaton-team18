@@ -285,8 +285,8 @@ def _variant(template: str, k: int) -> int:
     """M17: cycle through the template's lines (talk.render refuses an index past the last line: the 5th say
     to Chato, who has 4 lines, was refused G60.render). Repeats are still impossible: every say has a new price."""
     try:
-        from agent.talk import TEMPLATES as T
-        n = len(T[template])
+        from agent.talk import TEMPLATES as T, EGG_LINES
+        n = len(T[template]) - int(EGG_LINES.get(template, 0))     # egg probe lines are hand-sent only
     except Exception:
         n = 1
     return k % max(1, n)
