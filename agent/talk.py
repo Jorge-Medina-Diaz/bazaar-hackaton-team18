@@ -58,6 +58,7 @@ TEMPLATES: Mapping[str, tuple] = {
         "Está como nueva, señora. ¿Qué le parecen {p} P?",
         "Me ajusto por usted: {p} P, ¿le parece?",
         "Gracias por atenderme, Carmen. ¿La dejamos en {p} P?",
+        "Ay, Carmen, ¿es verdad lo de la chulapa dorada? Le dejo esta carta en {p} P.",   # Sat egg (Sharp ear)
     ),
     "chato_sell": (
         "Buenas, Chato. Te traigo esta carta. ¿{p} P?",
