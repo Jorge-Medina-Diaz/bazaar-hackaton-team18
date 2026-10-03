@@ -1,5 +1,9 @@
 # Traspaso actual — 2026-10-03
 
+## ✅ SAL-11 comprada a 139 · runbook del operador (Claude, analista) — sáb 3 oct, 18:00
+
+- t18 compró SAL-11 a Los Pícaros por 139 (hilo 1332, asset 992; vale unos 198). En main: plantilla `picaros_buy`, G31 ignora los cebos con otra carta, la táctica sigue subiendo ante un cebo, y en el plan `dealer_needs`/`protect_except` con SAL-11. **Operador:** `git pull`, `selftest` y relanzar `run`. Reventa opcional a Pilar en la fiebre (18:05–20:05) solo si es ≥ 199; si no, guardarla. Comandos en `docs/picaros.md` §9.
+
 ## ⚠️ PRIORIDAD · SAL-11 con Los Pícaros (Claude) — sáb 3 oct, 17:30
 
 - SAL-11 (épica de SAL) acuñada: t16 la compró a Los Pícaros a 167 (pidieron 187→174→167 «last offer») y la revende a 315 en El Rastro. Para t18 vale ~198. Jugada al abrirse Los Pícaros a todos (h 8,667): pedir SAL-11, abrir ~130, +1 por tick, ignorar «final», techo 197; y en la fiebre de Salamanca (h 9,15–11,15) venderla a Pilar ≥ 199 (~225). Detalle: `docs/seguridad-picaros.md` (cabecera PRIORIDAD).

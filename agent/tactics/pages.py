@@ -34,7 +34,7 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from agent.contracts import TEAM, Need, PlanCfg
 
-DEALERS = frozenset({"abuela", "chato"})
+DEALERS = frozenset({"abuela", "chato", "picaros"})
 RARITY_RANK = {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4}
 OPEN_STATUSES = frozenset({"open", "queued"})
 CLOSED_THREAD = frozenset({"closed", "deal", "expired", "cancelled", "settled"})
@@ -106,6 +106,12 @@ def load_plan(path: Path) -> PlanCfg:
         raise ValueError("plan.day_end_hours: day -> hours")
     if cfg["grant_lookahead_ticks"] < 0:
         raise ValueError("plan.grant_lookahead_ticks: >= 0")
+    for k in ("dealer_needs", "protect_except"):
+        if not (isinstance(cfg.get(k, []), list) and all(type(r) is str and "-" in r for r in cfg.get(k, []))):
+            raise ValueError(f"plan.{k}: list of card refs")
+    for r in cfg.get("dealer_needs", []):
+        if r not in cfg["profiles"]:
+            raise ValueError(f"plan.dealer_needs: {r} needs its own profile")
     lg = cfg.get("lat_give_up")
     if lg is not None:
         if not (isinstance(lg, dict) and type(lg.get("set")) is str and type(lg.get("tick")) is int
@@ -378,6 +384,24 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
             needs.extend(set_needs)
         except Exception:
             continue                                # fail closed for this set: no Needs
+    # single-card dealer Needs outside the page sets (docs/picaros.md: SAL-11 from Los Pícaros). Never a closer
+    # and never a page set's card (those come from the loop above); capped like any dealer Need.
+    planned = {n.ref for n in needs}
+    for ref in plan_cfg.get("dealer_needs") or ():
+        try:
+            card = cards.get(ref, {})
+            set_id = card.get("set") or ref.rsplit("-", 1)[0]
+            prof = (plan_cfg.get("profiles") or {}).get(ref)
+            if (no_dealers or not prof or ref in planned or held[ref] >= 1 or set_id not in (world.released_sets or ())
+                    or set_id in (plan_cfg.get("page_sets") or ())):
+                continue
+            dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
+            cap = min(int(prof["limit"]), int((plan_cfg.get("dealer_max") or {}).get(ref, prof["limit"])),
+                      _floor(dv - 1.0))
+            if cap >= 1:
+                needs.append(Need(set=set_id, ref=ref, source=prof["dealer"], max_price=cap, closer=False))
+        except Exception:
+            continue                                # fail closed for this ref
     return needs, new_frozen
 
 

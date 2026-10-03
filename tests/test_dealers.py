@@ -337,6 +337,51 @@ class BotsTest(Base):
         self.assertLessEqual(len(sim.threads), D.WALKS_PER_HOUR)          # reopen at most once per hour
 
 
+class PicarosBaitTest(Base):
+    """docs/picaros.md T1: Los Pícaros answer a buy of a rare with an offer that gives another card (even as a final).
+    That is bait, not a price: we never accept it and keep raising up to the limit."""
+    PLAN_P = {"profiles": {"RET-09": {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60}}, "dealer_max": {}}
+
+    def _step(self, bait_final=False, ours=(45,), legit=None):
+        msgs, standing, oid = [], [], 0
+        for p in ours:
+            oid += 1
+            msgs.append({"id": oid, "tick": 6, "sender": TEAM, "offer": own_offer(oid, "picaros", "RET-09", p, 6, "cancelled")})
+        if legit is not None:
+            oid += 1
+            o = dealer_offer(oid, "picaros", "RET-09", legit, 9)               # still alive at tick 11
+            msgs.append({"id": oid, "tick": 9, "sender": "picaros", "offer": o})
+            standing.append(o)
+        oid += 1
+        bait = dealer_offer(oid, "picaros", "RET-06", 50, 9, final=bait_final)     # names RET-09, gives RET-06
+        msgs.append({"id": oid, "tick": 9, "sender": "picaros", "offer": bait})
+        standing.append(bait)
+        t = {"id": 7, "with": "picaros", "team": TEAM, "topic": {"buy": {"card": "RET-09"}}, "status": "open",
+             "created_tick": 5, "messages": msgs, "standing_offers": standing}
+        w = make_world(threads={7: t}, unlocked=("abuela", "chato", "picaros"))
+        b = make_book(thread_limit={7: 60}, thread_by_dealer={"picaros": 7})
+        return D.propose(w, b, FakeValuer(VALUES), Cfg(), self.PLAN_P, [need("RET-09", "picaros", 60)],
+                         D.DealerState.rebuild(w, None))
+
+    def test_bait_is_never_accepted_and_we_raise(self):
+        for final in (False, True):
+            its = self._step(bait_final=final)
+            self.assertEqual([(i.kind, i.args["price"], i.args["template"]) for i in its],
+                             [("say", 48, "picaros_buy")], final)
+
+    def test_bait_over_a_live_legit_offer_uses_the_legit_price(self):
+        its = self._step(legit=47)                                        # 47 <= next 48: accept the real card
+        self.assertEqual([(i.kind, i.args["price"], i.args["offer_id"]) for i in its], [("accept", 47, 2)])
+
+    def test_bait_at_the_limit_closes(self):
+        its = self._step(ours=(45, 60))
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_other_dealers_still_wait(self):
+        self.assertNotIn("abuela", D.BAIT_DEALERS)
+        self.assertNotIn("chato", D.BAIT_DEALERS)
+
+
 class ProposeUnitTest(Base):
     def _thread(self, dealer, ref, msgs, standing, status="open", created=5):
         return {"id": 7, "with": dealer, "team": TEAM, "topic": {"buy": {"card": ref}}, "status": status,

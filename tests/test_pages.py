@@ -84,7 +84,7 @@ class PlanFileTest(unittest.TestCase):
 
 class PlanTest(unittest.TestCase):
     def setUp(self):
-        self.cfg = pages.load_plan(PLAN)
+        self.cfg = dict(pages.load_plan(PLAN), dealer_needs=[])      # page sets only (DealerNeedsTest below)
 
     def test_ret_published_9_dealer_needs_and_1_closer(self):
         w = make_world()
@@ -246,6 +246,44 @@ class ProtectTest(unittest.TestCase):
         self.assertIn("LAV-03", refs)                                 # unprotected set
         listed = make_world()                                         # harvest: LAV-03 listed in 2460
         self.assertNotIn("LAV-03", [r for _, r in pages.spare_assets(listed, {"SAL", "LAT"})])
+
+
+
+class DealerNeedsTest(unittest.TestCase):
+    """plan.dealer_needs (docs/picaros.md): single dealer Needs outside page_sets, e.g. SAL-11 from Los Pícaros."""
+
+    def setUp(self):
+        self.cfg = pages.load_plan(PLAN)
+
+    def _sal11(self, w):
+        needs, _ = pages.plan(w, valuer_for(w), self.cfg, {})
+        return [n for n in needs if n.ref == "SAL-11"]
+
+    def test_real_plan_has_sal11_for_picaros(self):
+        self.assertEqual(self.cfg["dealer_needs"], ["SAL-11"])
+        self.assertEqual(self.cfg["profiles"]["SAL-11"]["dealer"], "picaros")
+        self.assertIn("SAL-11", self.cfg["protect_except"])
+
+    def test_need_when_released_and_not_held(self):
+        got = self._sal11(make_world())
+        self.assertEqual(len(got), 1)
+        n = got[0]
+        self.assertEqual((n.set, n.source, n.closer), ("SAL", "picaros", False))
+        self.assertTrue(1 <= n.max_price <= 197)
+
+    def test_no_need_when_held_unreleased_or_after_day_end(self):
+        self.assertEqual(self._sal11(make_world(add_refs=("SAL-11",))), [])
+        self.assertEqual(self._sal11(make_world(released=("LAV", "MAL", "LAT", "RET"))), [])
+        self.assertEqual(self._sal11(make_world(t_hours=21.6, today="sun")), [])   # day_end_hours.sun 21.5667
+
+    def test_profile_required(self):
+        raw = json.loads(PLAN.read_text(encoding="utf-8"))
+        raw["dealer_needs"] = ["SAL-10"]
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "plan.json"
+            p.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                pages.load_plan(p)
 
 
 if __name__ == "__main__":

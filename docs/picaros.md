@@ -224,3 +224,34 @@ Respetan las reglas: `contracts.py` y `bazaar_sdk.py` no se tocan, toda escritur
 | R12 | Detalle de la fiebre de Salamanca | Bajo (sin repetidos de SAL) | `/api/schedule` |
 
 **Fuentes:** scripts en el scratchpad: `picaros_tricks.py`, `weight/dealer_weight.py`, `weight/dealer_metrics.py`, `threads.py`, `analyze.py`, `pic_tricks.py` y `verify_*.py`. No hice escrituras al juego ni toqué el repo.
+## 9. Runbook del operador: SAL-11 (Pícaros → Pilar) — sáb 3 oct, 18:00
+
+**Estado:** t18 **compró SAL-11 a los Pícaros por 139** (hilo 1332, tick 925, liquidación 855, asset **992**, serie 2/9). La abrieron con la carta cambiada a 187 (T1) y bajaron por 167, 155 y 145. Con nuestros +3 (130→139), aceptaron 139. Para nosotros vale unos 198, así que la compra da unos +59 y llena un hueco de la escalera de nivel 4.
+
+### Qué cambió en el código (commit «picaros: SAL-11…»)
+| fichero | cambio |
+|---|---|
+| `agent/talk.py` | Nueva plantilla `picaros_buy` (solo compra). G31 ignora las ofertas del dealer que no pasan `offer_safety.offer_ok`: un cebo con otra carta, aunque sea `final`, ni bloquea ni obliga a aceptar |
+| `agent/tactics/dealers.py` | `TEMPLATES["picaros"]`. Si la última oferta de los Pícaros es un cebo (no hay oferta válida de la carta), la táctica **sigue subiendo** en vez de quedarse esperando (`BAIT_DEALERS`) |
+| `agent/tactics/pages.py` | Clave opcional `dealer_needs`: cartas sueltas fuera de `page_sets` que la táctica `dealers` compra con su perfil. Nunca es una carta de cierre. Tope = min(perfil, `dealer_max`, V − 1) |
+| `agent/guards.py` | Clave opcional `protect_except`: refs que G13 no guarda, para poder revender SAL-11 |
+| `config/plan.json` | `dealer_needs: ["SAL-11"]`, perfil `SAL-11` (picaros, ancla 130, paso 4, límite 197, `fallback_after` 40), `dealer_max.SAL-11 = 197`, `protect_except: ["SAL-11"]` |
+
+Como ya **tenemos** SAL-11, `dealer_needs` no genera nada: el bot no compra una segunda copia. Queda preparado para la siguiente épica que añadáis (cada ref necesita su perfil propio).
+
+### Pasos (máquina A)
+1. `git pull` → `python3 bazaar.py selftest` (verde en analista: core, hygiene, dealers, rastro, closer, duels) → relanzar el mismo `run --live` (cambió el `code_hash`).
+2. **Revender a Pilar durante la fiebre de Salamanca** (t = 9,15–11,15, ≈ 18:05–20:05). Es **opcional**. El suelo de la Gate es `ceil(dv_rm + 1)` ≈ **199**: por debajo no deja vender, y entonces nos la quedamos (sigue valiendo unos 198 en el álbum). Un hilo con Pilar cada vez y solo a mano:
+   ```
+   python3 bazaar.py do open_thread --args '{"dealer": "pilar", "side": "sell", "ref": "SAL-11", "asset_ids": [992], "limit": 199}' --why "SAL-11 a Pilar, fiebre"
+   python3 bazaar.py do say --args '{"thread_id": <tid>, "ref": "SAL-11", "price": 240, "template": "pilar_sell", "variant": 0}' --why "ancla"
+   # bajar de 5 en 5 con variant 1..3 (240, 235, 230, 225, …); nunca repetir cifra; nunca por debajo de 199
+   python3 bazaar.py do accept --args '{"offer_id": <oid>, "source": "dealer", "ref": "SAL-11", "side": "sell", "price": <p>, "thread_id": <tid>, "give_asset": null, "fingerprint": "", "resupply": false, "venue": "pilar"}' --why "SAL-11 vendida a Pilar"
+   ```
+   - Aceptar su oferta si es ≥ 199 **y** su `want.assets` es exactamente `[992]` (lo comprueba G32).
+   - **Riesgo:** Pilar abre bajo (0,64 × libro en D-23) y sube unos +1 por ronda. Con la fiebre (+25 % sobre un libro de 180, unos 225) puede no llegar a 199 a tiempo. Si su `final` queda por debajo de 199, **cerrar el hilo y quedárnosla**.
+   - **¿Vender o guardar?** Vender a ≥ 199 da caja y un trato de nivel 3, pero solo +1 sobre su valor. Guardarla no pierde nada. Vended solo si hace falta caja: mañana llegan +150 y las raras de CHA cuestan unos 300.
+3. **Más compras a los Pícaros** (LAT-09 ya está en curso a mano): mismo patrón, pasos de +3 y aceptar solo una oferta con la carta exacta. Para que el bot compre otra épica (p. ej. RET-11, que vale unos 234), añadid su perfil propio. Pero RET está en `page_sets`, así que pasa por el bucle de páginas, no por `dealer_needs`: hace falta un perfil `RET-11`. Antes, validadlo en seco con `run` sin `--live`.
+4. **Parar:** quitad `SAL-11` de `dealer_needs` y de `protect_except`, o `python3 bazaar.py pause dealers --why "..."`.
+
+**Vigía de solo lectura (analista):** avisa de cada oferta de SAL-11/RET-11 de los Pícaros y de Pilar, de las liquidaciones, de las reventas en El Rastro por debajo del techo y de nuestros hilos con los dos dealers.

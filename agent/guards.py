@@ -533,12 +533,13 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
 
     protect = frozenset(plan_cfg.get("protect_sets") or ("SAL", "RET", "CHA", "LAT"))
     keep = {}
+    unprotected = frozenset(plan_cfg.get("protect_except") or ())   # e.g. SAL-11, bought to resell (picaros.md)
     for ref in set(held) | set(getattr(valuer, "cards", {}) or {}):
         try:
             page = bool(valuer.page_card(ref))
         except Exception:  # noqa: BLE001 - unknown card: protect it (fail closed)
             page = True
-        if _set_of(ref) in protect and page:
+        if _set_of(ref) in protect and page and ref not in unprotected:
             keep[ref] = 1
 
     bands_cfg = plan_cfg.get("baseline_bands") or {}

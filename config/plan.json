@@ -1,5 +1,6 @@
 {
   "_notes": [
+    "Sat 17:50 (docs/picaros.md): dealer_needs = single cards bought from a dealer outside page_sets (SAL-11 epic from Los Pícaros, V ~198, cap 197 = V - 1); protect_except = refs G13 does not keep, so SAL-11 can be resold to Doña Pilar by hand (bazaar.py do, floor ceil(dv_rm + 1)). To stop: remove SAL-11 from dealer_needs.",
     "M8 plan data (docs/harness-spec.md 2.1 PlanCfg, docs/strategy.md J0-J13). Keys starting with '_' are ignored by load_plan.",
     "Sunday: add \"CHA\" to page_sets (that is all). Server schedule (Sat 09:20): game paused at t=2.65; Saturday ends at t=16.65 (wall 23:00), Sunday runs 16.65-22.65 (09:00-15:00), dealers off at 21.65. day_end_hours = 5 min before (sat 16.5667, sun 21.5667) assumes 1 game h = 1 wall h from 09:00. If the unpause is late (T0), set sat = 2.65 + hours(22:55 - T0).",
     "startup_cancels: the lead cancelled 2463, 2592 (LAT-01) and 1652, 2591 (LAT-05) at 01:30; the harvest fixtures still show them open, so they stay listed: a cancel of an offer that is not open in my_offers is a no-op (G23).",
@@ -15,7 +16,8 @@
     "RET-01": 11, "RET-02": 11, "RET-03": 11, "RET-04": 11, "RET-05": 11,
     "RET-06": 25, "RET-07": 25, "RET-08": 31, "RET-09": 90, "RET-10": 90,
     "CHA-01": 12, "CHA-02": 12, "CHA-03": 12, "CHA-04": 12, "CHA-05": 12,
-    "CHA-06": 25, "CHA-07": 25, "CHA-08": 31, "CHA-09": 100, "CHA-10": 100
+    "CHA-06": 25, "CHA-07": 25, "CHA-08": 31, "CHA-09": 100, "CHA-10": 100,
+    "SAL-11": 197
   },
   "profiles": {
     "RET:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null},
@@ -25,8 +27,11 @@
     "CHA:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 100, "fallback_after": null},
     "CHA-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
-    "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null}
+    "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null},
+    "SAL-11":       {"dealer": "picaros", "anchor": 130, "step": 4, "limit": 197, "fallback_after": 40}
   },
+  "dealer_needs": ["SAL-11"],
+  "protect_except": ["SAL-11"],
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
              "endgame_hours": {"sun": 21.0}},
   "resupply_min": 15,

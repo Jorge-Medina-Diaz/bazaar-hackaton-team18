@@ -645,6 +645,46 @@ class PilarSell(unittest.TestCase):
             self.assertEqual(v.ok, ok, v)
 
 
+class PicarosBuy(unittest.TestCase):
+    """docs/picaros.md: we only buy from Los Pícaros; an offer of another card (T1, even final) is bait, not a price."""
+    W = dict(me={"id": "t18", "unlocked": ["abuela", "chato", "pilar", "picaros"], "assets": ASSETS})
+
+    def setup(self, theirs=((73, False),), bait=None):
+        t = thread(dealer="picaros", ref="LAT-09", ours=(45,), theirs=theirs)
+        if bait is not None:
+            price, final = bait
+            o = dict(t["messages"][-1]["offer"], id=1999, final=final,
+                     give={"cash": 0, "assets": [], "types": ["card:LAT-06"]}, want={"cash": price, "assets": [], "types": []})
+            t["messages"].append({"id": 1999, "tick": TICK, "sender": "picaros", "offer": o})
+        b = tb(thread_limit={7: 60}, thread_prices={7: (45,)}, thread_by_dealer={"picaros": 7})
+        return t, world(threads={7: t}, **self.W), b
+
+    def test_template_exists_buy_only(self):
+        self.assertIn("picaros_buy", talk.TEMPLATES)
+        self.assertNotIn("picaros_sell", talk.TEMPLATES)
+        t, w, b = self.setup()
+        self.assertTrue(run(say(48, template="picaros_buy", variant=2), w=w, b=b).ok)
+        self.assertEqual(run(say(48, template="chato_buy"), w=w, b=b).code, "G60.template")
+
+    def test_bait_final_does_not_block_our_next_price(self):
+        t, w, b = self.setup(bait=(59, True))
+        self.assertTrue(run(say(48, template="picaros_buy"), w=w, b=b).ok)
+
+    def test_bait_below_our_price_is_not_should_accept(self):
+        t, w, b = self.setup(bait=(40, False))
+        self.assertTrue(run(say(48, template="picaros_buy"), w=w, b=b).ok)
+
+    def test_real_final_still_blocks(self):
+        t, w, b = self.setup(theirs=((59, True),))
+        self.assertEqual(run(say(48, template="picaros_buy"), w=w, b=b).code, "G31.final")
+
+    def test_bait_is_never_accepted(self):
+        t, w, b = self.setup(bait=(50, True))
+        v = run(dealer_accept(1999, 50), w=w, b=b, fresh=t)
+        self.assertFalse(v.ok)
+        self.assertIn(v.code, ("G32.not_executable", "G32.shape"))
+
+
 class Misc(unittest.TestCase):
     def test_other_kinds_refused(self):
         it = make_intent("cancel", "hygiene", {"offer_id": 1, "ref": None}, "t", "t", PRED)
@@ -652,7 +692,7 @@ class Misc(unittest.TestCase):
 
     def test_templates_cover_spec_names(self):
         self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell",
-                                               "pilar_sell", "duel", "duel_days"})
+                                               "pilar_sell", "picaros_buy", "duel", "duel_days"})
 
 
 if __name__ == "__main__":

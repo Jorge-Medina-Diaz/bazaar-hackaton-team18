@@ -18,8 +18,10 @@ NOTES (M4b, night build)
 - "Distinct from the last text of the thread": the World has no text, so it is enforced structurally:
   every template carries {p} (duel_days also {d}) and G31/G50 forbid repeating our (price[, days]).
   firewall() also takes an optional last_text for callers that have it.
-- Dealer templates exist only for abuela, chato and pilar (sell only); any other dealer or side has no
-  template -> G60.template (refuse).
+- Dealer templates exist only for abuela, chato, pilar (sell only) and picaros (buy only); any other dealer or
+  side has no template -> G60.template (refuse).
+- G31 ignores dealer offers that fail offer_safety.offer_ok (another card than the topic's, extras): they are
+  bait, not a price, so a baited "final" does not block our next price (docs/picaros.md, T1).
 - `fresh` for duel_accept: the duel Mapping, or the /api/duels payload ({"duels": [...]}) or a list.
   `fresh` for a dealer accept: the thread Mapping (or {"thread": {...}}).
 """
@@ -71,6 +73,14 @@ TEMPLATES: Mapping[str, tuple] = {
         "Usted sabe distinguir una buena pieza. Por esta le pido {p} P.",
         "Me acerco a su cifra, Doña Pilar: {p} P.",
         "Con todo respeto por su colección: {p} P.",
+    ),
+    # Los Pícaros (level 4, docs/picaros.md): chatty tricksters who sell rares and epics. Short and firm; their
+    # text never moves our price (it often names one card while the offer gives another: offer_ok decides).
+    "picaros_buy": (
+        "Buenas, Paco y Nando. Vengo a por esa carta, la de verdad. ¿{p} P?",
+        "Sin prisas y sin cuentos: {p} P.",
+        "Me muevo yo: {p} P por esa misma carta.",
+        "Trato limpio y rápido: {p} P.",
     ),
     "duel": (
         "Propuesta justa para cerrar pronto y que ganemos los dos: {p} P.",
@@ -389,7 +399,10 @@ def _g31_say(a, world, book, valuer, cfg, counters) -> None:
     else:
         last = min(prices) if prices else None
         _need((last is None or p < last) and p >= lim, "G31.limit", f"last={last} p={p} lim={lim}")
-    standing = _dealer_standing(t, dealer)
+    from agent import offer_safety
+    # Only offers of exactly the thread's item are prices (Los Pícaros bait with another card, even as a final).
+    topic = _get(t, "topic") or {}
+    standing = [o for o in _dealer_standing(t, dealer) if offer_safety.offer_ok(o, topic, buying=side == "buy")]
     _need(not any(o.get("final") is True for o in standing), "G31.final")
     for o in standing:
         dp = _dealer_price(o, side)

@@ -52,8 +52,9 @@ MAX_LIVE_DUELS_FOR_NEW_THREADS = 3          # >= 4 live duels -> no new threads
 STALL_TICKS = 3                             # our message unanswered this long -> close
 WALKS_PER_HOUR = 2                          # first thread + 1 reopen per hour per (dealer, ref)
 REQUIRED_SOURCES = frozenset({"clock", "me", "me/offers", "me/threads", "threads"})
-TEMPLATES = {"abuela": "abuela_buy", "chato": "chato_buy"}
+TEMPLATES = {"abuela": "abuela_buy", "chato": "chato_buy", "picaros": "picaros_buy"}
 DEFAULT_TEMPLATE = "chato_buy"
+BAIT_DEALERS = frozenset({"picaros"})       # dealers whose non-matching offers are bait: keep raising
 PRIO_ACCEPT, PRIO_CLOSE, PRIO_SAY, PRIO_OPEN = 60, 50, 40, 10
 _INF = float("inf")
 
@@ -365,6 +366,20 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
         standing = _standing(t, dealer, ref, tick)
         if not probe and type(fb) is int and fb > 0 and type(opened_tick) is int and tick - opened_tick >= fb:
             close(tid, ref, f"fallback_after {fb} ticks reached")
+            continue
+        if standing is None and sender == dealer and dealer in BAIT_DEALERS and not probe:
+            # the dealer answered, but with no executable offer of exactly `ref` (Los Pícaros' bait: another
+            # card, even as a final; or an offer we let expire): not a price, so we keep raising (docs/picaros.md T1)
+            nxt = next_price(profile, k, last, limit_t) if limit_t >= 1 else 0
+            if nxt < 1 or (last is not None and nxt <= last) or nxt in prices:
+                close(tid, ref, f"no valid offer and cannot raise (last {last}, limit {limit_t})")
+                continue
+            tpl = TEMPLATES.get(dealer, DEFAULT_TEMPLATE)
+            out.append(make_intent(
+                "say", TACTIC,
+                {"thread_id": tid, "ref": ref, "price": nxt, "template": tpl, "variant": _variant(tpl, k)},
+                f"{dealer} answered without a valid offer of {ref}; our step {k} -> {nxt} (limit {limit_t})",
+                f"standing bid {nxt} for {ref}", predict_dealer(dv, nxt, "buy"), PRIO_SAY))
             continue
         if standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0)):
             if sender == TEAM and sender_tick is not None and tick - sender_tick >= STALL_TICKS:
