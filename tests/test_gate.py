@@ -519,6 +519,22 @@ class TestBudgetsAndBook(GateCase):
         self.assertEqual(sum(o.status == "sent" for o in outs), 6)
         self.assertEqual(outs[-1].code, "G04.listings")
 
+    def test_budgets_survive_a_second_begin_tick_and_small_limits(self):
+        # the runner's fast path and full tick both begin the same server tick: the counters must not reset
+        w = self.start(world(cash=10_000))
+        refs = ("LAT-09", "LAT-10", "RET-01", "RET-02", "SAL-01", "CHA-01")
+        self.assertTrue(all(self.gate.execute(bid(r, 2), w).status == "sent" for r in refs))
+        self.start(w)
+        self.assertEqual(self.gate.execute(bid("LAV-03", 2), w).code, "G04.listings")
+        w2 = self.start(world(tick=TICK + 1, cash=10_000))       # a new tick: fresh budgets
+        self.assertEqual(self.gate.execute(bid("LAV-03", 3), w2).status, "sent")
+        # L - 2 / L - 1 were 0 with a small server limit: no listing / thread at all
+        small = replace(world(tick=TICK + 2, cash=10_000), limits=Limits(1, 1, 1, 30, 2))
+        self.start(small)
+        self.assertEqual(self.gate.execute(cancel(41), small).status, "sent")
+        self.assertEqual(self.gate.execute(cancel(42), small).code, "G04.listings")
+        self.assertEqual(self.gate.execute(open_thread("MAL-04", 5), small).status, "sent")
+
     def test_two_bids_over_cash_second_refused(self):
         w = self.start(world(cash=100))                           # cash_free 90
         self.assertEqual(self.gate.execute(bid("LAT-09", 30), w).status, "sent")

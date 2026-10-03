@@ -109,6 +109,9 @@ class TestChoose(unittest.TestCase):
         self.assertEqual([it.kind for it in out[:3]], ["cancel"] * 3)
         w = make_world(limits=Limits(1, 1, 6, 30, 5))         # min(6, 5 - 2) = 3
         self.assertEqual(len(runner.choose(its, w, Cfg())), 3)
+        for lim, n in ((2, 1), (3, 1), (1, 1), (0, 0)):         # small limits keep one slot (was 0 at 2)
+            self.assertEqual(len(runner.choose(its, make_world(limits=Limits(1, 1, 6, 30, lim)), Cfg())), n, lim)
+        self.assertEqual(len(runner.choose([open_thread()], make_world(limits=Limits(1, 1, 1, 30, 12)), Cfg())), 1)
 
     def test_open_offer_room(self):
         mine = tuple({"id": i, "maker": TEAM, "status": "open"} for i in range(25))

@@ -171,9 +171,9 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
 
     Order: exposure reducers first (cancel, close_thread, open_pack), then priority (high first), then tactic order.
     Budgets: accepts (team/dealer + duel when DUEL_ACCEPT_SHARED) <= limits.accepts, given to the EARLIEST deadline
-    (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, limits.listings - 2); new list_offer <=
-    room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= limits.threads -
-    THREADS_MARGIN - own open threads, none while >= 4 duels are live; <= 1 message per thread / duel (a duel being
+    (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, L, max(1, L - 2)), L = limits.listings;
+    new list_offer <= room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= max(1, limits.threads -
+    THREADS_MARGIN) - own open threads, none while >= 4 duels are live; <= 1 message per thread / duel (a duel being
     accepted gets no message); duplicates (same intent id, or same cancel/close/pack target) dropped.
     The Gate re-checks every budget (G04); this only decides WHO gets the scarce slots.
     """
@@ -208,12 +208,14 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         chosen_acc = {id(it) for it in team[:acc_budget] + duel[:acc_budget]}
     accepted_duels = {it.args.get("duel_id") for it in accepts if id(it) in chosen_acc and it.kind == "duel_accept"}
 
-    listings = max(0, min(int(_cfg(cfg, "LISTINGS_PER_TICK", 6)), int(getattr(L, "listings", 0) or 0) - 2))
+    lim = int(getattr(L, "listings", 0) or 0)          # min(L, max(1, L - 2)): limit 2 or 3 keeps one slot (Gate G04)
+    listings = max(0, min(int(_cfg(cfg, "LISTINGS_PER_TICK", 6)), lim, max(1, lim - 2)))
     own_open = sum(1 for o in world.my_offers or () if _g(o, "maker") == TEAM and _g(o, "status") in OWN_OPEN)
     offer_room = max(0, int(getattr(L, "open_offers", 0) or 0) - int(_cfg(cfg, "OPEN_OFFERS_MARGIN", 4)) - own_open)
     own_threads = sum(1 for t in (world.threads or {}).values()
                       if _g(t, "status") == "open" and _g(t, "team", TEAM) == TEAM)
-    thread_room = max(0, int(getattr(L, "threads", 0) or 0) - int(_cfg(cfg, "THREADS_MARGIN", 1)) - own_threads)
+    tlim = int(getattr(L, "threads", 0) or 0)
+    thread_room = max(0, min(tlim, max(1, tlim - int(_cfg(cfg, "THREADS_MARGIN", 1)))) - own_threads)
     if len(world.duels or ()) >= 4:
         thread_room = 0
     msgs: set = set()

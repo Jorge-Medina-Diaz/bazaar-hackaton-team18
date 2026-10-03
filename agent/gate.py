@@ -361,15 +361,20 @@ class Gate:
     # ---------------------------------------------------------------- begin_tick
     def begin_tick(self, world: World) -> list:
         msgs: list = []
+        # the runner's fast path and the full tick can both begin the SAME server tick: keep its per-tick budgets
+        # (a reset let listings+cancels reach 12, the server limit) and the domains blocked in it
+        same = self._tick == world.tick and self.counters is not None
         self._tick = world.tick
-        self._blocked = set()
+        if not same:
+            self._blocked = set()
         self.book = None
         g = self._guards
         if g is None:
             msgs.append("guards not built: every write refused")
             self.counters = None
             return msgs
-        self.counters = g.Counters(tick=world.tick)
+        if not same:
+            self.counters = g.Counters(tick=world.tick)
         baseline = self._baseline(world, msgs)
         if baseline is None:
             return msgs
@@ -975,7 +980,8 @@ class Gate:
         if k in ("accept", "duel_accept") and c.accepts >= L.accepts:
             raise _Refuse("G04.accepts", f"{c.accepts}/{L.accepts}")
         if k in ("list_offer", "cancel"):
-            cap = min(int(self._cfg("LISTINGS_PER_TICK", 6)), L.listings - 2)
+            # min(L, max(1, L - 2)): a small server limit (2 or 3) keeps one slot instead of none
+            cap = min(int(self._cfg("LISTINGS_PER_TICK", 6)), L.listings, max(1, L.listings - 2))
             if c.listings >= cap:
                 raise _Refuse("G04.listings", f"{c.listings}/{cap}")
         if k == "list_offer":
@@ -986,7 +992,7 @@ class Gate:
         if k == "open_thread":
             mine = sum(1 for th in (world.threads or {}).values()
                        if _get(th, "team", TEAM) == TEAM and _get(th, "status") == "open")   # World.threads keeps every status
-            cap = L.threads - int(self._cfg("THREADS_MARGIN", 1))
+            cap = min(L.threads, max(1, L.threads - int(self._cfg("THREADS_MARGIN", 1))))
             if mine + c.threads_opened >= cap:
                 raise _Refuse("G04.threads", f"{mine}+{c.threads_opened}/{cap}")
         if k == "say" and f"thread:{a['thread_id']}" in c.msgs:
