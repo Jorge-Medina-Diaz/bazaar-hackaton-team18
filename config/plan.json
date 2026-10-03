@@ -1,7 +1,7 @@
 {
   "_notes": [
     "M8 plan data (docs/harness-spec.md 2.1 PlanCfg, docs/strategy.md J0-J13). Keys starting with '_' are ignored by load_plan.",
-    "Sunday: add \"CHA\" to page_sets. Schedule measured Sat 17:12 (/api/schedule + /api/clock): wall = game hour + 8h55m after the lunch pause; Sat closes t14.086 (23:00), Sun t14.086-20.086 (09:00-15:00, tick 15 s). day_end_hours = 5 min before close. Sunday 09:05: re-read /api/schedule and recompute day_end.sun and closer.endgame_hours (close - 0.583) if the start is late. The runner reads this file at start: config changes need a restart.",
+    "Sunday (night audit): the runner derives today's day end and closer endgame from the LIVE schedule every tick (pages.effective_plan): day end = min(day_closes - 5 min, stalls close - 6 min), endgame = day_closes - 35 min. It follows a late start, a clock jump to 16.65 or a pause. day_end_hours / closer.endgame_hours below are only the fallback when the schedule is readable but has no day_closes entry (no trigger at all on a cold start). Sat closed at t13.367; Sun 09:00-15:00 is t13.367-19.367 if the clock resumes, t16.65-22.65 if it jumps. The runner reads this file at start: config changes need a restart.",
     "startup_cancels: the lead cancelled 2463, 2592 (LAT-01) and 1652, 2591 (LAT-05) at 01:30; the harvest fixtures still show them open, so they stay listed: a cancel of an offer that is not open in my_offers is a no-op (G23).",
     "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N are owned by guards.Cfg (contracts D2 defaults); not repeated here.",
     "profiles lookup order: exact ref, then 'SET:rarity', then 'rarity'. anchor/step/limit in P; fallback_after in ticks."
@@ -34,9 +34,9 @@
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
              "endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}},
   "resupply_min": 15,
-  "dup_min_price": {"RET": 30, "CHA": 30, "SAL": 70, "LAT": 18},
+  "dup_min_price": {"RET": 30, "CHA": 30, "LAT": 18},
   "days_sign": null,
   "duels": {"anchor": 0.65, "slow_cap": 0.78, "days_weight_fallback": 1.0},
-  "day_end_hours": {"sat": 13.28, "sun": 19.283},
+  "day_end_hours": {"sun": 19.283},
   "grant_lookahead_ticks": 12
 }
