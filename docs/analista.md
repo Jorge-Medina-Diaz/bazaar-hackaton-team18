@@ -116,6 +116,7 @@ Los topes solo se alcanzan si el vendedor no baja. El regateo llegó a 86 desde 
 **Panel en vivo: https://t18-analista.vercel.app** (código en `analista/index.html`). Es un HTML estático sin dependencias que lee la API pública desde el navegador (la API envía CORS `*`); no usa clave ni servidor.
 - Uso local: `cd analista && python3 -m http.server 8765` y abrir http://localhost:8765 (o abrir el fichero directamente).
 - Publicado en Vercel (proyecto `t18-analista`, aparte del panel del equipo). Republicar tras un cambio: `cd analista && npx vercel deploy --prod --yes`.
+- **Barrios** (`analista/barrios.html`): el Radar de barrios dentro del sitio. `assets/affinity.js` es el puerto JS de `agent/affinity.py` (prueba de paridad: `node --test analista/affinity.test.cjs`) y se recalcula en cada tick con la semilla `assets/affinity-seed.js` más el feed en vivo del navegador. Tabla «Multiplicadores de un vistazo» (reparto más probable por equipo) + matriz E[×] / P(×1,6) + evolución por equipo. Para cerrar el hueco entre la semilla y el feed en vivo, regenerarla y republicar: `python3 affinity.py --offline --seed analista/assets/affinity-seed.js`.
 - Ritmo: clock y feed cada 15 s; clasificación, mercados y El Rastro cada 30 s; calendario cada 5 min (≈ 0,2 lecturas/s).
 - Páginas (cabecera común con pestañas, reloj, cuenta atrás del próximo evento, pausa y tema):
   - **Mesa** (`/`): resumen para decidir (lo de abajo), exportación para el jurado.

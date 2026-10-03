@@ -49,4 +49,4 @@ python3 affinity.py --history 5                # historia tick a tick -> logs/af
 - Regla práctica: vender solo a quien sale COMPRADOR con ≥ 80 % y buscar carta en quien sale VENDEDOR.
 
 ## El panel
-[Radar de barrios](https://claude.ai/artifact/Mc5Xzjj4uUMWTgP6z9vZ2C): matriz equipo × barrio con el multiplicador esperado y la ★ en el ×1,6 más probable, y la evolución tick a tick del equipo que se elija. La franja gris marca el hueco del feed (ticks 159–203). Se actualiza solo cuando se cargan fotos nuevas del estimador. La página no puede consultar el juego por sí misma: alguien tiene que volcar la historia nueva.
+[Radar de barrios](https://claude.ai/artifact/Mc5Xzjj4uUMWTgP6z9vZ2C): matriz equipo × barrio con el multiplicador esperado y la ★ en el ×1,6 más probable, y la evolución tick a tick del equipo que se elija. La franja gris marca el hueco del feed (ticks 159–203). Sustituido por la página [Barrios](https://t18-analista.vercel.app/barrios) de la Mesa del Analista, que se recalcula en cada tick en el navegador (semilla grabada + feed en vivo).

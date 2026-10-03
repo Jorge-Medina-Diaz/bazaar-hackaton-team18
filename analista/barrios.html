@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Barrios · Mesa del Analista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/nav.css">
+<style>
+/* chip de multiplicador: color por valor, la cifra pequeña es la probabilidad de ese valor */
+.mx{display:inline-grid;justify-items:center;min-width:3.4rem;padding:4px 6px;border-radius:6px;font:600 14px/1.1 var(--f-mono);background:var(--chip)}
+.mx small{font:400 10.5px/1.2 var(--f-mono);color:var(--muted)}
+.mx.m16{background:color-mix(in srgb,var(--foil) 70%,var(--sheet));color:#14213d;font-weight:800}
+.mx.m16 small{color:#14213d;opacity:.75}
+.mx.m13{background:color-mix(in srgb,var(--foil) 32%,var(--sheet))}
+.mx.m07{background:color-mix(in srgb,var(--cobalt) 14%,var(--sheet))}
+.mx.m05{background:color-mix(in srgb,var(--cobalt) 26%,var(--sheet))}
+.mx.weak{opacity:.55}
+#glance td,#glance th{text-align:center}
+#glance td:first-child,#glance th:first-child{text-align:left}
+#glance tr.us td{background:color-mix(in srgb,var(--foil) 7%,var(--sheet))}
+.heat td.cell{text-align:center;font-variant-numeric:tabular-nums;position:relative}
+.heat td.cell small{display:block;color:var(--muted);font-size:11px}
+.heat td.cell.star{outline:2px solid var(--foil);outline-offset:-3px;font-weight:700}
+.sure{display:inline-block;width:58px;height:6px;border-radius:3px;background:var(--chip);vertical-align:middle;overflow:hidden}
+.sure i{display:block;height:100%;background:var(--ok)}
+.keyrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted)}
+.flash{animation:flash 1.2s ease-out}
+@keyframes flash{from{background:color-mix(in srgb,var(--foil) 35%,var(--sheet))}to{background:transparent}}
+@media (prefers-reduced-motion:reduce){.flash{animation:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="pagehead">
+    <div><span class="eyebrow">Radar de barrios · afinidad de los rivales</span><h1>Barrios</h1></div>
+    <p>Qué multiplicador da cada barrio a cada equipo, estimado con la evidencia pública: tratos entre equipos, pujas y ventas publicadas y saltos de la puntuación de negociación. Se recalcula en este navegador en cada tick (mismo modelo que <code>agent/affinity.py</code>: 720 permutaciones por equipo). Parte de la historia grabada por el equipo y suma el feed en vivo.</p>
+  </div>
+  <div id="alerts" aria-live="polite"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <section class="panel c12">
+      <header><h2>Multiplicadores de un vistazo</h2>
+        <span class="keyrow"><span class="mx m16">×1,6</span><span class="mx m13">×1,3</span><span class="mx">×1,1</span><span class="mx">×0,9</span><span class="mx m07">×0,7</span><span class="mx m05">×0,5</span> · reparto más probable · cifra pequeña = probabilidad de ese valor · atenuado si &lt; 30 %</span></header>
+      <div class="scroll"><table id="glance"><thead></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="panel c7">
+      <header><h2>Radar</h2><span class="small muted">E[multiplicador] y, debajo, P(ese barrio es su 1,6) · recuadro = barrio más probable de ser su 1,6</span></header>
+      <div class="scroll"><table class="heat" id="heat"><thead></thead><tbody></tbody></table></div>
+    </section>
+    <section class="panel c5">
+      <header><h2>Evolución tick a tick</h2>
+        <span class="small"><select id="rteam" aria-label="Equipo"></select></span></header>
+      <div class="chart" id="evo"></div>
+      <div class="legend" id="evolegend"></div>
+      <p class="small muted" id="evonote"></p>
+    </section>
+
+    <section class="panel c12">
+      <header><h2>Evidencia nueva en vivo</h2><span class="small muted">lo que el feed ha añadido desde la semilla, lo último primero</span></header>
+      <div class="scroll tall"><table id="live"><thead><tr>
+        <th>Tick</th><th>Equipo</th><th>Señal</th><th>Carta</th><th class="num">Precio</th><th class="num">Valor libro</th><th>Indica</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+</main>
+<script src="plan-public.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/affinity.js"></script>
+<script src="assets/affinity-seed.js"></script>
+<script>
+"use strict";
+const {$, esc, fmt, pct, US} = Core;
+const A = T18Affinity, S = globalThis.T18AffinitySeed || {tick: 0, last_id: 0, rows: [], quotes: [], jumps: [], history: [], snap_tick: null};
+const SETS = A.SETS, KNOWN = {[US]: Core.MULT};
+const HKEY = "t18-radar-v1";
+const KIND = {trade_buy: "compra a equipo", trade_sell: "vende a equipo", dealer_buy: "compra a dealer", dealer_sell: "vende a dealer", bid: "puja publicada", ask: "venta publicada"};
+const mcls = m => ({1.6: "m16", 1.3: "m13", 0.7: "m07", 0.5: "m05"})[m] || "";
+const mx = m => "×" + fmt(m, 1);
+
+let H = [];                                   // historia en vivo de este navegador: [{tick, teams: {t: {e, p16, bits, n}}}]
+try { H = JSON.parse(localStorage.getItem(HKEY) || "[]").filter(h => h.tick > S.tick); } catch (e) {}
+const saveH = () => { try { localStorage.setItem(HKEY, JSON.stringify(H.slice(-500))); } catch (e) {} };
+
+let R = null, lastKey = "";
+function compute() {
+  const live = Core.feed().filter(e => e.id > S.last_id);
+  const {rows, quotes} = A.evidence(live);
+  const Q = {}; S.quotes.forEach(q => Q[A.quoteKey(q)] = q); Object.values(quotes).forEach(q => A.addQuote(Q, q));
+  // Fotos de la clasificación de este navegador: solo pares a menos de 10 min (el feed público cubre ~10 min).
+  const minTick = live.length ? Math.min(...live.map(e => e.tick)) : Infinity;
+  const snaps = Core.D.hist.filter(h => S.snap_tick == null || h.tick > S.snap_tick)
+    .map(h => ({tick: h.tick, ts: h.ts, round: h.round, teams: Object.fromEntries(Object.entries(h.teams).map(([t, v]) => [t, v.neg]))}));
+  const segs = []; let cur = [];
+  snaps.forEach(s => { if (cur.length && (s.ts - cur[cur.length - 1].ts > 600e3 || cur[cur.length - 1].tick < minTick)) { segs.push(cur); cur = []; } cur.push(s); });
+  segs.push(cur);
+  const liveJumps = segs.flatMap(seg => seg.length > 1 && seg[0].tick >= minTick ? A.scoreJumps(seg, live) : []);
+  const allRows = [...S.rows, ...rows, ...Object.values(Q)], jumps = [...S.jumps, ...liveJumps];
+  const post = A.estimate(allRows, jumps, KNOWN);
+  const blind = A.estimate(allRows.filter(r => r.team === US), jumps.filter(j => j.team === US))[US];
+  const tick = Math.max(S.tick, Core.state.clock ? Core.state.clock.tick : 0, ...live.map(e => e.tick));
+  const liveRows = [...rows, ...Object.values(quotes)].sort((a, b) => b.tick - a.tick);
+  R = {post, blind, tick, live, liveRows, liveJumps, nRows: allRows.length, nJumps: jumps.length, minTick, at: Date.now()};
+  const point = {tick, teams: {}};
+  Object.entries(post).forEach(([t, p]) => { if (!p.known) point.teams[t] = {e: round3(p.expected), p16: round3(p.p16), bits: +p.bits.toFixed(2), n: p.total}; });
+  if (H.length && H[H.length - 1].tick === tick) H[H.length - 1] = point; else H.push(point);
+  saveH();
+}
+const round3 = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, +v.toFixed(3)]));
+
+function teamsOrdered() {
+  const lb = Core.state.lb, rank = {};
+  ((lb && lb.teams) || []).forEach(t => rank[t.team] = t.rank);
+  return Object.keys(R.post).filter(isTeam).sort((a, b) => (a === US ? -1 : b === US ? 1 : 0) || (rank[a] ?? 99) - (rank[b] ?? 99) || a.localeCompare(b));
+}
+const isTeam = t => /^t\d+$/.test(t);          // fuera personas como Doña Pilar: no son equipos
+const top16 = p => SETS.reduce((b, s) => p.p16[s] > p.p16[b] ? s : b, SETS[0]);
+
+function renderKpis() {
+  const rivals = Object.values(R.post).filter(p => !p.known && isTeam(p.team));
+  const clear = rivals.filter(p => Math.max(...SETS.map(s => p.p16[s])) >= 0.5).length;
+  const gap = R.live.length && R.minTick > S.tick + 1;
+  const tiles = [
+    ["Calculado en tick", R.tick, `recalculado ${Core.hhmm(R.at)} · cada tick`, true],
+    ["Evidencias", R.nRows, `${R.liveRows.length} nuevas en vivo · semilla hasta tick ${S.tick}`],
+    ["Saltos de puntuación", R.nJumps, `${R.liveJumps.length} medidos en este navegador`],
+    ["Rivales con ★ clara", `${clear}/${rivals.length}`, "P(su 1,6) ≥ 50 % en un barrio"],
+    ["Hueco del feed", gap ? `${S.tick + 1}–${R.minTick - 1}` : "ninguno", gap ? "ticks sin evidencia: republicar la semilla" : "semilla y feed en vivo enlazan"],
+  ];
+  $("#kpis").innerHTML = tiles.map(([k, v, s, hl]) => `<div class="kpi ${hl ? "hl" : ""}"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s)}</span></div>`).join("");
+}
+
+const prevMap = {};
+function renderGlance() {
+  $("#glance thead").innerHTML = `<tr><th>Equipo</th>${SETS.map(s => `<th>${s}</th>`).join("")}<th>★ 1,6 en</th><th>Seguridad</th><th class="num">Datos</th></tr>`;
+  $("#glance tbody").innerHTML = teamsOrdered().map(t => {
+    const p = R.post[t], star = top16(p);
+    const sig = SETS.map(s => p.map[s]).join();
+    const changed = prevMap[t] && prevMap[t] !== sig; prevMap[t] = sig;
+    const cells = SETS.map(s => {
+      const m = p.map[s], q = p.marg[s][m];
+      return `<td><span class="mx ${mcls(m)} ${q < 0.3 && !p.known ? "weak" : ""}" title="${esc(`${t} · ${s}: E = ${fmt(p.expected[s], 2)} · P(×1,6) = ${pct(p.p16[s])}`)}">${mx(m)}<small>${p.known ? "real" : pct(q)}</small></span></td>`;
+    }).join("");
+    return `<tr class="${t === US ? "us" : ""} ${changed ? "flash" : ""}"><td><b>${esc(t)}</b>${t === US ? ' <span class="pill ok">conocido</span>' : ""}</td>${cells}
+      <td>${p.known ? "CHA" : `<b>${star}</b> <span class="muted small">${pct(p.p16[star])}</span>`}</td>
+      <td><span class="sure" title="${pct(p.info)} de la información posible (log2 720 bits)"><i style="width:${(p.info * 100).toFixed(0)}%"></i></span> <span class="small muted">${pct(p.info)}</span></td>
+      <td class="num">${p.known ? "—" : p.total}</td></tr>`;
+  }).join("") || `<tr><td colspan="10" class="empty">sin evidencia todavía</td></tr>`;
+}
+
+function heatBg(e) {
+  const d = Math.max(-1, Math.min(1, (e - 1) / 0.45));
+  return d >= 0 ? `color-mix(in srgb,var(--foil) ${(d * 60).toFixed(0)}%,transparent)` : `color-mix(in srgb,var(--cobalt) ${(-d * 35).toFixed(0)}%,transparent)`;
+}
+function renderHeat() {
+  $("#heat thead").innerHTML = `<tr><th>Equipo</th>${SETS.map(s => `<th class="num">${s}</th>`).join("")}</tr>`;
+  $("#heat tbody").innerHTML = teamsOrdered().filter(t => t !== US).map(t => {
+    const p = R.post[t], star = top16(p);
+    return `<tr><td><b>${esc(t)}</b></td>${SETS.map(s => `<td class="cell ${s === star ? "star" : ""}" style="background:${heatBg(p.expected[s])}">${fmt(p.expected[s], 2)}<small>${pct(p.p16[s])}</small></td>`).join("")}</tr>`;
+  }).join("");
+}
+
+function renderEvo() {
+  const sel = $("#rteam"), teams = teamsOrdered().filter(t => t !== US);
+  const want = Core.setting("rteam", teams[0]);
+  if (sel.options.length !== teams.length) {
+    sel.innerHTML = teams.map(t => `<option>${esc(t)}</option>`).join("");
+    sel.onchange = () => Core.set("rteam", sel.value);
+  }
+  sel.value = teams.includes(want) ? want : teams[0];
+  const t = sel.value;
+  const pts = [...S.history, ...H].filter(h => h.teams[t]);
+  const series = SETS.map((s, i) => ({name: s, color: Core.COLORS[i], bold: s === top16(R.post[t]), pts: pts.map(h => [h.tick, h.teams[t].p16[s] * 100])}));
+  $("#evo").innerHTML = Core.lineChart(series, {y0: 0, minSpan: 50, yfmt: v => fmt(v, 0) + " %", xfmt: v => "tick " + fmt(v, 0), label: `P(su 1,6) por barrio de ${t}`, empty: "aún no hay cortes de este equipo"});
+  $("#evolegend").innerHTML = Core.legend(series);
+  const nLive = H.filter(h => h.teams[t]).length;
+  $("#evonote").textContent = `P(cada barrio es su ×1,6). ${S.history.length} cortes de la semilla (cada 10 ticks hasta el ${S.tick}) + ${nLive} ticks vistos en vivo en este navegador.`;
+}
+
+function renderLive() {
+  const B = {10: "común", 25: "infrecuente", 70: "rara", 180: "épica", 450: "legendaria"};
+  $("#live tbody").innerHTML = R.liveRows.slice(0, 80).map(r => {
+    const ratio = r.price / r.book, buy = r.kind === "trade_buy" || r.kind === "dealer_buy" || r.kind === "bid";
+    const says = buy ? (ratio >= 1.25 ? `${r.set} alto para ${r.team}` : "") : (ratio <= 0.8 ? `${r.set} bajo (o repetida)` : "");
+    return `<tr class="${r.team === US ? "us" : ""}"><td>${r.tick}</td><td><b>${esc(r.team)}</b></td><td>${esc(KIND[r.kind] || r.kind)}</td><td class="mono">${esc(r.ref)}</td>
+      <td class="num">${fmt(r.price, 1)}</td><td class="num">${r.book} <span class="muted small">${B[r.book] || ""}</span></td><td class="small">${esc(says)}</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="empty">todavía no hay evidencia nueva desde la semilla (tick ${S.tick})</td></tr>`;
+}
+
+function renderAlerts() {
+  const out = [], b = R.blind;
+  if (b) {
+    const star = top16(b), hits = SETS.filter(s => { const o = Object.entries(b.marg[s]).sort((x, y) => y[1] - x[1]); let acc = 0, inn = false;
+      for (const [m, q] of o) { if (Math.abs(m - Core.MULT[s]) < 1e-9) inn = true; acc += q; if (acc >= 0.8) break; } return inn; }).length;
+    out.push([star === "CHA" ? "ok" : "info", `Control a ciegas sobre t18 (${b.total} datos): el modelo pone nuestro ×1,6 en ${star} (${pct(b.p16[star])}); el real es CHA. El valor real cae en el intervalo al 80 % en ${hits}/6 barrios.`]);
+  }
+  Object.values(R.post).filter(p => !p.known && isTeam(p.team)).forEach(p => { const s = top16(p); if (p.p16[s] >= 0.7) out.push(["warn", `${p.team}: ${s} es casi seguro su ×1,6 (${pct(p.p16[s])}). Pagará más por ${s} y no nos lo venderá barato.`]); });
+  Core.alerts(out.slice(0, 8));
+}
+
+Core.on(() => {
+  const key = [Core.state.clock && Core.state.clock.tick, Object.keys(Core.D.feed).length, Core.D.hist.length, Core.state.lb && Core.state.lb.snapshot_tick].join("|");
+  if (key !== lastKey || !R) { lastKey = key; compute(); }
+  renderKpis(); renderGlance(); renderHeat(); renderEvo(); renderLive(); renderAlerts();
+});
+Core.start("barrios.html");
+</script>
+</body>
+</html>

@@ -11,8 +11,10 @@ const Core = (() => {
   const OLD_KEY = "t18-analista-v1";
   const PAGES = [
     {href: "./", file: "index.html", name: "Mesa", sub: "resumen y decisiones"},
+    {href: "equipo.html", file: "equipo.html", name: "Equipo", sub: "cartas, caja, top 3"},
     {href: "duelos.html", file: "duelos.html", name: "Duelos", sub: "sesiones y rendimiento"},
     {href: "mercado.html", file: "mercado.html", name: "Mercado", sub: "libros, precios, venues"},
+    {href: "barrios.html", file: "barrios.html", name: "Barrios", sub: "multiplicadores rivales"},
     {href: "scoring.html", file: "scoring.html", name: "Scoring", sub: "qué pesa cada punto"},
     {href: "jurado.html", file: "jurado.html", name: "Jurado", sub: "demo para jueces"},
   ];

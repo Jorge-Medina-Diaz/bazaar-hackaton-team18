@@ -10,6 +10,7 @@ client("read") (allowlisted, rate-limited); never writes to the game.
     python3 affinity.py --watch 60            # keep recording feed + leaderboard snapshots (the score evolution)
     python3 affinity.py --history 5           # replay the estimate every 5 ticks -> logs/affinity_history.json
     python3 affinity.py --offline             # only logs/, no network
+    python3 affinity.py --offline --seed analista/assets/affinity-seed.js   # seed for the Radar de barrios page
 
 Each run appends new feed events to logs/feed.jsonl, a new leaderboard snapshot to logs/leaderboard.jsonl, a summary
 to logs/affinity.jsonl and the full table to logs/affinity.json (other modules: agent.affinity.load(), offline).
@@ -131,6 +132,29 @@ def history(events: list, snaps: list, rarity_of: dict, known: dict, step: int) 
     return out
 
 
+def seed(path: str, events: list, snaps: list, rarity_of: dict, step: int) -> dict:
+    """Recorded evidence for analista/barrios.html (public data only): the page adds the live feed on top of it."""
+    r3 = lambda x: round(x, 3)  # noqa: E731
+    # Offline there is no catalog: a page is 5 common, 3 uncommon, 2 rare (+ epic, legendary), as the page's JS assumes.
+    by_number = lambda n: "common" if n <= 5 else "uncommon" if n <= 8 else "rare" if n <= 10 else "epic" if n == 11 else "legendary"  # noqa: E731,E501
+    refs = {t.partition(":")[2] for e in events if e["type"] == "offer.listed"
+            for side in ("give", "want") for t in (((e.get("payload") or {}).get("offer") or {}).get(side) or {}).get("types") or []
+            if t.startswith("card:")}
+    rarity_of = {**{r: by_number(int(r.split("-")[1])) for r in refs if r.split("-")[-1].isdigit()}, **rarity_of}
+    ev = af.evidence(events, rarity_of)
+    trades = [{**r, "price": r3(r["price"])} for r in ev if r["kind"] not in ("bid", "ask")]
+    quotes = [r for r in ev if r["kind"] in ("bid", "ask")]
+    jumps = [{**j, "trades": [{**t, "price": r3(t["price"])} for t in j["trades"]]} for j in af.score_jumps(snaps, events)]
+    out = {"tick": max((e["tick"] for e in events), default=0), "first_tick": min((e["tick"] for e in events), default=0),
+           "last_id": max((e["id"] for e in events), default=0), "snap_tick": snaps[-1]["tick"] if snaps else None,
+           "events": len(events), "snapshots": len(snaps), "rows": trades, "quotes": quotes, "jumps": jumps,
+           "history": history(events, snaps, rarity_of, {}, step)}
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("/* Generado por: python3 affinity.py --offline --seed (datos públicos del feed y la clasificación). */\n")
+        f.write("globalThis.T18AffinitySeed = " + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n")
+    return out
+
+
 def save(post: dict, tick: int) -> None:
     rows = {t: {"expected": {s: round(p.expected(s), 3) for s in af.SETS},
                 "marginal": {s: {str(m): round(q, 4) for m, q in p.marginal(s).items()} for s in af.SETS},
@@ -154,6 +178,7 @@ def main() -> None:
     ap.add_argument("--watch", type=int, metavar="SECONDS")
     ap.add_argument("--history", type=int, metavar="TICKS")
     ap.add_argument("--offline", action="store_true")
+    ap.add_argument("--seed", metavar="PATH")
     a = ap.parse_args()
 
     if a.watch:
@@ -178,6 +203,11 @@ def main() -> None:
             p_true = post[us].p[af.PERMS.index(tuple(truth[s] for s in af.SETS))]
             print(f"el valor real cae en el intervalo al {a.conf:.0%} en {hits}/6 barrios · "
                   f"P(permutación real) = {p_true:.2%} (a priori {1 / 720:.2%})")
+        return
+    if a.seed:
+        out = seed(a.seed, events, snaps, rarity_of, a.history or 10)
+        print(f"{len(out['rows'])} tratos, {len(out['quotes'])} cotizaciones, {len(out['jumps'])} saltos, "
+              f"{len(out['history'])} cortes (ticks {out['first_tick']}–{out['tick']}) -> {a.seed}")
         return
     if a.history:
         h = history(events, snaps, rarity_of, known, a.history)
