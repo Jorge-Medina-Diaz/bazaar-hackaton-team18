@@ -147,3 +147,19 @@ Cada informe relevante se apunta en este documento con hora, tick, dato y decisi
 - `rivals.py` ahora usa `public_get` sin leer `.env` ni necesitar clave. No se modifican la Gate, la táctica de duelos ni el plan operativo.
 - Estados de pujas: desaparecer de El Rastro significa **sin confirmar**, no liquidada. Cancelaciones numéricas se conservan; ofertas en otros mercados no se declaran abiertas por mirar solo El Rastro. El tope de una carta no se compara con el precio total de un lote. Δ 1 h espera una hora completa de historial de la misma ronda.
 - Verificación: `node --test analista/evidence.test.cjs`; Python: `python3 -m unittest tests.test_jury tests.test_rivals_public tests.test_affinity tests.test_architecture`. La publicación en Git no republica por sí misma un despliegue manual de Vercel; para actualizar el enlace alojado seguir el comando de despliegue de arriba.
+
+
+## Duelos I: quién gana y brechas (sáb 13:05, tick ~588)
+
+**Datos**: feed y clasificación públicos grabados en esta máquina (`logs/feed.jsonl`, `logs/leaderboard.jsonl`, fotos cada 10–20 ticks). `duel.closed` no dice equipos ni precios: los puntos de duelo por equipo se estiman como Δ «Negociar» en tramos sin tratos de ese equipo, menos su deriva de ronda previa (el panel `/duelos` lo calcula igual). Ruidoso: ordena, no mide.
+
+- Duelos I empezó en t459; a t575, 222/306 cerrados, 176 con acuerdo (79 %).
+- Estimación t450→t570: t12 +7,4 · t03 +7,2 · t08 +6,1 · t15 +4,7 · **t18 +3,7 (5.º)** · t17 +3,5 · t05 +3,2 · **t10 +3,0 (8.º)**. t10 no destaca en duelos: casi todo su Δ (4,3 bruto) cae en tramos con tratos.
+- Estilo de regateo con dealers (hilos públicos, proxy del motor de negociación): los que más ganan en duelos abren al 39–45 % de la primera petición del dealer y ceden el 25–38 % del hueco (t12 0,39/0,38 · t03 0,39/0,25 · t08 0,45/0,27). t15 abre al 74 % y no se mueve (1 mensaje). **Nosotros abrimos al 58 % y cedemos el 40 %**; t10 al 48 % y 45 %. Precio final parecido (≈ 0,75–0,79 de la petición).
+
+**Brechas que podemos implementar** (por orden; ninguna aplicada, las decide el operador con quien toca código):
+1. **Confirmar el ancla en vivo.** `main` usa `anchor` 0,60 por defecto; Jorge puso `"duels": {"anchor": 0.75}` en `harness-v2` (2f1fc6d, 10:20) y **no está en `main`**. Saber cuál corre antes de Duelos II.
+2. **Medir Duelos I con nuestros datos**: el operador genera `duelos.json` (comando en `/duelos`) y se arrastra al panel: tasa de acuerdo frente al 79 % del torneo, escapados, decay, comprador/vendedor, quién aceptó.
+3. **Menos rondas.** En la práctica perdimos el 15,7 % por decay con 3,8 rondas; callar no cuesta (U-02). Los mejores regatean con pocos movimientos grandes. Propuesta: concesión más lenta (BETA mayor) y tope de mensajes con precio por duelo antes de la oferta final.
+4. **Paciencia antes de aceptar.** En la práctica, cuando el rival aceptó nuestra oferta sacamos 24,5 de media; cuando aceptamos la suya, 10,3. Endurecer la aceptación temprana (`close_frac`, `good`) salvo en la ventana final.
+5. **Duelos II/III: los días son el pastel que crece.** Hoy enviamos siempre nuestro mejor día y la Gate exige el peor caso (propuesta A pendiente). Con A aplicada, ceder días donde nos importan poco a cambio de precio (logrolling) es la mayor mejora disponible, y Duelos III cuenta en la ronda completa del domingo.

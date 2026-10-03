@@ -36,9 +36,9 @@
     </section>
 
     <section class="panel c6">
-      <header><h2>Quién gana negociación durante la sesión</h2><span class="small muted" id="teaminfo"></span></header>
+      <header><h2>Quién gana en duelos (estimación)</h2><span class="small muted" id="teaminfo"></span></header>
       <div id="teams"></div>
-      <p class="small muted">Es un indicador aproximado: Δ de «Negociar» en la clasificación entre la foto anterior al inicio de la sesión y la última. Incluye también los tratos con dealers y entre equipos de esa ventana, y la clasificación se refresca cada pocos minutos.</p>
+      <p class="small muted">Δ de «Negociar» solo en los tramos entre fotos en los que ese equipo no hizo ningún trato, menos su deriva de ronda medida antes de la sesión. Es ruidoso (la clasificación se refresca cada 10–20 ticks y un trato no grabado lo contamina): sirve para ordenar, no para medir.</p>
     </section>
 
     <section class="panel c6">
@@ -166,16 +166,28 @@ function renderItems(list) {
     r => `<tr class="${r.rate < 0.4 ? "miss" : ""}"><td class="wrap">${esc(r.item)}</td><td class="num">${r.n}</td><td class="num">${r.deals}</td><td class="num">${r.nodeal}</td><td class="num">${pct(r.rate)}</td></tr>`, "rate", 1);
 }
 function renderTeams(list) {
+  // Estimación de puntos de duelo por equipo: Δ «Negociar» solo en los tramos entre fotos SIN tratos de ese equipo
+  // (dealers o equipos), menos la deriva de la ronda medida en los tramos sin tratos de antes de la sesión.
   const s = curSession(list), H = Core.D.hist, lb = Core.state.lb;
-  if (!s || s.start == null || !lb || H.length < 1) { $("#teams").innerHTML = '<div class="empty">hace falta una foto de la clasificación de antes del inicio de la sesión (deja la página abierta).</div>'; $("#teaminfo").textContent = ""; return; }
-  let base = null; H.forEach(h => { if (h.tick <= s.start) base = h; });
+  if (!s || s.start == null || !lb || H.length < 2) { $("#teams").innerHTML = '<div class="empty">hacen falta fotos de la clasificación de antes y durante la sesión (deja la página abierta).</div>'; $("#teaminfo").textContent = ""; return; }
+  const before = H.filter(h => h.tick <= s.start), base = before[before.length - 1];
   if (!base) { $("#teams").innerHTML = `<div class="empty">no hay foto de la clasificación anterior al tick ${s.start}: la sesión empezó antes de abrir el panel.</div>`; return; }
   const endTick = s.duels && s.closed.length >= s.duels ? Math.max(...s.closed.map(c => c.tick)) + 2 : Infinity;
-  let end = H[H.length - 1]; H.forEach(h => { if (h.tick <= endTick) end = h; });
-  const rows = Object.keys(end.teams).filter(t => base.teams[t]).map(t => ({label: t, v: end.teams[t].neg - base.teams[t].neg, color: t === US ? "var(--foil)" : undefined}))
-    .sort((a, b) => b.v - a.v);
-  $("#teams").innerHTML = Core.hbars(rows, {fmt: v => (v > 0 ? "+" : "") + fmt(v)});
-  $("#teaminfo").textContent = `foto t${base.tick} → t${end.tick}`;
+  const win = H.filter(h => h.tick >= base.tick && h.tick <= endTick && h.round === base.round);
+  const pre = H.filter(h => h.tick <= base.tick && h.tick >= base.tick - 240 && h.round === base.round);
+  const setts = Core.feedOf("settlement");
+  const traded = (t, a, b) => setts.some(e => e.tick > a && e.tick <= b && (e.payload.parties || []).includes(t));
+  const quiet = (t, snaps) => { let d = 0, k = 0; for (let i = 1; i < snaps.length; i++) { const a = snaps[i - 1], b = snaps[i];
+    if (!a.teams[t] || !b.teams[t] || traded(t, a.tick, b.tick)) continue; d += b.teams[t].neg - a.teams[t].neg; k += b.tick - a.tick; } return [d, k]; };
+  const last = win[win.length - 1];
+  if (win.length < 2) { $("#teams").innerHTML = '<div class="empty">aún no hay dos fotos dentro de la sesión.</div>'; return; }
+  const rows = Object.keys(last.teams).filter(t => base.teams[t]).map(t => {
+    const [pd, pk] = quiet(t, pre), [wd, wk] = quiet(t, win), rate = pk ? pd / pk : 0;
+    return {label: t, v: wd - rate * wk, raw: last.teams[t].neg - base.teams[t].neg, color: t === US ? "var(--foil)" : undefined};
+  }).sort((a, b) => b.v - a.v);
+  $("#teams").innerHTML = Core.hbars(rows, {fmt: v => (v > 0 ? "+" : "") + fmt(v)}) +
+    `<details><summary class="small">Δ bruto (sin corregir)</summary><div class="small mono">${rows.map(r => `${r.label} ${r.raw > 0 ? "+" : ""}${fmt(r.raw)}`).join(" · ")}</div></details>`;
+  $("#teaminfo").textContent = `estimación de puntos de duelo · fotos t${base.tick} → t${last.tick} · ${win.length} fotos`;
 }
 
 // ---------------------------------------------------------------- privado
