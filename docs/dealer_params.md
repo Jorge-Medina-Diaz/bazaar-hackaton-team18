@@ -1,11 +1,11 @@
 # Afinador · parámetros aprendidos por dealer (solo sus hilos)
 
-Actualizado 21:14:49.
+Actualizado 21:19:52.
 
 | dealer · lado · grupo | hilos | cierres | P(mejora tras nuestra concesión: 1 / 2-3 / 4+) | 1.er final en su respuesta | perdona hasta | se movió hasta |
 |---|---|---|---|---|---|---|
-| picaros · compra · resto·None | 7 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
-| picaros · compra · resto·epic | 26 | [128, 128, 128, 128, 139, 139, 139, 139, 139, 139] | 1.0 (n=5) / 1.0 (n=4) / 0.96 (n=27) | mín 3 · med 3.0 | 48 | 51 |
+| picaros · compra · resto·None | 4 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
+| picaros · compra · resto·epic | 33 | [128, 128, 128, 128, 128, 137, 139, 139, 139, 139] | 1.0 (n=5) / 1.0 (n=5) / 0.97 (n=30) | mín 3 · med 3.0 | 48 | 51 |
 | picaros · compra · resto·rare | 98 | [48, 48, 48, 48, 48, 48, 48, 48, 48, 48] | 1.0 (n=26) / 1.0 (n=29) / 1.0 (n=38) | mín 2 · med 3 | 15 | 25 |
 | picaros · venta · resto·None | 6 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | 0 |
 | picaros · venta · resto·common | 90 | [4, 4, 4, 4, 5, 5, 5, 5, 5, 5] | 0.13 (n=75) / 0.16 (n=105) / 0.0 (n=5) | mín 3 · med 4.0 | 1 | 1 |
