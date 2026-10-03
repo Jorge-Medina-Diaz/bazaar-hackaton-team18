@@ -36,6 +36,10 @@ python3 radio.py --watch --min-level ALTA --no-notify
 
 Los registros van a `logs/radio.jsonl` y el estado a `logs/radio_state.json`, ambos fuera de Git. Al reiniciar no se repiten avisos, y la primera lectura nunca notifica lo que ya existía.
 
+## Los Pícaros (`picaros.py`)
+
+El vigilante acumula cada mensaje de Los Pícaros en `logs/picaros.jsonl` y avisa de sus trucos (firmes en ALTA, y ALTA siempre si van contra t18). `python3 picaros.py` muestra el perfil (apertura, pasos, cuándo dicen `final`, precios cerrados) y los trucos. Detalle y receta para negociar con ellos: `docs/seguridad-picaros.md`.
+
 ## Cómo aprovecharla
 
 - **Demanda confirmada de un barrio que valoramos poco (LAT, LAV, MAL) o de repetidas de SAL/RET:** vender a ese dealer a ≥ V + 1. Neg no baja, y si es ganancia llena escalera. El ejecutor no vende a dealers: `bazaar.py do` primero en seco (ver `docs/operador-cartas-fuertes.md`).

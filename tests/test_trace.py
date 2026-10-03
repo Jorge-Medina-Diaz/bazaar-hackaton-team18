@@ -91,7 +91,20 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(state['executor']['mode'], 'live')
         self.assertTrue(any(e['event'] == 'result' for e in state['events']))
         self.assertEqual(state['memory']['team_cases'], 0)
-        self.assertFalse(state['executor']['outcomes_indexed'])
+        # Only Calibrator-measured settlements become memory, and each one must exist in the game's own ledger
+        # with the same card, side, counterparty and points delta (HTTP results alone are never outcomes).
+        from harness import outcomes
+        cases, report = outcomes.outcome_cases(*outcomes.load(str(paths.root / 'logs')))
+        self.assertEqual(state['executor']['outcomes_indexed'], report['indexed'])
+        self.assertGreater(report['indexed'], 0)
+        ledger = game.ledger.get('t18', [])
+        for c in cases:
+            body = json.loads(c.body)
+            hit = [r for r in ledger if r['tick'] <= c.tick and any(
+                ref == c.item and (to == 't18') == (c.side == 'buy') for ref, frm, to in r['items'])]
+            self.assertTrue(hit, c.id)
+            self.assertEqual(hit[-1]['dealer'] or hit[-1]['venue'], c.dealer)
+            self.assertAlmostEqual(hit[-1]['delta'], body['measured_neg'], places=3)
         self.assertEqual(paths.journal.read_bytes(), before)
 
 

@@ -244,7 +244,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_step_accumulates_evidence_across_reads_and_notifies_confirmation_once(self):
         d = tempfile.mkdtemp()
-        feeds = [[offer(1, 404, "MAL-09", 85), offer(2, 404, "LAV-09", 60)],
+        feeds = [[], [offer(1, 404, "MAL-09", 85), offer(2, 404, "LAV-09", 60)],
                  [offer(2, 404, "LAV-09", 60), offer(3, 406, "MAL-10", 88), offer(4, 406, "SAL-09", 63)],
                  [offer(4, 406, "SAL-09", 63)]]
         news, sent, lines = [ATLETI], [], []

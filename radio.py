@@ -33,6 +33,8 @@ import unicodedata
 import urllib.error
 import urllib.request
 
+import picaros
+
 URL = os.environ.get("BAZAAR_URL", "https://bazaar.causaprima.ai").rstrip("/")
 LOG_DIR = os.environ.get("BAZAAR_LOGS", "logs")
 LEVELS = ("BAJA", "MEDIA", "ALTA")
@@ -238,10 +240,11 @@ def load_state(path):
             s = json.load(f)
         if isinstance(s, dict):
             return {"seen": list(s.get("seen", [])), "ticks": list(s.get("ticks", [])), "watch": s.get("watch", {}),
-                    "obs": s.get("obs"), "announced": list(s.get("announced", []))[-200:], "clock": s.get("clock")}
+                    "obs": s.get("obs"), "announced": list(s.get("announced", []))[-200:], "clock": s.get("clock"),
+                    "tricks": list(s.get("tricks", []))[-500:]}
     except (OSError, ValueError):
         pass
-    return {"seen": [], "ticks": [], "watch": {}, "obs": None, "announced": [], "clock": None}
+    return {"seen": [], "ticks": [], "watch": {}, "obs": None, "announced": [], "clock": None, "tricks": []}
 
 
 def save_state(path, state):
@@ -509,12 +512,33 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
             state["watch"].pop(key)
     live = [w for w in state["watch"].values() if w["sets"] and w["side"]
             and now - w.get("start", w["until"] - 3600) <= 3600]
+    try:
+        events = get("/api/feed?limit=500").get("events", [])
+    except RateLimited:
+        raise
+    except Exception as e:  # noqa: BLE001
+        events = []
+        record({"event": "feed_error", "error": type(e).__name__})
+    if events:
+        rows, _ = picaros.absorb(events, os.path.join(LOG_DIR, "picaros.jsonl"))
+        seen = set(state.setdefault("tricks", []))
+        for t in picaros.tricks(events, picaros.topics_of(rows)):
+            key = f"{t['message']}:{t['level']}"
+            if key in seen:
+                continue
+            state["tricks"].append(key)
+            ours = t["team"] == TEAM
+            level = "ALTA" if t["level"] == "firme" or ours else "MEDIA"
+            msg = (f"Truco {t['level'].upper()} de Los Pícaros{' CONTRA NOSOTROS' if ours else ''}: {t['motivo']} "
+                   f"(mensaje {t['message']}, hilo {t['thread']}, {t['team']}, tick {t['tick']})")
+            record({"event": "picaros_trick", **t})
+            out(f"{'‼️' if level == 'ALTA' else '⚠️'} [{level}] [{when(clock)}] {msg}")
+            if do_notify and not first:
+                notify("🃏 Los Pícaros · truco" + (" contra t18" if ours else ""),
+                       f"🕒 {when(clock)}\n{msg}" + ("\nEvidencia para POST /api/flags (decide el operador)."
+                                                      if t["level"] == "firme" else ""), level=level)
+        state["tricks"] = state["tricks"][-500:]
     if live:
-        try:
-            events = get("/api/feed?limit=500").get("events", [])
-        except Exception as e:  # noqa: BLE001
-            events = []
-            record({"event": "feed_error", "error": type(e).__name__})
         for w in live:
             seen = {o["id"] for o in w["obs"]}
             for d in w["dealers"]:
