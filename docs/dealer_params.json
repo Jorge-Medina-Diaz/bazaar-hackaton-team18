@@ -1,8 +1,8 @@
 {
- "updated": "2026-10-03T18:54:00",
+ "updated": "2026-10-03T18:59:03",
  "groups": {
   "pilar|venta|fav·uncommon": {
-   "hilos": 31,
+   "hilos": 32,
    "cierres": [
     22,
     23,
@@ -50,7 +50,7 @@
    "mejora_max": 5
   },
   "pilar|venta|resto·uncommon": {
-   "hilos": 60,
+   "hilos": 61,
    "cierres": [
     14,
     16,
@@ -121,16 +121,16 @@
    ],
    "p_sube": {
     "2-3": 0.51,
-    "1": 0.54,
+    "1": 0.52,
     "4+": 0.45
    },
    "n_sube": {
     "2-3": 69,
-    "1": 68,
+    "1": 71,
     "4+": 38
    },
    "final_min": 4,
-   "final_med": 5,
+   "final_med": 5.0,
    "perdona_max": 1,
    "mejora_max": 4
   },
@@ -145,7 +145,7 @@
    "mejora_max": null
   },
   "pilar|venta|resto·None": {
-   "hilos": 21,
+   "hilos": 22,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -155,7 +155,7 @@
    "mejora_max": 0
   },
   "pilar|venta|fav·rare": {
-   "hilos": 25,
+   "hilos": 26,
    "cierres": [
     65,
     65,
@@ -197,7 +197,7 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 24,
+    "2-3": 26,
     "1": 14,
     "4+": 17
    },
@@ -270,7 +270,7 @@
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 48,
+   "hilos": 50,
    "cierres": [
     52,
     52,
@@ -283,6 +283,9 @@
     54,
     54,
     55,
+    56,
+    56,
+    56,
     56,
     56,
     56,
@@ -300,8 +303,10 @@
     59,
     59,
     60,
+    61,
     62,
     62,
+    63,
     63,
     63,
     63,
@@ -314,9 +319,9 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 14,
+    "2-3": 15,
     "1": 11,
-    "4+": 23
+    "4+": 24
    },
    "final_min": 2,
    "final_med": 3,
@@ -359,7 +364,7 @@
    "mejora_max": 0
   },
   "picaros|compra|resto·epic": {
-   "hilos": 8,
+   "hilos": 9,
    "cierres": [
     139,
     139,
@@ -369,6 +374,7 @@
     139,
     139,
     139,
+    147,
     167
    ],
    "p_sube": {
@@ -377,12 +383,12 @@
     "2-3": 1.0
    },
    "n_sube": {
-    "4+": 4,
+    "4+": 6,
     "1": 1,
     "2-3": 3
    },
    "final_min": 3,
-   "final_med": 3,
+   "final_med": 3.0,
    "perdona_max": 48,
    "mejora_max": 42
   },
