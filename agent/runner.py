@@ -364,6 +364,7 @@ class Runner:
         self._valuer_key = None
         self.frozen: dict = dict(_read_json(paths.frozen, {}) or {}) if isinstance(_read_json(paths.frozen, {}), dict) else {}
         self.ticks_done = 0
+        self.wall = time.time                       # epoch for pages.effective_plan's wall close (tests patch it)
         for t in armed or ():
             self._arm(t, "run --arm", at_start=True)
         self._save_armed()
@@ -762,7 +763,7 @@ class Runner:
         """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""
         try:
             from agent.tactics import pages
-            pc, self._sched_seen = pages.effective_plan(self.plan_cfg, world, self._sched_seen)
+            pc, self._sched_seen = pages.effective_plan(self.plan_cfg, world, self._sched_seen, now=self.wall())
         except Exception as e:                                           # noqa: BLE001 - keep the last plan
             if _is_fatal(e):
                 raise

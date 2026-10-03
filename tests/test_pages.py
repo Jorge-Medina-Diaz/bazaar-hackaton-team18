@@ -315,10 +315,10 @@ class LiveDayEndTest(unittest.TestCase):
         self.assertAlmostEqual(pc["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
         self.assertAlmostEqual(pc["closer"]["endgame_hours"]["N"], 19.367 - 35 / 60, places=3)
         pc, _ = self.eff(_sun(13.4, 19.367, 18.367))
-        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.267, places=3)       # stalls - 6 min
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.2837, places=3)      # stalls - 5 min
         self.assertAlmostEqual(pc["closer"]["endgame_hours"]["sun"], 18.7837, places=3)
         self.assertFalse(pages.past_day_end(_sun(18.2, 19.367, 18.367), pc))
-        self.assertTrue(pages.past_day_end(_sun(18.27, 19.367, 18.367), pc))
+        self.assertTrue(pages.past_day_end(_sun(18.29, 19.367, 18.367), pc))
 
     def test_clock_jump_to_16_65(self):
         # jump: CHA + round 3 at 09:00, stalls 21.65, close 22.65; the plan hours would fire at 09:00
@@ -327,7 +327,7 @@ class LiveDayEndTest(unittest.TestCase):
         pc, _ = self.eff(w)
         self.assertFalse(pages.past_day_end(w, pc))
         self.assertFalse(pages.endgame(w, pc))
-        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 21.55, places=3)
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 21.5667, places=3)
         self.assertTrue(pages.endgame(_sun(22.07, 22.65), self.eff(_sun(22.07, 22.65))[0]))
 
     def test_a_pause_moves_the_triggers(self):
@@ -341,7 +341,7 @@ class LiveDayEndTest(unittest.TestCase):
     def test_stalls_hour_is_kept_after_the_entries_fire(self):
         _, seen = self.eff(_sun(18.0, 19.367, 18.367))
         pc, seen = self.eff(_sun(18.4, 19.367), seen)                             # persona entries gone
-        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.267, places=3)
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.2837, places=3)
         self.assertTrue(pages.past_day_end(_sun(18.4, 19.367), pc))
 
     def test_one_dealer_off_is_not_the_stalls_closing(self):
@@ -377,6 +377,111 @@ class LiveDayEndTest(unittest.TestCase):
         w = dataclasses.replace(make_world(t_hours=15.0), clock={})
         self.assertEqual(pages.today(w), "default")
         self.assertFalse(pages.past_day_end(w, self.PLAN))
+
+
+
+def _wall(h, m=0):
+    """Epoch of Sunday 4 Oct 2026 hh:mm Madrid (+02:00)."""
+    from datetime import datetime
+    return datetime.fromisoformat(f"2026-10-04T{h:02d}:{m:02d}:00+02:00").timestamp()
+
+
+def _sunw(t, upcoming, *, closes="2026-10-04T15:00:00+02:00", today="sun", paused=False, doors="open"):
+    import dataclasses
+    w = make_world(t_hours=t, today=today)
+    return dataclasses.replace(w, clock={"today": today, "doors": doors, "paused": paused, "closes": closes},
+                               schedule={"now_hours": t, "upcoming": list(upcoming)})
+
+
+def _stalls(at):
+    return [{"at_hours": at, "action": "persona", "params": {"id": p, "enabled": False}}
+            for p in ("abuela", "chato", "pilar", "picaros", "banco")]
+
+
+class WallCloseTest(unittest.TestCase):
+    """Strategy M2 (night audit): day end / endgame from clock.closes (wall) and the live schedule, in the three
+    Sunday clock scenarios. Expected: dealer day end 13:55 (C, B) or 14:55 (A), endgame 14:25 in all three."""
+    PLAN = {"day_end_hours": {"sun": 19.283}, "day_end_min_before_close": 5,
+            "closer": {"endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}, "endgame_min_before_close": 35}}
+
+    def eff(self, w, now, seen=None):
+        return pages.effective_plan(self.PLAN, w, seen, now=now)
+
+    def test_scenario_c_resume_and_re_anchor(self):
+        # t13.367 at 09:00, stalls re-anchored to 18.367 (14:00), the schedule's day_closes not re-projected yet
+        w = _sunw(13.367, _stalls(18.367) + [{"at_hours": 22.65, "action": "day_closes", "params": {"day": "sun"}}])
+        pc, _ = self.eff(w, _wall(9))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.2837, places=3)
+        self.assertAlmostEqual(pc["closer"]["endgame_hours"]["sun"], 18.7837, places=3)
+
+    def test_scenario_a_resume_nothing_moves(self):
+        w = _sunw(13.367, _stalls(21.65) + [{"at_hours": 22.65, "action": "day_closes", "params": {"day": "sun"}},
+                                            {"at_hours": 22.65, "action": "end_round", "params": {}}])
+        pc, _ = self.eff(w, _wall(9))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 19.2837, places=3)     # 14:55
+        self.assertAlmostEqual(pc["closer"]["endgame_hours"]["N"], 18.7837, places=3)
+        self.assertTrue(pages.past_day_end(_sunw(19.29, ()), pc))
+
+    def test_scenario_b_jump_to_16_65(self):
+        w = _sunw(16.65, _stalls(21.65) + [{"at_hours": 22.65, "action": "day_closes", "params": {"day": "sun"}}])
+        pc, _ = self.eff(w, _wall(9))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 21.5667, places=3)     # 13:55
+        self.assertAlmostEqual(pc["closer"]["endgame_hours"]["sun"], 22.0667, places=3)
+
+    def test_a_pause_moves_both_earlier(self):
+        up = _stalls(18.367)
+        before, _ = self.eff(_sunw(15.0, up), _wall(10, 38))
+        after, _ = self.eff(_sunw(15.0, up), _wall(10, 48))                         # 10 min paused: t did not move
+        self.assertAlmostEqual(before["closer"]["endgame_hours"]["sun"] - after["closer"]["endgame_hours"]["sun"],
+                               10 / 60, places=3)
+        self.assertAlmostEqual(after["closer"]["endgame_hours"]["sun"], 15.0 + (4 + 12 / 60) - 35 / 60, places=3)
+
+    def test_doors_closed_or_no_closes_falls_back(self):
+        pc, _ = self.eff(_sunw(13.367, [{"at_hours": 15.0, "action": "bench", "params": {}}], closes=None), _wall(9))
+        self.assertEqual(pc["day_end_hours"]["sun"], 19.283)                       # schedule readable: plan hours
+        closed = _sunw(13.367, (), doors="closed")
+        pc, _ = self.eff(closed, _wall(8))
+        self.assertFalse(pages.past_day_end(closed, pc))
+
+    def test_stale_saturday_close_never_ends_sunday(self):
+        # Sunday's first open tick still says today 'sat', closes Sat 23:00, and the fired 'day_closes sat' lingers
+        w = _sunw(13.367, [{"at_hours": 13.367, "action": "day_closes", "params": {"day": "sat"}}],
+                  closes="2026-10-03T23:00:00+02:00", today="sat")
+        pc, _ = pages.effective_plan({"day_end_hours": {"sun": 19.283}, "closer": {}}, w, None, now=_wall(9))
+        self.assertFalse(pages.past_day_end(w, pc))
+        self.assertFalse(pages.endgame(w, pc))
+
+    def test_stalls_latch_after_the_event_fires(self):
+        _, seen = self.eff(_sunw(18.2, _stalls(18.367)), _wall(13, 50))
+        w = _sunw(18.45, ())                                                       # 14:05, entries gone
+        pc, _ = self.eff(w, _wall(14, 5), seen)
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.2837, places=3)
+        self.assertTrue(pages.past_day_end(w, pc))
+
+    def test_hygiene_and_rastro_agree_with_pages(self):
+        from agent.tactics import hygiene, rastro
+        w = _sunw(18.3, _stalls(18.367))
+        pc, _ = self.eff(w, _wall(13, 56))
+        self.assertTrue(pages.past_day_end(w, pc))
+        self.assertTrue(hygiene._day_end(w, pc))
+        late = _sunw(18.79, ())
+        pc2, _ = self.eff(late, _wall(14, 26))
+        self.assertTrue(pages.endgame(late, pc2))
+        from types import SimpleNamespace
+        self.assertTrue(rastro._Ctx.endgame(SimpleNamespace(endgame_hours=pc2["closer"]["endgame_hours"], w=late)))
+
+    def test_load_plan_validates_minutes(self):
+        import json, tempfile, os
+        base = json.loads(PLAN.read_text(encoding="utf-8"))
+        for bad in (-1, 241, "5"):
+            raw = dict(base, day_end_min_before_close=bad)
+            with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as fh:
+                json.dump(raw, fh)
+            try:
+                with self.assertRaises(ValueError):
+                    pages.load_plan(Path(fh.name))
+            finally:
+                os.unlink(fh.name)
 
 
 if __name__ == "__main__":

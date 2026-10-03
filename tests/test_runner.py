@@ -370,6 +370,20 @@ class TestLiveDayTimes(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertAlmostEqual(rows[-1]["endgame"], round(22.2 - 35 / 60, 3), places=3)
 
+    def test_wall_close_reaches_the_tactics(self):
+        # clock.closes 15:00 read at 09:00 with t13.367: close 19.367 even with a scripted day_closes at 22.65
+        from datetime import datetime
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"*": 18.783}}}
+        r.wall = lambda: datetime.fromisoformat("2026-10-04T09:00:00+02:00").timestamp()
+        w = make_world(t_hours=13.367, clock=MappingProxyType({"paused": False, "doors": "open", "today": "sun",
+                                                                "closes": "2026-10-04T15:00:00+02:00"}),
+                       schedule=MappingProxyType({"now_hours": 13.367, "upcoming": (MappingProxyType(
+                           {"at_hours": 22.65, "action": "day_closes", "params": MappingProxyType({"day": "sun"})}),)}))
+        r.update_plan(w)
+        self.assertAlmostEqual(r.plan_now["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
+        self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["*"], 19.367 - 35 / 60, places=3)
+
 
 # ----------------------------------------------------------------------------------------- end to end
 
