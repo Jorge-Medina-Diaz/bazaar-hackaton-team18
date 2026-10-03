@@ -51,3 +51,21 @@ El main actualizado también incluye `rivals.py` (rol analista) y
 `affinity.py --history` (evolución de inferencias). Sus notas complementan el
 relato del jurado. La demo pública usa directamente el modelo puro y
 `public_get`, y no necesita configurar el cliente ni una clave.
+
+
+## Recibir el trabajo del analista
+
+La misma carpeta `analista/` incluye `jurado.html` y un enlace entre ambos roles.
+En el panel, **Exportar para jurado** produce `analista-publico.json` con datos
+públicos seleccionados; los ajustes de caja e inventario no salen del navegador.
+Después ejecutar `python3 -m jury.report --analyst-export analista-publico.json`
+y abrir `runs/jury/demo.html`. No consulta la API ni llama a modelos.
+La fecha es la de la captura; el feed acumulado sigue siendo parcial y no
+sustituye el diario privado. Las estimaciones Affinity quedan etiquetadas como
+inferencias del modelo sobre esa selección.
+
+Para reconstruir los archivos del paquete del equipo, usar
+`python3 -m jury.report --refresh --output jury --team-output analista`.
+Los topes se generan desde `config/plan.json`; no se copia ni modifica el estado
+operativo de Jorge. Las propuestas de Duelos II y CHA están en
+[analista.md](analista.md); el cambio A de días sigue pendiente de su revisión.

@@ -126,11 +126,14 @@ footer{font-size:12.5px;color:var(--muted)}
     <span class="small muted" id="fresh">—</span>
     <button id="pause" type="button">Pausar</button>
     <button id="now" type="button">Actualizar</button>
+    <button id="export" type="button">Exportar para jurado</button>
+    <a href="jurado.html">Demo del jurado</a>
     <select id="theme" aria-label="Tema"><option value="">Tema: sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select>
   </div>
 </div>
 
 <div id="alerts" aria-live="polite"></div>
+<div id="export-status" class="small muted" role="status"></div>
 
 <div class="grid">
 
@@ -188,7 +191,7 @@ footer{font-size:12.5px;color:var(--muted)}
   </section>
 
   <section class="panel c7">
-    <header><h2>Nuestros tratos</h2><span class="small muted">settlements de t18 en el feed · el precio se compara con <code>dealer_max</code></span></header>
+    <header><h2>Nuestros tratos</h2><span class="small muted">settlements de t18 · tope solo para una carta de dealer · plan del repo, no configuración en vivo</span></header>
     <div class="scroll"><table id="ours"><thead><tr>
       <th>Tick</th><th>Contra</th><th>Carta</th><th>Rareza</th><th class="num">Precio</th><th class="num">Tope</th><th>Sentido</th><th></th>
     </tr></thead><tbody></tbody></table></div>
@@ -240,14 +243,15 @@ footer{font-size:12.5px;color:var(--muted)}
 <footer>Solo GET públicos a <code>bazaar.causaprima.ai</code>: clock y feed cada 15 s, clasificación, mercados y El Rastro cada 30 s, calendario cada 5 min (≈ 0,2 lecturas/s; el límite es 60/s). Sin clave, sin escrituras, nunca <code>/api/admin</code>. La historia y tus ajustes se guardan solo en este navegador. Detalle: <code>docs/analista.md</code>.</footer>
 </div>
 
+<script src="plan-public.js"></script>
+<script src="evidence.js"></script>
 <script>
 "use strict";
 const API = "https://bazaar.causaprima.ai";
 const US = "t18";
 const LS = "t18-analista-v1";
-// dealer_max de config/plan.json (origin/main)
-const DEALER_MAX = {"RET-01":11,"RET-02":11,"RET-03":11,"RET-04":11,"RET-05":11,"RET-06":25,"RET-07":25,"RET-08":31,"RET-09":90,"RET-10":90,
-  "CHA-01":12,"CHA-02":12,"CHA-03":12,"CHA-04":12,"CHA-05":12,"CHA-06":25,"CHA-07":25,"CHA-08":31,"CHA-09":100,"CHA-10":100};
+// Generated from the same repository plan as the demo; not the operator's runtime state.
+const DEALER_MAX = T18PublicPlan.dealer_max;
 const KEY_EVENTS = /duels|set_release|grant_all|round|day_opens|persona$/;
 
 const $ = s => document.querySelector(s);
@@ -273,14 +277,15 @@ function bindSetting(id, k, ev = "input") {
 }
 
 // ---------- red ----------
-let live = {clock: null, schedule: null, lb: null, venues: null, rastro: null}, paused = false, lastOk = 0, lastErr = null;
+let live = {clock: null, schedule: null, lb: null, venues: null, rastro: null}, paused = false, polling = false, lastOk = 0, lastErr = null;
 async function get(path) {
-  const r = await fetch(API + path, {cache: "no-store"});
+  const r = await fetch(API + path, {cache: "no-store", credentials: "omit", signal: AbortSignal.timeout(10000)});
   if (!r.ok) throw new Error(path + " → HTTP " + r.status);
   return r.json();
 }
 async function poll(what) {
-  if (paused) return;
+  if (paused || polling) return;
+  polling = true;
   try {
     if (what.includes("clock")) live.clock = await get("/api/clock");
     if (what.includes("schedule")) live.schedule = await get("/api/schedule");
@@ -290,10 +295,12 @@ async function poll(what) {
     if (what.includes("feed")) { const f = await get("/api/feed?limit=500"); (f.events || []).forEach(e => { if (keepEvent(e)) S.feed[e.id] = slim(e); }); }
     lastOk = Date.now(); lastErr = null; save();
   } catch (e) { lastErr = String(e.message || e); }
+  finally { polling = false; }
   renderAll();
 }
 function keepEvent(e) {
   if (e.type === "settlement") return true;
+  if (e.type === "offer.cancelled") return Number.isInteger(T18Evidence.cancelledId(e));
   if (e.type === "offer.listed" || e.type === "offer.cancelled") {
     const o = (e.payload || {}).offer || {}; return isCardBid(o);
   }
@@ -393,11 +400,7 @@ function renderEvents() {
 // ---------- clasificación ----------
 const watchTeam = () => setting("watch", "t12");
 function histAgo(ms) {
-  const target = Date.now() - ms; let pick = null;
-  for (const h of S.hist) { if (h.ts <= target) pick = h; else break; }
-  const cur = S.hist[S.hist.length - 1];
-  pick = pick || S.hist[0] || null;
-  return pick && cur && pick.tick === cur.tick ? null : pick;
+  return T18Evidence.hourBaseline(S.hist, Date.now(), live.lb?.round);
 }
 function spark(team, metric) {
   const pts = S.hist.slice(-40).map(h => h.teams[team] && h.teams[team][metric]).filter(v => v != null);
@@ -414,7 +417,7 @@ function renderLb() {
     sel.innerHTML = lb.teams.map(t => t.team).sort().filter(t => t !== US).map(t => `<option ${t === w ? "selected" : ""}>${t}</option>`).join("");
   }
   const ago = histAgo(3600e3);
-  $("#lbsnap").textContent = `foto del tick ${lb.snapshot_tick ?? lb.tick} · próxima ${lb.next_refresh_tick ?? "—"}`;
+  $("#lbsnap").textContent = `foto del tick ${lb.snapshot_tick ?? lb.tick} · próxima ${lb.next_refresh_tick ?? "—"}${ago ? "" : " · Δ 1 h pendiente de historial"}`;
   $("#lb tbody").innerHTML = lb.teams.map(t => {
     const p = ago && ago.teams[t.team]; const d = p ? t.score - p.score : null;
     const cls = t.team === US ? "us" : t.team === w ? "watch" : "";
@@ -510,8 +513,8 @@ function ourDeals() {
       const p = e.payload, it = (p.items || [])[0] || {};
       const other = (p.parties || []).find(x => x !== US) || "—";
       const side = it.to === US ? "compra" : it.frm === US ? "venta" : "—";
-      const cap = DEALER_MAX[it.ref] ?? null;
-      return {tick: e.tick, other, ref: it.ref || it.kind, rarity: it.rarity || "", price: p.price, cap: p.persona ? cap : null, side, venue: p.venue || p.persona || ""};
+      const cap = T18Evidence.dealerCap(p, DEALER_MAX);
+      return {tick: e.tick, other, ref: (p.items || []).map(i=>i.ref || i.kind).join(", "), rarity: it.rarity || "", price: p.price, cap, side, venue: p.venue || p.persona || ""};
     });
 }
 function renderOurs() {
@@ -526,12 +529,12 @@ function renderOurs() {
 function renderJ13() {
   const ev = Object.values(S.feed).filter(e => e.type === "offer.listed").map(e => e.payload.offer)
     .filter(o => o && bidCards(o).some(c => /^(RET|CHA)-/.test(c)) && o.maker !== US);
-  const cancelled = new Set(Object.values(S.feed).filter(e => e.type === "offer.cancelled").map(e => (e.payload.offer || {}).id));
-  const open = new Set((live.rastro || []).map(o => o.id));
+  const cancelled = new Set(Object.values(S.feed).filter(e => e.type === "offer.cancelled").map(T18Evidence.cancelledId));
   const have = haveSet();
   const rows = ev.sort((a, b) => b.created_tick - a.created_tick).slice(0, 30);
   $("#j13 tbody").innerHTML = rows.map(o => {
-    const st = open.has(o.id) ? '<span class="pill ok">abierta</span>' : cancelled.has(o.id) ? '<span class="pill">cancelada</span>' : '<span class="pill">cerrada</span>';
+    const state = T18Evidence.offerState(o, live.rastro || [], cancelled, live.clock?.tick);
+    const st = `<span class="pill ${state === "abierta" ? "ok" : ""}">${state === "abierta" ? "abierta (foto)" : state}</span>`;
     const hit = bidCards(o).some(c => have.has(c));
     return `<tr class="${hit ? "hit" : ""}"><td class="num">${o.created_tick}</td><td>${esc(o.maker)}</td><td>${esc(bidCards(o).join(", "))}</td><td class="num"><b>${o.give.cash}</b></td><td>${st}</td></tr>`;
   }).join("") || '<tr><td colspan="5" class="empty">ninguna puja por RET o CHA en lo grabado</td></tr>';
@@ -549,12 +552,12 @@ function renderDays() {
   else {
     val = mean === "more" ? "1" : "-1"; cls = "ok";
     why = gate === "yes" ? "Gate con signo: la táctica envía nuestro mejor día y el margen en ese día baja a 1 P."
-      : `Signo fijado, pero sin la propuesta A la Gate sigue exigiendo ${fmt(margin, 1)} P en nuestro mejor día. Los G50.limit cerca del deadline son esperables: no hay que pausar por ellos.`;
+      : `Signo propuesto, pero sin la propuesta A la Gate sigue exigiendo ${fmt(margin, 1)} P en nuestro mejor día. Revisar los G50.limit con el operador antes de aplicar cambios.`;
   }
   $("#dverdict").innerHTML = `<span class="eyebrow">Propuesta para config/plan.json</span>
     <span class="big">days_sign = ${val} <span class="pill ${cls}">${cls === "ok" ? "fijar" : "dejar null"}</span></span>
     <span>${esc(why)}</span>
-    <span class="small muted">Margen de la Gate sin signo: 1 + |w|·max(d, 10 − d), hasta ${fmt(margin, 1)} P. Pausar solo ante un resultado ≤ 0, E16 o un G51 que no sea rival_tick.</span>
+    <span class="small muted">Margen de la Gate sin signo: 1 + |w|·max(d, 10 − d), hasta ${fmt(margin, 1)} P. Es una propuesta manual; ante rechazos en cadena o anomalías, avisar al operador y seguir su protocolo de pausa.</span>
     <pre>"days_sign": ${val}</pre>`;
 }
 
@@ -581,6 +584,17 @@ document.querySelectorAll("#metric button").forEach(b => b.onclick = () => { S.s
 document.querySelectorAll("#rtab button").forEach(b => b.onclick = () => { S.settings.rtab = b.dataset.t; save(); renderRastro(); });
 $("#pause").onclick = () => { paused = !paused; $("#pause").textContent = paused ? "Reanudar" : "Pausar"; if (!paused) poll(["clock", "lb", "venues", "rastro", "feed"]); renderFresh(); };
 $("#now").onclick = () => { const p = paused; paused = false; poll(["clock", "schedule", "lb", "venues", "rastro", "feed"]).then(() => paused = p); };
+$("#export").onclick = async () => {
+  const button = $("#export"); button.disabled = true;
+  try {
+    const data = T18Evidence.exportPublic(live, S, await get("/api/catalog"), new Date().toISOString());
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:"application/json"}));
+    const a = document.createElement("a"); a.href = url; a.download = "analista-publico.json"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    $("#export-status").textContent = `Exportados ${data.feed.events.length} eventos públicos observados. Sin caja, sobrantes ni ajustes. Generar demo: python3 -m jury.report --analyst-export analista-publico.json`;
+  } catch (e) { $("#export-status").textContent = "No se pudo exportar: " + String(e.message || e); }
+  finally { button.disabled = false; }
+};
 const th = $("#theme"); th.value = setting("theme", "");
 const applyTheme = () => { th.value ? document.documentElement.setAttribute("data-theme", th.value) : document.documentElement.removeAttribute("data-theme"); };
 th.onchange = () => { S.settings.theme = th.value; save(); applyTheme(); }; applyTheme();

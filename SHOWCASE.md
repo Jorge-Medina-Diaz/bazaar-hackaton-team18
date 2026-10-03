@@ -6,6 +6,10 @@ The Bazaar · Cromos de Madrid · Jorge, Rubén y Santi · Actualizado 3 de octu
 compara sus predicciones con resultados. El equipo separa operación, análisis y
 preparación del jurado; los roles rotan, la clave permanece con el operador.
 
+**Mesa compartida:** [analista/index.html](analista/index.html) observa el mercado;
+exporta datos públicos para reutilizarlos en la demo y en Affinity, sin exportar
+ajustes de caja o inventario. [Trabajo de Persona 2](docs/analista.md).
+
 **Abrir la demo:** [jury/demo.html](jury/demo.html). Cuatro secciones con datos
 públicos fechados. [Guion y actualización](docs/jury-runbook.md). Actualizar los
 datos requiere Python 3.10+; abrir la demo ya generada no requiere Python.

@@ -75,3 +75,15 @@ Las sesiones anteriores siguen en archive/docs/HANDOFF.md.
 - Rubén autoriza subir esta entrega. Publicación por fast-forward, sin force y conservando avances remotos. Próximo paso: abrir demo; obtener formato del jurado y reporte agregado del diario de Jorge para completar afirmaciones pendientes. Aviso running remote sin captura: origen sin identificar; acceso GitHub funciona.
 
 - Antes del push main avanzó a adfd048 (merge de Santi: rivals.py, affinity --history y notas). Rebase limpio sobre ese commit, conservando todas sus modificaciones; 33/33 tests y diff --check repetidos correctamente. Ningún diff en agent/, bazaar.py, SDK ni plan frente a ese main actualizado.
+
+
+## Integración Persona 2 + Persona 3 — 2026-10-03, Codex
+
+- Rubén avisó de la entrega de persona 2 y autorizó integrar y publicar main. Pull previo 2804923 (panel analista); rama codex/integrate-analyst-jury en checkout aislado. Conservados avances remotos y worktrees de otros.
+- Panel analista enlazado a demo jurado en la misma carpeta estática. Exportación pública seleccionada hacia jury.report --analyst-export: importación sin red/modelo, reutiliza Affinity y conserva fecha/tick/cobertura. No exporta caja, sobrantes, ajustes, mensajes ni claves; no certifica autenticidad del navegador ni completitud del feed.
+- Generación única de ambos demos y topes con --team-output analista, desde config/plan.json y su hash. No representa configuración operativa. Actualizada demo pública con snapshot 430 y alcance parcial.
+- Corregidos: puja ausente → sin confirmar; cancelación con ID numérico; topes por carta no aplicados a lotes; delta horario espera 1 h en misma ronda; polling no solapa solicitudes y tiene timeout; protocolo de pausa de operador conservado. Propuesta Gate/days_sign documentada, no aplicada.
+- rivals.py decía sin clave pero client(read) exigía BAZAAR_KEY. Sustituido por public_get con tres rutas públicas fijas y sin dotenv, probado contra la API real con variables de clave/URL quitadas. Todas las operaciones reales de esta sesión fueron GET públicos.
+- Tests: 38/38 Python (jury, rivals público, Affinity, arquitectura) y 9/9 Node. Flujo real de navegador: 44 eventos públicos exportados, importación offline correcta, sin settings ni falso resultado del calibrador; botón de descarga y render sin errores de consola. diff --check correcto. No se ejecutó la suite completa nuevamente: el ejecutor no cambia.
+- agent/, bazaar.py, SDK, contratos y config/plan.json idénticos al main base; hash operativo intacto. No se arman tácticas, ejecutan modelos ni se inicia otro bot.
+- Próximo paso: abrir analista/index.html, o republicar analista/ para actualizar el despliegue manual. Jorge mantiene su diario/clave; formato del jurado y evidencia RET siguen pendientes. Antes del push se vuelve a comprobar main por concurrencia.

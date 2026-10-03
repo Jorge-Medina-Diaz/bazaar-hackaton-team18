@@ -60,3 +60,23 @@ liquidaciones de rivales, no sus valores privados o beneficios.
 
 Pendiente: medir mejora en casos nuevos, enlazar desenlaces v2 a liquidaciones
 antes de alimentar memoria y validar el visor con logs del ejecutor de Jorge.
+
+
+## Persona 2 + Persona 3: lectura compartida sin segundo ejecutor
+
+Entrada: `analista/index.html`. Enlaza `analista/jurado.html` y exporta datos
+públicos seleccionados. `python3 -m jury.report --analyst-export archivo.json`
+reutiliza `agent.affinity` sin red y genera un informe agregado para el jurado.
+No copiar el JSON completo al contexto de un agente: usar las tablas/resumen
+con fecha, tick, cobertura e incertidumbre. No activa RAG, JEV ni una táctica.
+
+- `rivals.py` usa GET públicos sin leer `.env`; corre en la máquina del analista.
+- `jury.report --refresh --output jury --team-output analista` regenera las dos
+  demos y los topes públicos desde el plan del repo. El hash de los topes no
+  acredita la configuración que el operador tenga cargada.
+- El diario sigue en la máquina de Jorge. Un evento público observado no se
+  convierte en pass del calibrador; una puja ausente no se convierte en venta.
+- Duelos II/CHA siguen siendo propuestas de docs/analista.md. La propuesta A de
+  Gate con signo no se aplica mediante esta integración y no se cambia el plan.
+- El paquete estático incluye todas sus dependencias locales. Subir a Git no
+  actualiza un despliegue manual en Vercel; republicar analista/ cuando corresponda.

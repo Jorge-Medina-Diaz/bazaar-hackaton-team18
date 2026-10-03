@@ -125,3 +125,13 @@ With Python 3.10+: `python3 -m jury.report --refresh` builds a fresh static demo
 `runs/jury/` using four public GETs. It does not read credentials, trade or call a
 model. Optional local `--journal logs/run/journal.jsonl` exports aggregate verified
 chain counts, never raw journal contents. It is independent of the runner.
+
+
+## Shared analyst and jury workflow
+
+[Analyst panel](analista/index.html) → **Exportar para jurado** →
+`python3 -m jury.report --analyst-export analista-publico.json` → `runs/jury/demo.html`.
+No network or model call during import. The static analyst bundle includes
+[jury demo](analista/jurado.html), generated alongside dealer limits with
+`python3 -m jury.report --refresh --output jury --team-output analista`.
+[Analyst guide](docs/analista.md) describes the partial public history and operator decisions.

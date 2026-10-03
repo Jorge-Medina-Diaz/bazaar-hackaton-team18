@@ -9,7 +9,9 @@ from __future__ import annotations
 import argparse
 import collections
 import hashlib
+import html
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -94,13 +96,43 @@ def make_report(leaderboard: dict, clock: dict, feed: dict, catalog: dict,
                          "events": len(events), "skipped_events": skipped,
                          "tick_range": [min(ticks), max(ticks)] if ticks else [], "teams": inferred,
                          "exact_rival_profit": None},
+            "coverage": {"complete": False, "selection": "browser_retained_settlements_and_bids"
+                         if source == "analyst_browser_export" else "api_window"},
             "journal": journal_summary(journal)}
 
 
-def render(report: dict) -> str:
+def render(report: dict, analyst_url: str = "../analista/index.html") -> str:
     # Prevent data from ending the inert JSON script block; DOM uses textContent only.
     data = json.dumps(report, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
-    return (HERE / "template.html").read_text(encoding="utf-8").replace("__EVIDENCE__", data)
+    return ((HERE / "template.html").read_text(encoding="utf-8").replace("__EVIDENCE__", data)
+            .replace("__ANALYST_URL__", html.escape(analyst_url, quote=True)))
+
+
+def write_team_assets(report: dict, output: Path) -> None:
+    """Static analyst deployment bundle, generated from this repo's public plan."""
+    plan_path = HERE.parent / "config" / "plan.json"
+    raw = plan_path.read_bytes()
+    caps = json.loads(raw).get("dealer_max", {})
+    caps = {ref: price for ref, price in caps.items() if re.fullmatch(r"(RET|CHA)-\d{2}", ref)
+            and type(price) in (int, float) and 0 < price < 10000000}
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "jurado.html").write_text(render(report, "index.html"), encoding="utf-8")
+    public_plan = {"source": "config/plan.json", "sha256": hashlib.sha256(raw).hexdigest(), "dealer_max": caps}
+    (output / "plan-public.js").write_text("globalThis.T18PublicPlan = Object.freeze(" +
+                                         json.dumps(public_plan, sort_keys=True) + ");\n", encoding="utf-8")
+
+
+def analyst_input(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("schema") != "t18.analyst.public.v1":
+        raise ValueError("Formato de exportación del analista desconocido")
+    datetime.fromisoformat(data["captured_at"].replace("Z", "+00:00"))
+    for k in ("leaderboard", "clock", "feed", "catalog"):
+        if not isinstance(data.get(k), dict):
+            raise ValueError("Exportación incompleta: " + k)
+    if not isinstance(data["feed"].get("events"), list) or len(data["feed"]["events"]) > 3000:
+        raise ValueError("Feed exportado inválido o demasiado grande")
+    return data
 
 
 def main(argv=None) -> int:
@@ -108,8 +140,10 @@ def main(argv=None) -> int:
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--refresh", action="store_true", help="Four public GETs, once, without a key")
     mode.add_argument("--offline", type=Path, help="JSON: leaderboard, clock, feed, catalog; marked offline")
+    mode.add_argument("--analyst-export", type=Path, help="Public JSON exported by analista/index.html; no network")
     ap.add_argument("--journal", type=Path, help="Optional local WAL; exports counts, never its content")
     ap.add_argument("--output", type=Path, default=Path("runs/jury"))
+    ap.add_argument("--team-output", type=Path, help="Also generate jurado.html and plan-public.js for analyst bundle")
     args = ap.parse_args(argv)
     if args.refresh:
         limiter = RateLimiter(rate=1, burst=1, reserve=0)
@@ -117,14 +151,21 @@ def main(argv=None) -> int:
                                 {"limit": 1000} if name == "feed" else None)
                 for name in ("leaderboard", "clock", "feed", "catalog")}
         source = "public_api"
+    elif args.analyst_export:
+        data = analyst_input(args.analyst_export)
+        source = "analyst_browser_export"
     else:
         data = json.loads(args.offline.read_text(encoding="utf-8"))
         source = "offline_input"
     report = make_report(**{k: data[k] for k in ("leaderboard", "clock", "feed", "catalog")},
-                         journal=args.journal, source=source)
+                         journal=args.journal, source=source,
+                         fetched_at=data.get("captured_at") if args.analyst_export else None)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "evidence.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    (args.output / "demo.html").write_text(render(report), encoding="utf-8")
+    analyst_url = Path(os.path.relpath(HERE.parent / "analista" / "index.html", args.output)).as_posix()
+    (args.output / "demo.html").write_text(render(report, analyst_url), encoding="utf-8")
+    if args.team_output:
+        write_team_assets(report, args.team_output)
     print(f"Demo: {args.output / 'demo.html'}; tick {report['snapshot_tick']}; journal {report['journal']['status']}")
     return 0
 

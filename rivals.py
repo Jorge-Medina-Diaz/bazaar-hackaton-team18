@@ -1,6 +1,6 @@
 """Vigilancia de rivales sin clave (rol analista): clasificación, mercados de equipo y pujas grandes en El Rastro.
 
-Solo lecturas públicas (GET /api/leaderboard, /api/venues, /api/venues/rastro/offers) por client("read"), con
+Solo lecturas públicas (GET /api/leaderboard, /api/venues, /api/venues/rastro/offers) por public_get, con
 allowlist y límite de ritmo: no escribe nada en el juego. Cada foto se graba en logs/rivals.jsonl y se compara con la anterior:
   - t12 (o --watch-team): su puntuación de mercado y cuánto ha cambiado;
   - mercados de equipo con tratos: tratos por hora desde la foto anterior; ALERTA si alguno pasa de 3/h
@@ -23,15 +23,18 @@ from agent.journal import LOG_DIR, log
 
 STREAM = "rivals"
 VENUE_ALERT_PER_H = 3.0
-_T = None
+_LIMITER = None
 
 
 def get(path: str):
-    global _T
-    if _T is None:
-        from agent.client import client
-        _T = client("read")
-    return _T._get(path)
+    global _LIMITER
+    from agent.contracts import PROD_URL
+    from agent.transport import RateLimiter, public_get
+    if path not in ("/api/leaderboard", "/api/venues", "/api/venues/rastro/offers"):
+        raise ValueError("Ruta no pública del analista")
+    if _LIMITER is None:
+        _LIMITER = RateLimiter(rate=1, burst=1, reserve=0)
+    return public_get(PROD_URL, path, _LIMITER)
 
 
 def snapshot() -> dict:

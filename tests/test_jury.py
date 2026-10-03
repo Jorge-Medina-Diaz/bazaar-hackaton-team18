@@ -119,6 +119,31 @@ class JuryEvidenceTests(unittest.TestCase):
         result = json.loads((Path(self.tmp.name)/"evidence.json").read_text())
         self.assertEqual(result["source"], "offline_input")
 
+    def test_analyst_export_uses_capture_date_without_network_or_false_settlements(self):
+        fixture = Path(self.tmp.name) / "analyst.json"
+        fixture.write_text(json.dumps({**snapshot(), "schema": "t18.analyst.public.v1",
+                                      "captured_at": "2026-10-03T09:00:00Z", "settings": {"key": "private-value"}}))
+        with patch.object(report, "public_get", side_effect=AssertionError("network")):
+            report.main(["--analyst-export", str(fixture), "--output", self.tmp.name])
+        result = json.loads((Path(self.tmp.name)/"evidence.json").read_text())
+        self.assertEqual(result["source"], "analyst_browser_export")
+        self.assertEqual(result["fetched_at"], "2026-10-03T09:00:00Z")
+        self.assertEqual(result["journal"]["live_measurements"], 0)
+        self.assertFalse(result["coverage"]["complete"])
+        self.assertNotIn("private-value", json.dumps(result))
+
+    def test_unknown_export_schema_rejected(self):
+        fixture = Path(self.tmp.name) / "input.json"
+        fixture.write_text(json.dumps({**snapshot(), "schema": "unknown"}))
+        with self.assertRaises(ValueError):
+            report.analyst_input(fixture)
+
+    def test_static_analyst_bundle_regenerates_plan_limits(self):
+        out = Path(self.tmp.name)
+        report.write_team_assets(report.make_report(**snapshot()), out)
+        self.assertIn('href="index.html"', (out/"jurado.html").read_text())
+        self.assertIn('"CHA-09": 100', (out/"plan-public.js").read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

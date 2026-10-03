@@ -1,7 +1,7 @@
 # Persona 2 · Analista (sábado 3 y domingo 4 oct)
 
 Sin clave, desde cualquier máquina. Solo lecturas públicas y análisis; **nunca** se toca el juego ni `config/plan.json` en la máquina del operador: se le pasa la propuesta y la aplica él.
-El código del bot está en `origin/main` (`bazaar.py`, `config/plan.json`, `agent/tactics/`); esta rama no lo tiene. Para leerlo sin cambiar de rama: `git show origin/main:<ruta>`.
+El código del bot y ambos trabajos están integrados en `main`: `bazaar.py`, `config/plan.json`, `agent/tactics/`, `analista/` y `jury/`.
 
 Tres trabajos:
 1. **Duelos II** (hoy, hora de juego 11,65 ≈ **18:29**): proponer `days_sign`.
@@ -58,7 +58,7 @@ B. **En el primer duelo de Duelos II** (~18:29). El operador copia de `GET /api/
 
 Y la regla de margen: si **10·\|w\| > mitad del excedente típico** (\|L − ancla\|) y el cambio A no está, se deja `null`. No se gana nada fijando el signo y solo se añaden rechazos.
 
-C. **Aviso al operador**: con `days_sign` fijado y sin el cambio A, los `G50.limit` cerca del deadline son esperables y no justifican pausar. Sí la justifican un acuerdo con resultado ≤ 0, `E16` o un `G51` que no sea `rival_tick`.
+C. **Aviso al operador**: con `days_sign` fijado y sin el cambio A, pueden aparecer `G50.limit` cerca del deadline. Avisar y revisar el desajuste antes de aplicar cambios; ante rechazos en cadena, seguir el protocolo de pausa del operador. Un acuerdo con resultado ≤ 0, `E16` o un `G51` que no sea `rival_tick` también requiere revisión. La integración del panel no aplica la propuesta A ni cambia `days_sign`.
 
 La misma decisión vale para **Duelos III** (domingo, hora 18,65 ≈ 11:00, 12 ticks, decay 0,10), salvo que `days_meaning` cambie.
 
@@ -81,7 +81,7 @@ La misma decisión vale para **Duelos III** (domingo, hora 18,65 ≈ 11:00, 12 t
 **Coste real de RET hoy** (feed público, settlements t205–t230): raras 86 + 86 (El Chato), infrecuentes 22 + 22 (Abuela; RET-07 ya la teníamos), comunes 9, 9, 10, 9, cierre RET-02 a **49** con t02.
 Si CHA cuesta lo mismo: 2 × 86 + 3 × 22 + 4 × 9,5 + cierre = 276 + cierre, es decir, **325 con cierre a 49** y **348 con la puja de cierre del plan a 72**. Y el Gate guarda 10 P de reserva (`cash_free`).
 
-**Dinero**: 116 + 150 = 266. **Faltan 59–92 P** (325 + 10 − 266 = 69 como objetivo central). Hay que sacarlos hoy:
+**Dinero**: 116 + 150 = 266. **Faltan 69–92 P incluyendo reserva** (325 + 10 − 266 = 69 como objetivo central). Hay que sacarlos hoy:
 - Vender LAT (abandonada en t205) como autor a ≥ V + 2 o a pujas con ganancia ≥ 3 (J9/J5). Confirmar el inventario con `bazaar.py status` del operador.
 - J13: duplicados de RET a pujas rivales de cierre con ganancia ≥ 15 y recompra a la Abuela (+19 a +32 por ciclo). `rivals.py` avisa de pujas ≥ 30.
 - Si a las 22:55 no llega: no hace falta cambiar nada. El orden rara → infrecuente → común compra primero lo escaso, y el cierre usa `min(72, cash_free)`.
@@ -118,7 +118,7 @@ Los topes solo se alcanzan si el vendedor no baja. El regateo llegó a 86 desde 
 - Publicado en Vercel (proyecto `t18-analista`, aparte del panel del equipo). Republicar tras un cambio: `cd analista && npx vercel deploy --prod --yes`.
 - Ritmo: clock y feed cada 15 s; clasificación, mercados y El Rastro cada 30 s; calendario cada 5 min (≈ 0,2 lecturas/s).
 - Contenido: cuentas atrás del calendario, clasificación con Δ 1 h y tendencia, gráfico de evolución, mercados con tratos/h y alerta, pujas y ventas de El Rastro filtrables con nuestros sobrantes, nuestros tratos comparados con `dealer_max`, pujas de cierre rivales por RET/CHA (J13), calculadora de `days_sign` y de caja para CHA.
-- El feed público devuelve como mucho 500 eventos (≈ 10 min de juego): el panel los acumula en el navegador (localStorage), así que conviene dejarlo abierto.
+- El feed público devuelve como mucho 500 eventos; los minutos cubiertos dependen de la actividad. El panel acumula una selección de hasta 3.000 eventos en el navegador (localStorage), así que conviene dejarlo abierto. No garantiza un historial completo.
 
 ### Registro horario
 
@@ -128,4 +128,15 @@ Los topes solo se alcanzan si el vendedor no baja. El regateo llegó a 86 desde 
 - **Mercados de equipo con tratos por hora**: ALERTA si alguno pasa de 3/h → se replantea abrir mercado propio. Ahora solo `v02` (t12) tiene tratos: 2, 17 P.
 - **Pujas grandes en El Rastro** (≥ 30 P, `--min-bid`). Con `--have` marca las de cartas que tenemos de sobra → avisar al operador.
 
-Cada informe relevante se apunta en `docs/experiments.md` (una línea: hora, dato, decisión).
+Cada informe relevante se apunta en este documento con hora, tick, dato y decisión. Los experimentos históricos están en `archive/docs/experiments.md`.
+
+
+## Integración con Persona 3 y el harness
+
+- El panel enlaza **Demo del jurado** (`analista/jurado.html`), incluida en la misma carpeta para servirla en el despliegue estático.
+- **Exportar para jurado** descarga `analista-publico.json`: clasificación, reloj, catálogo y eventos públicos retenidos. Hace una lectura pública de catálogo; no exporta caja, sobrantes, ajustes, mensajes ni claves. El almacenamiento local es modificable: esta exportación es evidencia observada por el navegador, no un diario autenticado.
+- Sin red, con Python 3.10+: `python3 -m jury.report --analyst-export analista-publico.json`. El informe en `runs/jury/` reutiliza `agent.affinity` y conserva fecha de captura y cobertura parcial. El RAG no recibe desenlaces ni liquidaciones inventadas a partir de un HTTP ok o una puja ausente.
+- Para renovar el paquete estático desde datos oficiales: `python3 -m jury.report --refresh --output jury --team-output analista`. Genera la demo en ambos lugares y `analista/plan-public.js` con topes y hash de `config/plan.json`. Son los límites del repo, no la configuración que Jorge tenga cargada en ese momento.
+- `rivals.py` ahora usa `public_get` sin leer `.env` ni necesitar clave. No se modifican la Gate, la táctica de duelos ni el plan operativo.
+- Estados de pujas: desaparecer de El Rastro significa **sin confirmar**, no liquidada. Cancelaciones numéricas se conservan; ofertas en otros mercados no se declaran abiertas por mirar solo El Rastro. El tope de una carta no se compara con el precio total de un lote. Δ 1 h espera una hora completa de historial de la misma ronda.
+- Verificación: `node --test analista/evidence.test.cjs`; Python: `python3 -m unittest tests.test_jury tests.test_rivals_public tests.test_affinity tests.test_architecture`. La publicación en Git no republica por sí misma un despliegue manual de Vercel; para actualizar el enlace alojado seguir el comando de despliegue de arriba.
