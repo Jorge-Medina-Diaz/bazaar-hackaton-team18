@@ -214,10 +214,10 @@ def load_state(path):
             s = json.load(f)
         if isinstance(s, dict):
             return {"seen": list(s.get("seen", [])), "ticks": list(s.get("ticks", [])), "watch": s.get("watch", {}),
-                    "obs": s.get("obs"), "announced": list(s.get("announced", []))[-200:]}
+                    "obs": s.get("obs"), "announced": list(s.get("announced", []))[-200:], "clock": s.get("clock")}
     except (OSError, ValueError):
         pass
-    return {"seen": [], "ticks": [], "watch": {}, "obs": None, "announced": []}
+    return {"seen": [], "ticks": [], "watch": {}, "obs": None, "announced": [], "clock": None}
 
 
 def save_state(path, state):
@@ -531,6 +531,16 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
     return fresh
 
 
+def clock_change(prev, clock):
+    """Aviso cuando el reloj se pausa o se reanuda (los organizadores lo hacen sin avisar): mueve todos los horarios."""
+    if not prev or not clock or bool(prev.get("paused")) == bool(clock.get("paused")):
+        return None
+    if clock.get("paused"):
+        return ("ALTA", f"Juego en PAUSA en el tick {clock.get('tick')} (h {_f(clock.get('t_hours'))}): "
+                        "nada se liquida y el calendario se retrasa")
+    return ("ALTA", f"Juego REANUDADO: tick {prev.get('tick')} → {clock.get('tick')} (h {_f(clock.get('t_hours'))})")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--watch", action="store_true", help="vigilar con ritmo adaptativo")
@@ -564,6 +574,13 @@ def main():
         try:
             clock = get("/api/clock")
             tick_s, doors = clock.get("tick_seconds") or 30.0, clock.get("doors", "open")
+            change = clock_change(state.get("clock"), clock)
+            state["clock"] = {k: clock.get(k) for k in ("tick", "t_hours", "paused")}
+            if change:
+                record({"event": "clock", "level": change[0], "text": change[1]})
+                print(f"‼️ [{change[0]}] 🕒 {when(clock)} · {change[1]}", flush=True)
+                if not a.no_notify:
+                    notify(f"⏸️ t18 · reloj del juego", f"🕒 {when(clock)}\n{change[1]}", level=change[0])
             fresh = step(state, names, min_level=a.min_level, do_notify=not a.no_notify, first=first, clock=clock,
                          have=have)
             first = False
@@ -572,6 +589,8 @@ def main():
             wait = interval(state["ticks"], tick_s, burst > 0)
             if doors != "open":
                 wait = 600.0
+            elif clock.get("paused"):
+                wait = 60.0   # en pausa: leer cada minuto para avisar en cuanto se reanude
             record({"event": "poll", "tick": clock.get("tick"), "new": len(fresh), "next_s": round(wait, 1),
                     "doors": doors})
             print(f"   · {when(clock)}: {len(fresh)} nuevas; próxima lectura a las {hhmmss(time.time() + wait)} "

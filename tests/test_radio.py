@@ -346,5 +346,15 @@ class TimeTests(unittest.TestCase):
         self.assertTrue(any("🕒 emitida tick 403" in x for x in lines))
 
 
+class ClockTests(unittest.TestCase):
+    def test_pause_and_resume_are_reported_once_with_ticks(self):
+        run, stop = {"tick": 630, "t_hours": 6.575, "paused": False}, {"tick": 630, "t_hours": 6.575, "paused": True}
+        self.assertEqual(radio.clock_change(run, stop)[0], "ALTA")
+        self.assertIn("PAUSA en el tick 630 (h 6,58)", radio.clock_change(run, stop)[1])
+        self.assertIn("REANUDADO: tick 630 → 631", radio.clock_change(stop, dict(run, tick=631))[1])
+        self.assertIsNone(radio.clock_change(stop, stop))
+        self.assertIsNone(radio.clock_change(None, stop))
+
+
 if __name__ == "__main__":
     unittest.main()
