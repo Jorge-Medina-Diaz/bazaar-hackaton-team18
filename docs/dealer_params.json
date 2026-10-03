@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-03T19:14:12",
+ "updated": "2026-10-03T19:19:15",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 32,
@@ -115,27 +115,28 @@
     19,
     19,
     19,
+    19,
     20,
     20,
     20
    ],
    "p_sube": {
     "2-3": 0.51,
-    "1": 0.52,
+    "1": 0.53,
     "4+": 0.45
    },
    "n_sube": {
     "2-3": 69,
-    "1": 71,
+    "1": 75,
     "4+": 38
    },
    "final_min": 4,
-   "final_med": 5.0,
+   "final_med": 5,
    "perdona_max": 1,
    "mejora_max": 4
   },
   "pilar|compra|resto·None": {
-   "hilos": 2,
+   "hilos": 3,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -155,7 +156,7 @@
    "mejora_max": 0
   },
   "pilar|venta|fav·rare": {
-   "hilos": 27,
+   "hilos": 28,
    "cierres": [
     65,
     65,
@@ -179,6 +180,7 @@
     74,
     75,
     75,
+    76,
     77,
     77,
     77,
@@ -201,10 +203,10 @@
    "n_sube": {
     "2-3": 29,
     "1": 15,
-    "4+": 21
+    "4+": 23
    },
    "final_min": 4,
-   "final_med": 5.5,
+   "final_med": 5,
    "perdona_max": 1,
    "mejora_max": 17
   },
@@ -233,7 +235,7 @@
    "mejora_max": 9
   },
   "picaros|venta|resto·common": {
-   "hilos": 69,
+   "hilos": 71,
    "cierres": [
     4,
     5,
@@ -257,13 +259,13 @@
     5
    ],
    "p_sube": {
-    "2-3": 0.19,
+    "2-3": 0.18,
     "1": 0.12,
     "4+": 0.0
    },
    "n_sube": {
-    "2-3": 59,
-    "1": 65,
+    "2-3": 65,
+    "1": 67,
     "4+": 4
    },
    "final_min": 3,
@@ -272,10 +274,12 @@
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 58,
+   "hilos": 60,
    "cierres": [
     48,
     48,
+    52,
+    52,
     52,
     52,
     52,
@@ -326,7 +330,7 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 17,
+    "2-3": 19,
     "1": 14,
     "4+": 25
    },
@@ -427,6 +431,16 @@
    "final_med": 6,
    "perdona_max": 2,
    "mejora_max": 25
+  },
+  "picaros|compra|resto·None": {
+   "hilos": 1,
+   "cierres": [],
+   "p_sube": {},
+   "n_sube": {},
+   "final_min": null,
+   "final_med": null,
+   "perdona_max": null,
+   "mejora_max": null
   }
  }
 }
