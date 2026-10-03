@@ -9,6 +9,8 @@ Moved here with `git mv`, so `git log --follow archive/<path>` shows each file's
 - `tests/`: suites that tested the archived code (not discovered by `python3 -m unittest discover -s tests`).
   The cases of the old `test_agent_core.py` that test kept modules (offer_safety, execution) stay in
   `tests/test_agent_core.py`.
+- `bench.py`, `flags.py` and `docs/duels-strategy.md` came from the Santi branch (merged Sat 3 Oct); the duel
+  archetypes in `docs/duels-strategy.md` are still worth reading for the duels tactic.
 - `docs/`: old notes, plans and designs (refuted or replaced by docs/knowledge.md, docs/strategy.md and
   docs/harness-spec.md). `docs/README.md` was the old docs index; `docs/santi/` holds the refuted strategies.
 - `.mcp.json`: the old information-collector MCP server (`collector_mcp.py`), now disabled.

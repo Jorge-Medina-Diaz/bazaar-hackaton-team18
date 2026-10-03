@@ -3,6 +3,7 @@
 - [Arranque y estrategia del equipo](LEEME-EQUIPO.md).
 - [Contrato de harness-v2](harness-spec.md), [hechos verificados](knowledge.md), [estrategia](strategy.md).
 - [Integración de Jorge y evaluación](integration-handoff.md).
+- Rol analista: [guía](analista.md) (`rivals.py`) y [estimador de multiplicadores de los rivales](affinity-equipo.md).
 - [Visor compatible con el diario v2](traces.md).
 - [Harness histórico offline](harness.md), [recuperación RAG](rag-evaluation.md).
 - [JEV: resultados medidos](jev-real-testing.md), [controles y límites](jev-security.md).

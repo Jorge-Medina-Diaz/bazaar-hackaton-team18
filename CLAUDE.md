@@ -46,7 +46,8 @@ sim/                   servidor falso y bots para los tests (127.0.0.1 o en proc
 tests/                 suite completa (tests/__init__.py aísla: BAZAAR_TEST=1, sin clave)
 api/index.py, vercel.json, website/, panel.py, panel.html, run_dashboard.py,
 live_monitor.py, observe_performance.py, inventory_panel.py, laboratorio.py, negotiation_policy.py,
-affinity.py (+ agent/affinity.py, puro: multiplicador probable de cada rival por barrio, X-15)
+affinity.py (+ agent/affinity.py, puro: multiplicador probable de cada rival por barrio, X-15; --history)
+rivals.py              rol analista: clasificación, mercados de equipo y pujas grandes de El Rastro (docs/analista.md)
                        paneles y laboratorio: solo lectura (GuardedTransport en modo "read") o fuera de línea
 docs/harness-spec.md   el contrato (arquitectura, firmas, invariantes INV-xx, guardas, runbook §13)
 docs/knowledge.md      hechos verificados (P-xx puntuación, D-xx dealers, U-xx duelos)
