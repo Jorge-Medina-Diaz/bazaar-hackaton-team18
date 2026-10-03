@@ -77,7 +77,7 @@ NO_DEADLINE_KINDS = frozenset({"cancel", "close_thread"})
 FRESH_KINDS = frozenset({"accept", "duel_accept"})
 TEXT_KINDS = frozenset({"say", "duel_say"})
 DEALER_BLOCK_CODES = frozenset({"cooloff", "persona_quota"})
-TICKS_PER_GAME_HOUR = 60
+TICKS_PER_GAME_HOUR = 60         # fallback only, when world.tick_seconds is unusable (Fri 60 s ticks)
 RESPONSE_MAX = 2048
 PRED_TOL = 0.01
 IN_FLIGHT_TICKS = 2              # M17: an own offer gone from me/offers stays booked this many ticks
@@ -860,7 +860,10 @@ class Gate:
                     until = _int(_get(body, "until_tick"))
                     if until is None:
                         frac = world.t_hours - math.floor(world.t_hours)
-                        until = world.tick + max(1, math.ceil((1.0 - frac) * TICKS_PER_GAME_HOUR))
+                        ts = world.tick_seconds
+                        tph = 3600.0 / ts if type(ts) in (int, float) and math.isfinite(ts) and ts > 0 \
+                            else TICKS_PER_GAME_HOUR
+                        until = world.tick + max(1, math.ceil((1.0 - frac) * tph))
                     extra["dealer_block"] = {dealer: until}
                     try:
                         db = dict(self.book.dealer_block)

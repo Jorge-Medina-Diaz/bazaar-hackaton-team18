@@ -355,6 +355,17 @@ class TestThreadsAndPacks(unittest.TestCase):
         early = make_world(offers=current_offers(), threads=th, t_hours=17.9, today="sat", schedule=sched)
         self.assertEqual(hygiene.watch(early, make_book(early), FakeValuer(VALUES), Cfg(), PLAN), [])
 
+    def test_walked_thread_is_not_closed_again(self):
+        # live Sat t1455: status "walked" (closed_reason final_offer_refused) was re-proposed every tick -> G33.not_open
+        walked = dict(buy_thread(dealer="picaros", ref="SAL-11", status="walked"), closed_reason="final_offer_refused")
+        budget = dict(buy_thread(dealer="pilar", status="walked"), closed_reason="persona_budget")
+        th = {1455: walked, 1519: budget}
+        sched = {"upcoming": []}
+        late = make_world(offers=current_offers(), threads=th, t_hours=17.92, today="sat", schedule=sched)
+        self.assertEqual(ids(hygiene.watch(late, make_book(late), FakeValuer(VALUES), Cfg(), PLAN), "close_thread",
+                             "thread_id"), set())
+        self.assertEqual(hygiene._open_threads(late), [])
+
     def test_foreign_threads_recorded_and_closed_only_with_e17(self):
         w = make_world(offers=current_offers(), foreign=(141,))
         state = {}

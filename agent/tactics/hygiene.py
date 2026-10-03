@@ -225,7 +225,9 @@ def grant_soon(world, lookahead_ticks: int) -> bool:
 
 
 def _thread_open(t: Mapping) -> bool:
-    return t.get("status") not in TERMINAL_THREAD        # unknown status counts as open (fail closed)
+    # Only "open" is open: G33 refuses close_thread on anything else, so a server-ended thread ("walked",
+    # closed_reason final_offer_refused / persona_budget, ...) was re-proposed every tick (G33.not_open, t1455).
+    return t.get("status") == "open"
 
 
 def _thread_side(t: Mapping) -> tuple:
