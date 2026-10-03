@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-03T19:29:21",
+ "updated": "2026-10-03T19:34:24",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 33,
@@ -148,7 +148,7 @@
    "mejora_max": null
   },
   "pilar|venta|resto·None": {
-   "hilos": 26,
+   "hilos": 25,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -158,13 +158,15 @@
    "mejora_max": 0
   },
   "pilar|venta|fav·rare": {
-   "hilos": 31,
+   "hilos": 35,
    "cierres": [
     65,
     65,
     65,
     65,
     65,
+    65,
+    65,
     69,
     69,
     69,
@@ -181,12 +183,27 @@
     70,
     70,
     70,
+    70,
+    70,
+    71,
+    71,
+    71,
+    71,
+    71,
+    71,
+    71,
     72,
     74,
     74,
+    74,
+    74,
+    75,
+    75,
     75,
     75,
     76,
+    77,
+    77,
     77,
     77,
     77,
@@ -210,12 +227,12 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 34,
+    "2-3": 40,
     "1": 15,
     "4+": 27
    },
    "final_min": 4,
-   "final_med": 5,
+   "final_med": 5.0,
    "perdona_max": 1,
    "mejora_max": 17
   },
@@ -244,7 +261,7 @@
    "mejora_max": 9
   },
   "picaros|venta|resto·common": {
-   "hilos": 74,
+   "hilos": 76,
    "cierres": [
     4,
     5,
@@ -270,22 +287,22 @@
     5
    ],
    "p_sube": {
-    "2-3": 0.18,
+    "2-3": 0.17,
     "1": 0.13,
     "4+": 0.0
    },
    "n_sube": {
-    "2-3": 73,
+    "2-3": 75,
     "1": 70,
     "4+": 4
    },
    "final_min": 3,
-   "final_med": 4,
+   "final_med": 4.0,
    "perdona_max": 1,
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 65,
+   "hilos": 66,
    "cierres": [
     48,
     48,
@@ -317,6 +334,8 @@
     54,
     54,
     54,
+    55,
+    55,
     55,
     55,
     55,
@@ -357,12 +376,12 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 22,
+    "2-3": 23,
     "1": 20,
     "4+": 29
    },
    "final_min": 2,
-   "final_med": 3,
+   "final_med": 3.0,
    "perdona_max": 15,
    "mejora_max": 25
   },
@@ -404,6 +423,9 @@
   "picaros|compra|resto·epic": {
    "hilos": 13,
    "cierres": [
+    128,
+    128,
+    128,
     139,
     139,
     139,
@@ -423,7 +445,7 @@
     "2-3": 1.0
    },
    "n_sube": {
-    "4+": 12,
+    "4+": 13,
     "1": 2,
     "2-3": 4
    },
