@@ -12,6 +12,7 @@ import argparse, base64, hmac, http.server, json, os, sys, threading, time  # no
 
 from agent import trace
 from agent.journal import LOG_DIR
+from harness import outcomes
 from harness.retrieval import import_feed
 
 CACHE_S = 2
@@ -23,12 +24,17 @@ def state(log_dir):
     summaries = trace.threads(events)
     feed = [c for c in import_feed(trace.read_feed(os.path.join(log_dir, 'feed.jsonl')), 'feed')[0]]
     ours = trace.team_cases(summaries)
-    memory = trace.merge(feed, ours)
+    measured, outcome_report = outcomes.outcome_cases(*outcomes.load(log_dir))
+    memory = trace.merge(feed, ours + measured)
+    executor = trace.executor_status(log_dir, events)
+    if executor is not None:
+        executor['outcomes_indexed'] = outcome_report['indexed']
     return {'generated': time.time(), 'bad_lines': bad, 'events_total': len(events),
-            'executor': trace.executor_status(log_dir, events),
+            'executor': executor, 'outcomes': outcome_report,
             'events': events[-300:][::-1], 'threads': summaries[::-1][:200],
             'reconcile': trace.reconcile(summaries, feed),
-            'memory': {'cases': len(memory), 'team_cases': len(ours), 'feed_cases': len(feed),
+            'memory': {'cases': len(memory), 'team_cases': len(ours), 'measured_cases': len(measured),
+                       'feed_cases': len(feed),
                        'ids_unique': len({c.id for c in memory}) == len(memory)}}
 
 
@@ -128,7 +134,7 @@ async function tick(){
     const x=s.executor;
     $('executor').textContent=x?'Ejecutor v2 · modo '+x.mode+' · tick '+(x.tick??'?')+' · tácticas '+x.armed.join(', ')+' · pendientes '+(x.pending??'?')+' · cadena '+(x.journal_valid?'válida':'sin verificar')+' · STOP '+x.stop+' · último evento '+hhmm(x.last_ts)+'. Los resultados HTTP no confirman liquidación ni alimentan aún la memoria de desenlaces.':'Sin diario del ejecutor v2 en esta carpeta.';
     const c=s.reconcile,m=s.memory;
-    $('tiles').replaceChildren(...[['Conversaciones',c.journal_threads],['Abiertas',c.open],['Terminadas',c.ended],['En el feed',c.in_feed],['Casos RAG',m.cases],['De nuestro journal',m.team_cases]].map(([k,v])=>{const d=document.createElement('div');d.className='tile';d.innerHTML='<b></b><span class="mut"></span>';d.firstChild.textContent=v;d.lastChild.textContent=k;return d}));
+    $('tiles').replaceChildren(...[['Conversaciones',c.journal_threads],['Abiertas',c.open],['Terminadas',c.ended],['En el feed',c.in_feed],['Casos RAG',m.cases],['Desenlaces medidos',m.measured_cases]].map(([k,v])=>{const d=document.createElement('div');d.className='tile';d.innerHTML='<b></b><span class="mut"></span>';d.firstChild.textContent=v;d.lastChild.textContent=k;return d}));
     const p=document.createElement('div');const bad=[...c.dealer_mismatch,...c.price_not_in_feed,...c.side_mismatch];
     p.className=c.ok&&m.ids_unique?'ok':'bad';
     p.textContent=c.ok&&m.ids_unique?'✔ Memoria cuadrada con el feed (sin duplicados ni precios contradictorios). Sin feed aún: '+c.missing_in_feed.length:'✖ Descuadre en hilos: '+bad.join(', ')+(m.ids_unique?'':' · IDs duplicados en memoria');
@@ -151,7 +157,7 @@ def main():
     if a.check:
         s = state(a.logs)
         print(json.dumps({'bad_lines': s['bad_lines'], 'reconcile': s['reconcile'], 'memory': s['memory'],
-                          'executor': s['executor']},
+                          'outcomes': s['outcomes'], 'executor': s['executor']},
                          ensure_ascii=False, indent=2))
         valid = s['executor'] is None or s['executor']['journal_valid']
         sys.exit(0 if valid and s['reconcile']['ok'] and s['memory']['ids_unique'] else 1)

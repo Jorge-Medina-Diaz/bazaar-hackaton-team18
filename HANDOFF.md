@@ -1,11 +1,27 @@
 # Traspaso actual — 2026-10-03
 
+## Pícaros y avisos ampliados (Claude) — sáb 3 oct, 16:58
+
+- En main: `picaros.py` (trucos «gato por liebre» detectados a máquina, perfil de negociación; 9/9 trucos iguales hasta el tick 796), avisos de pausa, calendario, hora y 429 en `radio.py`; guía `docs/seguridad-picaros.md`. code_hash del operador intacto.
+- Los Pícaros: activos desde h 7,667 con acceso anticipado (2 tratos con Pilar); abiertos a todos en h 8,667 (~17:35). t18 sin acceso anticipado.
+- Siguiente paso (operador): 1–2 tratos con ganancia con Los Pícaros tras su apertura (escalera L4), venta de repetidas SAL a Pilar en la fiebre (h 9,15–11,15) y decisión sobre mercado propio.
+
 ## Radio Rastro y cambios para t18 (Claude) — sáb 3 oct, tick ~430
 
 - Rubén pidió vigilar la radio, avisar en su máquina con lo relevante para t18 y subirlo a main. Añadidos `radio.py`, `tests/test_radio.py` y `docs/radio.md`. Solo lecturas públicas sin clave; `agent/` intacto (code_hash b96eb95d4edb5656).
 - Investigado: las noticias solo las emiten los organizadores (rutas admin); los equipos no pueden publicar. Las ciertas mueven el mercado. El vigilante verifica con el feed (precios del dealer en los barrios citados frente al control de la misma rareza) y avisa de cambios exactos (puesto, adelantamientos, dealers, menús, barrios, acuñaciones, niveles, próximo evento).
 - Pruebas: 19 tests del vigilante, 6 mutaciones detectadas, suite completa 816 OK (Python 3.14); notificación real probada en macOS con texto hostil sin ejecución.
 - Siguiente paso: dejarlo corriendo (`python3 radio.py --watch`) en una máquina que no sea el ejecutor o junto a él, y actuar solo sobre noticias `confirmada` bajo el Gate.
+
+## Desenlaces v2 medidos para el RAG (Claude) — rama `claude/rag-outcomes`
+
+- Pull de main `dfa9c24` en worktree nuevo `/Users/ruben/projects/bazaar-hackaton-team18-main` (ningún checkout ajeno tocado). Rama local `claude/rag-outcomes`, sin commit ni push.
+- Añadido `harness/outcomes.py`: convierte solo filas `measure` del calibrador (liquidación detectada + intent enviado + delta real de puntos) en casos RAG privados; descarta ambiguos, heredados, no atribuidos, excluidos, out_of_band y cadena rota. Conectado en `run_traces.py` (visor y `--check`). `agent/` y `bazaar.py` intactos: `code_hash` b96eb95d4edb5656 antes y después.
+- Pruebas: 7 tests nuevos (`tests/test_outcomes.py`), 6 mutaciones de salvaguardas detectadas. El e2e del runner v2 en `tests/test_trace.py` ahora exige que cada desenlace indexado exista en el libro del juego falso (antes exigía cero porque no había adaptador). Suite completa Python 3.14: 805 tests OK, 2 omitidos; Python 3.9 en módulos tocados OK; `diff --check` correcto.
+- Verificación cruzada: semillas 11/3/7/23, 5 desenlaces indexados y 5 cuadran con el ledger (carta, lado, contraparte, precio, delta).
+- Subido a main el sáb 3 oct a las 16:58 con autorización de Rubén (rebase sobre el main de ese momento).
+- Siguiente paso: Validar con el diario real de Jorge (`--check`) cuando lo comparta.
+- Añadido `docs/operador-cartas-fuertes.md` para el contexto del operador: épicas/legendarias (0 acuñadas, no se persiguen), Doña Pilar nivel 3 (vender repetidas SAL/RET ≥ V+1 para escalera y caja de CHA, manual con `do` y primero en seco porque el ejecutor no vende a dealers), E18 bonus master y E19 peso del nivel 3, final del domingo con compras ≤ V−50. Sin clave: inventario y acceso a Pilar por confirmar en la máquina A.
 
 ## Integración autorizada por Rubén
 
