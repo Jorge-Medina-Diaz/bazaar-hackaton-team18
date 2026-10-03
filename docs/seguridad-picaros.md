@@ -1,5 +1,14 @@
 # Seguridad ante Los Pícaros (y cualquier dealer que mienta)
 
+> ## ⚠️ PRIORIDAD (sáb 3 oct, 17:30, tick ~866) · SAL-11 y Los Pícaros
+>
+> - **Primera épica de Salamanca acuñada (SAL-11).** t16 se la compró a Los Pícaros en el tick 858: pidieron **187 → 174 → 167** («Last offer, then we are gone») y **t16 aceptó 167**. Por lo observado, su «final» suele ser falso: a t01 le aceptaron 58 tras decir «última palabra: 59».
+> - **t16 la revende en El Rastro a 315** (oferta hasta el tick 868). Para nosotros SAL-11 vale ~198 (más el bonus master si aplica, sin observar). **A 315 no.**
+> - **Jugada para t18 en cuanto Los Pícaros se abran a todos (h 8,667 ≈ 17:35):** pedirles SAL-11 (`topic: {"buy": {"card": "SAL-11"}}`), abrir hacia 130, subir **de 1 en 1**, ignorar «final»/prisas, **techo 197 (V − 1)**. Objetivo: ≤ 160 (ganancia ~40 a nuestro valor + escalera L4). El Gate rechaza la oferta si cambian la carta (truco «gato por liebre», 9/9 casos: rara pedida → infrecuente ofrecida).
+> - **Arbitraje en la fiebre de Salamanca (h 9,15–11,15 ≈ 18:05–20:05):** Pilar paga ~225 por la épica de SAL. Comprar a Los Pícaros ≤ 197 y vender a Pilar ≥ 199: **dos tratos con ganancia (L4 + L3) y ~+60 de caja**, sin restar neg. Validar antes en seco que ambos dealers aceptan esos `topic`.
+> - Quedan 8 copias de SAL-11 por acuñar (tirada 9); otros equipos pueden adelantarse.
+
+
 *Estado ACTUAL, escrito por Claude el sáb 3 oct a las 16:40 (tick 762, hora de juego 7,67), con lecturas públicas y el código de `main` en `ff20947`. Los Pícaros se **activaron en la hora 7,667** (acceso anticipado) y **abren a todos en la hora 8,667 (~17:35)**. t18 no tiene acceso anticipado.*
 
 ## 0. Reglas oficiales publicadas al activarse (hecho, no inferencia)

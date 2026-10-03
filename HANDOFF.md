@@ -1,5 +1,9 @@
 # Traspaso actual — 2026-10-03
 
+## ⚠️ PRIORIDAD · SAL-11 con Los Pícaros (Claude) — sáb 3 oct, 17:30
+
+- SAL-11 (épica de SAL) acuñada: t16 la compró a Los Pícaros a 167 (pidieron 187→174→167 «last offer») y la revende a 315 en El Rastro. Para t18 vale ~198. Jugada al abrirse Los Pícaros a todos (h 8,667): pedir SAL-11, abrir ~130, +1 por tick, ignorar «final», techo 197; y en la fiebre de Salamanca (h 9,15–11,15) venderla a Pilar ≥ 199 (~225). Detalle: `docs/seguridad-picaros.md` (cabecera PRIORIDAD).
+
 ## Pícaros y avisos ampliados (Claude) — sáb 3 oct, 16:58
 
 - En main: `picaros.py` (trucos «gato por liebre» detectados a máquina, perfil de negociación; 9/9 trucos iguales hasta el tick 796), avisos de pausa, calendario, hora y 429 en `radio.py`; guía `docs/seguridad-picaros.md`. code_hash del operador intacto.
