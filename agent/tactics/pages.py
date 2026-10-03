@@ -344,6 +344,26 @@ def profile_for(plan_cfg, ref: str, card: Mapping) -> Optional[Mapping]:
     return None
 
 
+def need_limit(plan_cfg, ref: str, card: Mapping) -> Optional[int]:
+    """Need cap from the profiles: the first profile's limit, raised to its fallback profile's limit (the next
+    profile with another dealer, the fallback_dealer if set; same choice as dealers._pick_open_profile) when the
+    first has a fallback. Each thread stays capped by its own profile's limit. Night audit: CHA rares from the
+    Pícaros (<= 60) fall back to El Chato (finals 86-93): a 60 Need cap kept the Chato thread from ever opening."""
+    first = profile_for(plan_cfg, ref, card)
+    if not first:
+        return None
+    lim = int(first["limit"])
+    if not (first.get("fallback_after") or first.get("fallback_dealer")):
+        return lim
+    prof = plan_cfg.get("profiles") or {}
+    fb = first.get("fallback_dealer")
+    for key in (ref, f"{card.get('set')}:{card.get('rarity')}", card.get("rarity")):
+        p = prof.get(key)
+        if isinstance(p, Mapping) and p is not first and p.get("dealer") != first.get("dealer")                 and (not isinstance(fb, str) or p.get("dealer") == fb) and _num(p.get("limit")):
+            return max(lim, int(p["limit"]))
+    return lim
+
+
 # ------------------------------------------------------------------------------------------ closer_ref
 
 def closer_ref(world, missing: Sequence[str], plan_cfg) -> str:
@@ -448,8 +468,8 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
                     if not prof:
                         continue
                     dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
-                    cap = min(int(prof["limit"]), int((plan_cfg.get("dealer_max") or {}).get(ref, prof["limit"])),
-                              _floor(dv - 1.0))
+                    nl = need_limit(plan_cfg, ref, card)
+                    cap = min(nl, int((plan_cfg.get("dealer_max") or {}).get(ref, nl)), _floor(dv - 1.0))
                     if cap >= 1:
                         set_needs.append(Need(set=set_id, ref=ref, source=prof["dealer"], max_price=cap, closer=False))
             # closer Need: valued as the card that completes the page

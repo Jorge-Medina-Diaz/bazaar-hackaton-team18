@@ -504,6 +504,27 @@ class OpenTest(Base):
                         D.DealerState.rebuild(w, None))
         self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("abuela", 25)])
 
+    def test_cha_rare_picaros_then_chato_at_90(self):
+        # night audit: each thread keeps its own profile limit; the Need (cap 90) lets the Chato fallback open
+        cat = {"sets": [{"id": "CHA", "cards": [{"id": "CHA-09", "rarity": "rare"}]}]}
+        plan = {"profiles": {
+            "CHA:rare": {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24,
+                         "fallback_dealer": "chato"},
+            "rare": {"dealer": "chato", "anchor": 70, "step": 4, "limit": 90, "fallback_after": None}},
+            "dealer_max": {"CHA-09": 100}}
+        vals = {"CHA-09": 112.0}
+        import dataclasses
+        w = dataclasses.replace(make_world(tick=30, unlocked=("abuela", "chato", "picaros")), catalog=cat)
+        its = D.propose(w, make_book(), FakeValuer(vals), Cfg(), plan, [need("CHA-09", "picaros", max_price=90)],
+                        D.DealerState.rebuild(w, None))
+        self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("picaros", 60)])
+        walked = {3: {"id": 3, "with": "picaros", "topic": {"buy": {"card": "CHA-09"}}, "status": "closed",
+                      "created_tick": 15, "messages": [], "standing_offers": []}}
+        w2 = dataclasses.replace(w, threads=walked)
+        its = D.propose(w2, make_book(), FakeValuer(vals), Cfg(), plan, [need("CHA-09", "picaros", max_price=90)],
+                        D.DealerState.rebuild(w2, None))
+        self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("chato", 90)])
+
     def test_fallback_after_closes_slow_thread(self):
         o = dealer_offer(1, "chato", "RET-08", 32, 21)
         t = {"id": 7, "with": "chato", "topic": {"buy": {"card": "RET-08"}}, "status": "open", "created_tick": 15,

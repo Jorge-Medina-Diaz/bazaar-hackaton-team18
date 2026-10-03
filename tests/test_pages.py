@@ -157,6 +157,20 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(cl[0].max_price, 72)            # floor(122 - 50)
         self.assertEqual({n.max_price for n in cha if n.ref in ("CHA-09", "CHA-10")}, {100})
 
+    def test_cha_rare_need_cap_allows_the_chato_fallback(self):
+        # night audit: CHA:rare Pícaros (<= 60) falls back to El Chato (limit 90); the Need cap must let it open
+        cfg = copy.deepcopy(self.cfg)
+        cfg["page_sets"] = ["CHA"]
+        cfg["profiles"]["CHA:rare"] = {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24}
+        w = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=14.0, today="sun")
+        caps = lambda c: {n.ref: (n.source, n.max_price) for n in pages.plan(w, valuer_for(w), c, {})[0]  # noqa: E731
+                          if n.ref in ("CHA-09", "CHA-10") and not n.closer}
+        self.assertEqual(set(caps(cfg).values()), {("picaros", 60)})                     # no fallback profile
+        cfg["profiles"]["CHA:rare"]["fallback_dealer"] = "chato"
+        cfg["profiles"]["rare"] = {"dealer": "chato", "anchor": 70, "step": 4, "limit": 90, "fallback_after": None}
+        self.assertEqual(set(caps(cfg).values()), {("picaros", 90)})
+        self.assertEqual(pages.need_limit(cfg, "CHA-01", {"set": "CHA", "rarity": "common"}), 12)   # no fallback
+
     def test_unreleased_set_no_needs(self):
         w = make_world(released=("LAV", "MAL", "LAT", "SAL"))
         self.assertEqual(pages.plan(w, valuer_for(w), self.cfg, {})[0], [])

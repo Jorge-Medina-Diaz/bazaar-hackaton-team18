@@ -24,12 +24,13 @@
     "RET:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 11,  "fallback_after": null},
     "SAL-11":       {"dealer": "picaros", "anchor": 130, "step": 3, "limit": 160, "fallback_after": 24},
     "LAT:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 58, "fallback_after": 16},
-    "CHA:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24},
+    "CHA:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24, "fallback_dealer": "chato"},
     "CHA-06":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-07":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-08":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
-    "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null}
+    "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null},
+    "rare":         {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null}
   },
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
              "endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}},
