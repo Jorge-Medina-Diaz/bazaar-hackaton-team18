@@ -7,6 +7,7 @@
     python3 affinity.py --team t13            # one team in detail, with its evidence counts
     python3 affinity.py --calibrate           # run blind on us (t18) and compare with our real affinity
     python3 affinity.py --watch 60            # keep recording feed + leaderboard snapshots (the score evolution)
+    python3 affinity.py --history 5           # replay the estimate every 5 ticks -> logs/affinity_history.json
     python3 affinity.py --offline             # only logs/, no network
 
 Each run appends new feed events to logs/feed.jsonl, a new leaderboard snapshot to logs/leaderboard.jsonl, a summary
@@ -106,6 +107,24 @@ def card(post: dict, ref: str, price: float, rarity_of: dict, conf: float, us: s
           f"VENDEDOR: P ≥ {conf:.0%} de que lo valore por debajo (comprarle a {price}).")
 
 
+def summary(p) -> dict:
+    return {"e": {s: round(p.expected(s), 3) for s in af.SETS}, "p16": {s: round(q, 3) for s, q in p.top_set().items()},
+            "bits": round(p.entropy_bits(), 2), "n": sum(p.n.values())}
+
+
+def history(events: list, snaps: list, rarity_of: dict, known: dict, step: int) -> list:
+    """The estimate as it would have been at every `step` ticks: how each team's multipliers came into focus."""
+    ticks = [e["tick"] for e in events]
+    out = []
+    for cut in list(range(min(ticks) + step, max(ticks), step)) + [max(ticks)]:
+        post = af.estimate([e for e in events if e["tick"] <= cut], [s for s in snaps if s["tick"] <= cut],
+                           rarity_of, known)
+        out.append({"tick": cut, "teams": {t: summary(p) for t, p in post.items() if t not in known}})
+    with open(os.path.join(LOG_DIR, "affinity_history.json"), "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False)
+    return out
+
+
 def save(post: dict, tick: int) -> None:
     rows = {t: {"expected": {s: round(p.expected(s), 3) for s in af.SETS},
                 "marginal": {s: {str(m): round(q, 4) for m, q in p.marginal(s).items()} for s in af.SETS},
@@ -127,6 +146,7 @@ def main() -> None:
     ap.add_argument("--team")
     ap.add_argument("--calibrate", action="store_true")
     ap.add_argument("--watch", type=int, metavar="SECONDS")
+    ap.add_argument("--history", type=int, metavar="TICKS")
     ap.add_argument("--offline", action="store_true")
     a = ap.parse_args()
 
@@ -152,6 +172,10 @@ def main() -> None:
             p_true = post[us].p[af.PERMS.index(tuple(truth[s] for s in af.SETS))]
             print(f"el valor real cae en el intervalo al {a.conf:.0%} en {hits}/6 barrios · "
                   f"P(permutación real) = {p_true:.2%} (a priori {1 / 720:.2%})")
+        return
+    if a.history:
+        h = history(events, snaps, rarity_of, known, a.history)
+        print(f"{len(h)} cortes (ticks {h[0]['tick']}–{h[-1]['tick']}) -> logs/affinity_history.json")
         return
     post = af.estimate(events, snaps, rarity_of, known)
     tick = max((e["tick"] for e in events), default=0)
