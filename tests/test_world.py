@@ -365,6 +365,15 @@ class TestVenuesAndBudget(Base):
         got = [x for x in w.venues if x["id"] == v["venue"]][0]
         self.assertEqual((got["fee_bps"], got["fee_per_card"]), (900, 2))
 
+    def test_pending_fee_kept_in_the_world(self):
+        # Sat review: the allowlist dropped pending_fee; it stays (ints only) and a malformed effective_tick counts
+        v = self.t.data["venues"]["venues"][0]
+        v["pending_fee"] = {"fee_bps": 1200, "fee_per_card": 3, "effective_tick": None, "note": "free text"}
+        w, _ = self.s.snapshot(None)
+        got = [x for x in w.venues if x["id"] == v["venue"]][0]
+        self.assertEqual(dict(got["pending_fee"]), {"fee_bps": 1200, "fee_per_card": 3})
+        self.assertEqual((got["fee_bps"], got["fee_per_card"]), (1200, 3))
+
     def test_venues_down_drops_rival_boards(self):
         self.t.fail["venues"] = OSError("x")
         w, _ = self.s.snapshot(None)

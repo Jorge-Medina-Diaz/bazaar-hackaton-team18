@@ -115,6 +115,17 @@ def _card_index(world) -> dict:
     return idx
 
 
+def _plan_refs(plan: Mapping, keys: tuple) -> frozenset:
+    """Refs named in plan lists ([{ref, ...}] or [ref]) such as extra_needs / resale."""
+    out = set()
+    for k in keys:
+        for e in plan.get(k) or ():
+            r = e.get("ref") if isinstance(e, Mapping) else e
+            if isinstance(r, str):
+                out.add(r)
+    return frozenset(out)
+
+
 def _set_of(ref: str) -> str:
     return ref.split("-", 1)[0]
 
@@ -213,6 +224,7 @@ class _Ctx:
         self.rival_min = float(_c(cfg, "RIVAL_VENUE_MIN_GAIN", RIVAL_VENUE_MIN_GAIN))
         self.rival_top = int(_c(cfg, "RIVAL_TOP_N", RIVAL_TOP_N))
         self.dup_min = dict(self.plan.get("dup_min_price") or {})
+        self.not_spare = _plan_refs(self.plan, ("extra_needs", "resale"))   # bought for dealers: never El Rastro
         self.venues = self._venues()
         self.own_ids = set(book.own_offer_ids) | {o.get("id") for o in world.my_offers if isinstance(o, Mapping)}
         self.own_makers = {TEAM} | ({world.own_pseudonym} if world.own_pseudonym else set())
@@ -220,6 +232,7 @@ class _Ctx:
         self.open_room = open_cap - sum(1 for o in world.my_offers
                                         if isinstance(o, Mapping) and o.get("status") in ("open", "queued"))
         self.own_bids, self.own_swaps = self._own_offers()
+        self.proj = self._proj_without_own()
 
     # --- venues (D2)
     def _venues(self) -> dict:
@@ -275,6 +288,16 @@ class _Ctx:
                 bids[ref] = (oid, int((self.b.bid_price or {}).get(oid, 0)))
         return bids, swaps
 
+    def _proj_without_own(self) -> dict:
+        """Book.projected without the copy of our OWN standing bid / swap (guards.build_book adds +1 per want ref):
+        the closer and a switch value the card as if our offer had not filled (never below held, as
+        hygiene._counts_without). Without this, RET-05 with our closer bid up read as a 2nd copy (3.25, not 99.1)."""
+        c = {k: int(v or 0) for k, v in (self.b.projected or {}).items()}
+        for ref in set(self.own_bids) | set(self.own_swaps):
+            if isinstance(ref, str):
+                c[ref] = max(c.get(ref, 0) - 1, self.counts(self.b.held, ref))
+        return c
+
     # --- values
     def counts(self, m: Mapping, ref: str) -> int:
         return int((m or {}).get(ref, 0))
@@ -289,7 +312,7 @@ class _Ctx:
     def dv_add(self, ref: str) -> float:
         """Value of one more copy; -inf when unknown (UnknownCard etc.): every buy then fails closed."""
         try:
-            d = float(self.v.delta_add(self.b.projected, ref, self.b.packs))
+            d = float(self.v.delta_add(self.proj, ref, self.b.packs))
         except Exception:
             return -INF
         if not math.isfinite(d):
@@ -445,7 +468,7 @@ def _buy_ok(cx: _Ctx, vid: str, ref: str, price: int, gain_lo: float) -> bool:
     need = cx.needs.get(ref)
     if need is None or price > need.max_price or cx.round_trip(ref, "buy"):
         return False
-    closes = bool(cx.v.closes_page(cx.b.projected, ref))
+    closes = bool(cx.v.closes_page(cx.proj, ref))
     base = cx.accept_min if closes else cx.min_team
     return gain_lo >= cx.min_gain(vid, base)
 
@@ -454,7 +477,7 @@ def _j4_closer(cx: _Ctx, offers: list) -> None:
     """J4: the frozen closer card of each page set (a Need with closer=True that closes the page)."""
     st = cx.state.setdefault("closer", {})
     for ref, need in cx.needs.items():
-        if not need.closer or not cx.v.closes_page(cx.b.projected, ref):
+        if not need.closer or not cx.v.closes_page(cx.proj, ref):
             continue
         rec = st.setdefault(ref, {"floor": 0, "pending": None})
         if not math.isfinite(cx.dv_add(ref)):
@@ -654,7 +677,7 @@ def _swaps_accept(cx: _Ctx, offers: list) -> None:
         pred = _pred_swap(cx.dv_add(rin), cx.dv_rm(rout), True, vn)
         if -pred.cash > cx.cash_free:
             continue
-        base = cx.accept_min if cx.v.closes_page(cx.b.projected, rin) else cx.min_team
+        base = cx.accept_min if cx.v.closes_page(cx.proj, rin) else cx.min_team
         if pred.neg_lo < cx.min_gain(vn["id"], base):
             continue
         cands.append((pred.neg_hi, o, vn, pred, rin, aid))
@@ -667,10 +690,15 @@ def _swaps_accept(cx: _Ctx, offers: list) -> None:
             cx.cash_free += pred.cash
 
 
+SPARE_RARITIES = ("common", "uncommon", "rare")   # epics / legendaries are never a spare (dealer resale, prestige)
+
+
 def _spares(cx: _Ctx) -> list:
-    """Refs with a copy we may hand over, cheapest to lose first."""
+    """Refs with a copy we may hand over, cheapest to lose first. Never an epic / legendary / unknown rarity, never
+    a ref the plan buys for resale to dealers (extra_needs, resale: SAL-11 was listed on El Rastro at V+2)."""
     refs = sorted({a.get("ref") for a in (cx.w.me or {}).get("assets") or ()
                    if isinstance(a, Mapping) and a.get("kind") == "card" and isinstance(a.get("ref"), str)})
+    refs = [r for r in refs if (cx.idx.get(r) or {}).get("rarity") in SPARE_RARITIES and r not in cx.not_spare]
     out = [(cx.dv_rm(r), r) for r in refs if cx.spare_asset(r) is not None and r not in cx.needs]
     out = [x for x in out if math.isfinite(x[0])]
     return sorted(out)
@@ -689,7 +717,7 @@ def _long_bids_and_swaps(cx: _Ctx) -> None:
         if not math.isfinite(dv):
             continue
         price = min(int(need.max_price), int(math.floor(dv - cx.min_team)), cx.cash_free)
-        if cx.v.closes_page(cx.b.projected, ref):
+        if cx.v.closes_page(cx.proj, ref):
             price = min(price, int(math.floor(dv - cx.accept_min)))
         if price >= 1:
             args = {"side": "bid", "ref": ref, "asset_id": None, "price": int(price),

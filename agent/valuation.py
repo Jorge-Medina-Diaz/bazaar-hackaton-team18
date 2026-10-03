@@ -125,7 +125,7 @@ class Valuer:
             if a.get("kind") == "card":
                 if isinstance(ref, str):
                     counts[ref] += 1
-            else:
+            elif a.get("kind") == "pack":       # only a pack is a pack: an unknown asset kind is not valued here
                 packs.append(ref if isinstance(ref, str) else "")
         return counts, tuple(packs)
 
@@ -249,17 +249,23 @@ class Valuer:
             counts, packs = self.holdings(me)
             meas = me.get("collection_value")
             model = self.collection_value(counts, packs)
+            # 4th+ copies (V-10, never measured): anywhere between 0 (buy view) and MARG[-1] (model) is accepted,
+            # so an unmeasured copy marginal cannot fail the check and block every write; equal bounds otherwise
+            low = self._total(counts, packs, None, "buy")
             if not _finite(meas):
                 mism.append(("collection_value", None, model, meas))
             else:
-                err = max(err, abs(model - meas))
-                if abs(model - meas) > tol:
+                e = max(0.0, low - meas, meas - model) if low <= model else abs(model - meas)
+                err = max(err, e)
+                if e > tol:
                     mism.append(("collection_value", None, model, meas))
             for a in me.get("assets") or ():
                 if a.get("kind") != "card":
                     continue
                 yv = a.get("your_value")
                 if not _finite(yv):
+                    continue
+                if counts.get(a["ref"], 0) > len(self.marg):    # handing over a 4th+ copy: unmeasured, not compared
                     continue
                 m = self.delta_remove(counts, a["ref"], packs)
                 err = max(err, abs(m - yv))

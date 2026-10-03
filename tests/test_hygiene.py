@@ -371,5 +371,19 @@ class TestThreadsAndPacks(unittest.TestCase):
         self.assertEqual(ids(out), {2463, 1652})
 
 
+class TestSwapWatchRealBook(unittest.TestCase):
+    def test_own_swap_valued_as_first_copy(self):
+        # real Valuer + guards.build_book: projected already counts the swap's wanted MAL-06, so it read as a 2nd
+        # copy (3.125 - 5 < 2 -> cancelled); as the 1st copy it is 12.5 - 5 = 7.5 >= 2 -> kept
+        from agent import guards
+        from tests.test_guards import DEFAULT, Ctx
+        swap = {**_offer(3005, give_ref="MAL-04", asset_id=295, exp=300),
+                "want": {"cash": 0, "assets": [], "types": ["card:MAL-06"]}}
+        c = Ctx(my_offers=DEFAULT + (swap,))
+        self.assertEqual(c.book.projected.get("MAL-06"), 1)
+        self.assertTrue(c.book.valuation_ok)
+        self.assertEqual(hygiene.swap_watch(c.world, c.book, c.valuer, guards.Cfg(), PLAN), [])
+
+
 if __name__ == "__main__":
     unittest.main()

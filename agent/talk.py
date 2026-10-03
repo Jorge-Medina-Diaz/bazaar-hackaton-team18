@@ -523,6 +523,14 @@ def _duel_basics(d: Mapping) -> tuple:
     return (1 if role == "seller" else -1), float(lim), ("days" in issues)
 
 
+DUEL_DAYS_MAX = 10
+
+
+def days_worst_case(w: float, days: int) -> float:
+    """THE days penalty (shared by G50/G51 and agent.tactics.duels): max_d |W(d) - W(days)|, W(d) = w * d."""
+    return abs(float(w)) * max(days, DUEL_DAYS_MAX - days)
+
+
 def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
     """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d.
     A null weight uses cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback); none -> refuse."""
@@ -530,7 +538,7 @@ def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
     if w is None:
         w = _cfg(cfg, "DAYS_WEIGHT_FALLBACK", None)
     _need(_num(w), "G50.days_unknown")
-    return abs(float(w)) * max(days, 10 - days)
+    return days_worst_case(w, days)
 
 
 def _g50_say(a, world, cfg, counters) -> None:

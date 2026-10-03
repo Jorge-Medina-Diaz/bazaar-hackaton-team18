@@ -424,5 +424,69 @@ class VenueTests(unittest.TestCase):
         self.assertEqual(run(world(), b), [])
 
 
+class ResaleNeverSpareTests(unittest.TestCase):
+    def test_epic_legendary_and_plan_resale_refs_never_listed(self):
+        # Sat live: SAL-11 (epic, bought for resale to Los Picaros, plan extra_needs) was listed on El Rastro at V+2
+        assets = [card(1, "SAL-11", "epic"), card(2, "LAT-12", "legendary"), card(3, "MAL-04"), card(4, "MAL-05")]
+        val = FakeValuer(add=VAL["add"], rm=dict(VAL["rm"], **{"SAL-11": 198.0, "LAT-12": 405.0}))
+        plan = dict(PLAN, extra_needs=[{"ref": "MAL-05", "max_price": 10}])
+        held = {"SAL-11": 1, "LAT-12": 1, "MAL-04": 1, "MAL-05": 1}
+        out = rastro.propose(world(assets=assets), book(held=held), val, None, plan, [], {})
+        listed = [i.args["ref"] for i in out if i.kind == "list_offer" and i.args["side"] in ("sell", "swap")]
+        self.assertEqual(listed, ["MAL-04"])
+
+
+class RealBookTests(unittest.TestCase):
+    """With the real Valuer and guards.build_book (the test doubles above hid this): build_book counts our own
+    standing bid's copy in projected, so the closer read RET-05 as a 2nd copy (3.25, not 99.1) and never moved."""
+
+    RET = [card(100 + i, f"RET-{i:02d}", "common" if i <= 5 else ("uncommon" if i <= 8 else "rare"))
+           for i in range(1, 11) if i != 5]
+
+    def real(self, my_offers=(), board=(), assets=()):
+        import json
+        from dataclasses import replace
+        from pathlib import Path
+        from agent import guards
+        from agent.valuation import Valuer
+        cat = json.loads((Path(__file__).resolve().parent / "fixtures" / "harvest" / "catalog.json")
+                         .read_text(encoding="utf-8"))
+        aff = {"LAV": 0.7, "MAL": 0.5, "LAT": 0.9, "SAL": 1.1, "RET": 1.3, "CHA": 1.6}
+        w = world(board=board, my_offers=my_offers, assets=list(self.RET) + list(assets))
+        w = replace(w, catalog=cat, schedule={"now_hours": 10.0, "upcoming": []},
+                    me=dict(w.me, affinity=aff))
+        v = Valuer(cat, aff, w.released_sets)
+        b = replace(guards.build_book(w, None, v, guards.Cfg(), PLAN, {}, {}), valuation_ok=True)
+        return w, b, v
+
+    def test_projected_counts_our_bid(self):
+        w, b, v = self.real(my_offers=[own_bid(50, CLOSER, 49)])
+        self.assertEqual(b.projected.get(CLOSER), 1)                    # the trap: our own bid's copy
+        cx = rastro._Ctx(w, b, v, None, PLAN, [CLOSER_NEED], {})
+        self.assertAlmostEqual(cx.dv_add(CLOSER), 99.125, places=3)
+        self.assertTrue(v.closes_page(cx.proj, CLOSER))
+
+    def test_closer_raises_with_its_own_bid_standing(self):
+        w, b, v = self.real(my_offers=[own_bid(50, CLOSER, 49)], board=[bid(60, CLOSER, 55)])
+        out = rastro.propose(w, b, v, None, PLAN, [CLOSER_NEED], {})
+        self.assertEqual([(i.kind, i.tactic, i.args["offer_id"]) for i in out if i.kind == "cancel"],
+                         [("cancel", "closer", 50)])
+
+    def test_closer_switches_to_a_board_sale(self):
+        state = {}
+        w, b, v = self.real(my_offers=[own_bid(50, CLOSER, 49)], board=[sale(1, CLOSER, 70)])
+        out = rastro.propose(w, b, v, None, PLAN, [CLOSER_NEED], state)
+        self.assertEqual([(i.kind, i.args["offer_id"]) for i in out if i.args.get("ref") == CLOSER],
+                         [("cancel", 50)])
+        self.assertEqual(state["closer"][CLOSER]["pending"]["what"], "accept")
+
+    def test_j6_switch_values_the_first_copy(self):
+        need = Need(set="MAL", ref="MAL-09", source="team", max_price=60, closer=False)
+        w, b, v = self.real(my_offers=[own_bid(51, "MAL-09", 10)], board=[sale(2, "MAL-09", 20)])
+        out = rastro.propose(w, b, v, None, PLAN, [need], {})
+        self.assertEqual([(i.kind, i.args["offer_id"]) for i in out if i.args.get("ref") == "MAL-09"],
+                         [("cancel", 51)])                              # 35 - 20 - 2 = 13 >= 3 (2nd copy: 8.75)
+
+
 if __name__ == "__main__":
     unittest.main()
