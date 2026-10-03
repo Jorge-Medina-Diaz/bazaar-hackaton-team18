@@ -418,6 +418,8 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
         own_ids.add(o["id"])
         if o.get("status") not in OPEN_STATUSES:
             continue
+        if o.get("thread") is not None:
+            continue                     # dealer-thread offer: counted once, in the thread loop below (live 3 Oct t191)
         give = o.get("give") or {}
         for a in (give.get("assets") or []) if isinstance(give, Mapping) else []:
             if isinstance(a, Mapping) and _int(a.get("id")):
