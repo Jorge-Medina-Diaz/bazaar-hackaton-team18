@@ -1,9 +1,21 @@
+# Secrets: the team key lives only in .env on the executor machine (machine A).
 .env
-.env.*
+.env*
 !.env.example
 *.key
-*.pyc
-.venv/
-__pycache__/
+config/local*.json
+
+# Kill switch files (python3 bazaar.py stop, or a hand-made STOP / STOP.txt / stop in the repo root)
+/STOP*
+/stop*
+
+# Runtime state and evidence: local to each machine, never committed
+/state/
 logs/
 runs/
+
+# Generated
+*.pyc
+__pycache__/
+.pytest_cache/
+.venv/

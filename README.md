@@ -1,80 +1,10 @@
 # Bazaar SDK for Python
 
-## Recolector de información para el agente y Claude
-
-Python estándar, cuatro GET cada **5 segundos**, memoria persistente de tratos confirmados y contexto local sin llamadas a modelos. Arranque en una terminal del equipo, con `BAZAAR_KEY` ya configurada:
-
-```bash
-python3 collect_info.py
-```
-
-Consulta instantánea: `python3 collect_info.py --context`. Claude Code detecta el servidor compartido `.mcp.json`; al habilitar `bazaar-info`, la herramienta `bazaar_context` lee ese mismo contexto. Para registrar resultados del negociador, añadir `--information` a su comando habitual. [Uso, tiempos y límites](docs/information.md).
-
-## Panel de cartas con consultas cada 5 segundos
-
-**URL para el equipo:** [Mesa de cartas](https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site).
-
-Abrir la URL e introducir la clave del Bazaar del equipo. La página pública no contiene datos del juego; el servidor valida la clave y conserva el acceso en una cookie cifrada, Secure y HttpOnly, de ocho horas. No hace falta ejecutar el agente ni tener abierto el ordenador de Rubén. Mientras la página esté abierta consulta cada cinco segundos. El botón **Salir** elimina la sesión.
-
-La versión alojada está en `website/`: `node --test website/worker.test.mjs` comprueba autenticación, privacidad, consulta de las cuatro fuentes y refresco de cinco segundos. Las respuestas recientes se reutilizan entre peticiones con la misma clave en el mismo punto de presencia. El caché es temporal; los movimientos observados no constituyen un historial contable permanente.
-
-La publicación y sus pruebas con respuestas simuladas están verificadas. En la comprobación posterior del 2 de octubre, el login con la clave real devolvió HTTP 503 `connection_error`; el recorrido completo del panel sigue pendiente. La API directa del juego sí funcionó.
-
-El observador consulta saldo e inventario, ofertas, conversaciones y reloj cada **5 segundos**, independientemente del agente y de sus pruebas. Cada fuente muestra la hora de la última verificación; si falla, se conserva el dato anterior y se señala como no verificado. Todas las consultas al juego son GET. Para usar la versión local:
-
-```bash
-python3 panel.py --live --key-file /ruta/local/a/la/clave
-```
-
-Abrir `http://127.0.0.1:8766/`. También admite `BAZAAR_KEY` en el entorno en lugar de `--key-file`. El archivo puede contener la clave sola o una línea `BAZAAR_KEY=...`; no se debe guardar en Git. La clave permanece en el servidor local y no se envía al navegador.
-
-El panel muestra las cartas y sus valores privados actuales, duplicados, ofertas estructuradas y su estado. Las entradas y salidas se registran desde el inicio del observador; no se atribuyen precios ni compras históricas a partir de un simple cambio de inventario. Las consultas de varias rutas no constituyen una instantánea atómica del servidor.
-
-Sin `--live`, `python3 panel.py` observa el archivo local que escribe `laboratorio.py`. El ejemplo de compraventa es independiente y no altera ese archivo. Para pruebas simultáneas, elegir archivos distintos con `--state-file` en ambos scripts. El ejemplo y la simulación usan precios inventados y no sirven como información actual del juego.
-
-
 The Bazaar · Cromos de Madrid, a hackathon game hosted by Causa Prima.
 Welcome!
 
 One file, standard library only: `bazaar_sdk.py`.
 Copy it next to your agent, or run from this folder.
-
-## Laboratorio del equipo: primera prueba paso a paso
-
-Para empezar sin gastar primas ni contactar al servidor:
-
-```bash
-cd /Users/ruben/projects/bazaar-hackaton-team18
-python3 laboratorio.py --scenario compra --step
-```
-
-Enter avanza al siguiente evento y `q` detiene la simulación. El laboratorio muestra el precio solicitado, el mensaje amable, la contraoferta, el saldo y el inventario. Sus precios y su vendedora son inventados: permite verificar decisiones, pero no medir la persuasión real de Abuela.
-
-La primera prueba ejecutada ofreció 7 P por `LAV-03`, recibió una contraoferta de 12 P y subió a 9 P. La vendedora simulada aceptó; la carta entró al inventario en el siguiente tick y el saldo pasó de 40 a 31 P.
-
-Archivos para inspeccionar:
-
-- [laboratorio.py](laboratorio.py): simulación local y recorrido paso a paso.
-- [negotiation_policy.py](negotiation_policy.py): decisiones de ofrecer, aceptar, cerrar o esperar; mensajes amables.
-- [evaluacion.py](evaluacion.py): evaluación rápida con 17 pruebas y ocho simulaciones comparativas.
-- [tests/test_negotiation.py](tests/test_negotiation.py): 13 comprobaciones de presupuesto, ofertas finales, liquidación e inventario.
-- [PROPUESTA.md](PROPUESTA.md): alcance de la mejora y pasos posteriores.
-
-Escenarios disponibles: `compra`, `limite`, `final` y `varias`. Para comparar la lógica de precios del starter con la política mejorada, usar `--compare` en lugar de `--step`. Para variar el tamaño de concesión, usar `--increment 1` o un entero positivo. La política nueva está conectada al laboratorio; todavía no sustituye el bucle del starter real.
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-**Qué inicia cada script:** `starter_agent.py` habla con Abuela, compra un sobre, lo abre y publica duplicados. `starter_broker.py` empareja compradores y vendedores en un mercado y requiere una clave de broker. Para avanzar con control ahora, usar el laboratorio. La prueba real y la apertura de sobres requieren una clave válida del equipo; el laboratorio no realiza ninguna de esas operaciones.
-
-**Varias cartas:** el inventario contiene varios activos con identificadores distintos y admite copias de un mismo tipo. El escenario `varias` comprueba tres compras, incluida una copia repetida con menor valor simulado. En el juego real, las compras de carta concreta al dealer se documentan por tema individual, los sobres entregan varias cartas y las ofertas entre equipos pueden incluir varias cartas. El límite de 50 elementos por lado corresponde a una oferta; las reglas no indican que sea un límite del inventario.
-
-Para evaluar todo de una vez, ejecutar `python3 evaluacion.py` o `python3 evaluacion.py --json`. La evaluación usa un dealer inventado; no mide persuasión real. En el escenario `limite`, la política mejorada reduce las decisiones de 13 a ocho y evita seis repeticiones de precio.
-
-**Piloto real completado:** compra de El Portero (`SAL-02`) a Abuela por 9 P, frente a una petición inicial de 12 P, tras propuestas propias de 5 y 7 P. La liquidación y la entrada al inventario están confirmadas. La política se aplicó mediante llamadas controladas de Codex; falta integrarla en un ejecutor autónomo. El relato está en [HANDOFF.md](HANDOFF.md).
-
- Según la instrucción de Rubén, abrir sobres del juego únicamente después de probar y analizar. Las cartas sueltas ya están abiertas; `open_pack` se aplica a sobres sellados.
 
 ## 1. Start in five minutes
 
@@ -157,27 +87,17 @@ New dealers and mechanics appear as levels.
 A route a level brings is one `b.call("POST", "/api/...", {...})` away.
 For live updates instead of polling: `GET /api/events/stream?scope=team` with your `X-Team-Key` header.
 
-## Núcleo para integrar con Jorge
 
-La entrega está en [INTEGRACION_JORGE.md](INTEGRACION_JORGE.md): módulos corregidos, fortalezas y limitaciones, compatibilidad y pasos para combinar en un agente. `agent/haggle.py` no se inicia al importarlo; requiere un cliente y límites explícitos. La clave no forma parte de los archivos.
+## Team 18 (t18)
 
-```bash
-python3 evaluacion.py
-python3 recheck.py --candidate
-```
+This repository also holds the trading harness of team 18. **Start with [docs/LEEME-EQUIPO.md](docs/LEEME-EQUIPO.md)** (team guide, in Spanish), then [CLAUDE.md](CLAUDE.md) for the layout and the rules.
 
-La entrega incluye 50 pruebas propias (17 anteriores y 33 del núcleo). El recheck del candidato verifica los cuatro fallos originales contra los módulos corregidos. Los logs quedan en `runs/` y `logs/`, fuera de Git.
+- One command runs everything: `python3 bazaar.py` (`selftest`, `clockcheck`, `run [--live] [--arm ...]`, `status`, `stop "reason"`). Without `--live` it is a dry run with zero writes.
+- Every write to the game goes through one Gate (`agent/gate.py`) and one transport (`agent/transport.py`); everything else is read-only.
+- Kill switch: `python3 bazaar.py stop "reason"`, or create a file named `STOP` in the repo root.
+- The team key lives only in `.env` on the executor machine, never in Git. Never call `/api/admin/*`.
+- Contract: [docs/harness-spec.md](docs/harness-spec.md) · facts: [docs/knowledge.md](docs/knowledge.md) · play book: [docs/strategy.md](docs/strategy.md) · official rules: [RULES.md](RULES.md), [docs/official/kickoff.pdf](docs/official/kickoff.pdf).
+- Panels (read-only): `api/index.py` + `agent/dashboard.py` (Vercel), `website/` (hosted panel), `panel.py`, `live_monitor.py`, `observe_performance.py`, and the offline lab `laboratorio.py`.
+- Superseded scripts and notes are in [archive/](archive/README.md); none of them can run.
 
-## Observación de puntuación sin negociar
-
-El análisis de reglas, métricas observadas y estrategia de venta está en [ANALISIS_RENDIMIENTO.md](ANALISIS_RENDIMIENTO.md).
-
-`observe_performance.py` consume el estado del artefacto cada cinco segundos y registra solo cambios. Como el panel desplegado aún omite puntuación, consulta `/api/me` una vez por nuevo tick del panel; las métricas pueden retrasarse dentro del tick. No llama a modelos ni envía órdenes al juego. La autenticación al propio panel es su único POST.
-
-```bash
-python3 observe_performance.py --key-file /ruta/local/clave --cycles 12
-```
-
-El log compacto está en `runs/performance-observations.jsonl`, ignorado por Git, con rotación y permisos privados. `--cycles 0` observa hasta interrumpir; `--reserve-cash` configura una reserva opcional. Distingue cambios de puntos sin cambios económicos medidos y mejoras de puntos acompañadas de peor puesto, sin atribuir automáticamente causas.
-
-Estado verificado el 2 de octubre: seis pruebas locales pasan; el acceso real al panel devuelve HTTP 503 `connection_error` al validar la sesión. La API directa del juego funciona. El recorrido completo por el artefacto sigue pendiente.
+Tests: `python3 -m unittest discover -s tests -t .` (the panel website: `node --test website/worker.test.mjs`).

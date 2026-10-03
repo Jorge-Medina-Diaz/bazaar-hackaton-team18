@@ -1,0 +1,3481 @@
+{
+ "threads": [
+  {
+   "id": 25,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "pack": "sobre_barrio"
+    }
+   },
+   "status": "deal",
+   "created_tick": 4,
+   "messages": [
+    {
+     "id": 35,
+     "tick": 5,
+     "sender": "abuela",
+     "text": "Hola, cariño, have you eaten? Neighbourhood pack for 17 P. A good start for your album.",
+     "offer": {
+      "id": 44,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 25,
+      "status": "settled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 17,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 7,
+      "created_tick": 5,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Neighbourhood pack",
+   "closed_reason": null
+  },
+  {
+   "id": 38,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "pack": "sobre_barrio"
+    }
+   },
+   "status": "closed",
+   "created_tick": 16,
+   "messages": [
+    {
+     "id": 143,
+     "tick": 16,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 9 P?",
+     "offer": {
+      "id": 169,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 9,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 18,
+      "created_tick": 16,
+      "final": false
+     }
+    },
+    {
+     "id": 153,
+     "tick": 17,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 10 P, señora?",
+     "offer": {
+      "id": 178,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 10,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 19,
+      "created_tick": 17,
+      "final": false
+     }
+    },
+    {
+     "id": 151,
+     "tick": 17,
+     "sender": "abuela",
+     "text": "Hola, cariño, have you eaten? Neighbourhood pack for 30 P. A good start for your album. And take this, a little present from me: El Organillero.",
+     "offer": {
+      "id": 176,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 30,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 19,
+      "created_tick": 17,
+      "final": false
+     }
+    },
+    {
+     "id": 159,
+     "tick": 18,
+     "sender": "abuela",
+     "text": "Oh, oh... 26 P, and only because you have a kind face. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 184,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 26,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 20,
+      "created_tick": 18,
+      "final": false
+     }
+    },
+    {
+     "id": 162,
+     "tick": 18,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 11 P?",
+     "offer": {
+      "id": 187,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 11,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 20,
+      "created_tick": 18,
+      "final": false
+     }
+    },
+    {
+     "id": 169,
+     "tick": 19,
+     "sender": "abuela",
+     "text": "Let's meet in the middle, cariño: 25 P.",
+     "offer": {
+      "id": 193,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 25,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 21,
+      "created_tick": 19,
+      "final": false
+     }
+    },
+    {
+     "id": 172,
+     "tick": 19,
+     "sender": "t18",
+     "text": "Gracias por su paciencia, Carmen. Subo a 12 P, ¿le parece?",
+     "offer": {
+      "id": 196,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 12,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 21,
+      "created_tick": 19,
+      "final": false
+     }
+    },
+    {
+     "id": 178,
+     "tick": 20,
+     "sender": "t18",
+     "text": "Mi abuela también tenía un puesto así. ¿Le vendría bien 13 P?",
+     "offer": {
+      "id": 201,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 22,
+      "created_tick": 20,
+      "final": false
+     }
+    },
+    {
+     "id": 177,
+     "tick": 20,
+     "sender": "abuela",
+     "text": "Oh, oh... 24 P, and only because you have a kind face. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 200,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 22,
+      "created_tick": 20,
+      "final": false
+     }
+    },
+    {
+     "id": 182,
+     "tick": 21,
+     "sender": "abuela",
+     "text": "Oh, oh... 23 P, and only because you have a kind face. Look, cariño, I can't go lower. This is my last offer.",
+     "offer": {
+      "id": 205,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 38,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 23,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 23,
+      "created_tick": 21,
+      "final": true
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Neighbourhood pack",
+   "closed_reason": null
+  },
+  {
+   "id": 65,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "pack": "sobre_barrio"
+    }
+   },
+   "status": "closed",
+   "created_tick": 33,
+   "messages": [
+    {
+     "id": 354,
+     "tick": 34,
+     "sender": "t18",
+     "text": "Hola, Abuela! Would 16 P be all right? Thank you very much.",
+     "offer": {
+      "id": 392,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 65,
+      "status": "cancelled",
+      "give": {
+       "cash": 16,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 36,
+      "created_tick": 34,
+      "final": false
+     }
+    },
+    {
+     "id": 353,
+     "tick": 34,
+     "sender": "abuela",
+     "text": "Welcome, hijo! Look, Neighbourhood pack, 30 P. Made for beginners. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 391,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 65,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 30,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 36,
+      "created_tick": 34,
+      "final": false
+     }
+    },
+    {
+     "id": 369,
+     "tick": 35,
+     "sender": "abuela",
+     "text": "Let's meet in the middle, cariño: 25 P. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 405,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 65,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 25,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 37,
+      "created_tick": 35,
+      "final": false
+     }
+    },
+    {
+     "id": 370,
+     "tick": 35,
+     "sender": "t18",
+     "text": "Hola, Abuela! Would 18 P be all right? Thank you very much.",
+     "offer": {
+      "id": 406,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 65,
+      "status": "cancelled",
+      "give": {
+       "cash": 18,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 37,
+      "created_tick": 35,
+      "final": false
+     }
+    },
+    {
+     "id": 378,
+     "tick": 36,
+     "sender": "abuela",
+     "text": "Oh, oh... 23 P, and only because you have a kind face.",
+     "offer": {
+      "id": 415,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 65,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 23,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 38,
+      "created_tick": 36,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Neighbourhood pack",
+   "closed_reason": null
+  },
+  {
+   "id": 68,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "SAL-02"
+    }
+   },
+   "status": "deal",
+   "created_tick": 37,
+   "messages": [
+    {
+     "id": 404,
+     "tick": 38,
+     "sender": "abuela",
+     "text": "Welcome, hijo! Look, El Portero, 12 P. Made for beginners. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 440,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 68,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-02"
+       ]
+      },
+      "want": {
+       "cash": 12,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 40,
+      "created_tick": 38,
+      "final": false
+     }
+    },
+    {
+     "id": 418,
+     "tick": 39,
+     "sender": "t18",
+     "text": "Hola, Abuela Carmen. Me gustaría llevarme El Portero para mi colección de Salamanca. ¿Te vendría bien 5 primas? Gracias por atenderme.",
+     "offer": {
+      "id": 458,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 68,
+      "status": "cancelled",
+      "give": {
+       "cash": 5,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-02"
+       ]
+      },
+      "expires_tick": 41,
+      "created_tick": 39,
+      "final": false
+     }
+    },
+    {
+     "id": 422,
+     "tick": 40,
+     "sender": "abuela",
+     "text": "Let's meet in the middle, cariño: 10 P.",
+     "offer": {
+      "id": 462,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 68,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-02"
+       ]
+      },
+      "want": {
+       "cash": 10,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 42,
+      "created_tick": 40,
+      "final": false
+     }
+    },
+    {
+     "id": 439,
+     "tick": 41,
+     "sender": "t18",
+     "text": "Gracias por tu propuesta, Abuela Carmen. Puedo subir a 7 primas por El Portero. Me ayudaría con mi colección de Salamanca. ¿Te parece bien?",
+     "offer": {
+      "id": 478,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 68,
+      "status": "expired",
+      "give": {
+       "cash": 7,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-02"
+       ]
+      },
+      "expires_tick": 43,
+      "created_tick": 41,
+      "final": false
+     }
+    },
+    {
+     "id": 441,
+     "tick": 42,
+     "sender": "abuela",
+     "text": "Look, 9 P. My grandchildren would pay more!",
+     "offer": {
+      "id": 480,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 68,
+      "status": "settled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-02"
+       ]
+      },
+      "want": {
+       "cash": 9,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 44,
+      "created_tick": 42,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "El Portero",
+   "closed_reason": null
+  },
+  {
+   "id": 93,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "SAL-08"
+    }
+   },
+   "status": "closed",
+   "created_tick": 51,
+   "messages": [
+    {
+     "id": 540,
+     "tick": 51,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 15 P?",
+     "offer": {
+      "id": 595,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 15,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 53,
+      "created_tick": 51,
+      "final": false
+     }
+    },
+    {
+     "id": 547,
+     "tick": 52,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 16 P, señora?",
+     "offer": {
+      "id": 617,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 16,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 54,
+      "created_tick": 52,
+      "final": false
+     }
+    },
+    {
+     "id": 545,
+     "tick": 52,
+     "sender": "abuela",
+     "text": "Hola, cariño, have you eaten? Guantería Antigua for 29 P. A good start for your album.",
+     "offer": {
+      "id": 615,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 29,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 54,
+      "created_tick": 52,
+      "final": false
+     }
+    },
+    {
+     "id": 552,
+     "tick": 53,
+     "sender": "abuela",
+     "text": "Oh, oh... 26 P, and only because you have a kind face.",
+     "offer": {
+      "id": 636,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 26,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 55,
+      "created_tick": 53,
+      "final": false
+     }
+    },
+    {
+     "id": 555,
+     "tick": 53,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 17 P?",
+     "offer": {
+      "id": 639,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 17,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 55,
+      "created_tick": 53,
+      "final": false
+     }
+    },
+    {
+     "id": 566,
+     "tick": 54,
+     "sender": "t18",
+     "text": "Gracias por su paciencia, Carmen. Subo a 18 P, ¿le parece?",
+     "offer": {
+      "id": 660,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 18,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 56,
+      "created_tick": 54,
+      "final": false
+     }
+    },
+    {
+     "id": 562,
+     "tick": 54,
+     "sender": "abuela",
+     "text": "Oh, oh... 25 P, and only because you have a kind face.",
+     "offer": {
+      "id": 656,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 25,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 56,
+      "created_tick": 54,
+      "final": false
+     }
+    },
+    {
+     "id": 574,
+     "tick": 55,
+     "sender": "abuela",
+     "text": "Oh, oh... 24 P, and only because you have a kind face.",
+     "offer": {
+      "id": 676,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 57,
+      "created_tick": 55,
+      "final": false
+     }
+    },
+    {
+     "id": 581,
+     "tick": 55,
+     "sender": "t18",
+     "text": "Mi abuela también tenía un puesto así. ¿Le vendría bien 20 P?",
+     "offer": {
+      "id": 683,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 20,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 57,
+      "created_tick": 55,
+      "final": false
+     }
+    },
+    {
+     "id": 597,
+     "tick": 56,
+     "sender": "t18",
+     "text": "Hago un esfuerzo: 21 P. ¡Y vuelvo el domingo que viene!",
+     "offer": {
+      "id": 704,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 21,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 58,
+      "created_tick": 56,
+      "final": false
+     }
+    },
+    {
+     "id": 589,
+     "tick": 56,
+     "sender": "abuela",
+     "text": "Oh, oh... 24 P, and only because you have a kind face. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 696,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 58,
+      "created_tick": 56,
+      "final": false
+     }
+    },
+    {
+     "id": 602,
+     "tick": 57,
+     "sender": "abuela",
+     "text": "Let's meet in the middle, cariño: 23 P. Look, cariño, I can't go lower. This is my last offer.",
+     "offer": {
+      "id": 723,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 93,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 23,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 59,
+      "created_tick": 57,
+      "final": true
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Guantería Antigua",
+   "closed_reason": null
+  },
+  {
+   "id": 106,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-01"
+    }
+   },
+   "status": "deal",
+   "created_tick": 59,
+   "messages": [
+    {
+     "id": 632,
+     "tick": 59,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 7 P?",
+     "offer": {
+      "id": 761,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 106,
+      "status": "cancelled",
+      "give": {
+       "cash": 7,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-01"
+       ]
+      },
+      "expires_tick": 61,
+      "created_tick": 59,
+      "final": false
+     }
+    },
+    {
+     "id": 640,
+     "tick": 60,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 8 P, señora?",
+     "offer": {
+      "id": 768,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 106,
+      "status": "cancelled",
+      "give": {
+       "cash": 8,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-01"
+       ]
+      },
+      "expires_tick": 62,
+      "created_tick": 60,
+      "final": false
+     }
+    },
+    {
+     "id": 639,
+     "tick": 60,
+     "sender": "abuela",
+     "text": "Welcome, hijo! Look, Caña en la Cava Baja, 12 P. Made for beginners.",
+     "offer": {
+      "id": 767,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 106,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-01"
+       ]
+      },
+      "want": {
+       "cash": 12,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 62,
+      "created_tick": 60,
+      "final": false
+     }
+    },
+    {
+     "id": 654,
+     "tick": 61,
+     "sender": "abuela",
+     "text": "Oh, oh... 11 P, and only because you have a kind face.",
+     "offer": {
+      "id": 781,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 106,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-01"
+       ]
+      },
+      "want": {
+       "cash": 11,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 63,
+      "created_tick": 61,
+      "final": false
+     }
+    },
+    {
+     "id": 660,
+     "tick": 61,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 9 P?",
+     "offer": {
+      "id": 787,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 106,
+      "status": "cancelled",
+      "give": {
+       "cash": 9,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-01"
+       ]
+      },
+      "expires_tick": 63,
+      "created_tick": 61,
+      "final": false
+     }
+    },
+    {
+     "id": 675,
+     "tick": 62,
+     "sender": "abuela",
+     "text": "Look, 10 P. My grandchildren would pay more!",
+     "offer": {
+      "id": 806,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 106,
+      "status": "settled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-01"
+       ]
+      },
+      "want": {
+       "cash": 10,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 64,
+      "created_tick": 62,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Caña en la Cava Baja",
+   "closed_reason": null
+  },
+  {
+   "id": 116,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "SAL-08"
+    }
+   },
+   "status": "deal",
+   "created_tick": 64,
+   "messages": [
+    {
+     "id": 723,
+     "tick": 64,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 18 P?",
+     "offer": {
+      "id": 881,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 116,
+      "status": "cancelled",
+      "give": {
+       "cash": 18,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 66,
+      "created_tick": 64,
+      "final": false
+     }
+    },
+    {
+     "id": 737,
+     "tick": 65,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 21 P, señora?",
+     "offer": {
+      "id": 895,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 116,
+      "status": "cancelled",
+      "give": {
+       "cash": 21,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 67,
+      "created_tick": 65,
+      "final": false
+     }
+    },
+    {
+     "id": 734,
+     "tick": 65,
+     "sender": "abuela",
+     "text": "Welcome, hijo! Look, Guantería Antigua, 29 P. Made for beginners.",
+     "offer": {
+      "id": 892,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 116,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 29,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 67,
+      "created_tick": 65,
+      "final": false
+     }
+    },
+    {
+     "id": 750,
+     "tick": 66,
+     "sender": "abuela",
+     "text": "Oh, oh... 26 P, and only because you have a kind face.",
+     "offer": {
+      "id": 919,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 116,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "want": {
+       "cash": 26,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 68,
+      "created_tick": 66,
+      "final": false
+     }
+    },
+    {
+     "id": 751,
+     "tick": 66,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 24 P?",
+     "offer": {
+      "id": 920,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 116,
+      "status": "settled",
+      "give": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-08"
+       ]
+      },
+      "expires_tick": 68,
+      "created_tick": 66,
+      "final": false
+     }
+    },
+    {
+     "id": 763,
+     "tick": 67,
+     "sender": "abuela",
+     "text": "Venga, 24 P. You drive a hard bargain for someone so young!",
+     "offer": null
+    }
+   ],
+   "standing_offers": [],
+   "item": "Guantería Antigua",
+   "closed_reason": null
+  },
+  {
+   "id": 141,
+   "kind": "team",
+   "team": "t13",
+   "with": "t18",
+   "venue": "rastro",
+   "topic": {},
+   "status": "closed",
+   "created_tick": 77,
+   "messages": [
+    {
+     "id": 892,
+     "tick": 77,
+     "sender": "t13",
+     "text": "We'd like SAL-10 for our album page and can settle quickly at 84 cash if you're ready to close now. Deal?",
+     "offer": {
+      "id": 1132,
+      "maker": "t13",
+      "to": "t18",
+      "venue": "rastro",
+      "thread": 141,
+      "status": "cancelled",
+      "give": {
+       "cash": 84,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:SAL-10"
+       ]
+      },
+      "expires_tick": 79,
+      "created_tick": 77,
+      "final": false
+     }
+    },
+    {
+     "id": 906,
+     "tick": 78,
+     "sender": "t13",
+     "text": "Sorry Team 18, we have to step back from this one for now. Thanks!",
+     "offer": null
+    }
+   ],
+   "standing_offers": [],
+   "item": null,
+   "closed_reason": null
+  },
+  {
+   "id": 172,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "pack": "sobre_barrio"
+    }
+   },
+   "status": "deal",
+   "created_tick": 93,
+   "messages": [
+    {
+     "id": 1090,
+     "tick": 94,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 15 P?",
+     "offer": {
+      "id": 1391,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 172,
+      "status": "cancelled",
+      "give": {
+       "cash": 15,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 96,
+      "created_tick": 94,
+      "final": false
+     }
+    },
+    {
+     "id": 1089,
+     "tick": 94,
+     "sender": "abuela",
+     "text": "Welcome, hijo! Look, Neighbourhood pack, 30 P. Made for beginners.",
+     "offer": {
+      "id": 1390,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 172,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 30,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 96,
+      "created_tick": 94,
+      "final": false
+     }
+    },
+    {
+     "id": 1098,
+     "tick": 95,
+     "sender": "abuela",
+     "text": "Oh, oh... 25 P, and only because you have a kind face.",
+     "offer": {
+      "id": 1405,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 172,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "want": {
+       "cash": 25,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 97,
+      "created_tick": 95,
+      "final": false
+     }
+    },
+    {
+     "id": 1102,
+     "tick": 95,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 18 P, señora?",
+     "offer": {
+      "id": 1410,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 172,
+      "status": "cancelled",
+      "give": {
+       "cash": 18,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "pack:sobre_barrio"
+       ]
+      },
+      "expires_tick": 97,
+      "created_tick": 95,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Neighbourhood pack",
+   "closed_reason": null
+  },
+  {
+   "id": 188,
+   "kind": "persona",
+   "team": "t18",
+   "with": "chato",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-06"
+    }
+   },
+   "status": "closed",
+   "created_tick": 99,
+   "messages": [
+    {
+     "id": 1155,
+     "tick": 100,
+     "sender": "t18",
+     "text": "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿16 P?",
+     "offer": {
+      "id": 1484,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 16,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 102,
+      "created_tick": 100,
+      "final": false
+     }
+    },
+    {
+     "id": 1154,
+     "tick": 100,
+     "sender": "chato",
+     "text": "You again. La Chulapa. Thirty-three. Good card, fair price. Take it or keep walking.",
+     "offer": {
+      "id": 1483,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 102,
+      "created_tick": 100,
+      "final": false
+     }
+    },
+    {
+     "id": 1170,
+     "tick": 101,
+     "sender": "chato",
+     "text": "You move, I move. 33 P.",
+     "offer": {
+      "id": 1500,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 103,
+      "created_tick": 101,
+      "final": false
+     }
+    },
+    {
+     "id": 1177,
+     "tick": 101,
+     "sender": "t18",
+     "text": "Precio justo y cerramos ya: 19 P.",
+     "offer": {
+      "id": 1510,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 19,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 103,
+      "created_tick": 101,
+      "final": false
+     }
+    },
+    {
+     "id": 1200,
+     "tick": 102,
+     "sender": "t18",
+     "text": "Mi última cifra, sin rodeos: 22 P.",
+     "offer": {
+      "id": 1533,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 22,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 104,
+      "created_tick": 102,
+      "final": false
+     }
+    },
+    {
+     "id": 1189,
+     "tick": 102,
+     "sender": "chato",
+     "text": "Three points. That is your big move? Thirty-three. Still thirty-three. Come back when you are serious, chaval.",
+     "offer": {
+      "id": 1523,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 104,
+      "created_tick": 102,
+      "final": false
+     }
+    },
+    {
+     "id": 1211,
+     "tick": 103,
+     "sender": "chato",
+     "text": "32 P.",
+     "offer": {
+      "id": 1552,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 188,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 32,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 105,
+      "created_tick": 103,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "La Chulapa",
+   "closed_reason": null
+  },
+  {
+   "id": 212,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-06"
+    }
+   },
+   "status": "deal",
+   "created_tick": 110,
+   "messages": [
+    {
+     "id": 1361,
+     "tick": 111,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 17 P?",
+     "offer": {
+      "id": 1730,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 17,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 113,
+      "created_tick": 111,
+      "final": false
+     }
+    },
+    {
+     "id": 1355,
+     "tick": 111,
+     "sender": "abuela",
+     "text": "¡Hola, cariño! Come, sit a moment. Have you eaten? Look — La Chulapa, she is beautiful, no? My favourite card in forty years here. For you, twenty-nine P. She finishes a whole page, hijo, and a full page is a happy thing.",
+     "offer": {
+      "id": 1724,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 29,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 113,
+      "created_tick": 111,
+      "final": false
+     }
+    },
+    {
+     "id": 1372,
+     "tick": 112,
+     "sender": "abuela",
+     "text": "Let's meet in the middle, cariño: 25 P.",
+     "offer": {
+      "id": 1743,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 25,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 114,
+      "created_tick": 112,
+      "final": false
+     }
+    },
+    {
+     "id": 1378,
+     "tick": 112,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 19 P, señora?",
+     "offer": {
+      "id": 1749,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 19,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 114,
+      "created_tick": 112,
+      "final": false
+     }
+    },
+    {
+     "id": 1398,
+     "tick": 113,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 20 P?",
+     "offer": {
+      "id": 1769,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 20,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 115,
+      "created_tick": 113,
+      "final": false
+     }
+    },
+    {
+     "id": 1391,
+     "tick": 113,
+     "sender": "abuela",
+     "text": "Ay, qué zalamero eres, hijo. Flattery I take, but La Chulapa she is special — twenty-four P and she goes home with you today. Put her in the page, you will see how pretty it looks. And eat something, estás muy delgado.",
+     "offer": {
+      "id": 1761,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 115,
+      "created_tick": 113,
+      "final": false
+     }
+    },
+    {
+     "id": 1407,
+     "tick": 114,
+     "sender": "abuela",
+     "text": "Oh, oh... 23 P, and only because you have a kind face.",
+     "offer": {
+      "id": 1782,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 212,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "want": {
+       "cash": 23,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 116,
+      "created_tick": 114,
+      "final": false
+     }
+    },
+    {
+     "id": 1416,
+     "tick": 114,
+     "sender": "t18",
+     "text": "Gracias por su paciencia, Carmen. Subo a 22 P, ¿le parece?",
+     "offer": {
+      "id": 1791,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 212,
+      "status": "settled",
+      "give": {
+       "cash": 22,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-06"
+       ]
+      },
+      "expires_tick": 116,
+      "created_tick": 114,
+      "final": false
+     }
+    },
+    {
+     "id": 1426,
+     "tick": 115,
+     "sender": "abuela",
+     "text": "¡Hecho, cariño! Twenty-two P and La Chulapa is yours. Take care of her, eh? And a little advice, hijo: a full page is worth much more than loose cards — swap your duplicates with the other niños. Now go eat something, estás muy delgado. ¡Hasta el domingo!",
+     "offer": null
+    }
+   ],
+   "standing_offers": [],
+   "item": "La Chulapa",
+   "closed_reason": null
+  },
+  {
+   "id": 224,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-08"
+    }
+   },
+   "status": "closed",
+   "created_tick": 116,
+   "messages": [
+    {
+     "id": 1471,
+     "tick": 117,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 17 P?",
+     "offer": {
+      "id": 1852,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 17,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 119,
+      "created_tick": 117,
+      "final": false
+     }
+    },
+    {
+     "id": 1467,
+     "tick": 117,
+     "sender": "abuela",
+     "text": "¡Hola, cariño! Come, sit a moment. Have you eaten? Look here — this one, Las Vistillas, a beautiful page, almost complete. For you, 29 P. My grandson started with this very card, many Sundays ago. Take your time looking, hijo, no hurry.",
+     "offer": {
+      "id": 1848,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 29,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 119,
+      "created_tick": 117,
+      "final": false
+     }
+    },
+    {
+     "id": 1482,
+     "tick": 118,
+     "sender": "abuela",
+     "text": "Oh, oh... 26 P, and only because you have a kind face. A little advice, cariño: a full page is worth much more than the loose cards. Swap your duplicates!",
+     "offer": {
+      "id": 1877,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 26,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 120,
+      "created_tick": 118,
+      "final": false
+     }
+    },
+    {
+     "id": 1486,
+     "tick": 118,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 19 P, señora?",
+     "offer": {
+      "id": 1881,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 19,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 120,
+      "created_tick": 118,
+      "final": false
+     }
+    },
+    {
+     "id": 1506,
+     "tick": 119,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 20 P?",
+     "offer": {
+      "id": 1910,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 20,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 121,
+      "created_tick": 119,
+      "final": false
+     }
+    },
+    {
+     "id": 1499,
+     "tick": 119,
+     "sender": "abuela",
+     "text": "Ay, hijo, qué labia tienes. Twenty-five, 25 P, and I wrap it nice for you. Look — the corners are perfect, nobody kept them like this. My Chato next door sells packs if you want more, but this page is special. ¿Seguro que has comido?",
+     "offer": {
+      "id": 1902,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 25,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 121,
+      "created_tick": 119,
+      "final": false
+     }
+    },
+    {
+     "id": 1520,
+     "tick": 120,
+     "sender": "abuela",
+     "text": "Oh, oh... 24 P, and only because you have a kind face.",
+     "offer": {
+      "id": 1929,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 122,
+      "created_tick": 120,
+      "final": false
+     }
+    },
+    {
+     "id": 1526,
+     "tick": 120,
+     "sender": "t18",
+     "text": "Gracias por su paciencia, Carmen. Subo a 22 P, ¿le parece?",
+     "offer": {
+      "id": 1935,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 22,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 122,
+      "created_tick": 120,
+      "final": false
+     }
+    },
+    {
+     "id": 1536,
+     "tick": 121,
+     "sender": "abuela",
+     "text": "Ay, cariño, qué insistente eres... pero mira, 24 P ya es cariño puro. Es mi último, de verdad. Esta página te va a dar muchas tardes bonitas, ya verás. Y si tienes repetidas, tráemelas el domingo, que algo te busco. ¿Trato hecho, hijo?",
+     "offer": {
+      "id": 1946,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 224,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 123,
+      "created_tick": 121,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Las Vistillas",
+   "closed_reason": null
+  },
+  {
+   "id": 240,
+   "kind": "persona",
+   "team": "t18",
+   "with": "abuela",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-03"
+    }
+   },
+   "status": "closed",
+   "created_tick": 123,
+   "messages": [
+    {
+     "id": 1587,
+     "tick": 124,
+     "sender": "t18",
+     "text": "¡Buenas, Carmen! Qué puesto tan bonito. ¿Me lo dejaría en 7 P?",
+     "offer": {
+      "id": 2004,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 7,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "expires_tick": 126,
+      "created_tick": 124,
+      "final": false
+     }
+    },
+    {
+     "id": 1583,
+     "tick": 124,
+     "sender": "abuela",
+     "text": "Ay, hola cariño! Come, sit a moment, have you eaten? Look here — this one, the Huevos Rotos, very pretty card, twelve P for you. And a little advice, hijo: a full page is worth much more than loose cards. Swap your duplicates, always!",
+     "offer": {
+      "id": 2000,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "want": {
+       "cash": 12,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 126,
+      "created_tick": 124,
+      "final": false
+     }
+    },
+    {
+     "id": 1594,
+     "tick": 125,
+     "sender": "abuela",
+     "text": "Look, 11 P. My grandchildren would pay more!",
+     "offer": {
+      "id": 2013,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "want": {
+       "cash": 11,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 127,
+      "created_tick": 125,
+      "final": false
+     }
+    },
+    {
+     "id": 1600,
+     "tick": 125,
+     "sender": "t18",
+     "text": "Usted conoce los cromos mejor que nadie. ¿Qué tal 8 P, señora?",
+     "offer": {
+      "id": 2019,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 8,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "expires_tick": 127,
+      "created_tick": 125,
+      "final": false
+     }
+    },
+    {
+     "id": 1617,
+     "tick": 126,
+     "sender": "t18",
+     "text": "Me hace mucha ilusión este sobre. ¿Podríamos dejarlo en 9 P?",
+     "offer": {
+      "id": 2038,
+      "maker": "t18",
+      "to": "abuela",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 9,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "expires_tick": 128,
+      "created_tick": 126,
+      "final": false
+     }
+    },
+    {
+     "id": 1608,
+     "tick": 126,
+     "sender": "abuela",
+     "text": "Ay, qué zalamero eres, hijo. Mira, ten P and we are friends — the Huevos Rotos goes home with you. Forty years I sit here, and still the pretty cards make me soft. Ten P, cariño. And eat something before the market closes, ¿eh?",
+     "offer": {
+      "id": 2030,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "want": {
+       "cash": 10,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 128,
+      "created_tick": 126,
+      "final": false
+     }
+    },
+    {
+     "id": 1623,
+     "tick": 127,
+     "sender": "abuela",
+     "text": "Look, 10 P. My grandchildren would pay more!",
+     "offer": {
+      "id": 2052,
+      "maker": "abuela",
+      "to": "t18",
+      "venue": null,
+      "thread": 240,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-03"
+       ]
+      },
+      "want": {
+       "cash": 10,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 129,
+      "created_tick": 127,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Huevos Rotos",
+   "closed_reason": null
+  },
+  {
+   "id": 261,
+   "kind": "persona",
+   "team": "t18",
+   "with": "chato",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-08"
+    }
+   },
+   "status": "closed",
+   "created_tick": 130,
+   "messages": [
+    {
+     "id": 1698,
+     "tick": 131,
+     "sender": "t18",
+     "text": "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿24 P?",
+     "offer": {
+      "id": 2158,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 24,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 133,
+      "created_tick": 131,
+      "final": false
+     }
+    },
+    {
+     "id": 1694,
+     "tick": 131,
+     "sender": "chato",
+     "text": "You again. Las Vistillas, thirty-three. That's the number. Take it or walk.",
+     "offer": {
+      "id": 2153,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 133,
+      "created_tick": 131,
+      "final": false
+     }
+    },
+    {
+     "id": 1715,
+     "tick": 132,
+     "sender": "chato",
+     "text": "You move, I move. 33 P.",
+     "offer": {
+      "id": 2187,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 134,
+      "created_tick": 132,
+      "final": false
+     }
+    },
+    {
+     "id": 1719,
+     "tick": 132,
+     "sender": "t18",
+     "text": "Precio justo y cerramos ya: 27 P.",
+     "offer": {
+      "id": 2191,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 27,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 134,
+      "created_tick": 132,
+      "final": false
+     }
+    },
+    {
+     "id": 1741,
+     "tick": 133,
+     "sender": "t18",
+     "text": "Mi última cifra, sin rodeos: 30 P.",
+     "offer": {
+      "id": 2225,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 30,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 135,
+      "created_tick": 133,
+      "final": false
+     }
+    },
+    {
+     "id": 1733,
+     "tick": 133,
+     "sender": "chato",
+     "text": "Twenty-seven isn't moving. Thirty-three. Same number as before, same number next time. Las Vistillas doesn't get cheaper because you ask twice.",
+     "offer": {
+      "id": 2217,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 135,
+      "created_tick": 133,
+      "final": false
+     }
+    },
+    {
+     "id": 1755,
+     "tick": 134,
+     "sender": "chato",
+     "text": "32 P.",
+     "offer": {
+      "id": 2240,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 261,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 32,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 136,
+      "created_tick": 134,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Las Vistillas",
+   "closed_reason": null
+  },
+  {
+   "id": 268,
+   "kind": "persona",
+   "team": "t18",
+   "with": "chato",
+   "venue": null,
+   "topic": {
+    "buy": {
+     "card": "LAT-08"
+    }
+   },
+   "status": "deal",
+   "created_tick": 135,
+   "messages": [
+    {
+     "id": 1794,
+     "tick": 136,
+     "sender": "t18",
+     "text": "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿28 P?",
+     "offer": {
+      "id": 2279,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 268,
+      "status": "cancelled",
+      "give": {
+       "cash": 28,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 138,
+      "created_tick": 136,
+      "final": false
+     }
+    },
+    {
+     "id": 1791,
+     "tick": 136,
+     "sender": "chato",
+     "text": "Chato. You buy, I sell. Las Vistillas, thirty-three. That's the number.",
+     "offer": {
+      "id": 2276,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 268,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 138,
+      "created_tick": 136,
+      "final": false
+     }
+    },
+    {
+     "id": 1803,
+     "tick": 137,
+     "sender": "chato",
+     "text": "33 P.",
+     "offer": {
+      "id": 2290,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 268,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 139,
+      "created_tick": 137,
+      "final": false
+     }
+    },
+    {
+     "id": 1810,
+     "tick": 137,
+     "sender": "t18",
+     "text": "Precio justo y cerramos ya: 29 P.",
+     "offer": {
+      "id": 2297,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 268,
+      "status": "cancelled",
+      "give": {
+       "cash": 29,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 139,
+      "created_tick": 137,
+      "final": false
+     }
+    },
+    {
+     "id": 1823,
+     "tick": 138,
+     "sender": "t18",
+     "text": "Mi última cifra, sin rodeos: 31 P.",
+     "offer": {
+      "id": 2322,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 268,
+      "status": "cancelled",
+      "give": {
+       "cash": 31,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "expires_tick": 140,
+      "created_tick": 138,
+      "final": false
+     }
+    },
+    {
+     "id": 1816,
+     "tick": 138,
+     "sender": "chato",
+     "text": "You moved one point. I move the same as you. Thirty-three. Still thirty-three.",
+     "offer": {
+      "id": 2313,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 268,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 33,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 140,
+      "created_tick": 138,
+      "final": false
+     }
+    },
+    {
+     "id": 1829,
+     "tick": 139,
+     "sender": "chato",
+     "text": "You move, I move. 32 P.",
+     "offer": {
+      "id": 2334,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 268,
+      "status": "settled",
+      "give": {
+       "cash": 0,
+       "assets": [],
+       "types": [
+        "card:LAT-08"
+       ]
+      },
+      "want": {
+       "cash": 32,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 141,
+      "created_tick": 139,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Las Vistillas",
+   "closed_reason": null
+  },
+  {
+   "id": 278,
+   "kind": "persona",
+   "team": "t18",
+   "with": "chato",
+   "venue": null,
+   "topic": {
+    "sell": {
+     "assets": [
+      267
+     ]
+    }
+   },
+   "status": "closed",
+   "created_tick": 140,
+   "messages": [
+    {
+     "id": 1872,
+     "tick": 141,
+     "sender": "t18",
+     "text": "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿26 P?",
+     "offer": {
+      "id": 2391,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 278,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 267,
+         "kind": "card",
+         "ref": "LAT-07",
+         "serial": 6,
+         "rarity": "uncommon",
+         "set": "LAT",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "want": {
+       "cash": 26,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 143,
+      "created_tick": 141,
+      "final": false
+     }
+    },
+    {
+     "id": 1867,
+     "tick": 141,
+     "sender": "chato",
+     "text": "Vermut del Domingo. Thirteen. You've been at Carmen's, so you know I don't pad my prices.",
+     "offer": {
+      "id": 2386,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 278,
+      "status": "cancelled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 267,
+         "kind": "card",
+         "ref": "LAT-07",
+         "serial": 6,
+         "rarity": "uncommon",
+         "set": "LAT",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "expires_tick": 143,
+      "created_tick": 141,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "Vermut del Domingo",
+   "closed_reason": null
+  },
+  {
+   "id": 296,
+   "kind": "persona",
+   "team": "t18",
+   "with": "chato",
+   "venue": null,
+   "topic": {
+    "sell": {
+     "assets": [
+      509
+     ]
+    }
+   },
+   "status": "deal",
+   "created_tick": 149,
+   "messages": [
+    {
+     "id": 2006,
+     "tick": 150,
+     "sender": "t18",
+     "text": "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿22 P?",
+     "offer": {
+      "id": 2585,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "want": {
+       "cash": 22,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 152,
+      "created_tick": 150,
+      "final": false
+     }
+    },
+    {
+     "id": 2005,
+     "tick": 150,
+     "sender": "chato",
+     "text": "You again. La Tabacalera, silver pack. Thirteen. That's the number.",
+     "offer": {
+      "id": 2584,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "expires_tick": 152,
+      "created_tick": 150,
+      "final": false
+     }
+    },
+    {
+     "id": 2014,
+     "tick": 151,
+     "sender": "chato",
+     "text": "No. 13 P, and I'm being generous.",
+     "offer": {
+      "id": 2601,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "expires_tick": 153,
+      "created_tick": 151,
+      "final": false
+     }
+    },
+    {
+     "id": 2017,
+     "tick": 151,
+     "sender": "t18",
+     "text": "Te la dejo en 17 P, Chato. Cerramos ya.",
+     "offer": {
+      "id": 2604,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "want": {
+       "cash": 17,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 153,
+      "created_tick": 151,
+      "final": false
+     }
+    },
+    {
+     "id": 2031,
+     "tick": 152,
+     "sender": "t18",
+     "text": "Te la dejo en 15 P, Chato. Cerramos ya.",
+     "offer": {
+      "id": 2625,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "want": {
+       "cash": 15,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 154,
+      "created_tick": 152,
+      "final": false
+     }
+    },
+    {
+     "id": 2026,
+     "tick": 152,
+     "sender": "chato",
+     "text": "Thirteen. Same number as before. I don't move first, chaval. Take it or walk.",
+     "offer": {
+      "id": 2620,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "expires_tick": 154,
+      "created_tick": 152,
+      "final": false
+     }
+    },
+    {
+     "id": 2040,
+     "tick": 153,
+     "sender": "chato",
+     "text": "No. 13 P, and I'm being generous.",
+     "offer": {
+      "id": 2639,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "expires_tick": 155,
+      "created_tick": 153,
+      "final": false
+     }
+    },
+    {
+     "id": 2044,
+     "tick": 153,
+     "sender": "t18",
+     "text": "Te la dejo en 14 P, Chato. Cerramos ya.",
+     "offer": {
+      "id": 2643,
+      "maker": "t18",
+      "to": "chato",
+      "venue": null,
+      "thread": 296,
+      "status": "cancelled",
+      "give": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "want": {
+       "cash": 14,
+       "assets": [],
+       "types": []
+      },
+      "expires_tick": 155,
+      "created_tick": 153,
+      "final": false
+     }
+    },
+    {
+     "id": 2056,
+     "tick": 154,
+     "sender": "chato",
+     "text": "Thirteen. You came down, I didn't. Still thirteen. Pay or go look somewhere else.",
+     "offer": {
+      "id": 2662,
+      "maker": "chato",
+      "to": "t18",
+      "venue": null,
+      "thread": 296,
+      "status": "settled",
+      "give": {
+       "cash": 13,
+       "assets": [],
+       "types": []
+      },
+      "want": {
+       "cash": 0,
+       "assets": [
+        {
+         "id": 509,
+         "kind": "card",
+         "ref": "LAV-06",
+         "serial": 11,
+         "rarity": "uncommon",
+         "set": "LAV",
+         "print_run": 90
+        }
+       ],
+       "types": []
+      },
+      "expires_tick": 156,
+      "created_tick": 154,
+      "final": false
+     }
+    }
+   ],
+   "standing_offers": [],
+   "item": "La Tabacalera",
+   "closed_reason": null
+  }
+ ]
+}

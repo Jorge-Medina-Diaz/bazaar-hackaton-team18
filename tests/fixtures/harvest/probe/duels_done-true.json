@@ -1,0 +1,2240 @@
+{
+ "duels": [
+  {
+   "duel": 11,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "Plaza de Olavide",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 113,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Rojo",
+   "deadline_tick": 132,
+   "decay_per_round": 0.06,
+   "rounds": 1,
+   "your_offer": {
+    "id": 583,
+    "price": 89,
+    "tick": 129,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 430,
+    "price": 99,
+    "tick": 124,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 120,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 68,
+     "days": null
+    },
+    {
+     "tick": 121,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 78,
+     "days": null
+    },
+    {
+     "tick": 124,
+     "from": "Rival Rojo",
+     "text": "Opening ask. Fair margin for both.",
+     "price": 99,
+     "days": null
+    },
+    {
+     "tick": 125,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 82,
+     "days": null
+    },
+    {
+     "tick": 126,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 86,
+     "days": null
+    },
+    {
+     "tick": 127,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 87,
+     "days": null
+    },
+    {
+     "tick": 128,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 88,
+     "days": null
+    },
+    {
+     "tick": 129,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 89,
+     "days": null
+    }
+   ],
+   "result": 13.2,
+   "price": 99,
+   "days": 0
+  },
+  {
+   "duel": 12,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Plaza de Olavide",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 67,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Verde",
+   "deadline_tick": 132,
+   "decay_per_round": 0.06,
+   "rounds": 1,
+   "your_offer": {
+    "id": 615,
+    "price": 76,
+    "tick": 130,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 431,
+    "price": 74,
+    "tick": 124,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 120,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 112,
+     "days": null
+    },
+    {
+     "tick": 121,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 102,
+     "days": null
+    },
+    {
+     "tick": 124,
+     "from": "Rival Verde",
+     "text": "Opening bid. Let's find a fair price.",
+     "price": 74,
+     "days": null
+    },
+    {
+     "tick": 125,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 98,
+     "days": null
+    },
+    {
+     "tick": 126,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 94,
+     "days": null
+    },
+    {
+     "tick": 127,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 93,
+     "days": null
+    },
+    {
+     "tick": 128,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 92,
+     "days": null
+    },
+    {
+     "tick": 129,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 91,
+     "days": null
+    },
+    {
+     "tick": 130,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 76,
+     "days": null
+    }
+   ],
+   "result": 6.6,
+   "price": 74,
+   "days": 0
+  },
+  {
+   "duel": 21,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "Mercado de Vallehermoso",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 204,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Sol",
+   "deadline_tick": 132,
+   "decay_per_round": 0.06,
+   "rounds": 5,
+   "your_offer": {
+    "id": 552,
+    "price": 173,
+    "tick": 128,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 524,
+    "price": 225,
+    "tick": 127,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 120,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 122,
+     "days": null
+    },
+    {
+     "tick": 121,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 139,
+     "days": null
+    },
+    {
+     "tick": 123,
+     "from": "Rival Sol",
+     "text": "Thanks for moving up, but this card completes a strong album page and we value it accordingly. We can come down a little to 205 to keep things moving toward a fair close.",
+     "price": 205,
+     "days": null
+    },
+    {
+     "tick": 124,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 147,
+     "days": null
+    },
+    {
+     "tick": 124,
+     "from": "Rival Sol",
+     "text": "We appreciate the steady movement on your side, and we'll meet you with a real step down to 199. That's a fair price for a card of this quality, and it gets us much closer to a deal we can both sign.",
+     "price": 199,
+     "days": null
+    },
+    {
+     "tick": 125,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 155,
+     "days": null
+    },
+    {
+     "tick": 125,
+     "from": "Rival Sol",
+     "text": "I can do 257. That is a fair deal for both of us.",
+     "price": 257,
+     "days": null
+    },
+    {
+     "tick": 126,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 161,
+     "days": null
+    },
+    {
+     "tick": 126,
+     "from": "Rival Sol",
+     "text": "We've seen your steady steps and we'll answer with a meaningful move of our own to 241. This card anchors a key album page, so that's a price that reflects its real value while bringing us closer together.",
+     "price": 241,
+     "days": null
+    },
+    {
+     "tick": 127,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 167,
+     "days": null
+    },
+    {
+     "tick": 127,
+     "from": "Rival Sol",
+     "text": "You've kept stepping up steadily, so we'll make a solid move down to 225 for a card that's central to our collection. Meet us closer to that and we can wrap this up quickly.",
+     "price": 225,
+     "days": null
+    },
+    {
+     "tick": 128,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 173,
+     "days": null
+    }
+   ],
+   "result": 22.8,
+   "price": 173,
+   "days": 0
+  },
+  {
+   "duel": 22,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Mercado de Vallehermoso",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 125,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Luna",
+   "deadline_tick": 132,
+   "decay_per_round": 0.06,
+   "rounds": 4,
+   "your_offer": {
+    "id": 512,
+    "price": 162,
+    "tick": 127,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 486,
+    "price": 110,
+    "tick": 126,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 120,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 208,
+     "days": null
+    },
+    {
+     "tick": 121,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 190,
+     "days": null
+    },
+    {
+     "tick": 123,
+     "from": "Rival Luna",
+     "text": "Thanks for moving toward us; we're building an album page on a tight budget, so we can offer 80 for this card. Happy to keep stepping together if you meet us further down.",
+     "price": 80,
+     "days": null
+    },
+    {
+     "tick": 124,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 182,
+     "days": null
+    },
+    {
+     "tick": 124,
+     "from": "Rival Luna",
+     "text": "I can do 90. That is a fair deal for both of us.",
+     "price": 90,
+     "days": null
+    },
+    {
+     "tick": 125,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 175,
+     "days": null
+    },
+    {
+     "tick": 125,
+     "from": "Rival Luna",
+     "text": "We've stepped up again to 100, matching the effort you've shown; our album budget is tight, but we'd like to close this fairly with you.",
+     "price": 100,
+     "days": null
+    },
+    {
+     "tick": 126,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 168,
+     "days": null
+    },
+    {
+     "tick": 126,
+     "from": "Rival Luna",
+     "text": "We can come up to 110 for this card, which is a real stretch for our album budget. Your steps have been getting smaller; meet us with a bigger move and we can close this quickly.",
+     "price": 110,
+     "days": null
+    },
+    {
+     "tick": 127,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 162,
+     "days": null
+    }
+   ],
+   "result": 28.9,
+   "price": 162,
+   "days": 0
+  },
+  {
+   "duel": 55,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "Mercado de Vallehermoso",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 166,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Rojo",
+   "deadline_tick": 144,
+   "decay_per_round": 0.06,
+   "rounds": 1,
+   "your_offer": {
+    "id": 784,
+    "price": 122,
+    "tick": 134,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 702,
+    "price": 159,
+    "tick": 132,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 132,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 100,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "Rival Rojo",
+     "text": "159 P?",
+     "price": 159,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 114,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 122,
+     "days": null
+    }
+   ],
+   "result": 41.4,
+   "price": 122,
+   "days": 0
+  },
+  {
+   "duel": 56,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Mercado de Vallehermoso",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 93,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Verde",
+   "deadline_tick": 144,
+   "decay_per_round": 0.06,
+   "rounds": 1,
+   "your_offer": {
+    "id": 787,
+    "price": 135,
+    "tick": 134,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 706,
+    "price": 81,
+    "tick": 132,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 132,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 155,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "Rival Verde",
+     "text": "81 P?",
+     "price": 81,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 142,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 135,
+     "days": null
+    }
+   ],
+   "result": 39.5,
+   "price": 135,
+   "days": 0
+  },
+  {
+   "duel": 69,
+   "session": 1,
+   "status": "no_deal",
+   "role": "buyer",
+   "item": "Taxi Blanco",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 74,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Plata",
+   "deadline_tick": 132,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 334,
+    "price": 50,
+    "tick": 121,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 120,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 44,
+     "days": null
+    },
+    {
+     "tick": 121,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 50,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 70,
+   "session": 1,
+   "status": "no_deal",
+   "role": "seller",
+   "item": "Taxi Blanco",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 44,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Sol",
+   "deadline_tick": 132,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 335,
+    "price": 67,
+    "tick": 121,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 120,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 73,
+     "days": null
+    },
+    {
+     "tick": 121,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 67,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 87,
+   "session": 1,
+   "status": "no_deal",
+   "role": "buyer",
+   "item": "Plaza de Olavide",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 156,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Plata",
+   "deadline_tick": 156,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1211,
+    "price": 94,
+    "tick": 144,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 144,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 94,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 88,
+   "session": 1,
+   "status": "no_deal",
+   "role": "seller",
+   "item": "Plaza de Olavide",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 117,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Rojo",
+   "deadline_tick": 156,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1213,
+    "price": 195,
+    "tick": 144,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 144,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 195,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 95,
+   "session": 1,
+   "status": "no_deal",
+   "role": "buyer",
+   "item": "Mercado de Vallehermoso",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 164,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Verde",
+   "deadline_tick": 144,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 701,
+    "price": 98,
+    "tick": 132,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 132,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 98,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 96,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Mercado de Vallehermoso",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 78,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Rojo",
+   "deadline_tick": 156,
+   "decay_per_round": 0.06,
+   "rounds": 7,
+   "your_offer": {
+    "id": 1549,
+    "price": 92,
+    "tick": 152,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1558,
+    "price": 90,
+    "tick": 152,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 144,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 130,
+     "days": null
+    },
+    {
+     "tick": 146,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 49,
+     "days": null
+    },
+    {
+     "tick": 147,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 118,
+     "days": null
+    },
+    {
+     "tick": 147,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 56,
+     "days": null
+    },
+    {
+     "tick": 148,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 111,
+     "days": null
+    },
+    {
+     "tick": 148,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 63,
+     "days": null
+    },
+    {
+     "tick": 149,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 105,
+     "days": null
+    },
+    {
+     "tick": 149,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 69,
+     "days": null
+    },
+    {
+     "tick": 150,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 101,
+     "days": null
+    },
+    {
+     "tick": 150,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 76,
+     "days": null
+    },
+    {
+     "tick": 151,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 83,
+     "days": null
+    },
+    {
+     "tick": 151,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 96,
+     "days": null
+    },
+    {
+     "tick": 152,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 92,
+     "days": null
+    },
+    {
+     "tick": 152,
+     "from": "Rival Rojo",
+     "text": "Propongo este precio, creo que es justo para los dos.",
+     "price": 90,
+     "days": null
+    }
+   ],
+   "result": 9.1,
+   "price": 92,
+   "days": 0
+  },
+  {
+   "duel": 129,
+   "session": 1,
+   "status": "no_deal",
+   "role": "buyer",
+   "item": "Andén 0",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 80,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Plata",
+   "deadline_tick": 156,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1219,
+    "price": 48,
+    "tick": 144,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 144,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 48,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 130,
+   "session": 1,
+   "status": "no_deal",
+   "role": "seller",
+   "item": "Andén 0",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 74,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Verde",
+   "deadline_tick": 156,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1221,
+    "price": 123,
+    "tick": 144,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 144,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 123,
+     "days": null
+    }
+   ],
+   "result": 0.0,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 149,
+   "session": 1,
+   "status": "live",
+   "role": "buyer",
+   "item": "Andén 0",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 101,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Sol",
+   "deadline_tick": 168,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1681,
+    "price": 61,
+    "tick": 156,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 156,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 61,
+     "days": null
+    }
+   ],
+   "result": null,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 150,
+   "session": 1,
+   "status": "live",
+   "role": "seller",
+   "item": "Andén 0",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 58,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Plata",
+   "deadline_tick": 168,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1687,
+    "price": 97,
+    "tick": 156,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 156,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 97,
+     "days": null
+    }
+   ],
+   "result": null,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 155,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "Taxi Blanco",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 115,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Noche",
+   "deadline_tick": 150,
+   "decay_per_round": 0.06,
+   "rounds": 5,
+   "your_offer": {
+    "id": 1133,
+    "price": 91,
+    "tick": 142,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1149,
+    "price": 91,
+    "tick": 142,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 138,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 69,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "Rival Noche",
+     "text": "Hello! I can do 102. Thank you for your time.",
+     "price": 102,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 79,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "Rival Noche",
+     "text": "Thanks for the reply. 97 works for me.",
+     "price": 97,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 84,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "Rival Noche",
+     "text": "Let me move closer: 94.",
+     "price": 94,
+     "days": null
+    },
+    {
+     "tick": 141,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 88,
+     "days": null
+    },
+    {
+     "tick": 141,
+     "from": "Rival Noche",
+     "text": "I'd like to close this. My offer is 92.",
+     "price": 92,
+     "days": null
+    },
+    {
+     "tick": 142,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 91,
+     "days": null
+    },
+    {
+     "tick": 142,
+     "from": "Rival Noche",
+     "text": "Meeting you halfway at 91, with thanks.",
+     "price": 91,
+     "days": null
+    }
+   ],
+   "result": 17.6,
+   "price": 91,
+   "days": 0
+  },
+  {
+   "duel": 156,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Taxi Blanco",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 55,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Azul",
+   "deadline_tick": 156,
+   "decay_per_round": 0.06,
+   "rounds": 3,
+   "your_offer": {
+    "id": 1305,
+    "price": 83,
+    "tick": 146,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1307,
+    "price": 83,
+    "tick": 146,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 144,
+     "from": "Rival Azul",
+     "text": "Hello! I can do 74. Thank you for your time.",
+     "price": 74,
+     "days": null
+    },
+    {
+     "tick": 144,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 92,
+     "days": null
+    },
+    {
+     "tick": 145,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 84,
+     "days": null
+    },
+    {
+     "tick": 145,
+     "from": "Rival Azul",
+     "text": "Thanks for the reply. 79 works for me.",
+     "price": 79,
+     "days": null
+    },
+    {
+     "tick": 146,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 83,
+     "days": null
+    },
+    {
+     "tick": 146,
+     "from": "Rival Azul",
+     "text": "Let me move closer: 83.",
+     "price": 83,
+     "days": null
+    }
+   ],
+   "result": 23.3,
+   "price": 83,
+   "days": 0
+  },
+  {
+   "duel": 161,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "Andén 0",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 50,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Sol",
+   "deadline_tick": 141,
+   "decay_per_round": 0.06,
+   "rounds": 10,
+   "your_offer": {
+    "id": 1003,
+    "price": 46,
+    "tick": 139,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 985,
+    "price": 75,
+    "tick": 138,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 129,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 30,
+     "days": null
+    },
+    {
+     "tick": 129,
+     "from": "Rival Sol",
+     "text": "Thanks for the offer. I can do 134 P.",
+     "price": 134,
+     "days": null
+    },
+    {
+     "tick": 130,
+     "from": "Rival Sol",
+     "text": "That's a real step from me: 128 P.",
+     "price": 128,
+     "days": null
+    },
+    {
+     "tick": 131,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 34,
+     "days": null
+    },
+    {
+     "tick": 131,
+     "from": "Rival Sol",
+     "text": "We both lose the longer we talk. 122 P?",
+     "price": 122,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 36,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "Rival Sol",
+     "text": "Let's find a deal that works for both of us: 116 P.",
+     "price": 116,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 38,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "Rival Sol",
+     "text": "Meeting you closer: 109 P.",
+     "price": 109,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 40,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "Rival Sol",
+     "text": "That's a real step from me: 102 P.",
+     "price": 102,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 41,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "Rival Sol",
+     "text": "We both lose the longer we talk. 95 P?",
+     "price": 95,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 42,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "Rival Sol",
+     "text": "I've moved towards you again: 88 P.",
+     "price": 88,
+     "days": null
+    },
+    {
+     "tick": 137,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 44,
+     "days": null
+    },
+    {
+     "tick": 137,
+     "from": "Rival Sol",
+     "text": "That's a real step from me: 82 P.",
+     "price": 82,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 45,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "Rival Sol",
+     "text": "Thanks for the offer. I can do 75 P.",
+     "price": 75,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 46,
+     "days": null
+    }
+   ],
+   "result": 2.2,
+   "price": 46,
+   "days": 0
+  },
+  {
+   "duel": 162,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Andén 0",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 102,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Sol",
+   "deadline_tick": 143,
+   "decay_per_round": 0.06,
+   "rounds": 10,
+   "your_offer": {
+    "id": 1092,
+    "price": 109,
+    "tick": 141,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1079,
+    "price": 99,
+    "tick": 140,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 131,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 170,
+     "days": null
+    },
+    {
+     "tick": 131,
+     "from": "Rival Sol",
+     "text": "Let's find a deal that works for both of us: 59 P.",
+     "price": 59,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 156,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "Rival Sol",
+     "text": "We both lose the longer we talk. 63 P?",
+     "price": 63,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 148,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "Rival Sol",
+     "text": "That's a real step from me: 67 P.",
+     "price": 67,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 141,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "Rival Sol",
+     "text": "Meeting you closer: 71 P.",
+     "price": 71,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 136,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "Rival Sol",
+     "text": "Let's find a deal that works for both of us: 76 P.",
+     "price": 76,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 131,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "Rival Sol",
+     "text": "I've moved towards you again: 81 P.",
+     "price": 81,
+     "days": null
+    },
+    {
+     "tick": 137,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 126,
+     "days": null
+    },
+    {
+     "tick": 137,
+     "from": "Rival Sol",
+     "text": "That's a real step from me: 85 P.",
+     "price": 85,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 121,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "Rival Sol",
+     "text": "Fair is fair: 90 P, and we can close now.",
+     "price": 90,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 117,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "Rival Sol",
+     "text": "Meeting you closer: 94 P.",
+     "price": 94,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 113,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "Rival Sol",
+     "text": "Let's find a deal that works for both of us: 99 P.",
+     "price": 99,
+     "days": null
+    },
+    {
+     "tick": 141,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 109,
+     "days": null
+    }
+   ],
+   "result": 3.8,
+   "price": 109,
+   "days": 0
+  },
+  {
+   "duel": 193,
+   "session": 1,
+   "status": "live",
+   "role": "buyer",
+   "item": "El Rastro al Amanecer",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 162,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Rojo",
+   "deadline_tick": 168,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1688,
+    "price": 97,
+    "tick": 156,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 156,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 97,
+     "days": null
+    }
+   ],
+   "result": null,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 194,
+   "session": 1,
+   "status": "live",
+   "role": "seller",
+   "item": "El Rastro al Amanecer",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 79,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Verde",
+   "deadline_tick": 168,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1692,
+    "price": 132,
+    "tick": 156,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 156,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 132,
+     "days": null
+    }
+   ],
+   "result": null,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 219,
+   "session": 1,
+   "status": "live",
+   "role": "buyer",
+   "item": "El Tren Fantasma",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 131,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Oro",
+   "deadline_tick": 168,
+   "decay_per_round": 0.06,
+   "rounds": 0,
+   "your_offer": {
+    "id": 1697,
+    "price": 79,
+    "tick": 156,
+    "days": 0
+   },
+   "rival_offer": null,
+   "messages": [
+    {
+     "tick": 156,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 79,
+     "days": null
+    }
+   ],
+   "result": null,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 220,
+   "session": 1,
+   "status": "live",
+   "role": "seller",
+   "item": "El Tren Fantasma",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 119,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Noche",
+   "deadline_tick": 168,
+   "decay_per_round": 0.06,
+   "rounds": 2,
+   "your_offer": {
+    "id": 1734,
+    "price": 181,
+    "tick": 157,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1736,
+    "price": 133,
+    "tick": 157,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 156,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 198,
+     "days": null
+    },
+    {
+     "tick": 156,
+     "from": "Rival Noche",
+     "text": "I can do 118. Let's close it quickly.",
+     "price": 118,
+     "days": null
+    },
+    {
+     "tick": 157,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 181,
+     "days": null
+    },
+    {
+     "tick": 157,
+     "from": "Rival Noche",
+     "text": "I can do 133. Let's close it quickly.",
+     "price": 133,
+     "days": null
+    }
+   ],
+   "result": null,
+   "price": null,
+   "days": null
+  },
+  {
+   "duel": 223,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "El Rastro al Amanecer",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 69,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Plata",
+   "deadline_tick": 160,
+   "decay_per_round": 0.06,
+   "rounds": 2,
+   "your_offer": {
+    "id": 1432,
+    "price": 47,
+    "tick": 149,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1468,
+    "price": 48,
+    "tick": 150,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 148,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 41,
+     "days": null
+    },
+    {
+     "tick": 148,
+     "from": "Rival Plata",
+     "text": "Thank you for meeting me. I can do 49 P.",
+     "price": 49,
+     "days": null
+    },
+    {
+     "tick": 149,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 47,
+     "days": null
+    },
+    {
+     "tick": 150,
+     "from": "Rival Plata",
+     "text": "I appreciate your move. 48 P is where I can be.",
+     "price": 48,
+     "days": null
+    }
+   ],
+   "result": 18.6,
+   "price": 48,
+   "days": 0
+  },
+  {
+   "duel": 224,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "El Rastro al Amanecer",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 64,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Verde",
+   "deadline_tick": 163,
+   "decay_per_round": 0.06,
+   "rounds": 1,
+   "your_offer": {
+    "id": 1552,
+    "price": 98,
+    "tick": 152,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1506,
+    "price": 76,
+    "tick": 151,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 151,
+     "from": "Rival Verde",
+     "text": "Thank you for meeting me. I can do 76 P.",
+     "price": 76,
+     "days": null
+    },
+    {
+     "tick": 151,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 107,
+     "days": null
+    },
+    {
+     "tick": 152,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 98,
+     "days": null
+    }
+   ],
+   "result": 40.4,
+   "price": 107,
+   "days": 0
+  },
+  {
+   "duel": 225,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "El Tren Fantasma",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 144,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Luna",
+   "deadline_tick": 147,
+   "decay_per_round": 0.06,
+   "rounds": 2,
+   "your_offer": {
+    "id": 879,
+    "price": 98,
+    "tick": 136,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 926,
+    "price": 102,
+    "tick": 137,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 135,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 86,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "Rival Luna",
+     "text": "Es una pieza que merece su precio: 104 primas. Pienso que es justo.",
+     "price": 104,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 98,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "Rival Luna",
+     "text": "Es una pieza que merece su precio: 103 primas. Pienso que es justo.",
+     "price": 103,
+     "days": null
+    },
+    {
+     "tick": 137,
+     "from": "Rival Luna",
+     "text": "Es una pieza que merece su precio: 102 primas. Pienso que es justo.",
+     "price": 102,
+     "days": null
+    }
+   ],
+   "result": 36.2,
+   "price": 103,
+   "days": 0
+  },
+  {
+   "duel": 226,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "El Tren Fantasma",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 96,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Rojo",
+   "deadline_tick": 150,
+   "decay_per_round": 0.06,
+   "rounds": 4,
+   "your_offer": {
+    "id": 1135,
+    "price": 129,
+    "tick": 142,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1112,
+    "price": 90,
+    "tick": 141,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 138,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 160,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "Rival Rojo",
+     "text": "Puedo llegar a 86 primas. Dime si cerramos.",
+     "price": 86,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 146,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "Rival Rojo",
+     "text": "Puedo llegar a 87 primas. Dime si cerramos.",
+     "price": 87,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 139,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "Rival Rojo",
+     "text": "Puedo llegar a 87 primas. Dime si cerramos.",
+     "price": 87,
+     "days": null
+    },
+    {
+     "tick": 141,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 133,
+     "days": null
+    },
+    {
+     "tick": 141,
+     "from": "Rival Rojo",
+     "text": "Puedo llegar a 90 primas. Dime si cerramos.",
+     "price": 90,
+     "days": null
+    },
+    {
+     "tick": 142,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 129,
+     "days": null
+    }
+   ],
+   "result": 25.8,
+   "price": 129,
+   "days": 0
+  },
+  {
+   "duel": 243,
+   "session": 1,
+   "status": "deal",
+   "role": "buyer",
+   "item": "Plaza de Olavide",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 87,
+   "limit_meaning": "never pay above your value",
+   "rival": "Rival Sol",
+   "deadline_tick": 141,
+   "decay_per_round": 0.06,
+   "rounds": 7,
+   "your_offer": {
+    "id": 825,
+    "price": 71,
+    "tick": 135,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 875,
+    "price": 73,
+    "tick": 136,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 129,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 52,
+     "days": null
+    },
+    {
+     "tick": 129,
+     "from": "Rival Sol",
+     "text": "Hello, and thank you for meeting me. I would propose 95 P for this one.",
+     "price": 95,
+     "days": null
+    },
+    {
+     "tick": 130,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 59,
+     "days": null
+    },
+    {
+     "tick": 130,
+     "from": "Rival Sol",
+     "text": "I appreciate it. Let us try to close quickly: 84 P.",
+     "price": 84,
+     "days": null
+    },
+    {
+     "tick": 131,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 63,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 66,
+     "days": null
+    },
+    {
+     "tick": 132,
+     "from": "Rival Sol",
+     "text": "Fair enough, I will meet you partway at 79 P.",
+     "price": 79,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "Rival Sol",
+     "text": "We are getting close. 76 P works for me.",
+     "price": 76,
+     "days": null
+    },
+    {
+     "tick": 133,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 67,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "Rival Sol",
+     "text": "Thank you for your offer. I can move to 73 P.",
+     "price": 73,
+     "days": null
+    },
+    {
+     "tick": 134,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 69,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "Rival Sol",
+     "text": "I think 73 P is fair for both of us. Shall we settle?",
+     "price": 73,
+     "days": null
+    },
+    {
+     "tick": 135,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 71,
+     "days": null
+    },
+    {
+     "tick": 136,
+     "from": "Rival Sol",
+     "text": "Thank you. My offer stays at 73 P, and I am happy to close there.",
+     "price": 73,
+     "days": null
+    }
+   ],
+   "result": 9.1,
+   "price": 73,
+   "days": 0
+  },
+  {
+   "duel": 244,
+   "session": 1,
+   "status": "deal",
+   "role": "seller",
+   "item": "Plaza de Olavide",
+   "issues": [
+    "price"
+   ],
+   "your_days_weight": null,
+   "days_meaning": null,
+   "your_limit": 140,
+   "limit_meaning": "never sell below your cost",
+   "rival": "Rival Oro",
+   "deadline_tick": 149,
+   "decay_per_round": 0.06,
+   "rounds": 3,
+   "your_offer": {
+    "id": 1019,
+    "price": 203,
+    "tick": 139,
+    "days": 0
+   },
+   "rival_offer": {
+    "id": 1051,
+    "price": 145,
+    "tick": 140,
+    "days": 0
+   },
+   "messages": [
+    {
+     "tick": 137,
+     "from": "Rival Oro",
+     "text": "Hello, and thank you for meeting me. I would propose 124 P for this one.",
+     "price": 124,
+     "days": null
+    },
+    {
+     "tick": 137,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 233,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "Rival Oro",
+     "text": "I appreciate it. Let us try to close quickly: 145 P.",
+     "price": 145,
+     "days": null
+    },
+    {
+     "tick": 138,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 213,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "Rival Oro",
+     "text": "I appreciate it. Let us try to close quickly: 145 P.",
+     "price": 145,
+     "days": null
+    },
+    {
+     "tick": 139,
+     "from": "you",
+     "text": "Propuesta justa para cerrar pronto y que ganemos los dos.",
+     "price": 203,
+     "days": null
+    },
+    {
+     "tick": 140,
+     "from": "Rival Oro",
+     "text": "I think 145 P is fair for both of us. Shall we settle?",
+     "price": 145,
+     "days": null
+    }
+   ],
+   "result": 4.2,
+   "price": 145,
+   "days": 0
+  }
+ ]
+}

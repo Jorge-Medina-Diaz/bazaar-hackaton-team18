@@ -1,0 +1,434 @@
+"""M8 pages: page plan (Needs per source with a cap), closer card frozen at 8/10, dynamic protect_sets, plan data.
+
+Contract: docs/harness-spec.md §2.7 (signatures), §4 (G13, G21, G30, G32 read what this module produces),
+docs/strategy.md J3, J4, J9, J12, J13. Pure: no I/O except load_plan reading config/plan.json.
+
+NOTES (M8, night build)
+- plan(): for each set of plan_cfg.page_sets that is released: every page card we do not hold is a Need. One of them
+  is the closer (source "team", closer=True, never bought from a dealer); the others are dealer Needs with the
+  profile's dealer and cap = min(profile.limit, dealer_max[ref], floor(dv_add - 1)). The closer is re-chosen each
+  tick with closer_ref until the page reaches closer.freeze_at (8) cards held or in flight; from then on it is frozen
+  (returned in the frozen dict, persisted by the runner) until we hold it.
+- "In flight" here = own open bids on El Rastro (my_offers) and open dealer buy threads with a standing offer.
+  Accepted-but-unsettled trades are not visible to plan() (no journal argument); guards use Book.projected, which
+  has them, so G30/G32 still block a dealer buy that would close the page.
+- Fail closed: "me" or "catalog" down, or a valuation error on a set -> no Needs for that set (frozen kept).
+  A page card without a dealer profile gets no dealer Need. After the day's day_end_hours no dealer Needs.
+- Closer cap: floor(dv_close - default_minus) where dv_close is the closer's value once the other page cards are
+  held (99.1 -> 49 for a RET common); floor(dv_close - compete_minus) (79) when a rival bid for that ref on any
+  board reaches our cap, or in the endgame (closer.endgame_hours). Never below our own standing bid (never lower).
+- protect_sets: plan_cfg.protect_sets + page_sets; LAT leaves at lat_give_up.tick when neither LAT-09 nor LAT-10 is
+  held, pending in (journal_view["pending_in"]) or filled (journal_view["filled_offers"]). Unknown -> keep (safe side).
+- spare_assets(): helper for M11 (J5 sales and D1 swaps): card assets that can be handed over without touching the
+  last copy of a protected page card; it does not price anything.
+- Open: RET-08/CHA-08 fallback to the Abuela after fallback_after ticks is data only (profile.fallback_dealer); the
+  switch is M10's. "Sales seen" in closer_ref uses only feed_new of this tick and the boards (no history).
+"""
+from __future__ import annotations
+
+import json
+import math
+from collections import Counter
+from pathlib import Path
+from typing import Any, Iterable, Mapping, Optional, Sequence
+
+from agent.contracts import TEAM, Need, PlanCfg
+
+DEALERS = frozenset({"abuela", "chato"})
+RARITY_RANK = {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4}
+OPEN_STATUSES = frozenset({"open", "queued"})
+CLOSED_THREAD = frozenset({"closed", "deal", "expired", "cancelled", "settled"})
+
+_REQUIRED = {
+    "page_sets": list, "protect_sets": list, "startup_cancels": list, "baseline_bands": dict, "dealer_max": dict,
+    "profiles": dict, "closer": dict, "resupply_min": (int, float), "dup_min_price": dict,
+    "days_sign": (int, type(None)), "day_end_hours": dict, "grant_lookahead_ticks": int,
+}
+
+
+# ------------------------------------------------------------------------------------------ load_plan
+
+def _num(x: Any) -> bool:
+    return type(x) in (int, float) and math.isfinite(x)
+
+
+def load_plan(path: Path) -> PlanCfg:
+    """Read and validate config/plan.json. ValueError on anything missing or malformed (fail closed)."""
+    with open(path, "r", encoding="utf-8") as fh:
+        raw = json.load(fh)
+    if not isinstance(raw, dict):
+        raise ValueError("plan: top level must be an object")
+    cfg = {k: v for k, v in raw.items() if not k.startswith("_")}
+    for k, t in _REQUIRED.items():
+        if k not in cfg:
+            raise ValueError(f"plan: missing key {k!r}")
+        allowed = t if isinstance(t, tuple) else (t,)
+        if type(cfg[k]) not in allowed:
+            raise ValueError(f"plan.{k}: bad type {type(cfg[k]).__name__}")
+    for k in ("page_sets", "protect_sets"):
+        if not all(type(s) is str and s for s in cfg[k]):
+            raise ValueError(f"plan.{k}: list of set ids")
+    if not all(type(x) is int and x >= 0 for x in cfg["startup_cancels"]):
+        raise ValueError("plan.startup_cancels: list of offer ids")
+    if not all(type(k) is str and _num(v) for k, v in cfg["baseline_bands"].items()):
+        raise ValueError("plan.baseline_bands: offer id -> number")
+    if not all(type(v) is int and v >= 0 for v in cfg["dealer_max"].values()):
+        raise ValueError("plan.dealer_max: ref -> int >= 0")
+    for key, p in cfg["profiles"].items():
+        if not isinstance(p, dict) or p.get("dealer") not in DEALERS:
+            raise ValueError(f"plan.profiles.{key}: dealer must be one of {sorted(DEALERS)}")
+        a, s, lim = p.get("anchor"), p.get("step"), p.get("limit")
+        if not (type(a) is int and type(s) is int and type(lim) is int and 0 < a <= lim and s >= 1):
+            raise ValueError(f"plan.profiles.{key}: need int 0 < anchor <= limit and step >= 1")
+        fa = p.get("fallback_after")
+        if fa is not None and not (type(fa) is int and fa >= 1):
+            raise ValueError(f"plan.profiles.{key}: fallback_after int >= 1 or null")
+        if p.get("fallback_dealer") is not None and p["fallback_dealer"] not in DEALERS:
+            raise ValueError(f"plan.profiles.{key}: bad fallback_dealer")
+    c = cfg["closer"]
+    for k in ("accept_min", "default_minus", "compete_minus"):
+        if not _num(c.get(k)):
+            raise ValueError(f"plan.closer.{k}: number required")
+    if not (c["default_minus"] >= c["compete_minus"] >= c["accept_min"] >= 20):
+        raise ValueError("plan.closer: need default_minus >= compete_minus >= accept_min >= 20")
+    fz = c.get("freeze_at", 8)
+    if not (type(fz) is int and 1 <= fz <= 9):
+        raise ValueError("plan.closer.freeze_at: int 1..9")
+    if not isinstance(c.get("endgame_hours", {}), dict) or not all(_num(v) for v in c.get("endgame_hours", {}).values()):
+        raise ValueError("plan.closer.endgame_hours: day -> hours")
+    if not _num(cfg["resupply_min"]) or cfg["resupply_min"] < 0:
+        raise ValueError("plan.resupply_min: number >= 0")
+    if not all(type(v) is int and v >= 0 for v in cfg["dup_min_price"].values()):
+        raise ValueError("plan.dup_min_price: set -> int")
+    if cfg["days_sign"] not in (None, 1, -1):
+        raise ValueError("plan.days_sign: null, 1 or -1")
+    if not all(_num(v) for v in cfg["day_end_hours"].values()):
+        raise ValueError("plan.day_end_hours: day -> hours")
+    if cfg["grant_lookahead_ticks"] < 0:
+        raise ValueError("plan.grant_lookahead_ticks: >= 0")
+    lg = cfg.get("lat_give_up")
+    if lg is not None:
+        if not (isinstance(lg, dict) and type(lg.get("set")) is str and type(lg.get("tick")) is int
+                and isinstance(lg.get("refs"), list) and isinstance(lg.get("bids", []), list)):
+            raise ValueError("plan.lat_give_up: {set, tick, refs, bids}")
+    return cfg  # type: ignore[return-value]
+
+
+# -------------------------------------------------------------------------------------- world readers
+
+def _cards(catalog: Mapping) -> dict:
+    """ref -> card mapping (with "set" added) from catalog.sets[].cards[]."""
+    out = {}
+    for s in (catalog or {}).get("sets") or ():
+        if not isinstance(s, Mapping):
+            continue
+        for c in s.get("cards") or ():
+            if isinstance(c, Mapping) and type(c.get("id")) is str:
+                d = dict(c)
+                d["set"] = s.get("id")
+                out[c["id"]] = d
+    return out
+
+
+def page_refs(world, set_id: str) -> list:
+    """Page cards of a set (catalog page == True), in catalog order."""
+    return [r for r, c in _cards(world.catalog).items() if c.get("set") == set_id and c.get("page") is True]
+
+
+def held_counts(me: Mapping) -> Counter:
+    cnt: Counter = Counter()
+    for a in (me or {}).get("assets") or ():
+        if isinstance(a, Mapping) and a.get("kind") == "card" and type(a.get("ref")) is str:
+            cnt[a["ref"]] += 1
+    return cnt
+
+
+def _want_ref(o: Mapping) -> Optional[str]:
+    w = o.get("want") or {}
+    if not isinstance(w, Mapping):
+        return None
+    refs = [c for c in (w.get("cards") or ()) if type(c) is str]
+    refs += [t[5:] for t in (w.get("types") or ()) if type(t) is str and t.startswith("card:")]
+    return refs[0] if len(refs) == 1 else None
+
+
+def _give_cash(o: Mapping) -> int:
+    g = o.get("give") or {}
+    c = g.get("cash") if isinstance(g, Mapping) else None
+    return c if type(c) is int else 0
+
+
+def _give_refs(o: Mapping) -> list:
+    g = o.get("give") or {}
+    if not isinstance(g, Mapping):
+        return []
+    return [a.get("ref") for a in (g.get("assets") or ()) if isinstance(a, Mapping) and type(a.get("ref")) is str]
+
+
+def own_bids(world) -> dict:
+    """ref -> highest price of our open bids (maker t18, give cash, want one card)."""
+    out: dict = {}
+    for o in world.my_offers or ():
+        if not isinstance(o, Mapping) or o.get("status") not in OPEN_STATUSES:
+            continue
+        ref = _want_ref(o)
+        p = _give_cash(o)
+        if ref and p > 0 and not _give_refs(o):
+            out[ref] = max(out.get(ref, 0), p)
+    return out
+
+
+def buy_threads(world) -> set:
+    """refs with an open dealer buy thread that has a standing offer."""
+    out = set()
+    for t in (world.threads or {}).values():
+        if not isinstance(t, Mapping) or t.get("status") in CLOSED_THREAD:
+            continue
+        topic = t.get("topic") or {}
+        buy = topic.get("buy") if isinstance(topic, Mapping) else None
+        ref = buy.get("card") if isinstance(buy, Mapping) else None
+        if type(ref) is str and t.get("standing_offers"):
+            out.add(ref)
+    return out
+
+
+def _all_board_offers(world) -> list:
+    seen, out = set(), []
+    boards = list((world.boards or {}).values()) + [world.board or ()]
+    for b in boards:
+        for o in b or ():
+            if isinstance(o, Mapping) and o.get("id") not in seen:
+                seen.add(o.get("id"))
+                out.append(o)
+    return out
+
+
+def _is_ours(world, o: Mapping) -> bool:
+    mine = {x.get("id") for x in world.my_offers or () if isinstance(x, Mapping)}
+    return o.get("id") in mine or o.get("maker") in {TEAM, world.own_pseudonym} - {None}
+
+
+def rival_bids(world) -> dict:
+    """ref -> highest rival bid price on any board (open, not ours)."""
+    out: dict = {}
+    for o in _all_board_offers(world):
+        if o.get("status", "open") not in OPEN_STATUSES or _is_ours(world, o):
+            continue
+        ref, p = _want_ref(o), _give_cash(o)
+        if ref and p > 0 and not _give_refs(o):
+            out[ref] = max(out.get(ref, 0), p)
+    return out
+
+
+def _sales_seen(world) -> Counter:
+    cnt: Counter = Counter()
+    for o in _all_board_offers(world):
+        if _is_ours(world, o):
+            continue
+        for r in _give_refs(o):
+            cnt[r] += 1
+    for e in world.feed_new or ():
+        if not isinstance(e, Mapping) or e.get("type") != "settlement":
+            continue
+        pl = e.get("payload") or {}
+        if not isinstance(pl, Mapping) or pl.get("persona"):
+            continue
+        for it in pl.get("items") or ():
+            if isinstance(it, Mapping) and type(it.get("ref")) is str:
+                cnt[it["ref"]] += 1
+    return cnt
+
+
+def today(world) -> str:
+    d = (world.clock or {}).get("today") if isinstance(world.clock, Mapping) else None
+    if type(d) is str and d:
+        return d
+    return "sun" if (world.t_hours or 0) >= 18.0 else "sat"
+
+
+def past_day_end(world, plan_cfg) -> bool:
+    h = (plan_cfg.get("day_end_hours") or {}).get(today(world))
+    return _num(h) and world.t_hours >= h
+
+
+def endgame(world, plan_cfg) -> bool:
+    eh = ((plan_cfg.get("closer") or {}).get("endgame_hours") or {}).get(today(world))
+    return _num(eh) and world.t_hours >= eh
+
+
+def profile_for(plan_cfg, ref: str, card: Mapping) -> Optional[Mapping]:
+    prof = plan_cfg.get("profiles") or {}
+    rar = card.get("rarity")
+    for key in (ref, f"{card.get('set')}:{rar}", rar):
+        if key in prof:
+            return prof[key]
+    return None
+
+
+# ------------------------------------------------------------------------------------------ closer_ref
+
+def closer_ref(world, missing: Sequence[str], plan_cfg) -> str:
+    """Closer choice: common without rival bids > more sales seen > more minted copies not ours > lowest number."""
+    if not missing:
+        raise ValueError("closer_ref: nothing missing")
+    cards = _cards(world.catalog)
+    bids = rival_bids(world)
+    sales = _sales_seen(world)
+    held = held_counts(world.me)
+
+    def key(ref: str):
+        c = cards.get(ref, {})
+        rank = RARITY_RANK.get(c.get("rarity"), 9)
+        minted = c.get("minted") if type(c.get("minted")) is int else 0
+        try:
+            num = int(ref.rsplit("-", 1)[1])
+        except (IndexError, ValueError):
+            num = 999
+        return (rank, ref in bids, -sales[ref], -(minted - held[ref]), num, ref)
+
+    return min(missing, key=key)
+
+
+# ---------------------------------------------------------------------------------------------- plan
+
+def _floor(x: float) -> int:
+    return int(math.floor(x + 1e-9))
+
+
+def _dv_add(valuer, counts: Mapping, ref: str, packs) -> float:
+    v = float(valuer.delta_add(counts, ref, packs))
+    if not math.isfinite(v):
+        raise ValueError(f"valuation of {ref} not finite")
+    return v
+
+
+def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need], dict[str, str]]":
+    """Needs for every released page set in plan_cfg.page_sets, and the updated frozen closers (set -> ref)."""
+    new_frozen = dict(frozen or {})
+    if {"me", "catalog"} & set(world.down or ()):
+        return [], new_frozen
+    try:
+        held, packs = valuer.holdings(world.me)
+        held = Counter(held)
+    except Exception:
+        return [], new_frozen
+    cards = _cards(world.catalog)
+    bids_own = own_bids(world)
+    in_thread = buy_threads(world)
+    rivals = rival_bids(world)
+    sv = world.server_values or {}
+    c_cfg = plan_cfg.get("closer") or {}
+    freeze_at = c_cfg.get("freeze_at", 8)
+    no_dealers = past_day_end(world, plan_cfg)
+    needs: list = []
+
+    for set_id in plan_cfg.get("page_sets") or ():
+        if set_id not in (world.released_sets or ()):
+            continue
+        refs = page_refs(world, set_id)
+        if len(refs) < 2:
+            continue
+        unheld = [r for r in refs if held[r] < 1]
+        if not unheld:
+            new_frozen.pop(set_id, None)            # page complete
+            continue
+        try:
+            closer = new_frozen.get(set_id)
+            if closer not in unheld:                # never frozen, or we now hold it: choose again
+                closer = None
+                new_frozen.pop(set_id, None)
+            if closer is None:
+                free = [r for r in unheld if r not in bids_own and r not in in_thread] or unheld
+                closer = closer_ref(world, free, plan_cfg)
+            have = sum(1 for r in refs if r != closer and (held[r] >= 1 or r in bids_own or r in in_thread))
+            if have >= freeze_at:
+                new_frozen[set_id] = closer
+            set_needs = []
+            # dealer Needs: every unheld page card but the closer (they can never close the page: the closer is missing)
+            if not no_dealers:
+                for ref in unheld:
+                    if ref == closer:
+                        continue
+                    card = cards.get(ref, {})
+                    prof = profile_for(plan_cfg, ref, card)
+                    if not prof:
+                        continue
+                    dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
+                    cap = min(int(prof["limit"]), int((plan_cfg.get("dealer_max") or {}).get(ref, prof["limit"])),
+                              _floor(dv - 1.0))
+                    if cap >= 1:
+                        set_needs.append(Need(set=set_id, ref=ref, source=prof["dealer"], max_price=cap, closer=False))
+            # closer Need: valued as the card that completes the page
+            hypo = Counter(held)
+            for r in unheld:
+                if r != closer:
+                    hypo[r] += 1
+            dv_close = _dv_add(valuer, hypo, closer, packs)
+            if len(unheld) == 1:
+                dv_close = min(dv_close, float(sv.get(closer, math.inf)))
+            cap = _floor(dv_close - float(c_cfg["default_minus"]))
+            compete = endgame(world, plan_cfg) or rivals.get(closer, 0) >= max(cap, bids_own.get(closer, 0), 1)
+            if compete:
+                cap = _floor(dv_close - float(c_cfg["compete_minus"]))
+            ceiling = _floor(dv_close - float(c_cfg["accept_min"]))
+            cap = min(max(cap, bids_own.get(closer, 0)), ceiling)   # never lower a standing bid; never past the ceiling
+            set_needs.sort(key=lambda n: (-RARITY_RANK.get(cards.get(n.ref, {}).get("rarity"), 0), n.ref))
+            if cap >= 1:
+                set_needs.append(Need(set=set_id, ref=closer, source="team", max_price=cap, closer=True))
+            needs.extend(set_needs)
+        except Exception:
+            continue                                # fail closed for this set: no Needs
+    return needs, new_frozen
+
+
+# ------------------------------------------------------------------------------------------ protection
+
+def protect_sets(world, plan_cfg, journal_view) -> frozenset:
+    """Protected page sets: plan_cfg.protect_sets + page_sets, minus LAT once given up (strategy J9, t205)."""
+    out = set(plan_cfg.get("protect_sets") or ()) | set(plan_cfg.get("page_sets") or ())
+    lg = plan_cfg.get("lat_give_up")
+    if not lg or lg.get("set") not in out:
+        return frozenset(out)
+    if "me" in (world.down or ()) or "me/offers" in (world.down or ()) or type(world.tick) is not int:
+        return frozenset(out)                       # unknown -> keep protected
+    if world.tick < lg["tick"]:
+        return frozenset(out)
+    held = held_counts(world.me)
+    jv = journal_view if isinstance(journal_view, Mapping) else {}
+    pending = jv.get("pending_in") or {}
+    filled = set(jv.get("filled_offers") or ())
+    alive = any(held[r] >= 1 or (pending.get(r, 0) if isinstance(pending, Mapping) else 0) >= 1
+                for r in lg.get("refs") or ())
+    alive = alive or bool(filled & set(lg.get("bids") or ()))
+    open_ids = {o.get("id") for o in world.my_offers or () if isinstance(o, Mapping)
+                and o.get("status") in OPEN_STATUSES}
+    alive = alive or bool(open_ids & set(lg.get("bids") or ()))   # our bid still open: not dead yet
+    if not alive:
+        out.discard(lg["set"])
+    return frozenset(out)
+
+
+def spare_assets(world, protected: Iterable[str]) -> list:
+    """(asset_id, ref) of card assets we can hand over (J5 sales, D1 swaps) without the last copy of a protected
+    page card. Assets already listed in an open offer of ours are excluded. Pricing is the caller's job."""
+    protected = set(protected)
+    cards = _cards(world.catalog)
+    listed = set()
+    for o in world.my_offers or ():
+        if isinstance(o, Mapping) and o.get("status") in OPEN_STATUSES:
+            g = o.get("give") or {}
+            for a in (g.get("assets") or ()) if isinstance(g, Mapping) else ():
+                if isinstance(a, Mapping):
+                    listed.add(a.get("id"))
+    by_ref: dict = {}
+    for a in (world.me or {}).get("assets") or ():
+        if isinstance(a, Mapping) and a.get("kind") == "card" and type(a.get("ref")) is str and type(a.get("id")) is int:
+            by_ref.setdefault(a["ref"], []).append(a["id"])
+    out = []
+    for ref, ids in sorted(by_ref.items()):
+        c = cards.get(ref, {})
+        keep = 1 if (c.get("set") in protected and c.get("page") is True) else 0
+        free_ids = [i for i in sorted(ids) if i not in listed]
+        for i in free_ids[keep:]:                   # strict: the kept copy must be an unlisted one
+            out.append((i, ref))
+    return out

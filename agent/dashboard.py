@@ -8,10 +8,15 @@ Rivals' cash and holdings are private (/api/cards/{id} shows their owner as "a t
 public evidence: settlements in the feed (who received which card, who paid what) and El Rastro listings
 (selling a card = holds it, bidding for a card = wants it).
 page(data) fills agent/dashboard.html; data=None gives the live page that polls data.json.
+
+M1 (K-13, INV-18): /api/me is redacted (agent.redact) before it is used or served, and the error text is too.
+NOTES (M1): LOG_DIR is read here from BAZAAR_LOGS instead of importing the old agent.journal (M2 rewrites it).
 """
 import collections, json, os, time  # noqa: E401
 
-from agent.journal import LOG_DIR
+from agent.redact import redact
+
+LOG_DIR = os.environ.get("BAZAAR_LOGS", "logs")
 
 TEMPLATE = os.path.join(os.path.dirname(__file__), "dashboard.html")
 FEED = os.path.join(LOG_DIR, "feed.jsonl")
@@ -175,7 +180,7 @@ def intel(b, state: dict, me: dict, lb: dict, cat: dict, board: list, moves: lis
 
 def snapshot(b, state: dict) -> dict:
     """state persists between calls (feed history, value cache)."""
-    me, clock, cat, lb = b.me(), b.clock(), b.catalog(), b.leaderboard()
+    me, clock, cat, lb = redact(b.me()), b.clock(), b.catalog(), b.leaderboard()
     events = _history(state, b.feed(500).get("events", []))
     makers = {e["payload"]["offer"]["id"]: e["payload"]["offer"]["maker"] for e in events if e["type"] == "offer.listed"}
     teams = {t["team"] for t in lb["teams"]}
@@ -198,4 +203,5 @@ def snapshot(b, state: dict) -> dict:
 
 def page(data=None) -> str:
     blob = "null" if data is None else json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    return open(TEMPLATE, encoding="utf-8").read().replace("__DATA__", blob, 1)
+    with open(TEMPLATE, encoding="utf-8") as f:
+        return f.read().replace("__DATA__", blob, 1)

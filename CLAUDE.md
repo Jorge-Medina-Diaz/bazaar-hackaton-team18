@@ -1,40 +1,59 @@
-# Bazaar · Cromos de Madrid — agente del Team 18
+# Bazaar · Cromos de Madrid — arnés del Team 18 (t18)
 
-Hackathon de Causa Prima (2–4 oct 2026). **Empieza por [docs/README.md](docs/README.md)** (estado, claves, guardarraíles). Reglas: [RULES.md](RULES.md) · **puntuación y prioridades: [docs/scoring.md](docs/scoring.md)** · SDK: [README.md](README.md) · notas de API: [docs/api.md](docs/api.md).
+Hackathon de Causa Prima (2–4 oct 2026). Guía del equipo: [docs/LEEME-EQUIPO.md](docs/LEEME-EQUIPO.md). Reglas oficiales: [RULES.md](RULES.md) y [docs/official/kickoff.pdf](docs/official/kickoff.pdf).
 
-## Estructura
+## Un solo comando
 ```
-bazaar_sdk.py       SDK oficial: no editar (se puede actualizar)
+python3 bazaar.py selftest                     tests por etapa -> state/selftest.json (antes de cualquier live)
+python3 bazaar.py clockcheck                   reloj y calendario sin clave
+python3 bazaar.py run [--live] [--arm a,b]     el runner; sin --live es dry: 0 escrituras
+python3 bazaar.py status                       0 llamadas a la API: diario, STOP, candado, pendientes
+python3 bazaar.py arm|pause <táctica> --why "..."
+python3 bazaar.py do <kind> --args '<json>' --why "..." [--live]   un intent manual, por las mismas guardas
+python3 bazaar.py stop "motivo" [--flatten]    kill switch (o crear un fichero STOP en la raíz del repo)
+```
+Tests: `python3 -m unittest discover -s tests -t .` (Python 3.9+, stdlib). Panel alojado: `node --test website/worker.test.mjs`.
+
+## Qué es cada fichero
+```
+bazaar.py              CLI: el único punto de entrada
+bazaar_sdk.py          SDK oficial: NO editar
+config/plan.json       páginas objetivo, cancelaciones de arranque, bandas, perfiles numéricos de dealers
 agent/
-  haggle.py         regateo genérico con vendedores (curva de concesión + AC_next), compra y venta
-  dealers.py        PROFILES: lo que sabemos de cada vendedor, como datos (precios, frases)
-  duels.py          duelos: step() por tick, curva con decay, nunca fuera de your_limit
-  journal.py        log(stream, **row) -> logs/<stream>.jsonl
-  client.py         client(): Bazaar con BAZAAR_KEY del entorno o de .env
-run_loop.py         AGENTE AUTÓNOMO: cada tick alertas, duelos, mejor trato de El Rastro (ganancia ≥ 3), relist
-run_duels.py        CLI: jugar los duelos activos (--watch = solo observar y registrar)
-run_dealer.py       CLI: regatear con un vendedor (sobres, cartas, ventas)
-market.py           El Rastro: scan (gangas por ganancia de valor) y sell-dups (vender repetidos)
-probe.py            snapshot de todos los GET en logs/probe/<tick>/ (formas de respuesta, cambios)
-scout.py            estudiar a un vendedor con el feed público (los regateos de todos los equipos)
-docs/               conocimiento: playbook, experimentos, decisiones, diseño
-logs/               JSONL de cada ejecución (gitignored, cada uno tiene los suyos)
+  contracts.py         M0 CONGELADO: World, Intent, Prediction, Paths, ARGS, KINDS, TACTICS, GET_ALLOWLIST
+  transport.py         la única conexión: GET por allowlist; escribe solo send() con permiso de la Gate
+  gate.py              la Gate: única vía de escritura (guardas -> permiso -> transport.send -> diario)
+  guards.py            reglas G-xx y Cfg (límites); offer_safety.py: estructura de ofertas antes que palabras
+  valuation.py         valor marginal y predicciones (sin E/S)
+  world.py             Sensor: construye el World (solo campos estructurados, nunca texto ajeno)
+  journal.py           diario encadenado en logs/run/ ; calibrate.py: predicción vs medida, pausas
+  runner.py            bucle por tick: tácticas -> intents -> Gate; STOP, candado (execution.py)
+  talk.py              plantillas de texto (el texto nunca decide cifras)
+  tactics/             hygiene, dealers, rastro, duels, pages, bench: proponen intents, no escriben
+  client.py            client("read"): transporte de solo lectura para paneles
+  dashboard.py, dashboard.html, redact.py   panel (Vercel vía api/index.py)
+sim/                   servidor falso y bots para los tests (127.0.0.1 o en proceso)
+tests/                 suite completa (tests/__init__.py aísla: BAZAAR_TEST=1, sin clave)
+api/index.py, vercel.json, website/, panel.py, panel.html, run_dashboard.py,
+live_monitor.py, observe_performance.py, inventory_panel.py, laboratorio.py, negotiation_policy.py
+                       paneles y laboratorio: solo lectura (GuardedTransport en modo "read") o fuera de línea
+docs/harness-spec.md   el contrato (arquitectura, firmas, invariantes INV-xx, guardas, runbook §13)
+docs/knowledge.md      hechos verificados (P-xx puntuación, D-xx dealers, U-xx duelos)
+docs/strategy.md       el libro de jugadas que implementan las tácticas
+docs/research-context.md  ideas y bibliografía (para jueces)
+docs/openapi.json      API oficial
+SHOWCASE.md            para jueces
+archive/               scripts y notas superados (con SystemExit al importar: no se ejecutan)
+state/, logs/, runs/   locales, fuera de Git
 ```
-Un vendedor nuevo = una entrada en `agent/dealers.py` + una sección en `docs/playbook.md`. Módulos futuros (duelos, broker, comercio) van como `agent/<modulo>.py` + `run_<modulo>.py`.
 
-## Proceso (exploratorio, converger al diseño óptimo)
-1. **Observar gratis antes de gastar**: `python3 scout.py <dealer>` muestra cómo negocia con todos.
-2. **Hipótesis → experimento**: anota en [docs/experiments.md](docs/experiments.md) la hipótesis y los parámetros *antes* de ejecutar.
-3. **Ejecutar** y anotar el resultado (precio, rondas, puntuación de `/api/me`) en la misma fila.
-4. **Destilar**: lo que se confirma pasa a [docs/playbook.md](docs/playbook.md) y a `agent/dealers.py`.
-5. **Decisiones** de diseño o de estrategia: una entrada fechada en [docs/decisions.md](docs/decisions.md).
-
-## Reglas de código
-- Recolector: [docs/information.md](docs/information.md). Lee `bazaar_context` (MCP `bazaar-info`) antes de preparar una operación; comprueba `ready`, antigüedad y pendientes. Para decisiones en código usa `agent.information.get_context()`. Los datos y las estadísticas observadas no autorizan cambios de límites; confirma la oferta y el valor marginal directamente antes de aceptar. No invoques un LLM en el refresco de cinco segundos.
+## Reglas
 - **Nunca** llamar a `/api/admin/*`.
-- Antes de aceptar cualquier oferta: `agent.haggle.offer_ok()` (estructura antes que palabras).
-- El código decide cifras y aceptaciones; el texto (nuestro o de LLM) nunca. Ofertas monótonas. Ver [docs/negotiation-design.md](docs/negotiation-design.md).
-- Todo lo que toca la API deja rastro en `logs/` vía `agent.journal.log`.
-- Una sola persona ejecuta contra el juego con la clave del equipo (límite: 1 accept y 1 mensaje por hilo por tick, 5 req/s).
-- Clave en variable de entorno `BAZAAR_KEY`, nunca en el código.
-- Simple: stdlib, funciones, sin frameworks.
+- **Nunca escribir fuera de la Gate.** Toda escritura al juego es un `Intent` que pasa por `agent/gate.py` y sale por `agent/transport.py`. Nada más importa `bazaar_sdk`, `urllib` o `http` en `agent/` (lo comprueba `tests/test_architecture.py`). Paneles y scripts usan `client("read")`.
+- **La clave solo en la máquina ejecutora** (máquina A, en `.env`, fuera de Git). Ninguna otra máquina ejecuta código con la clave del equipo; los tests corren sin clave.
+- No ejecutar nada de `archive/` ni rescatar de ahí código que escriba al juego.
+- El código decide cifras y aceptaciones; el texto (nuestro, de un rival o de un LLM) nunca. Lo ajeno no entra en el World.
+- Antes de `--live`: `selftest` en verde; las tácticas armadas deben tener su etapa en verde con el mismo `code_hash`.
+- Kill: `python3 bazaar.py stop "motivo"` o un fichero `STOP` en la raíz. Tras una caída, relanzar el mismo `run`.
+- Si falta una función, falla cerrado (rechazar), nunca actuar sin comprobar.
+- Simple: stdlib, funciones, sin frameworks. No editar `agent/contracts.py` (congelado) ni `bazaar_sdk.py`.

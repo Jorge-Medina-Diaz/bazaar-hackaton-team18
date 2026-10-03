@@ -8,8 +8,7 @@ from pathlib import Path
 import time
 import urllib.request
 
-from bazaar_sdk import Bazaar
-from live_monitor import read_key
+from live_monitor import read_client, read_key
 
 ARTIFACT = 'https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site'
 SCORE_FIELDS = ('score', 'rank', 'negotiating', 'market', 'neg_points', 'ladder_points',
@@ -175,7 +174,7 @@ def main():
         parser.error('cycles/reserve must be nonnegative; interval must be at least 5 seconds')
     key = read_key(args.key_file)
     panel = ArtifactClient(key)
-    b = Bazaar('https://bazaar.causaprima.ai', key, timeout=5, retries=0, wait_on_tick=False)
+    b = read_client('https://bazaar.causaprima.ai', key)  # M18: read-only transport
     sampler = Sampler(panel.snapshot, b.me)
     result = observe(sampler, ChangeLog(args.log, args.reserve_cash), args.cycles, args.interval)
     print(json.dumps(result, ensure_ascii=False), flush=True)
