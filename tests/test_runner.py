@@ -241,6 +241,25 @@ class TestLateWindow(unittest.TestCase):
         self.assertEqual(r.sensor.reads, 1)
         self.assertEqual(len(outs), 1)
 
+    def test_late_window_asks_for_the_reduced_read(self):
+        clk = FakeClock(0.0)
+        w = make_world(tick_deadline=13.0, tick_seconds=15.0, duels=({"duel": 5, "deadline_tick": 110},))
+        r, gate = bare_runner(w, clk)
+        calls = []
+
+        class LateSensor:
+            def snapshot(self, prev, *, late=False):
+                calls.append(late)
+                clk.t += 0.8                                           # four GETs at 5/s
+                return w, None
+        r.sensor = LateSensor()
+        with mock.patch("agent.tactics.duels.propose", return_value=[duel_accept(5)]):
+            outs = r.late_window(w, [duel_accept(5)], [])
+        self.assertEqual(calls, [True])
+        self.assertEqual(len(outs), 1)
+        self.assertLess(gate.calls[0][2], 13.0)                           # sent before the tick deadline
+        self.assertEqual(r.late_read_s, 0.8)
+
     def test_no_late_accept_when_budget_used_or_tick_moved(self):
         clk = FakeClock(20.0)
         w = make_world(tick_deadline=28.0, duels=({"duel": 5, "deadline_tick": 110},))

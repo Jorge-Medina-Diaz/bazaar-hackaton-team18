@@ -410,6 +410,17 @@ class TestVenuesAndBudget(Base):
             self.assertIn(s, w.down)
         self.assertNotIn("me/offers", w.down)
 
+    def test_late_window_read_is_reduced_at_15s(self):
+        # night audit: the runner's mid-tick re-read for duel accepts must fit a 15 s Sunday tick
+        self.t.data["clock"]["tick_seconds"] = 15.0
+        prev, _ = self.s.snapshot(None)
+        self.t.calls.clear()
+        w, _ = self.s.snapshot(prev, late=True)
+        self.assertEqual(set(self.t.calls) - {"value"}, {"clock", "me", "my_offers", "duels"})
+        self.assertNotIn("value", self.t.calls)
+        self.assertNotIn("duels", w.down)
+        self.assertEqual(w.schedule, prev.schedule)                     # carried, not re-read
+
     def test_fast_path(self):
         w = self.s.fast(None)
         self.assertEqual(self.t.calls, ["clock", "my_offers"])

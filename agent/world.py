@@ -588,8 +588,9 @@ class Sensor:
         down.update(s for s in ALL_SOURCES if s not in ("clock", "schedule"))
         return self._assemble(prev, clock, t0, parts, down)
 
-    def snapshot(self, prev: Optional[World]) -> tuple:
-        """Full prioritised read (§1 step 5). Returns (World, Secrets)."""
+    def snapshot(self, prev: Optional[World], *, late: bool = False) -> tuple:
+        """Full prioritised read (§1 step 5). Returns (World, Secrets). late=True (the runner's mid-tick re-read for
+        duel accepts): the reduced read only (clock, me, me/offers, duels), so it fits a 15 s tick."""
         down: set = set()
         clock, t0 = self._read_clock(down)
         tick = clock["tick"] if clock else (prev.tick if prev else 0)
@@ -597,7 +598,7 @@ class Sensor:
         deadline = self._deadline(clock, t0)
         if clock is not None and deadline <= t0:            # paused / doors closed: reads are not racing a tick
             deadline = t0 + self.PAUSED_READ_BUDGET_S
-        reduced = tick_s < self.FAST_TICK_S
+        reduced = late or tick_s < self.FAST_TICK_S
         parts = self._carry(prev)
         secrets = Secrets()
         read: set = {"clock"}

@@ -338,6 +338,7 @@ class Runner:
         self.plan_now: Mapping = plan_cfg          # plan_cfg with today's day end / endgame from the live schedule
         self._sched_seen: dict = {}                # pages.effective_plan memory (last live close, stalls hour)
         self._drop_counts: dict = {}               # choose() drops of this tick, by R04 code (tick row)
+        self.late_read_s: Optional[float] = None   # seconds the late-window re-read took (tick row)
         self.transport, self.journal, self.gate, self.sensor = transport, journal, gate, sensor
         self.calibrator, self.cfg, self.clock = calibrator, cfg, clock
         self.started = time.time() if started is None else started
@@ -788,7 +789,12 @@ class Runner:
         if now < mid:
             self.clock.sleep(mid - now)
         try:
-            fresh, _ = self.sensor.snapshot(world)
+            t_read = self.clock.now()
+            try:
+                fresh, _ = self.sensor.snapshot(world, late=True)   # reduced read: duel_accept needs clock + duels
+            except TypeError:                                        # a sensor without the keyword (test fakes)
+                fresh, _ = self.sensor.snapshot(world)
+            self.late_read_s = round(self.clock.now() - t_read, 3)
             self.prev = fresh
         except Exception as e:                                           # noqa: BLE001
             if _is_fatal(e):
@@ -824,6 +830,9 @@ class Runner:
             counts[o.status] += 1
         extra = {"dropped": self._drop_counts} if getattr(self, "_drop_counts", None) else {}
         self._drop_counts = {}
+        if getattr(self, "late_read_s", None) is not None:
+            extra["late_read_s"] = self.late_read_s
+            self.late_read_s = None
         self.j("tick", tick=world.tick, cash=_g(world.me, "cash"), cash_free=getattr(b, "cash_free", None),
                points=pts, round=world.round, reading=world.reading, down=sorted(world.down or ()),
                outcomes=dict(counts), armed=sorted(self.armed_now()), **extra)
