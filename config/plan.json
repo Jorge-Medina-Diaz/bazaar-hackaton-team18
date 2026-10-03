@@ -28,13 +28,13 @@
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null}
   },
-  "closer": {"accept_min": 20, "default_minus": 75, "compete_minus": 20, "freeze_at": 8,
+  "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
              "endgame_hours": {"sun": 19.5, "N": 19.5, "*": 19.5}},
   "extra_needs": [{"ref": "SAL-11", "max_price": 160}],
   "resupply_min": 15,
   "dup_min_price": {"RET": 30, "CHA": 30},
   "days_sign": null,
   "duels": {"anchor": 0.65, "slow_cap": 0.78, "days_weight_fallback": 1.0},
-  "day_end_hours": {"sat": 14.0, "sun": 20.0},
+  "day_end_hours": {"sat": 13.28, "sun": 20.0},
   "grant_lookahead_ticks": 3
 }
