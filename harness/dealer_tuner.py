@@ -14,6 +14,15 @@ PARAMS = os.path.join(REPO, "docs", "dealer_params.json"); KB = os.path.join(REP
 FAV = {"pilar": {"SAL", "RET"}}
 
 
+def rarity_of(ref):
+    """Rareza por el número de la carta (catálogo: 01-05 común, 06-08 infrecuente, 09-10 rara, 11 épica, 12 legendaria)."""
+    try:
+        n = int(str(ref).split("-")[1])
+    except (IndexError, ValueError):
+        return None
+    return "common" if n <= 5 else "uncommon" if n <= 8 else "rare" if n <= 10 else "epic" if n == 11 else "legendary"
+
+
 def tam(x): return "1" if x <= 1 else "2-3" if x <= 3 else "4+"
 
 
@@ -66,7 +75,7 @@ def learn(paths=(ALL,)):
     for t, d in th.items():
         buy = "buy" in d["topic"]
         s = settle.get((d["dealer"], d["team"], d["ref"]), [])
-        rar = d["rar"] or (s[0][1] if s else None)
+        rar = d["rar"] or (s[0][1] if s else None) or rarity_of(d["ref"])
         fav = (d["ref"] or "")[:3] in FAV.get(d["dealer"], set())
         g = G[(d["dealer"], "compra" if buy else "venta", ("fav" if fav else "resto") + "·" + str(rar))]
         g["n"] += 1

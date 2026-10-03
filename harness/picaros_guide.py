@@ -10,6 +10,8 @@ Reglas SOLO de lo observado en sus hilos (feed público, ticks 763-778) y de su 
 from __future__ import annotations
 
 BUY_ANCHOR, BUY_STEP = 45, 3        # lo que hizo t05 (54, el mejor cierre visto); E-P1 compara con +1
+OPEN = {"rare": 73, "epic": 187}    # su primera oferta medida (rara n>10; épica n=1, SAL-11 t16)
+ANCHOR_FRAC = 45 / 73               # ancla del mejor cierre en raras, como fracción de su apertura (épica: extrapolado)
 COMMON_PAY, UNCOMMON_TOP = 4, 13     # lo que pagan por comunes / tope visto en infrecuentes
 
 
@@ -42,12 +44,20 @@ def trick(topic: dict, offer: dict) -> str | None:
     return None
 
 
+def _rarity(ref):
+    try:
+        n = int(ref.split("-")[1])
+    except (AttributeError, IndexError, ValueError):
+        return "rare"
+    return "epic" if n == 11 else "legendary" if n == 12 else "rare"
+
+
 def next_buy(ref_topic: str, ceiling: int, theirs: list, ours: list) -> dict:
     """Comprar una rara. theirs: [(price, final, trick|None)]; ours: precios enviados; ceiling = V - 1.
     Aprendido solo de Los Pícaros (params.json): paso = el menor con la misma probabilidad de que bajen; perdonan a
     `perdona` P de su oferta honesta (medido: 2). Nunca aceptar una oferta con truco; su `final` no cierra nada."""
     try:
-        from harness import dealer_tuner as afinador; P = afinador.get("picaros", "compra", ref_topic or "XXX", "rare", fav_sets=set()) or {}
+        from harness import dealer_tuner as afinador; P = afinador.get("picaros", "compra", ref_topic or "XXX", _rarity(ref_topic), fav_sets=set()) or {}
     except Exception:
         P = {}
     ps = P.get("p_sube") or {}
@@ -55,9 +65,11 @@ def next_buy(ref_topic: str, ceiling: int, theirs: list, ours: list) -> dict:
     forgive = 2 if (P.get("perdona_max") or 0) >= 2 else 1
     honest = theirs[-1][0] if theirs and theirs[-1][2] is None else None
     if not ours:
-        if honest is not None and honest <= min(BUY_ANCHOR, ceiling):
+        first = next((p for p, _, t in theirs if t is None), None) or OPEN.get(_rarity(ref_topic), 73)
+        anchor = min(round(first * ANCHOR_FRAC), ceiling)
+        if honest is not None and honest <= anchor:
             return {"do": "accept", "why": f"oferta honesta {honest} ya bajo el ancla"}
-        return {"do": "say", "price": min(BUY_ANCHOR, ceiling), "why": f"ancla {BUY_ANCHOR}"}
+        return {"do": "say", "price": anchor, "why": f"ancla {anchor} = {ANCHOR_FRAC:.2f} × su apertura {first}"}
     last = ours[-1]
     if honest is not None and honest <= ceiling and honest <= last + step:
         return {"do": "accept", "why": f"su oferta honesta {honest} <= nuestro siguiente"}
