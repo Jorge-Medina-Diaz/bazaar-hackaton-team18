@@ -120,12 +120,12 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 
 | When | What happened | Score | Rank |
 |---|---|---|---|
-| 09:30–10:10 | El Retiro (×1.3 for us) built to 9/10 from the two dealers, always below our value, so each buy filled a ladder slot at no cost. The last card came from another team on a public bid at 49 P: **+50 exactly**, which confirmed a per-deal cap | 30.58 | **1st** |
+| 09:30–10:45 | El Retiro (×1.3 for us) built to 9/10 from the two dealers, always below our value, so each buy filled a ladder slot at no cost. The last card came from another team on a public bid at 49 P: **+50 exactly**, which confirmed a per-deal cap | 30.58 | **1st** |
 | 10:00–18:00 | Nothing in the agent aimed at empty ladder slots once the page was done, and the score drifted as other teams traded | 27.85 | 8th |
 | 12:00–13:20 | Duels I: 30 of 34 duels closed, never outside our limit | | |
-| 18:00–20:00 | Level 4 (Los Pícaros) tried 9 times to slip a different card into an offer. The Gate reads the structured offer, not the words, and accepted none. We bought SAL-11 at 139 from them and sold it to Pilar (level 3) at 199 | 30.01 | 4th |
+| 18:00–21:15 | Level 4 (Los Pícaros) tried 9 times to slip a different card into an offer. The Gate reads the structured offer, not the words, and accepted none. We bought SAL-11 at 139 from them and sold it to Pilar (level 3) at 199 | 30.01 | 4th |
 | 21:18–22:55 | Duels II added a second issue, delivery days, and our deal rate fell to 65 %. The fix for the days sign never reached the tactic, because the sensor drops free text by design, so we sent a neutral 5 days with a worst-case margin. Found live, fixed in the sensor (`5ee5593`), redeployed mid-session | 28.20 | 7th |
-| 22:15–22:40 | Last card of La Latina bought from another team (+50). We **flagged** the three clearest Pícaros tricks: +10 each | **31.26** | **2nd** |
+| 22:00–22:40 | Last card of La Latina bought from another team (+50). We **flagged** the three clearest Pícaros tricks: +10 each | **31.26** | **2nd** |
 
 **What we measured on Saturday** (and the docs now use):
 - A ladder slot is worth (share of the dealer's range) × level/45.
