@@ -278,7 +278,45 @@ def cmd_clockcheck(base_url: Optional[str] = None, http: Optional[Callable] = No
     for u in (up or [])[:8]:
         if isinstance(u, dict):
             _out(f"  upcoming {u.get('at_hours')} {u.get('action')} {json.dumps(u.get('params'), default=str)[:120]}")
+    for line in day_lines(clock, sched, reading, time.time()):
+        _out(line)
     return 0
+
+
+def scenario_hint(clock: dict, stalls_h: Optional[float]) -> str:
+    """Sunday clock scenario (docs/DOMINGO.md): C = resume at 13.37 + Sunday events re-anchored (stalls ~18.37),
+    B = clock jumped to 16.65, A = resume and nothing moved (round 2, stalls 21.65). Doors closed -> no guess."""
+    t, rnd = clock.get("t_hours"), clock.get("round")
+    if clock.get("doors") != "open" or type(t) not in (int, float):
+        return "doors not open: no scenario yet"
+    if t >= 16.0:
+        return "B (clock jumped to ~16.65)"
+    if (type(rnd) is int and rnd >= 3) or (stalls_h is not None and stalls_h < 20.0):
+        return "C (resume ~13.37, Sunday events re-anchored)"
+    return "A (resume ~13.37, round 2, nothing moved)"
+
+
+def day_lines(clock: dict, sched: Any, reading: str, now: float) -> list:
+    """Today's derived times, the same rule the runner uses (pages.effective_plan with config/plan.json)."""
+    from types import SimpleNamespace
+    from agent.tactics import pages
+    try:
+        plan = pages.load_plan(REPO / "config" / "plan.json")
+        w = SimpleNamespace(clock=clock, schedule=sched if isinstance(sched, dict) else {}, reading=reading,
+                            t_hours=clock.get("t_hours"))
+        close, stalls = pages.live_times(w)
+        wall = pages.wall_close(w, now)
+        pc, _ = pages.effective_plan(plan, w, None, now=now)
+        day = pages.today(w)
+        de = (pc.get("day_end_hours") or {}).get(day)
+        eg = ((pc.get("closer") or {}).get("endgame_hours") or {}).get(day)
+    except Exception as e:                                               # noqa: BLE001
+        return [f"day times: {e.__class__.__name__}: {e}"]
+    f = lambda x: "-" if x is None else f"{x:.3f}"
+    return [f"today {clock.get('today')}  closes {clock.get('closes')}  schedule close {f(close)}  wall close {f(wall)}"
+            f"  stalls close {f(stalls)}",
+            f"derived day_end {f(de)}  endgame {f(eg)}  (plan fallback {plan.get('day_end_hours')})",
+            f"scenario {scenario_hint(clock, stalls)}"]
 
 
 def _arm_ok(paths: Paths, tactic: str) -> Optional[str]:

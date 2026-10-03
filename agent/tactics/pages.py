@@ -301,8 +301,8 @@ def live_times(world) -> tuple:
         elif e.get("action") == "persona" and pr.get("enabled") is False:
             off[at] += 1
     close = min(mine) if mine else min(nxt, default=None)
-    if close is not None and ends:
-        close = min(close, min(ends))
+    if ends:
+        close = min(ends) if close is None else min(close, min(ends))
     stalls = min([a for a, n in off.items() if n >= STALLS_MIN_PERSONAS], default=None)
     return close, stalls
 

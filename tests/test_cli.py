@@ -249,6 +249,21 @@ class TestRunAndSelftest(Base):
         self.assertEqual(rc, 0, buf.getvalue())
         self.assertIn("reading", buf.getvalue())
 
+    def test_clockcheck_day_lines_and_scenario(self):
+        from datetime import datetime
+        now = datetime.fromisoformat("2026-10-04T09:00:00+02:00").timestamp()
+        stalls = [{"at_hours": 18.367, "action": "persona", "params": {"id": p, "enabled": False}}
+                  for p in ("abuela", "chato", "pilar")]
+        clock = {"t_hours": 13.367, "round": 3, "doors": "open", "paused": False, "today": "sun",
+                 "closes": "2026-10-04T15:00:00+02:00"}
+        lines = bazaar.day_lines(clock, {"upcoming": stalls}, "N", now)
+        self.assertIn("day_end 18.284", lines[1])
+        self.assertIn("endgame 18.784", lines[1])
+        self.assertTrue(lines[2].startswith("scenario C"))
+        self.assertTrue(bazaar.scenario_hint(dict(clock, t_hours=16.65), 21.65).startswith("B"))
+        self.assertTrue(bazaar.scenario_hint(dict(clock, round=2), 21.65).startswith("A"))
+        self.assertIn("doors not open", bazaar.scenario_hint(dict(clock, doors="closed"), None))
+
     def test_replay_not_built_is_red(self):
         if (REPO / "tests" / "test_replay_friday.py").exists():
             self.skipTest("replay built")

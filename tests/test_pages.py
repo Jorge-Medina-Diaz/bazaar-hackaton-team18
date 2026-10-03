@@ -436,6 +436,11 @@ class WallCloseTest(unittest.TestCase):
                                10 / 60, places=3)
         self.assertAlmostEqual(after["closer"]["endgame_hours"]["sun"], 15.0 + (4 + 12 / 60) - 35 / 60, places=3)
 
+    def test_end_round_alone_is_a_close(self):
+        w = _sunw(13.4, [{"at_hours": 19.367, "action": "end_round", "params": {}}], closes=None)
+        pc, _ = self.eff(w, None)
+        self.assertAlmostEqual(pc["closer"]["endgame_hours"]["sun"], 19.367 - 35 / 60, places=3)
+
     def test_doors_closed_or_no_closes_falls_back(self):
         pc, _ = self.eff(_sunw(13.367, [{"at_hours": 15.0, "action": "bench", "params": {}}], closes=None), _wall(9))
         self.assertEqual(pc["day_end_hours"]["sun"], 19.283)                       # schedule readable: plan hours
