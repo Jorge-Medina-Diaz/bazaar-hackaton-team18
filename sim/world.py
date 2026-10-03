@@ -503,10 +503,16 @@ class FakeGame:
                           "complete": have == len(refs), "master": False})
         return {"pages": pages, "filled": sum(p["have"] for p in pages), "slots": sum(p["of"] for p in pages)}
 
-    def your_value(self, team: str, ref: str, counts) -> float:
+    def your_value(self, team: str, ref: str, counts, packs=()) -> float:
+        """What losing this copy costs (V-01 as the real server shows it: copy marginal plus the page bonus when
+        the copy is the last one of a complete page, pack EV included), rounded to 0.1 like the harvest.
+        M17 fix: the old copy-marginal-only value made Valuer.self_check fail on every harvest-seeded game."""
         aff = self.teams[team]["affinity"]
-        k = counts.get(ref, 0)
-        return round(self.model.base(ref, aff) * self.model.mg(max(0, k - 1)), 2)
+        if counts.get(ref, 0) <= 0:
+            return round(self.model.base(ref, aff), 1)
+        c2 = Counter(counts)
+        c2[ref] -= 1
+        return round(self.model.value(counts, packs, aff, self._minted) - self.model.value(c2, packs, aff, self._minted), 1)
 
     def me_view(self, team: str) -> dict:
         t = self.teams[team]
@@ -516,7 +522,7 @@ class FakeGame:
             a = self.assets[aid]
             if a["kind"] == "card":
                 d = {k: a[k] for k in ("id", "kind", "ref", "serial", "rarity", "set", "print_run", "name")}
-                d["your_value"] = self.your_value(team, a["ref"], counts)
+                d["your_value"] = self.your_value(team, a["ref"], counts, packs)
             else:
                 d = {"id": a["id"], "kind": "pack", "ref": a["ref"], "serial": a["serial"], "name": a["name"],
                      "your_value": round(self.model.pack_ev(a["ref"], counts, t["affinity"], self._minted), 2)
@@ -702,7 +708,10 @@ class FakeGame:
         if path == "/api/clock":
             return self.clock_view()
         if path == "/api/schedule":
-            return {"now_hours": self.t_hours, "upcoming": [dict(u) for u in self.schedule_upcoming]}
+            # only what is still ahead (the real calendar drops past events; M17 fidelity fix)
+            return {"now_hours": self.t_hours, "upcoming": [dict(u) for u in self.schedule_upcoming
+                                                            if not isinstance(u.get("at_hours"), (int, float))
+                                                            or u["at_hours"] >= self.t_hours]}
         if path == "/api/catalog":
             cat = json.loads(json.dumps(self.catalog))
             for s in cat["sets"]:
@@ -960,11 +969,13 @@ class FakeGame:
         maker, acc = o["maker"], o["accepted_by"]
         fee = o["fee"]
         acc_assets = list(o["want"]["assets"]) + list(o["accept_assets"])
-        err = (self._party_ok(maker, o["give"]["cash"], o["give"]["assets"])
-               or self._party_ok(acc, o["want"]["cash"] + fee, acc_assets))
+        err_m = self._party_ok(maker, o["give"]["cash"], o["give"]["assets"])
+        err_a = None if err_m else self._party_ok(acc, o["want"]["cash"] + fee, acc_assets)
+        err = err_m or err_a
         if err:
             o["status"] = "failed"
-            self.failures.append({"tick": self.tick, "offer": o["id"], "code": err, "maker": maker, "accepter": acc})
+            self.failures.append({"tick": self.tick, "offer": o["id"], "code": err, "maker": maker, "accepter": acc,
+                                  "party": maker if err_m else acc})
             if o["thread"] in self.threads:
                 self.threads[o["thread"]]["status"] = "closed"
                 self.threads[o["thread"]]["closed_reason"] = err

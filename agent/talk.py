@@ -196,8 +196,19 @@ def _cfg(cfg: Any, name: str, default: Any) -> Any:
     return getattr(cfg, name, default)
 
 
+def _own_counts(book, ref: str) -> dict:
+    """Book.projected without the copy of `ref` that our own open dealer buy thread for `ref` stands for
+    (M17 integration fix). build_book counts a thread's standing price in projected; valuing or page-checking
+    the thread's OWN ref against that made dv_add a 2nd-copy value (every dealer buy refused G31/G32.limit)
+    and closes_page(projected, ref) always False (INV-10 hole: a dealer could close RET/CHA)."""
+    c = dict(book.projected or {})
+    if ref in set((book.thread_ref or {}).values()) and int(c.get(ref, 0)) > int((book.held or {}).get(ref, 0)):
+        c[ref] = int(c[ref]) - 1
+    return c
+
+
 def _dv_add(world, book, valuer, ref: str) -> float:
-    v = valuer.delta_add(book.projected, ref, book.packs)
+    v = valuer.delta_add(_own_counts(book, ref), ref, book.packs)
     sv = (world.server_values or {}).get(ref)
     out = min(float(v), float(sv)) if _num(sv) else float(v)
     _need(_num(out), "G3x.valuation", f"dv_add {ref}")
@@ -234,7 +245,7 @@ def _closes_forbidden(book, valuer, cfg, ref: str, code: str) -> None:
     frozen closer card."""
     _need(ref not in set((book.frozen_closer or {}).values()), code + ".frozen_closer", ref)
     allow = _cfg(cfg, "ALLOW_DEALER_CLOSE", frozenset({"LAT"}))
-    if valuer.closes_page(book.projected, ref):
+    if valuer.closes_page(_own_counts(book, ref), ref):
         _need(_set_of(ref) in allow and _set_of(ref) not in ("RET", "CHA"), code + ".closes_page", ref)
 
 

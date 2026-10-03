@@ -376,7 +376,8 @@ class TestPropose(unittest.TestCase):
         self.assertEqual(acc[0].args["fingerprint"], D.view(ds[1], 115).fingerprint)
         self.assertFalse(any(i.kind == "duel_say" and i.args["duel_id"] in (1, 3) for i in out))
         self.assertEqual(st["duel_accepts"][2]["price"], 70)
-        self.assertEqual(acc[0].prediction.duel, round(30 * 0.94 ** 1, 1))
+        self.assertAlmostEqual(acc[0].prediction.duel, 30 * 0.94 ** 1, places=1)
+        self.assertEqual(acc[0].prediction.model, "U-01")
         # zero accept budget -> no duel_accept
         out0 = D.propose(make_world(ds, 115, accepts=0), None, {}, {}, {})
         self.assertFalse(any(i.kind == "duel_accept" for i in out0))
@@ -418,6 +419,18 @@ class TestPropose(unittest.TestCase):
         self.assertIsNone(D.e16_settled(st, [{"duel": 8, "status": "deal", "price": 70, "your_offer": {"price": 66}}]))
         st = {"duel_accepts": {8: {"tick": 114, "price": 70, "days": None}}}
         self.assertTrue(D.e16_settled(st, [{"duel": 8, "status": "deal", "price": 75, "your_offer": {"price": 66}}]))
+
+
+class TestCrossModule(unittest.TestCase):
+    def test_fingerprint_matches_guards(self):
+        try:
+            from agent.guards import duel_fingerprint
+        except Exception:                                   # M4a absent: local copy is used
+            self.skipTest("agent.guards not importable")
+        d = duel(did=11, msgs=[msg("you", 100, 60), msg("R", 101, 130)],
+                 rival_offer={"price": 130, "days": None, "tick": 101, "id": 2})
+        self.assertEqual(D._local_duel_fingerprint(d), duel_fingerprint(d))
+        self.assertEqual(D.view(d, 101).fingerprint, duel_fingerprint(d))
 
 
 class TestHarvest(unittest.TestCase):

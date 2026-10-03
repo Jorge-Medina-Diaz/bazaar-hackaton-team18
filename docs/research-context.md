@@ -29,7 +29,8 @@
 
 ## 4. Negociación bilateral (aplica a los DUELOS y, en parte, a los vendedores)
 - Vocabulario: precio de reserva (RP) = peor precio aceptable; ZOPA = intervalo entre los dos RP; parte del excedente = `(precio − RP_vendedor) / (RP_comprador − RP_vendedor)` para el vendedor.
-- [?] Rubinstein 1982: con ofertas alternas y descuento, el más paciente gana y proponer primero es ventaja. **En los duelos hay descuento explícito** (`decay_per_round`): esperar cuesta.
+- [?] Rubinstein 1982: con ofertas alternas y descuento, el más paciente gana y proponer primero es ventaja. **En los duelos hay descuento explícito** (`decay_per_round`), pero es por ronda intercambiada, no por tiempo.
+  - **Nota (refutado, U-02 en docs/knowledge.md):** "esperar cuesta" es falso en los duelos. Solo decaen las rondas intercambiadas: ronda = min(mensajes nuestros, mensajes del rival) (148/148 instantáneas); callar no cuesta decay y aceptar no suma ronda. Lo que cuesta es cada intercambio, así que Rubinstein aquí no premia cerrar deprisa, sino cerrar con pocos mensajes.
 - [H] Anclaje: correlación primera oferta–resultado r ≈ 0,50 en humanos (Guthrie y Orr 2006); en LLMs ρ = 0,716 entre oferta inicial y precio final (NegotiationArena, Bianchi et al. 2024, arXiv:2402.05863). Anclas extremas → más impasses.
 - [H] Los LLMs **parten la diferencia entre ofertas**, no entre RPs: quien ancla mueve el punto medio.
 - [H] Project Deal (Anthropic, abril 2026): las instrucciones "agresivas" no fueron significativas al controlar por el precio pedido → el efecto era casi todo ancla.

@@ -81,7 +81,9 @@ def check(game, journal_path: Optional[str] = None, *, team: str = TEAM, max_rat
         elif row["delta"] < -1e-6:
             out.append(f"INV-04 team deal {row['offer']} cost {row['delta']:.3f} neg at tick {row['tick']}")
     for f in game.failures:
-        if team in (f["maker"], f["accepter"]):
+        # only a failure caused by OUR side counts (M17): a counterparty whose listed asset vanished (phantom
+        # bot) fails the settlement with missing_assets on ITS side, which is not a breach of INV-07 by us.
+        if team in (f["maker"], f["accepter"]) and f.get("party", team) == team:
             out.append(f"INV-07 settlement of offer {f['offer']} failed: {f['code']}")
     for res in game.duel_results.get(team, []):
         if res < 0:

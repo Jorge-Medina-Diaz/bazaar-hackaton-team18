@@ -7,7 +7,6 @@ from pathlib import Path
 import threading
 import time
 
-from bazaar_sdk import Bazaar
 
 
 POLL_SECONDS = 5
@@ -158,5 +157,12 @@ class LiveMonitor:
             self.worker.join(timeout=4)
 
 
+def read_client(url, key):
+    """M18: the panels read through the harness transport in "read" mode (GET allowlist; any write raises)."""
+    from agent.contracts import Paths
+    from agent.transport import GuardedTransport
+    return GuardedTransport(url, key, mode="read", paths=Paths.at(), get_retries=0, timeout=3)
+
+
 def make_monitor(url, key_file=None):
-    return LiveMonitor(Bazaar(url, read_key(key_file), timeout=3, retries=0, wait_on_tick=False))
+    return LiveMonitor(read_client(url, read_key(key_file)))

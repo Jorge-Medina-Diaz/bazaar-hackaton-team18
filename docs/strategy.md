@@ -245,3 +245,16 @@ Con ticks de 30 s, el tick 160 cae a las 09:00:00 si el reloj no está en pausa.
 11. **Duelos:** la aceptación no lleva id (U-10); se acepta solo cuando el rival ya habló en el tick. Residual: que el POST llegue tras el cambio de tick (margen de 2 s). E16 lo mide.
 12. **Jueces (40):** diario con cadena de hash, `report`, `replay-friday` y la tabla predicho/medido; el SHOWCASE se reescribe el domingo.
 13. **Cambio de reglas en caliente:** `clock.limits` cada tick con las claves reales; una forma desconocida cierra solo su dominio.
+
+---
+
+## 7. Cambios tras información tardía
+
+Sábado ~08:30. Entradas tardías (consejos de t13; énfasis del jefe en robustez, teoría de juegos y adaptación) adoptadas por el jefe como D1–D4. Ninguna cambia el orden de jugadas de §2 ni las cifras de cierre; solo amplían por dónde miramos y qué aceptamos. Resumen para el equipo en `docs/LEEME-EQUIPO.md` §6.
+
+| Id | Cambio | Dónde entra | Por qué y límite |
+|---|---|---|---|
+| D1 | **Swaps** carta por carta: se valoran V(recibida) − V(entregada) − comisión con el mínimo de una compra (≥ 3 aceptando); nunca se entrega una copia protegida (INV-06). Como autor solo en El Rastro, dando un sobrante (MAL, LAV, duplicados) por una carta del plan sin otra vía (nunca la carta de cierre: esa es J4) | J6 (aceptar) y J5 (publicar) | No hay medida de swaps del viernes: sin optimismo. Comisión calculada con 2 cartas. Forma inversa (el rival nombra lo que da) sin construir |
+| D2 | **Todos los venues:** se leen los tableros de todos los venues abiertos y `/api/me/offers`. Publicamos solo en El Rastro. Aceptar en el venue de otro equipo solo con neg_lo ≥ `RIVAL_VENUE_MIN_GAIN` (10, comisión de ese venue incluida, ceil(fee_bps/10000 · p + fee_per_card · cartas)) y dueño fuera del top `RIVAL_TOP_N` (5) del leaderboard; leaderboard desconocido = no | J6, J13, E15 | El dueño gana puntos de mercado con nuestros tratos (RULES l.119). Con el snapshot del viernes, v03 (t13, 1.º) y v02 (t12, 2.º) quedan fuera; v01 (t06) y v04 (t02) pasan |
+| D3 | **Pujas largas:** `expires_in_ticks` en unidades de 15 s: pedido = ticks deseados × segundos por tick / 15 (`contracts.expiry_units`) | J4, J5, J6 | Encaja con R-07 (a 60 s, lo pedido entre 4). No cambia la expectativa de cumplimiento (9 %, raras 4 %, R-05) |
+| D4 | **Sin venue propio** en esta versión (`open_venue` fuera de `KINDS`) | J11 sigue condicionado | M-04, M-05: greedy en `board` = puesto, cuesta 270 P y una caída da 0. Condición de cambio en `docs/LEEME-EQUIPO.md` §7.1 |

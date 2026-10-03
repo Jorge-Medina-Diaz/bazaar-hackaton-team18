@@ -17,6 +17,8 @@ NOTES (M9, night build)
   Harness closer bid = bid_band >= 20, frozen closer ref, or closes_page(counts, ref) (valuer error -> closer).
   With valuation unavailable the value checks on bids/swaps are skipped (they only cancel); buy threads with a
   standing price are closed instead (fail closed).
+- Book.packs holds pack TYPES (guards M4a deviation from the contract comment): any entry counts as a pack in
+  hand; pack asset ids to open come only from world.me assets (kind "pack").
 - Delivery risk = Book.delivery_risk OR (local) pack in hand / grant with pack within grant_lookahead_ticks /
   schedule down or unreadable / Abuela thread open. Closer bids are cancelled and remembered in
   state["retired_closers"] (ref -> {offer_id, price, tick}); re-posting is the `closer` tactic's job (M11), hygiene
@@ -193,6 +195,11 @@ def _packs(world, book) -> list:
     return ids
 
 
+def _pack_in_hand(world, book) -> bool:
+    """A pack asset in me.assets, or pack TYPES in Book.packs (guards.build_book keeps types, not ids)."""
+    return bool(_packs(world, book)) or (book is not None and bool(getattr(book, "packs", ())))
+
+
 def grant_soon(world, lookahead_ticks: int) -> bool:
     """A grant carrying a pack within `lookahead_ticks` (or already due). Unreadable schedule -> True (fail closed)."""
     if "schedule" in world.down:
@@ -271,7 +278,7 @@ def _day_end(world, plan_cfg) -> bool:
 def delivery_risk(world, book, plan_cfg) -> bool:
     if book is not None and bool(getattr(book, "delivery_risk", False)):
         return True
-    if _packs(world, book):
+    if _pack_in_hand(world, book):
         return True
     if grant_soon(world, int(plan_cfg.get("grant_lookahead_ticks", 3) or 3)):
         return True
@@ -398,7 +405,7 @@ def swap_watch(world, book, valuer, cfg, plan_cfg) -> list:
 def thread_watch(world, book, valuer, cfg, plan_cfg) -> list:
     """INV-23 / S-B1: buy threads closed with a pack in hand or a grant near, out of value, or at day end."""
     out = []
-    pack_risk = bool(_packs(world, book)) or grant_soon(world, int(plan_cfg.get("grant_lookahead_ticks", 3) or 3))
+    pack_risk = _pack_in_hand(world, book) or grant_soon(world, int(plan_cfg.get("grant_lookahead_ticks", 3) or 3))
     day_end = _day_end(world, plan_cfg)
     margin = _cfg(cfg, "DEALER_MARGIN", 1.0)
     val_ok = book is not None and bool(getattr(book, "valuation_ok", False)) and valuer is not None

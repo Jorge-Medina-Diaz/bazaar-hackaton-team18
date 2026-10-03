@@ -513,5 +513,181 @@ class RebuildTest(unittest.TestCase):
         self.assertFalse(st.journal_ok)
 
 
+# ------------------------------------------------------------- real config/plan.json and sim/bots.py dealers
+
+def _real_plan():
+    from pathlib import Path
+    return json.loads((Path(__file__).resolve().parents[1] / "config" / "plan.json").read_text(encoding="utf-8"))
+
+
+class RealPlanTest(Base):
+    """config/plan.json keys profiles by ref and by "SET:rarity" (M8); RET-08 falls back via fallback_dealer."""
+
+    def setUp(self):
+        super().setUp()
+        try:
+            self.plan = _real_plan()
+        except Exception as e:                                      # pragma: no cover
+            self.skipTest(f"config/plan.json unreadable: {e}")
+
+    def _open(self, needs, world=None):
+        w = world or make_world()
+        return D.propose(w, make_book(), FakeValuer(VALUES), Cfg(), self.plan, needs, D.DealerState.rebuild(w, None))
+
+    def test_set_rarity_profiles_resolve(self):
+        got = {}
+        for n in (need("RET-06", "abuela"), need("RET-09", "chato"), need("RET-02", "abuela")):
+            its = self._open([n])
+            got[n.ref] = [(i.kind, i.args["dealer"], i.args["limit"]) for i in its]
+        self.assertEqual(got, {"RET-06": [("open_thread", "abuela", 25)], "RET-09": [("open_thread", "chato", 90)],
+                               "RET-02": [("open_thread", "abuela", 11)]})
+
+    def test_ret08_chato_first_then_fallback_dealer(self):
+        self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in self._open([need("RET-08", "chato")])],
+                         [("chato", 31)])
+        w = make_world(tick=30, threads={3: {"id": 3, "with": "chato", "topic": {"buy": {"card": "RET-08"}},
+                                              "status": "closed", "created_tick": 15, "messages": [], "standing_offers": []}})
+        self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in self._open([need("RET-08", "chato")], w)],
+                         [("abuela", 25)])
+
+    def test_unknown_ref_without_profile_opens_nothing(self):
+        self.assertEqual(self._open([need("LAT-09", "chato")]), [])
+
+
+class _Model:
+    def __init__(self):
+        self.packs = set()
+        self.cards = {c["id"]: c for s in CATALOG["sets"] for c in s["cards"]}
+
+    def slot_cards(self, rarity):
+        return [r for r, c in self.cards.items() if c["rarity"] == rarity]
+
+
+class _GameAdapter:
+    """The FakeGame hooks sim/bots.py dealers call, writing into a Sim's thread dicts."""
+
+    def __init__(self, sim):
+        self.sim, self.model, self.walk_reasons, self.gifts = sim, _Model(), [], []
+
+    @property
+    def threads(self):
+        return self.sim.threads
+
+    def dealer_say(self, tid, price, text="", final=False):
+        t, sim = self.sim.threads[tid], self.sim
+        for m in t["messages"]:
+            if m["sender"] != TEAM and m["offer"]["status"] == "open":
+                m["offer"]["status"] = "expired"
+        o = dealer_offer(sim._oid(), t["with"], t["item"], price, sim.tick, final=final)
+        t["messages"].append({"id": sim._oid(), "tick": sim.tick, "sender": t["with"], "offer": o})
+        t["standing_offers"] = [o]
+
+    def dealer_accept(self, tid):
+        t = self.sim.threads[tid]
+        mine = [m["offer"] for m in t["messages"] if m["sender"] == TEAM][-1]
+        mine["status"] = "settled"
+        t["status"] = "deal"
+        self.sim.deals.append((t["item"], mine["give"]["cash"], t["with"]))
+        return True
+
+    def dealer_walk(self, tid, text="not today", reason="walked"):
+        self.walk_reasons.append(text)
+        self.sim.threads[tid]["status"] = "closed"
+        self.sim._expire_open(self.sim.threads[tid])
+
+    def gift(self, team, cards=(), reason=""):
+        self.gifts.append(tuple(cards))
+
+
+class RealBotSim(Sim):
+    def __init__(self, bots, needs, plan=PLAN, values=VALUES):
+        super().__init__(None, needs, values=values, plan=plan)
+        self.real_bots, self.game = bots, _GameAdapter(self)
+
+    def apply(self, it):
+        a = it.args
+        if it.kind == "open_thread":
+            self.intents.append(it)
+            tid = len(self.threads) + 1
+            t = {"id": tid, "with": a["dealer"], "team": TEAM, "topic": {"buy": {"card": a["ref"]}}, "status": "open",
+                 "created_tick": self.tick, "messages": [], "standing_offers": [], "item": a["ref"], "side": "buy"}
+            self.threads[tid], self.limits[tid] = t, a["limit"]
+            self.journal_rows.append({"kind": "intent", "tick": self.tick, "tactic": "dealers", "args": dict(a),
+                                      "experiment": it.experiment})
+            self.real_bots[a["dealer"]].on_message(self.game, t, None)
+        elif it.kind == "say":
+            self.intents.append(it)
+            tid = a["thread_id"]
+            t = self.threads[tid]
+            self.prices.setdefault(tid, []).append(a["price"])
+            self._expire_open(t)
+            mine = own_offer(self._oid(), t["with"], a["ref"], a["price"], self.tick)
+            t["messages"].append({"id": self._oid(), "tick": self.tick, "sender": TEAM, "offer": mine})
+            text = "%s:%d:%d" % (a["template"], a["variant"], a["price"])
+            self.real_bots[t["with"]].on_message(self.game, t, {"price": a["price"], "text": text})
+        else:
+            super().apply(it)
+
+    def run(self, ticks=40):
+        for _ in range(ticks):
+            for b in self.real_bots.values():
+                b.on_tick(self.game)
+            super().run(1)
+            if self.threads and not any(t["status"] == "open" for t in self.threads.values()):
+                break
+        return self
+
+
+class SimBotsTest(Base):
+    """Against sim/bots.py AbuelaBot and ChatoBot (M6b, D-01..D-10)."""
+
+    def setUp(self):
+        super().setUp()
+        try:
+            import sim.bots as B
+        except Exception as e:                                      # pragma: no cover
+            self.skipTest(f"sim/bots.py not importable: {e}")
+        self.B = B
+
+    def _check(self, sim, limit):
+        for tid, ps in sim.prices.items():
+            self.assertEqual(ps, sorted(set(ps)), f"prices repeated or not rising: {ps}")
+            self.assertTrue(all(p <= limit for p in ps), ps)
+        for _, price, _ in sim.deals:
+            self.assertLessEqual(price, limit)
+        self.assertNotIn("with those manners", sim.game.walk_reasons)     # D-07: never repeated a price or text
+        for t in sim.threads.values():
+            self.assertIn(t["status"], ("deal", "closed"))
+
+    def test_abuela_uncommon_buys_within_limit_or_closes(self):
+        deals = 0
+        for seed in range(40):
+            sim = RealBotSim({"abuela": self.B.AbuelaBot(seed=seed)}, [need("RET-06", "abuela")]).run(60)
+            self._check(sim, 25)
+            deals += len(sim.deals)
+            if not sim.deals:
+                self.assertFalse(any(i.kind == "accept" for i in sim.intents))
+        self.assertGreater(deals, 20)
+
+    def test_abuela_floor_above_limit_never_buys(self):
+        for seed in range(30):
+            sim = RealBotSim({"abuela": self.B.AbuelaBot(seed=seed)}, [need("RET-06", "abuela", max_price=20)]).run(60)
+            self._check(sim, 20)
+            self.assertEqual(sim.deals, [], "seed %d" % seed)              # her floor is 21-25 (D-05)
+
+    def test_abuela_welcome_price_is_taken(self):
+        sim = RealBotSim({"abuela": self.B.AbuelaBot(welcome=True)}, [need("RET-06", "abuela")]).run(10)
+        self.assertEqual(sim.deals, [("RET-06", 17, "abuela")])           # E3: opens at 17 (final) -> accept
+        sim = RealBotSim({"abuela": self.B.AbuelaBot(welcome=True)}, [need("RET-02", "abuela")]).run(10)
+        self.assertEqual(sim.deals, [("RET-02", 7, "abuela")])
+
+    def test_chato_rare_only_at_or_below_90(self):
+        deals = 0
+        for seed in range(40):
+            sim = RealBotSim({"chato": self.B.ChatoBot(seed=seed)}, [need("RET-09", "chato")]).run(80)
+            self._check(sim, 90)
+            deals += len(sim.deals)
+        self.assertGreater(deals, 0)
+
 if __name__ == "__main__":
     unittest.main()

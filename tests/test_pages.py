@@ -187,6 +187,18 @@ class PlanTest(unittest.TestCase):
         w = make_world()
         self.assertEqual(pages.plan(w, Broken(), self.cfg, {})[0], [])
 
+    def test_rival_bid_on_other_venue_counts(self):
+        """D2: boards of every venue are read; a rival bid on another team's venue also moves the closer."""
+        bid = {"id": 7002, "maker": "t05", "status": "open", "venue": "t05_shop",
+               "give": {"cash": 40, "assets": [], "types": []}, "want": {"cash": 0, "assets": [], "types": ["card:RET-01"]}}
+        w = make_world(board=[], boards={"rastro": (), "t05_shop": (bid,)})
+        needs, _ = pages.plan(w, valuer_for(w), self.cfg, {})
+        self.assertEqual([n.ref for n in needs if n.closer], ["RET-02"])
+
+    def test_startup_cancels_only_if_open_in_fixtures(self):
+        open_ids = {o["id"] for o in _load("me_offers.json")["offers"] if o.get("status") == "open"}
+        self.assertTrue(set(self.cfg["startup_cancels"]) <= open_ids)
+
     def test_never_lowers_standing_bid(self):
         refs = ["RET-02", "RET-03", "RET-04", "RET-05", "RET-06", "RET-07", "RET-08", "RET-09", "RET-10"]
         bid = {"id": 8001, "maker": "t18", "status": "open", "venue": "rastro",

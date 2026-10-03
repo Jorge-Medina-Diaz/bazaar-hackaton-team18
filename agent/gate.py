@@ -80,6 +80,7 @@ DEALER_BLOCK_CODES = frozenset({"cooloff", "persona_quota"})
 TICKS_PER_GAME_HOUR = 60
 RESPONSE_MAX = 2048
 PRED_TOL = 0.01
+IN_FLIGHT_TICKS = 2              # M17: an own offer gone from me/offers stays booked this many ticks
 
 
 # ------------------------------------------------------------------------------------------- requests
@@ -375,6 +376,11 @@ class Gate:
         except Exception as e:                                           # noqa: BLE001 - fail closed: no book
             self.book = None
             msgs.append(f"book failed: {e.__class__.__name__}: {e}")
+        try:
+            self.book = self._in_flight(world, self.book)
+        except Exception as e:                                           # noqa: BLE001 - fail closed: no book
+            self.book = None
+            msgs.append(f"in-flight booking failed: {e.__class__.__name__}: {e}")
         foreign = self._foreign_writer(world, baseline)
         if foreign:
             reason = f"foreign_writer:{foreign}"
@@ -385,6 +391,88 @@ class Gate:
                 pass
             msgs.append("STOP " + reason)
         return msgs
+
+    def _in_flight(self, world: World, book: Any) -> Any:
+        """M17 integration fix. An own offer that leaves /api/me/offers before its expiry may have been accepted
+        and not settled yet (the server settles on the next tick; the fake hides accepted offers from me/offers).
+        For IN_FLIGHT_TICKS keep it booked: a sale keeps its asset in listed_assets/listed (never re-listed while
+        it is still ours), a bid keeps its cash out of cash_free and its buy path in paths. Only refuses more."""
+        now_open = {}
+        for o in world.my_offers or ():
+            if isinstance(o, Mapping) and _get(o, "maker") == TEAM and _get(o, "status") in ("open", "queued")                     and _int(_get(o, "id")) is not None:
+                now_open[o["id"]] = o
+        flight = getattr(self, "_flight", {})
+        prev = dict(getattr(self, "_prev_open", {}))
+        sent = getattr(self, "_sent_offers", {})
+        open_assets = {_int(_get(a, "id")) for o in now_open.values()
+                       for a in (_get(_get(o, "give", {}) or {}, "assets", ()) or ())}
+        for key, o in sent.items():             # sent since the last snapshot: may already be accepted
+            aids = [_int(_get(a, "id")) for a in (_get(o["give"], "assets", ()) or ())]
+            if key in now_open or (aids and all(x in open_assets for x in aids)):
+                continue
+            if not aids and any(_get(x, "give", {}).get("cash") == o["give"]["cash"] and
+                                tuple(_get(x, "want", {}).get("types") or ()) == tuple(o["want"]["types"])
+                                for x in now_open.values()):
+                continue
+            prev[key] = dict(o, _unseen=True)
+        self._sent_offers = {}
+        for oid, o in prev.items():
+            exp = _int(_get(o, "expires_tick"))
+            if oid not in now_open and (exp is None or exp >= world.tick):
+                flight[oid] = (o, world.tick + IN_FLIGHT_TICKS)
+        flight = {k: v for k, v in flight.items() if v[1] >= world.tick and k not in now_open}
+        self._flight, self._prev_open = flight, now_open
+        if book is None or not flight:
+            return book
+        held_ids = {a.get("id") for a in _assets(world) if isinstance(a, Mapping)}
+        listed, la = dict(book.listed), set(book.listed_assets)
+        paths, cash_free = dict(book.paths), book.cash_free
+        for o, _until in flight.values():
+            give, want = _get(o, "give", {}) or {}, _get(o, "want", {}) or {}
+            for a in _get(give, "assets", ()) or ():
+                aid = _int(_get(a, "id"))
+                if aid is not None and aid in held_ids and aid not in la:
+                    la.add(aid)
+                    ref = _get(a, "ref")
+                    if isinstance(ref, str):
+                        listed[ref] = int(listed.get(ref, 0)) + 1
+            cash = _int(_get(give, "cash"))
+            types = [t for t in (_get(want, "types", ()) or ()) if isinstance(t, str) and t.startswith("card:")]
+            cards = [c for c in (_get(want, "cards", ()) or ()) if isinstance(c, str)]
+            if cash and (types or cards):
+                ref = types[0][5:] if types else cards[0]
+                paths[ref] = int(paths.get(ref, 0)) + 1
+                # cash only for a bid we SAW open and then vanish (likely accepted, settling now); a bid sent
+                # and never seen keeps only its buy path (no double count against a cash_free never debited)
+                if isinstance(cash_free, (int, float)) and not _get(o, "_unseen", False):
+                    cash_free = cash_free - cash
+        return dataclasses.replace(book, listed=MappingProxyType(listed), listed_assets=frozenset(la),
+                                   paths=MappingProxyType(paths), cash_free=cash_free)
+
+    def _note_sent_offer(self, intent: Intent, world: World, out: Outcome) -> None:
+        """M17: remember a listing sent this tick (shape from its args) for the in-flight booking above."""
+        a = intent.args
+        side, ref = a.get("side"), a.get("ref")
+        exp = world.tick + int(a.get("expires_ticks") or 0)
+        if side in ("sell", "swap") and _int(a.get("asset_id")) is not None:
+            give = {"cash": 0, "assets": [{"id": a["asset_id"], "ref": ref}], "types": []}
+            want = {"cash": a.get("price") or 0, "assets": [], "types": []}
+        elif side == "bid":
+            give = {"cash": int(a.get("price") or 0), "assets": [], "types": []}
+            want = {"cash": 0, "assets": [], "types": [f"card:{ref}"]}
+        else:
+            return
+        resp = out.response if isinstance(getattr(out, "response", None), Mapping) else {}
+        oid = None
+        for cand in (resp.get("offer_id"), resp.get("id"),
+                     (resp.get("offer") or {}).get("id") if isinstance(resp.get("offer"), Mapping) else None):
+            if _int(cand) is not None:
+                oid = cand
+                break
+        key = oid if oid is not None else f"iid:{out.intent_id}"
+        if not hasattr(self, "_sent_offers"):
+            self._sent_offers = {}
+        self._sent_offers[key] = {"id": key, "give": give, "want": want, "expires_tick": exp}
 
     def _baseline(self, world: World, msgs: list) -> Optional[Mapping]:
         p = self.paths.baseline
@@ -458,6 +546,12 @@ class Gate:
             oid = _get(o, "id")
             if oid in offers or _offer_sig(o) in sigs:
                 continue
+            tho = _get(o, "thread")             # M17: the offer a `say` of ours creates inside a dealer thread
+            if tho is not None:
+                give, want = _get(o, "give", {}) or {}, _get(o, "want", {}) or {}
+                price = _get(give, "cash") or _get(want, "cash")
+                if (tho, price) in says or (_int(tho), price) in says:
+                    continue
             return f"offer:{oid}"
         for tid, th in (world.threads or {}).items():
             if _get(th, "team", TEAM) != TEAM:
@@ -465,7 +559,13 @@ class Gate:
             if tid not in threads and _get(th, "with") not in dealers:
                 return f"thread:{tid}"
             for m in _get(th, "messages", ()) or ():
-                if _get(m, "sender") == TEAM and _get(m, "id") not in tmsgs and (tid, _get(m, "price")) not in says:
+                if _get(m, "sender") != TEAM or _get(m, "id") in tmsgs:
+                    continue
+                # M17: the real message has no top-level price (harvest): it is the cash of the offer it carries
+                mo = _get(m, "offer", {}) or {}
+                prices = {_get(m, "price"), _get(_get(mo, "give", {}) or {}, "cash"),
+                          _get(_get(mo, "want", {}) or {}, "cash")} - {None, 0}
+                if not any((tid, pr) in says for pr in prices):
                     return f"thread_msg:{tid}:{_get(m, 'id')}"
         for d in world.duels:
             did = _get(d, "duel", _get(d, "id"))
@@ -631,7 +731,7 @@ class Gate:
         if skey is None:
             raise _Refuse("G06.source", "no SOURCES entry")
         down = frozenset(src[skey]) & frozenset(world.down)
-        if k == "accept" and a.get("venue") != RASTRO:
+        if k == "accept" and a.get("source") == "team" and a.get("venue") != RASTRO:
             down |= frozenset({"boards", "venues", "leaderboard"}) & frozenset(world.down)
         if down:
             raise _Refuse("G06.source:" + sorted(down)[0])
@@ -657,7 +757,7 @@ class Gate:
                     theirs=_pred_dict(intent.prediction), tick=world.tick)
             raise _Refuse("G07.trip", f"recomputed {pred.neg_lo:.3f}/{pred.cash} vs {intent.prediction.neg_lo:.3f}/"
                                       f"{intent.prediction.cash}")
-        if k == "accept" and a.get("venue") != RASTRO:
+        if k == "accept" and a.get("source") == "team" and a.get("venue") != RASTRO:
             gain = float(self._cfg("RIVAL_VENUE_MIN_GAIN", RIVAL_VENUE_MIN_GAIN))
             if pred.neg_lo < gain:
                 raise _Refuse("D2.gain", f"{pred.neg_lo:.2f} < {gain}")
@@ -784,6 +884,8 @@ class Gate:
             upd["msgs"] = set(c.msgs) | {f"duel:{a['duel_id']}"}
         if upd:                                    # guards.Counters is frozen: always replace
             self.counters = dataclasses.replace(c, **upd)
+        if k == "list_offer" and out.status in ("ok", "sent", "unknown"):
+            self._note_sent_offer(intent, world, out)
         try:
             nb = self._guards.apply(self.book, intent, out)
         except Exception as e:                                           # noqa: BLE001 - no trustworthy book
@@ -848,8 +950,8 @@ class Gate:
         cost = None
         if k == "list_offer" and a["side"] == "bid":
             cost = a["price"]
-        elif k == "accept" and a["side"] == "buy":
-            cost = a["price"] + self._fee(world, a.get("venue", RASTRO), a["price"], 1)
+        elif k == "accept" and a["side"] == "buy":           # dealer deals pay no venue fee (M17: venue = dealer id)
+            cost = a["price"] + (self._fee(world, a.get("venue", RASTRO), a["price"], 1) if a["source"] == "team" else 0)
         elif k == "open_thread" and a["side"] == "buy":
             cost = a["limit"]
         if cost is not None and cost > b.cash_free:
@@ -863,8 +965,8 @@ class Gate:
             if k == "list_offer" and asset.get("ref") != a["ref"]:
                 raise _Refuse("G13.ref", str(give))
         # D2: another team's venue
-        if k == "accept" and a.get("venue") != RASTRO:
-            self._rival_venue_ok(a["venue"], world)
+        if k == "accept" and a.get("source") == "team" and a.get("venue") != RASTRO:
+            self._rival_venue_ok(a["venue"], world)   # M17: not for dealer accepts (venue = dealer id, M10)
 
     def _venue_row(self, world: World, vid: str) -> Optional[Mapping]:
         for v in world.venues:
@@ -1029,6 +1131,14 @@ class Gate:
             out.append(ref)
         return tuple(out)
 
+    def _own_counts(self, ref: str) -> dict:
+        """projected without our own dealer thread's standing copy of `ref` (same rule as agent.talk; M17)."""
+        b = self.book
+        c = dict(b.projected or {})
+        if ref in set((b.thread_ref or {}).values()) and int(c.get(ref, 0)) > int((b.held or {}).get(ref, 0)):
+            c[ref] = int(c[ref]) - 1
+        return c
+
     def _dv_add(self, world: World, ref: str, counts: Optional[Mapping] = None) -> float:
         shared = getattr(self._guards, "dv_add", None)
         if callable(shared):                       # the same formula as G12 (one valuation, no false trips)
@@ -1088,7 +1198,7 @@ class Gate:
             side = a["side"] if a["side"] in ("buy", "sell") else None
             if side is None:
                 raise _Refuse("G07.side")
-            dv = self._dv_add(world, a["ref"]) if side == "buy" else self._dv_rm(world, a["ref"])
+            dv = self._dv_add(world, a["ref"], self._own_counts(a["ref"])) if side == "buy"                 else self._dv_rm(world, a["ref"])
             return val.predict_dealer(dv, a["price"], side)
         if k == "list_offer":
             if a["side"] == "sell":
@@ -1103,7 +1213,7 @@ class Gate:
             th = (world.threads or {}).get(a["thread_id"])
             topic = _get(th, "topic", {})
             side = "buy" if isinstance(topic, Mapping) and "buy" in topic else "sell"
-            dv = self._dv_add(world, a["ref"]) if side == "buy" else self._dv_rm(world, a["ref"])
+            dv = self._dv_add(world, a["ref"], self._own_counts(a["ref"])) if side == "buy"                 else self._dv_rm(world, a["ref"])
             return val.predict_dealer(dv, a["price"], side)
         if k in ("duel_say", "duel_accept"):
             d = self._duel(world, a["duel_id"])

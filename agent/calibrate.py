@@ -20,6 +20,8 @@ NOTES (M13, night build)
 - The "all *_points drop at once" round rule needs >= 2 positive components dropping (a lone neg drop with
   everything else at 0 is treated as a real loss, fail closed). A window that crosses a round change -> no
   verdict, no pause (measure row with verdict "excluded").
+- D1 swaps / D2 rival venues: a swap offer settles as an asset-only change (`moved` covers assets); an
+  `accept` on another venue is measured like any accept (its prediction already nets that venue's fee).
 - Not done tonight: E4 ladder table is only reported (by dealer) from measure rows; learning rows other than
   NEG_CAP_CONFIRMED (E5); journal is re-scanned from the start every tick (fine for one event, O(rows)).
 - Contract gap (report to lead): §6 says the `intent` row carries {id, tactic, kind, ...} but the journal
@@ -124,7 +126,8 @@ def _load_verdict() -> Callable:
 
 
 def _offer_ref_price(o: Mapping) -> tuple:
-    """(ref, price) as the list_offer intent states them: sell/swap -> given card; bid -> wanted card."""
+    """(ref, price) as the list_offer intent states them: sell/swap -> given card; bid -> wanted card.
+    A swap (D1) gives an asset and wants a card with no cash: price None/0 (callers compare `or 0`)."""
     give, want = o.get("give") or {}, o.get("want") or {}
     assets = [a for a in (give.get("assets") or []) if isinstance(a, Mapping) and a.get("ref")]
     if assets:
@@ -179,8 +182,10 @@ class Calibrator:
         self._daily_surprise = defaultdict(float)
         self._pauses: dict = {}
         self._measured_ids: set = set()
+        self._vanished: dict = {}                  # M17: own offers gone from me/offers whose card is still ours
         self._load_pauses(initial=True)
         self._inherited = self._load_baseline(baseline, bands)
+        self._baseline_given = baseline is not None
         self._rebuild_history()
 
     # ------------------------------------------------------------------ pauses (persistent)
@@ -324,10 +329,14 @@ class Calibrator:
         cash0, assets0 = _holdings(prev.me)
         cash1, assets1 = _holdings(world.me)
         moved = (cash0 != cash1) or (assets0 != assets1)
+        me1 = world.me if isinstance(world.me, Mapping) else {}
+        assets_ids1 = {a.get("id") for a in (me1.get("assets") or ()) if isinstance(a, Mapping)}
         now = {o.get("id"): o for o in world.my_offers if isinstance(o, Mapping)}
         for o in prev.my_offers:
             if not isinstance(o, Mapping) or o.get("maker") != TEAM or o.get("status") not in OPEN_STATUSES:
                 continue
+            if o.get("thread") is not None:
+                continue        # M17: our offer inside a dealer thread is measured as the thread's "deal"
             oid = o.get("id")
             n = now.get(oid)
             if n is not None:
@@ -335,8 +344,22 @@ class Calibrator:
             else:
                 exp = o.get("expires_tick")
                 hit = moved and not (type(exp) is int and world.tick > exp)
+                gave = [a.get("id") for a in ((o.get("give") or {}).get("assets") or ()) if isinstance(a, Mapping)]
+                if gave and any(aid in assets_ids1 for aid in gave) and not (type(exp) is int and world.tick > exp):
+                    hit = False          # M17: the card it gave is still ours: not settled (yet). Watch it.
+                    self._vanished[oid] = (o, world.tick + WINDOW_TICKS)
             if hit:
                 out.append(self._attribute_offer(o, idx))
+        for oid, (o, until) in list(self._vanished.items()):
+            gave = [a.get("id") for a in ((o.get("give") or {}).get("assets") or ()) if isinstance(a, Mapping)]
+            if oid in now and now[oid].get("status") in OPEN_STATUSES:
+                self._vanished.pop(oid, None)
+            elif gave and not any(aid in assets_ids1 for aid in gave) and moved:
+                self._vanished.pop(oid, None)
+                if not any(oid == s.get("offer_id") for s in out):
+                    out.append(self._attribute_offer(o, idx))
+            elif world.tick > until:
+                self._vanished.pop(oid, None)
         for tid, t in (prev.threads or {}).items():
             if not isinstance(t, Mapping) or t.get("status") == "deal":
                 continue
@@ -360,8 +383,45 @@ class Calibrator:
                     continue
                 if type(until) is int and world.tick > until:
                     continue
+                if not self._accept_evidence(idx["intents"][iid].get("args") or {}, prev.me, world.me,
+                                             cash_alone=not out):
+                    continue        # M17: no card moved the way this accept would move it (failed / not yet)
                 out.append({"source": "harness", "ids": [iid], "kind": "accept"})
         return out
+
+    @staticmethod
+    def _accept_evidence(a: Mapping, me0: Any, me1: Any, cash_alone: bool = True) -> bool:
+        """An accept settled only if its card moved: buy -> one more `ref` held; sell -> the asset (or one copy
+        of `ref`) left; swap -> both. Without this, any cash/asset change in the window (an inherited sale, a
+        grant) was measured as the accept's, and a phantom offer that never settles produced a false hard_fail."""
+        def refs(me):
+            c: Counter = Counter()
+            ids = set()
+            for x in (me.get("assets") or ()) if isinstance(me, Mapping) else ():
+                if isinstance(x, Mapping):
+                    ids.add(x.get("id"))
+                    if x.get("kind", "card") == "card" and x.get("ref"):
+                        c[x["ref"]] += 1
+            return c, ids
+        c0, ids0 = refs(me0)
+        c1, ids1 = refs(me1)
+        ref, side, give = a.get("ref"), a.get("side"), a.get("give_asset")
+        if side == "buy":       # the card arrived, or we paid at least the price (paid without the card: measure it)
+            cash0 = me0.get("cash") if isinstance(me0, Mapping) else None
+            cash1 = me1.get("cash") if isinstance(me1, Mapping) else None
+            price = a.get("price")
+            paid = (type(cash0) in (int, float) and type(cash1) in (int, float) and type(price) is int
+                    and cash0 - cash1 >= price)
+            # cash alone is evidence only when nothing else of ours settled in this window (a dealer deal or
+            # another accept paying at the same time would otherwise be measured as this accept)
+            return (bool(ref) and c1[ref] > c0[ref]) or (paid and cash_alone)
+        if side == "sell":
+            if give is not None:
+                return give in ids0 and give not in ids1
+            return bool(ref) and c1[ref] < c0[ref]
+        if give is not None:                          # swap: our asset left and something arrived
+            return give in ids0 and give not in ids1 and len(ids1 - ids0) > 0
+        return False
 
     def _attribute_offer(self, o: Mapping, idx: dict) -> dict:
         oid = o.get("id")
@@ -371,7 +431,8 @@ class Calibrator:
             for cand, it in idx["intents"].items():
                 a = it.get("args") or {}
                 if (it.get("ikind") == "list_offer" and cand in idx["done"] and a.get("ref") == ref
-                        and a.get("price") == price and (o.get("created_tick") or 0) >= (it.get("tick") or 0)
+                        and (a.get("price") or 0) == (price or 0)
+                        and (o.get("created_tick") or 0) >= (it.get("tick") or 0)
                         and cand not in self._measured_ids):
                     iid = cand
         if iid is not None:
@@ -390,6 +451,10 @@ class Calibrator:
         if prev is None or self._base is None:
             self._base, self._round = pts, world.round
             return ev
+        if not self._inherited and not self._baseline_given:
+            # M17: the Gate writes state/baseline.json on its first begin_tick, after this Calibrator was built;
+            # without this reload every inherited offer was "unknown" and could be shape-matched to an intent.
+            self._inherited = self._load_baseline(None, None)
         idx = self._index()
         setts = self._settlements(prev, world, idx) if "me/offers" not in (world.down or ()) else []
         before = self._base
@@ -452,7 +517,7 @@ class Calibrator:
         ids = [i for s in setts for i in s["ids"]]
         self._measured_ids.update(ids)
         tactics, kinds, dealers = set(), set(), set()
-        lo = hi = 0.0
+        lo = hi = inh_lo = 0.0
         cash, ladder_any = 0, False
         sources = Counter(s["source"] for s in setts)
         for s in setts:
@@ -468,7 +533,11 @@ class Calibrator:
                     lo, hi, cash = lo + p["neg_lo"], hi + p["neg_hi"], cash + p["cash"]
                     ladder_any = ladder_any or p["ladder"] == ">=0"
             elif s["source"] == "inherited":
-                lo, hi = lo + s["band"], hi + s["band"] + 200.0
+                # M17: the baseline band is a cancel threshold set before the harness existed, not a prediction
+                # of ours: in a window mixed with harness trades it claims nothing (min(band, 0)), so an
+                # inherited sale below its band cannot hard_fail (and pause/STOP) the harness tactic beside it.
+                inh_lo += s["band"]
+                lo, hi = lo + min(s["band"], 0.0), hi + s["band"] + 200.0
                 ladder_any = True
             elif s["source"] == "duel":
                 ladder_any = True
@@ -485,7 +554,8 @@ class Calibrator:
         elif sources.get("unknown") and not sources.get("harness") and not sources.get("inherited"):
             verdict = "unattributed"
         elif sources.get("inherited") and not sources.get("harness"):
-            verdict = "pass" if dneg >= lo - TOL else "out_of_band"
+            verdict = "pass" if dneg >= inh_lo - TOL else "out_of_band"
+            lo = inh_lo
         else:
             try:
                 verdict = str(self.verdict_fn(pred, dneg, dlad))

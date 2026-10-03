@@ -83,7 +83,7 @@ def make_book(world, *, cash_free=None, valuation_ok=True, delivery_risk=False, 
               thread_prices=None, frozen_closer=None):
     """Mimics guards.build_book (M4a) on the fields hygiene reads."""
     held = collections.Counter(a["ref"] for a in world.me["assets"] if a.get("kind") == "card")
-    packs = tuple(a["id"] for a in world.me["assets"] if a.get("kind") == "pack")
+    packs = tuple(a.get("type", "sobre") for a in world.me["assets"] if a.get("kind") == "pack")   # TYPES (M4a)
     listed, listed_assets, own_ids, own_bids, bid_price, reserved = collections.Counter(), set(), set(), {}, {}, 0
     for o in world.my_offers:
         if o["status"] not in ("open", "queued"):
@@ -286,6 +286,13 @@ class TestThreadsAndPacks(unittest.TestCase):
         out2 = hygiene.propose(w2, make_book(w2), FakeValuer(VALUES), Cfg(), PLAN, {})
         self.assertEqual(ids(out2, "open_pack", "asset_id"), {900})
         self.assertEqual(ids(out2, "close_thread", "thread_id"), set())
+
+    def test_book_pack_types_alone_close_buy_threads(self):
+        w = make_world(offers=current_offers(), threads={7: buy_thread(price=10)})
+        b = replace(make_book(w), packs=("sobre_barrio",))
+        out = hygiene.propose(w, b, FakeValuer(VALUES), Cfg(), PLAN, {})
+        self.assertEqual(ids(out, "close_thread", "thread_id"), {7})
+        self.assertEqual(ids(out, "open_pack", "asset_id"), set())   # no pack asset id in me -> nothing to open
 
     def test_pack_with_sell_thread_only_opens(self):
         me = with_pack(_load("me.json"))

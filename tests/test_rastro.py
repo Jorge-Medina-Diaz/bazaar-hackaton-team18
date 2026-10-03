@@ -322,6 +322,27 @@ class SwapTests(unittest.TestCase):
                   book(own_bids={"LAT-09": 3}, bid_price={3: 60}, own_offer_ids={3}), needs=(need,))
         self.assertFalse([i for i in out if i.args.get("ref") == "LAT-09" or i.args.get("want_ref") == "LAT-09"])
 
+    def test_swap_not_accepted_with_other_route(self):
+        o = swap(7, "LAT-09", want_ref="MAL-04")
+        cases = {"own bid": dict(own_bids={"LAT-09": 3}, bid_price={3: 60}, own_offer_ids={3}),
+                 "dealer thread": dict(paths={"LAT-09": 1})}
+        for name, extra in cases.items():
+            with self.subTest(name):
+                out = run(world(assets=[card(1, "MAL-04")], board=[o]), book(held={"MAL-04": 1}, **extra), needs=())
+                self.assertFalse([i for i in out if i.kind == "accept"])
+
+    def test_swap_below_gain_refused(self):
+        # we would hand over a spare SAL-04 (dv_rm 83.9) for a MAL-04 (dv_add 2.0): losing swap
+        out = run(world(assets=[card(1, "SAL-04"), card(2, "SAL-04")], board=[swap(8, "MAL-04", want_ref="SAL-04")]),
+                  book(held={"SAL-04": 2}), needs=())
+        self.assertFalse([i for i in out if i.kind == "accept"])
+
+    def test_publish_swap_for_missing_ret(self):
+        need = Need(set="RET", ref="RET-03", source="team", max_price=12, closer=False)
+        out = run(world(assets=[card(1, "MAL-04")]), book(held={"MAL-04": 1}, cash_free=0), needs=(need,))
+        sw = [i.args for i in out if i.kind == "list_offer" and i.args["side"] == "swap"]
+        self.assertEqual([(s["asset_id"], s["want_ref"]) for s in sw], [(1, "RET-03")])
+
     def test_dealer_need_gets_no_bid(self):
         need = Need(set="RET", ref="RET-03", source="abuela", max_price=12, closer=False)
         out = run(world(), book(), needs=(need,))
@@ -370,6 +391,31 @@ class VenueTests(unittest.TestCase):
         out = run(world(board=[sale(1, "ZZZ-01", 1)]), book(),
                   needs=(Need(set="ZZZ", ref="ZZZ-01", source="team", max_price=50, closer=False),))
         self.assertFalse([i for i in out if i.args.get("ref") == "ZZZ-01"])
+
+    def test_offer_addressed_to_us_is_read(self):
+        o = sale(1, "LAT-09", 50, to="t18")
+        out = run(world(offers_to_us=[o]), book(), needs=(self.NEED,))   # 63 - 50 - ceil(2.5 + 1) = 9.5 >= 3
+        self.assertEqual([(i.args["offer_id"], i.args["venue"]) for i in out if i.kind == "accept"], [(1, "rastro")])
+
+    def test_offer_to_us_without_venue_refused(self):
+        o = sale(1, "LAT-09", 50, to="t18")
+        o["venue"] = None
+        self.assertFalse([i for i in run(world(offers_to_us=[o]), book(), needs=(self.NEED,)) if i.kind == "accept"])
+
+    def test_no_sale_into_bid_on_top5_venue(self):
+        o = bid(5, "MAL-04", 40, venue="v01")
+        out = run(world(assets=[card(1, "MAL-04")], boards={"v01": [o]}, venues=self.VEN, leaderboard=self.LB),
+                  book(held={"MAL-04": 1}), needs=())
+        self.assertFalse([i for i in out if i.kind == "accept"])
+
+    def test_closed_venue_refused(self):
+        ven = ({"id": "v02", "owner": "t12", "fee_bps": 0, "fee_per_card": 0, "status": "closed"},)
+        self.assertFalse([i for i in self.go(sale(1, "LAT-09", 30, venue="v02"), venues=ven) if i.kind == "accept"])
+
+    def test_one_accept_per_ref_across_venues(self):
+        boards = {"rastro": [sale(1, "LAT-09", 40)], "v02": [sale(2, "LAT-09", 30, venue="v02")]}
+        out = run(world(boards=boards, venues=self.VEN, leaderboard=self.LB), book(), needs=(self.NEED,))
+        self.assertEqual(len([i for i in out if i.kind == "accept" and i.args["ref"] == "LAT-09"]), 1)
 
     def test_down_sources_and_bad_valuation(self):
         self.assertEqual(run(world(down={"board"}), book()), [])

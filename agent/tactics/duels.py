@@ -23,9 +23,8 @@ Policy (decide):
 - Accept budget: at most world.limits.accepts duel_accept intents per tick, nearest deadline first.
 
 NOTES (M12, night build) / open issues
-- duel_fingerprint and predict_duel come from agent.guards (M4a) and agent.valuation (M3) when importable; until then
-  local copies of the spec formulas are used. If M4a serialises the fingerprint differently, G51 refuses every accept
-  (fail closed) until both match: M4a and M12 must agree on the exact serialisation (see _local_duel_fingerprint).
+- duel_fingerprint and predict_duel come from agent.guards (M4a) and agent.valuation (M3) (both present; a test checks
+  the fingerprint matches the local copy). predict_duel takes side "buy"/"sell", mapped from the duel role.
 - Duel length T is not in the duel object: inferred from decay (0.06 -> 16 ticks, else 12, U-12) and the first message
   tick; params["T"] overrides.
 - W(d) = days_sign * |your_days_weight| * d is an assumption (U-13: the weight was null in practice); the unit of
@@ -94,8 +93,8 @@ def duel_fingerprint(d: Mapping) -> str:
 
 def _predict(limit: int, price: int, decay: float, rounds: int, role: str) -> Prediction:
     try:
-        from agent.valuation import predict_duel
-        p = predict_duel(limit, price, decay, rounds, role)
+        from agent.valuation import predict_duel          # M3: side is "buy" | "sell"
+        p = predict_duel(limit, price, decay, rounds, "buy" if role == "buyer" else "sell")
         if type(p) is Prediction:
             return p
     except Exception:

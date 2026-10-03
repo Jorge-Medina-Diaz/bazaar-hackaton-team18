@@ -4,6 +4,8 @@ Hardened in M4a (night build): any non-empty key in give/want other than cash/as
 asset ids must be positive ints (bool is not int), and a non-dict side fails closed.
 """
 
+from collections.abc import Mapping
+
 _SIDE_KEYS = frozenset({'cash', 'assets', 'types'})
 
 
@@ -16,7 +18,7 @@ def _cash(side):
 
 def _clean_side(side):
     """A side must be a dict whose only non-empty keys are cash/assets/types (lists for the last two)."""
-    if not isinstance(side, dict):
+    if not isinstance(side, Mapping):           # M17: the Sensor's World is deep-frozen (MappingProxyType)
         raise ValueError('side is not a dict')
     for k, v in side.items():
         if k not in _SIDE_KEYS and v not in (None, 0, '', [], {}):
@@ -24,7 +26,7 @@ def _clean_side(side):
         if v is False or v is True:
             raise ValueError('bool value')
     for k in ('assets', 'types'):
-        if side.get(k) is not None and not isinstance(side.get(k), list):
+        if side.get(k) is not None and not isinstance(side.get(k), (list, tuple)):   # frozen World: tuples
             raise ValueError(f'{k} is not a list')
     return side
 
@@ -42,8 +44,8 @@ def offer_ok(offer, topic, buying=True):
             got = list(give.get('types') or []) + [f"{a['kind']}:{a['ref']}" for a in give.get('assets') or []]
             return (not want.get('assets') and not want.get('types') and _cash(give) == 0
                     and _cash(want) >= 1 and len(got) == 1 and got[0] == f'{kind}:{ref}')
-        expected = topic['sell']['assets']
-        ids = [a['id'] if isinstance(a, dict) else a for a in want.get('assets') or []]
+        expected = list(topic['sell']['assets'])
+        ids = [a['id'] if isinstance(a, Mapping) else a for a in want.get('assets') or []]
         return (bool(expected) and all(type(i) is int and i > 0 for i in ids + expected)
                 and len(ids) == len(set(ids)) and sorted(ids) == sorted(expected)
                 and not want.get('types') and _cash(want) == 0 and _cash(give) >= 1

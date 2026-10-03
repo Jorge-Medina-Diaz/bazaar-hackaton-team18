@@ -337,5 +337,84 @@ class TestFailClosedAndApi(Base):
         self.assertEqual(fallback_verdict(P(3, 4, ">=0", 0), 3.0, -0.01), "hard_fail")
 
 
+def swap(oid, give_ref="MAL-04", asset=900, want_ref="LAT-09", status="open", created=170, expires=230):
+    return {"id": oid, "maker": "t18", "to": None, "venue": "rastro", "status": status,
+            "give": {"cash": 0, "assets": [{"id": asset, "ref": give_ref}], "types": []},
+            "want": {"assets": [], "types": [f"card:{want_ref}"]},
+            "created_tick": created, "expires_tick": expires}
+
+
+class TestLateInputs(Base):
+    def test_swap_settlement_matched_by_shape_without_offer_id(self):
+        # D1: swap published as maker; the result carries no offer id -> shape match (price None == 0)
+        self.j.write("intent", id="s1", tactic="rastro", intent_kind="list_offer", tick=170,
+                     args={"side": "swap", "ref": "MAL-04", "asset_id": 900, "price": 0, "expires_ticks": 20,
+                           "closer": False, "want_ref": "LAT-09"},
+                     prediction=pred(4.0, 6.0))
+        self.j.write("result", id="s1", status="ok", code=None, response={})
+        c = self.cal()
+        prev = world(200, me_with(neg=74.5), offers=[swap(3100)])
+        c.on_tick(None, prev)
+        assets = [{"id": 901, "ref": "LAT-09"}] + list(ME["assets"][1:])
+        c.on_tick(prev, world(201, me_with(neg=79.5, cash=260, assets=assets),
+                              offers=[swap(3100, status="settled")]))
+        m = self.j.of("measure")[0]
+        self.assertEqual((m["verdict"], m["ids"], m["tactics"]), ("pass", ["s1"], ["rastro"]))
+        self.no_pauses(c)
+        self.assertEqual(c.stop_reasons(), [])
+
+    def test_accept_on_rival_venue_measured_and_hard_fail_pauses(self):
+        # D2: accept on another team's venue; asset/cash change within the accepted_unsettled window
+        args = {"offer_id": 4000, "source": "team", "ref": "LAT-10", "side": "buy", "price": 40,
+                "thread_id": None, "give_asset": None, "fingerprint": "f", "resupply": False, "venue": "t07"}
+        self.j.write("intent", id="a1", tactic="closer", intent_kind="accept", tick=200, args=args,
+                     prediction=pred(12.0, 14.0))
+        self.j.write("result", id="a1", status="ok", code=None, response={})
+        self.j.write("accepted_unsettled", id="a1", offer_id=4000, ref="LAT-10", price=40, until_tick=202)
+        c = self.cal()
+        prev = world(200, me_with(neg=74.5))
+        c.on_tick(None, prev)
+        c.on_tick(prev, world(201, me_with(neg=72.0, cash=220)))
+        m = self.j.of("measure")[0]
+        self.assertEqual((m["verdict"], m["ids"], m["kinds"]), ("hard_fail", ["a1"], ["accept"]))
+        self.assertTrue(c.paused("closer"))
+        self.assertTrue(c.stop_reasons())
+
+    def test_late_accept_change_is_not_attributed(self):
+        args = {"offer_id": 4000, "source": "team", "ref": "LAT-10", "side": "buy", "price": 40,
+                "thread_id": None, "give_asset": None, "fingerprint": "f", "resupply": False, "venue": "rastro"}
+        self.j.write("intent", id="a1", tactic="closer", intent_kind="accept", tick=100, args=args,
+                     prediction=pred(12.0, 14.0))
+        self.j.write("result", id="a1", status="ok", code=None, response={})
+        self.j.write("accepted_unsettled", id="a1", offer_id=4000, ref="LAT-10", price=40, until_tick=102)
+        c = self.cal()
+        prev = world(200, me_with(neg=74.5))
+        c.on_tick(None, prev)
+        c.on_tick(prev, world(201, me_with(neg=74.5, cash=250)))
+        self.assertEqual(self.j.of("measure"), [])
+        self.no_pauses(c)
+
+
+class TestRealJournal(Base):
+    def test_round_reset_and_mid_round_drop_with_m2_journal(self):
+        import os
+        from agent.journal import Journal
+        self.paths.state.mkdir(parents=True, exist_ok=True)
+        (self.paths.state / "writer.lock").write_text(json.dumps({"pid": os.getpid()}), encoding="utf-8")
+        j = Journal(self.paths.journal, mode="test", lock_path=self.paths.state / "writer.lock")
+        c = Calibrator(j, self.paths, verdict_fn=fallback_verdict)
+        prev = world(200, me_with(neg=74.5), rnd=1)
+        c.on_tick(None, prev)
+        c.on_tick(prev, world(201, me_with(neg=0.0, ladder=0.0), rnd=2))
+        self.no_pauses(c)
+        self.assertEqual(len(list(j.rows({"round_reset"}))), 1)
+        p2 = world(201, me_with(neg=74.5), rnd=2)
+        c2 = Calibrator(j, self.paths, verdict_fn=fallback_verdict)
+        c2.on_tick(None, p2)
+        c2.on_tick(p2, world(202, me_with(neg=0.0), rnd=2))
+        self.assertTrue(c2.paused("rastro"))
+        self.assertTrue(Calibrator(j, self.paths, verdict_fn=fallback_verdict).paused("rastro"))
+
+
 if __name__ == "__main__":
     unittest.main()

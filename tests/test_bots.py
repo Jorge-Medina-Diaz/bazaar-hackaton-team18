@@ -330,7 +330,7 @@ class TestDuelRivals(unittest.TestCase):
         self.assertEqual(g.duels[did]["price"], 81)
 
     def test_reactive_answers_only_after_us_and_converges(self):
-        g, did = self.duel("reactive")
+        g, did = self.duel("reactive", ticks=30)
         g.advance(3)
         self.assertEqual(g.duels[did]["rival_msgs"], 0)
         price, offers = 60, []
@@ -382,14 +382,23 @@ class TestDuelRivals(unittest.TestCase):
         self.assertEqual(d["rival_offer"]["days"], 5)
 
     def test_seller_role_mirrors(self):
-        g, did = self.duel("reactive", role="seller", limit=50, rival_limit=90)
+        g, did = self.duel("reactive", role="seller", limit=50, rival_limit=90, ticks=30)
         d = self.say(g, did, 120)
         self.assertEqual(d["rival_offer"]["price"], 54)                   # 90 * 0.6
-        g.advance()
-        d = self.say(g, did, 89)
+        offers, price = [54], 120
+        for _ in range(12):
+            g.advance()
+            price -= 5
+            d = self.say(g, did, price)
+            if g.duels[did]["status"] != "live":
+                break
+            offers.append(d["rival_offer"]["price"])
+        self.assertTrue(all(a <= b for a, b in zip(offers, offers[1:])), offers)   # it climbs toward its limit
+        self.assertTrue(all(o <= 90 for o in offers), offers)                     # never past its limit
         g.advance()
         self.assertEqual(g.duels[did]["status"], "deal")
-        self.assertEqual(g.duels[did]["price"], 89)
+        self.assertLessEqual(g.duels[did]["price"], 90)
+        self.assertEqual(g.duels[did]["price"], price)                   # it took our crossing price
 
 
 if __name__ == "__main__":

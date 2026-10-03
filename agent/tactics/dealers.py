@@ -31,6 +31,12 @@ NOTES (night build, open issues for the lead)
 - day_end_hours is not read here (its keys are not fixed); hygiene closes threads at day end, we only may open late.
 - Grant lookahead (G30.grant_soon) is left to the Gate; this module does not read the schedule.
 - Template for dealers other than abuela/chato (PROBE of level 3+): "chato_buy"; talk.TEMPLATES may need a generic one.
+- Profiles are looked up by ref, then "SET:rarity" (the keys config/plan.json uses), then bare rarity. RET-08/CHA-08
+  "fallback_dealer" picks the next profile of that dealer after a walk/close within the hour (J3).
+- "fallback_after" is read as ticks since the thread opened (J3 "10 ticks"), not "still at 32": the thread is closed
+  at that age whatever the dealer's price.
+- D1 swaps / D2 venues do not apply to dealers: dealer offers have venue null; no swaps are proposed to dealers.
+- Sell threads to dealers and dealer swaps: not built (fail closed: never opened).
 """
 from __future__ import annotations
 
@@ -231,12 +237,14 @@ def _set_of(ref: str) -> str:
 
 
 def _profiles_for(plan_cfg: Mapping, world, ref: str) -> list:
-    """Candidate profiles for ref, most specific first: by ref, then by rarity."""
+    """Candidate profiles for ref, most specific first: by ref, then "SET:rarity" (config/plan.json), then rarity."""
     profs = (plan_cfg or {}).get("profiles") or {}
+    rarity = _rarity(world, ref)
+    keys = [ref] + ([f"{_set_of(ref)}:{rarity}", rarity] if rarity else [])
     out = []
-    for key in (ref, _rarity(world, ref)):
-        p = profs.get(key) if key else None
-        if isinstance(p, Mapping) and isinstance(p.get("dealer"), str):
+    for key in keys:
+        p = profs.get(key)
+        if isinstance(p, Mapping) and isinstance(p.get("dealer"), str) and p not in out:
             out.append(p)
     return out
 
@@ -250,12 +258,26 @@ def _profile_for_thread(plan_cfg, world, ref: str, dealer: str) -> Optional[Mapp
 
 def _dv_add(world, book, valuer, ref: str) -> Optional[float]:
     try:
-        dv = float(valuer.delta_add(book.projected, ref, book.packs))
+        counts = dict(book.projected or {})    # M17: without our own thread's standing copy (as agent.talk)
+        if ref in set((book.thread_ref or {}).values()) and int(counts.get(ref, 0)) > int((book.held or {}).get(ref, 0)):
+            counts[ref] = int(counts[ref]) - 1
+        dv = float(valuer.delta_add(counts, ref, book.packs))
         sv = (world.server_values or {}).get(ref, _INF)
         dv = min(dv, float(sv))
         return dv if math.isfinite(dv) else None
     except Exception:
         return None
+
+
+def _variant(template: str, k: int) -> int:
+    """M17: cycle through the template's lines (talk.render refuses an index past the last line: the 5th say
+    to Chato, who has 4 lines, was refused G60.render). Repeats are still impossible: every say has a new price."""
+    try:
+        from agent.talk import TEMPLATES as T
+        n = len(T[template])
+    except Exception:
+        n = 1
+    return k % max(1, n)
 
 
 def _ticks_per_hour(world) -> int:
@@ -379,7 +401,7 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
         out.append(make_intent(
             "say", TACTIC,
             {"thread_id": tid, "ref": ref, "price": nxt, "template": TEMPLATES.get(dealer, DEFAULT_TEMPLATE),
-             "variant": k},
+             "variant": _variant(TEMPLATES.get(dealer, DEFAULT_TEMPLATE), k)},
             f"{dealer} stands at {s}; our step {k} -> {nxt} (limit {limit_t})",
             f"standing bid {nxt} for {ref}", predict_dealer(dv, nxt, "buy"), PRIO_SAY, exp))
 
@@ -451,13 +473,19 @@ def _probe_targets(plan_cfg, needs_by_ref) -> Iterable:
 
 
 def _pick_open_profile(plan_cfg, world, ref, state, tick, tph, probe_only) -> Optional[Mapping]:
-    """Ref profile first; if its dealer walked away on this ref within the hour and it has fallback_after, try the
-    rarity profile of another dealer (J3: RET-08 from El Chato -> la Abuela)."""
+    """Ref profile first; if its dealer walked away on this ref within the hour and it has fallback_after or
+    fallback_dealer, use the next profile of the fallback dealer (J3: RET-08 from El Chato -> la Abuela)."""
     profs = _profiles_for(plan_cfg, world, ref)
     if probe_only:
         profs = [p for p in profs if p.get("probe") is True]
-    for i, p in enumerate(profs):
-        if i == 0 and len(profs) > 1 and p.get("fallback_after") and state.recent_walks(p["dealer"], ref, tick, tph):
-            continue
-        return p
-    return None
+    if not profs:
+        return None
+    first = profs[0]
+    has_fallback = first.get("fallback_after") or first.get("fallback_dealer")
+    if not (has_fallback and state.recent_walks(first["dealer"], ref, tick, tph)):
+        return first
+    fb_dealer = first.get("fallback_dealer")
+    for p in profs[1:]:
+        if p["dealer"] != first["dealer"] and (not isinstance(fb_dealer, str) or p["dealer"] == fb_dealer):
+            return p
+    return first                    # no fallback profile: the same dealer again (WALKS_PER_HOUR still applies)

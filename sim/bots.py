@@ -9,6 +9,10 @@ NOTES (M6b, night build)
   non-canonical shapes the fake server accepts (several assets, cash on both sides, card types plus cash).
 - Abuela gifts (D-15) are modelled as one common card on the first thread opened after the first deal.
 - Dealer quotas (D-13, packs per hour) and cooloff are not modelled.
+- Welcome prices (D-02) are fixed but not flagged final: a lower counter gets the same price back, never a walk
+  (the real reaction to a counter below the welcome price is unmeasured).
+- Abuela holds at her hidden floor once reached and only flags final at her 5th-7th offer (D-05).
+- DuelRival 'reactive' accepts only when our price crosses its standing offer (or its offer is at its limit).
 - DuelRival covers mute, accept_only, one_and_accept, reactive, time_driven, firm, worsening, injector.
 """
 from __future__ import annotations
@@ -117,18 +121,18 @@ class TeamBot:
                                       "want": {"cash": 3 * _book(game, game.assets[aid]["ref"])}})
 
     def _phantom(self, game, first) -> None:
-        for oid in self.posted:                 # whatever it listed vanishes before settlement
+        mine = _owned(game, self.team)
+        if mine and self.ticks % self.every == 1:
+            aid = mine[0]
+            self._post(game, {"give": {"assets": [aid]}, "want": {"cash": max(1, _book(game, game.assets[aid]["ref"]) // 2)}})
+        for oid in self.posted:                 # whatever it listed is gone at once: the listing is never backed
             o = game.offers[oid]
-            if o["status"] in ("open", "accepted"):
+            if o["status"] in ("open", "queued", "accepted"):
                 for aid in o["give"]["assets"]:
                     if game.assets[aid]["owner"] == self.team:
                         game.assets[aid]["owner"] = "abuela"
                         game.assets[aid]["history"].append({"tick": game.tick, "from": self.team, "to": "abuela",
                                                             "why": "sold elsewhere"})
-        mine = _owned(game, self.team)
-        if mine and self.ticks % self.every == 1:
-            aid = mine[0]
-            self._post(game, {"give": {"assets": [aid]}, "want": {"cash": max(1, _book(game, game.assets[aid]["ref"]) // 2)}})
 
     def _injector(self, game, first) -> None:
         if self.thread is None:
@@ -153,8 +157,11 @@ class TeamBot:
             self._accept(game, cheapest["id"])
 
     def _closer_bidder(self, game, first) -> None:
-        _, mine = game.handle("GET", "/api/me/offers", team=TEAM)
-        our_bids = [o for o in mine["offers"] if o["maker"] == TEAM and o["give"]["cash"] and o["want"]["types"]]
+        # read our bids straight from the game state (a GET as TEAM would be logged as one of OUR requests and
+        # pollute the request-rate invariant; M17 fix)
+        our_bids = [game.offer_view(o, TEAM) for o in game.offers.values()
+                    if o["maker"] == TEAM and o["status"] in ("open", "queued") and o["give"]["cash"]
+                    and o["want"]["types"]]
         top = {}
         for oid in self.posted:
             o = game.offers[oid]
@@ -277,7 +284,7 @@ class _Dealer:
         if moved and not st["fixed"]:
             st["k"] += 1
             st["ask"] = self.next_ask(st, p, last)
-            if st["k"] >= st["final_at"] or st["ask"] == st["floor"]:     # D-05: final at her 5th-7th offer
+            if st["k"] >= st["final_at"]:     # D-05: final at her 5th-7th offer (holds at the floor until then)
                 st["final_now"] = True
         game.dealer_say(tid, st["ask"], self.text(st, "move" if moved else "same"), final=st["final_now"])
 
@@ -332,7 +339,7 @@ class AbuelaBot(_Dealer):
 
     def _st(self, side, kind, ask, floor, fixed=False) -> dict:
         return {"side": side, "kind": kind, "ask": ask, "floor": floor, "k": 0, "fixed": fixed,
-                "final_at": self.rng.randint(5, 7) - 1, "final_now": fixed, "team_prices": [], "team_texts": set()}
+                "final_at": self.rng.randint(5, 7) - 1, "final_now": False, "team_prices": [], "team_texts": set()}
 
     def next_ask(self, st, p, last) -> int:
         sign = -1 if st["side"] == "buy" else 1

@@ -465,13 +465,31 @@ class Journal:
         end = data.rfind(b"\n")
         if end < 0:
             return
-        for raw in data[:end].split(b"\n"):
+        # M17 speed-up (the runner reads the journal several times per tick): an index (kind, raw line) of the
+        # complete lines already seen is kept while the file only grows; only the new tail is parsed. Matching
+        # rows are parsed again from their bytes, so callers always get fresh dicts (no shared mutable state).
+        head = data[:end + 1]
+        cached = getattr(self, "_rows_bytes", b"")
+        if cached and len(head) >= len(cached) and head[:len(cached)] == cached:
+            index = list(self._rows_index)
+            new = head[len(cached):]
+        else:
+            index = []
+            new = head
+        for raw in new[:-1].split(b"\n") if new else ():
             try:
                 row = json.loads(raw.decode("utf-8"))
             except (ValueError, UnicodeDecodeError):
                 continue
-            if isinstance(row, dict) and (kinds is None or row.get("kind") in kinds):
-                yield row
+            if isinstance(row, dict):
+                index.append((row.get("kind"), raw))
+        self._rows_bytes, self._rows_index = head, index
+        for k, raw in index:
+            if kinds is None or k in kinds:
+                try:
+                    yield json.loads(raw.decode("utf-8"))
+                except (ValueError, UnicodeDecodeError):
+                    continue
 
     def result_for(self, intent_id: str) -> dict | None:
         self._refresh()
