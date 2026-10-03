@@ -154,6 +154,33 @@ def ticks_per_hour(world: Any, cfg: Any = None) -> int:
     return int(getattr(cfg, "TICKS_PER_GAME_HOUR", 60) or 60)
 
 
+SERVER_BLOCK_REASONS = frozenset({"cooloff", "sold_out", "persona_budget"})   # closed_reason set by the server
+SERVER_BLOCK_DAY = frozenset({"persona_budget"})                               # without until_tick: rest of the day
+
+
+def server_block(t: Any, world: Any, plan_cfg: Any, tph: int) -> Optional[int]:
+    """until_tick (blocked while tick < it) for a dealer thread the server ended with a blocking closed_reason.
+    until_tick from the thread when present; else persona_budget -> world.tick + 1 while the thread ended in the
+    current game day (day start = the latest plan day_end_hours below t_hours, else 0); cooloff / sold_out -> one
+    game hour after the thread's last tick. None when nothing blocks. Unreadable inputs -> blocked (fail closed)."""
+    if not isinstance(t, Mapping) or t.get("status") == "open" or t.get("closed_reason") not in SERVER_BLOCK_REASONS:
+        return None
+    if _int(t.get("until_tick")):
+        return t["until_tick"]
+    ticks = [m.get("tick") for m in (t.get("messages") or ()) if isinstance(m, Mapping) and _int(m.get("tick"))]
+    last = max(ticks) if ticks else t.get("created_tick")
+    if not _int(last):
+        return world.tick + 1
+    if t["closed_reason"] not in SERVER_BLOCK_DAY:
+        return last + tph
+    ends = (plan_cfg or {}).get("day_end_hours") if isinstance(plan_cfg, Mapping) else None
+    if not isinstance(ends, Mapping) or not _finite(world.t_hours):
+        return world.tick + 1
+    start_h = max([h for h in ends.values() if _finite(h) and h < world.t_hours], default=0.0)
+    day_start = world.tick - math.ceil((world.t_hours - start_h) * tph)
+    return world.tick + 1 if last >= day_start else None
+
+
 def _set_of(ref: str) -> str:
     return ref.split("-", 1)[0]
 
@@ -445,7 +472,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
             commit += p
 
     # dealer threads opened by us
-    thread_limit, thread_prices, thread_ref, thread_by_dealer = {}, {}, {}, {}
+    thread_limit, thread_prices, thread_ref, thread_by_dealer, srv_block = {}, {}, {}, {}, {}
     deals_hour: Counter = Counter()
     abuela_open = False
     tph = ticks_per_hour(world, cfg)
@@ -460,6 +487,9 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
         prices = tuple(m.get("price") for m in (t.get("messages") or [])
                        if isinstance(m, Mapping) and m.get("sender") == TEAM and _int(m.get("price")))
         thread_prices[tid] = prices
+        until = server_block(t, world, plan_cfg, tph)
+        if until is not None and isinstance(dealer, str) and until > world.tick:
+            srv_block[dealer] = max(until, srv_block.get(dealer, until))
         if t.get("status") != "open":
             continue
         if isinstance(dealer, str):
@@ -557,6 +587,9 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
     for oid in bid_price:
         b = bands_cfg.get(str(oid), base_bands.get(str(oid)))
         bid_band[oid] = float(b) if _finite(b) else 2.0
+
+    for d, u in srv_block.items():           # dealer threads the server ended (closed_reason) block that dealer
+        dealer_block[d] = max(u, dealer_block[d]) if _int(dealer_block.get(d)) else u
 
     risk = bool(packs) or abuela_open or _grant_soon(world, plan_cfg.get("grant_lookahead_ticks", cfg.GRANT_LOOKAHEAD_TICKS), cfg)
 

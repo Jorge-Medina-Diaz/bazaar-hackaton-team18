@@ -437,6 +437,13 @@ class TestSplit(unittest.TestCase):
         self.assertIn("hola", texts)
         self.assertNotIn("tk-abcdefgh", texts)                     # secret keys never logged
 
+    def test_thread_keeps_closed_reason_and_until_tick(self):
+        # the server ends a dealer thread with closed_reason (+ until_tick on cooloff): the World must carry both
+        t, _ = W._p_thread({"id": 1455, "kind": "persona", "team": "t18", "with": "picaros", "venue": None,
+                            "topic": {"buy": {"card": "SAL-11"}}, "status": "walked", "created_tick": 994,
+                            "messages": [], "standing_offers": [], "closed_reason": "cooloff", "until_tick": 1100})
+        self.assertEqual((t["status"], t["closed_reason"], t["until_tick"]), ("walked", "cooloff", 1100))
+
 
 if __name__ == "__main__":
     unittest.main()

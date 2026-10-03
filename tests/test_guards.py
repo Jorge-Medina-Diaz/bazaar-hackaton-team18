@@ -766,6 +766,35 @@ class ThreadOfferCountedOnce(unittest.TestCase):
         self.assertEqual(hygiene.bid_watch(c.world, c.book, c.valuer, c.cfg, PLAN), [])
 
 
+class ServerClosedDealerThreads(unittest.TestCase):
+    """closed_reason cooloff / sold_out / persona_budget (server-ended threads) block reopening that dealer."""
+    PLAN = dict(PLAN, day_end_hours={"sat": 13.28, "sun": 20.0})
+
+    @staticmethod
+    def th(tid, dealer, reason, last, until=None):
+        t = {"id": tid, "kind": "persona", "team": "t18", "with": dealer, "topic": {"buy": {"card": "SAL-11"}},
+             "status": "walked", "created_tick": last - 2, "standing_offers": [], "closed_reason": reason,
+             "messages": [{"id": tid * 10, "tick": last, "sender": dealer}]}
+        if until is not None:
+            t["until_tick"] = until
+        return t
+
+    def test_blocks(self):
+        ths = {1: self.th(1, "pilar", "persona_budget", 190), 2: self.th(2, "picaros", "cooloff", 150, until=260),
+               3: self.th(3, "chato", "sold_out", 150), 4: self.th(4, "abuela", "sold_out", 50),
+               5: self.th(5, "abuela", "final_offer_refused", 199)}
+        b = Ctx(threads=ths, plan=self.PLAN).book                 # tick 200, t 5.0, 30 s ticks (120 per hour)
+        self.assertEqual(dict(b.dealer_block), {"pilar": 201, "picaros": 260, "chato": 270})
+
+    def test_persona_budget_lasts_until_the_next_day(self):
+        # Sunday t14.0, tick 200: day start 13.28 -> tick 200 - ceil(0.72 * 120) = 113
+        ths = {1: self.th(1, "pilar", "persona_budget", 150), 2: self.th(2, "chato", "persona_budget", 100)}
+        b = Ctx(threads=ths, plan=self.PLAN, t_hours=14.0).book
+        self.assertEqual(dict(b.dealer_block), {"pilar": 201})
+        b = Ctx(threads=ths, plan=PLAN).book                       # no day_end_hours: fail closed, both blocked
+        self.assertEqual(dict(b.dealer_block), {"pilar": 201, "chato": 201})
+
+
 class TicksPerHour(unittest.TestCase):
     """Live Sat ticks are 30 s (120 per game hour), Sun 15 s (240): never the Friday constant 60."""
 
