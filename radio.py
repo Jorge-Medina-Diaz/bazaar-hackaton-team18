@@ -267,7 +267,7 @@ def observe():
             "dealers": dealers, "released": sorted(st["id"] for st in cat.get("sets", []) if st.get("released")),
             "minted_top": top, "levels": {x["id"]: x.get("state") for x in lv.get("levels", [])},
             "now_h": sc.get("now_hours"),
-            "upcoming": [[u.get("at_hours"), u.get("action"), u.get("note")] for u in sc.get("upcoming", [])[:8]]}
+            "upcoming": [[u.get("at_hours"), u.get("action"), u.get("note")] for u in sc.get("upcoming", [])]}
 
 
 def _f(x):
@@ -329,11 +329,17 @@ def diff(prev, now, team=TEAM, announced=()):
     for lid, st in now["levels"].items():
         if prev["levels"].get(lid) != st:
             out.append(("ALTA", f"Nivel {lid}: {prev['levels'].get(lid, 'no anunciado')} → {st}", ()))
+    before = {(u[1], u[2]) for u in prev.get("upcoming", [])}
     for at, action, note in now["upcoming"]:
         key = f"{action}@{at}"
+        rel = classify({"headline": note or action})
+        lvl = "ALTA" if action == "persona_patch" and rel["level"] != "BAJA" else rel["level"] \
+            if rel["level"] != "BAJA" else "MEDIA"
+        if (action, note) not in before and action not in ("bench",):
+            out.append((lvl, f"Nuevo en el calendario (h {_f(at)}): {note or action}", ()))
         if key not in announced and isinstance(at, (int, float)) and isinstance(now.get("now_h"), (int, float)) \
                 and 0 <= at - now["now_h"] <= 0.2:
-            out.append(("MEDIA", f"Próximo en {_f(at - now['now_h'])} h de juego: {note or action}", ("@" + key,)))
+            out.append((lvl, f"Próximo en {_f(at - now['now_h'])} h de juego: {note or action}", ("@" + key,)))
     return out
 
 
