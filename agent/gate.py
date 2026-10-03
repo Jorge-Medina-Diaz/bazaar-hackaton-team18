@@ -788,7 +788,9 @@ class Gate:
         except Exception as e:                                           # noqa: BLE001
             raise _Refuse("G02.request", f"{e.__class__.__name__}: {e}")
         # 7. dry / unarmed / paused -> would
-        armed = intent.tactic == "manual" or intent.tactic in frozenset(self._armed() or ())
+        # manual is armed like any tactic: the runner's armed_now() adds it only with "core" green in live and
+        # leaves it out for a `do` order sent without --live (it was always armed here: a dry `do` went out live)
+        armed = intent.tactic in frozenset(self._armed() or ())
         if self.mode != "live" or not armed or self._paused(intent.tactic):
             why = "mode" if self.mode != "live" else ("unarmed" if not armed else "paused")
             out = Outcome(iid, "would", why)

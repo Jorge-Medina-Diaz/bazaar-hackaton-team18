@@ -376,7 +376,8 @@ class E2E(unittest.TestCase):
                                                                  "ts": time.time() - 3600}), encoding="utf-8")
         self.green(stages=("core",))
         rc = self.run_("live", armed=(), ticks=2,
-                       manual=[{"cmd": "do", "kind": "cancel", "args": {"offer_id": oid, "ref": None}, "why": "t"}])
+                       manual=[{"cmd": "do", "kind": "cancel", "args": {"offer_id": oid, "ref": None}, "why": "t",
+                                "live": True}])
         self.assertEqual(rc, 0)
         rows = self.rows()
         sent = [r for r in rows if r["kind"] == "intent"]
@@ -385,6 +386,20 @@ class E2E(unittest.TestCase):
         self.assertTrue(any(r["kind"] == "cmd" and r.get("applied") is False for r in rows))
         self.assertEqual(json.loads(self.paths.armed.read_text(encoding="utf-8")), [])
         self.assertEqual(list(self.paths.inbox.glob("*.json")), [])
+
+    def test_manual_do_without_live_is_only_would_in_a_live_run(self):
+        # the order did not say live (no --live): a live runner must not send it, even with core green / manual armed
+        oid = self._own_bid()
+        self.green(stages=("core",))
+        self.paths.inbox.mkdir(parents=True, exist_ok=True)
+        (self.paths.inbox / "5-do.json").write_text(json.dumps({"cmd": "do", "kind": "cancel", "why": "t",
+                                                                "args": {"offer_id": oid, "ref": None}, "live": False,
+                                                                "ts": time.time() + 3600}), encoding="utf-8")
+        self.assertEqual(self.run_("live", armed=("manual",), ticks=2), 0)
+        rows = self.rows()
+        self.assertEqual(self.writes(), [])
+        self.assertEqual([r for r in rows if r["kind"] == "intent"], [])
+        self.assertTrue(any(r["kind"] == "would" and r["tactic"] == "manual" for r in rows))
 
     def test_flatten_cancels_bids_then_stops(self):
         oid = self._own_bid()

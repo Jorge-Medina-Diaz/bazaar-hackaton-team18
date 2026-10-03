@@ -20,6 +20,8 @@ NOTES (M15, night build)
   removed): a stale `arm` must never arm a new run. `do` from a one-shot CLI call comes in through run(manual=...).
 - Manual intents (`do`, `flatten`): the prediction is the Gate's own recomputation (Gate._predict), so G07 never
   trips on a human order; every other guard applies unchanged. A failure there leaves predict_none -> the Gate refuses.
+  A `do` order is sent for real only if it says "live": true (`do --live`); otherwise armed_now() drops "manual"
+  while the Gate executes it, so it ends as a "would" even in a live run. Flatten intents follow the run's mode.
 - Fast path (§1 step 4) only runs when a baseline already exists and nothing is pending reconciliation: the Gate
   takes its baseline from the World it is given and reconcile reads evidence from it, and the fast World has most
   sources down. It only executes the configured startup cancels (J0). First start without baseline: the full
@@ -324,6 +326,8 @@ class Runner:
         self.exc: dict = defaultdict(lambda: deque(maxlen=EXC_LIMIT))
         self.missing_noted: set = set()
         self.pending_manual: list = list(manual or ())
+        self.dry_manual: set = set()               # intent ids of this tick's `do` orders sent without --live
+        self._manual_dry = False                   # True while the Gate executes one of them (armed_now drops manual)
         self.flatten: Optional[str] = None
         self.prev: Optional[World] = None          # last World read (any kind): the sensor carries from it
         self.prev_full: Optional[World] = None     # last fully processed World: the calibrator's "before"
@@ -369,6 +373,8 @@ class Runner:
         s = set(self.armed)
         if self.mode == "live" and tactic_green("manual", self.paths, chash=self.chash):
             s.add("manual")
+        if self._manual_dry:                       # a `do` without --live is only a "would", even in a live run
+            s.discard("manual")
         return frozenset(s)
 
     def paused(self, tactic: str) -> bool:
@@ -402,7 +408,7 @@ class Runner:
     def apply_cmd(self, cmd: Mapping, name: str = "") -> None:
         c, why = cmd.get("cmd"), str(cmd.get("why") or "")[:300]
         self.j("cmd", cmd=c, applied=True, why=why, file=name,
-               tactic=cmd.get("tactic"), intent_kind=cmd.get("kind"), args=cmd.get("args"))
+               tactic=cmd.get("tactic"), intent_kind=cmd.get("kind"), args=cmd.get("args"), live=cmd.get("live"))
         if c == "arm":
             if self._arm(str(cmd.get("tactic")), why):
                 self._save_armed()
@@ -454,6 +460,7 @@ class Runner:
     def execute(self, intents: Sequence[Intent], world: World, *, late: bool = False) -> list:
         outs = []
         for it in intents:
+            self._manual_dry = it.tactic == "manual" and intent_id(world.tick, it) in self.dry_manual
             try:
                 o = self.gate.execute(it, world)
             except Exception as e:                                       # noqa: BLE001
@@ -462,6 +469,8 @@ class Runner:
                 self.alarm(f"execute error {e.__class__.__name__}: {str(e)[:200]}", tactic=it.tactic,
                            intent_kind=it.kind)
                 continue
+            finally:
+                self._manual_dry = False
             outs.append((it, o))
         return outs
 
@@ -635,10 +644,13 @@ class Runner:
         intents = []
         if self.flatten is None and book is not None:
             intents = self.propose_all(world, book, needs)
+        self.dry_manual = set()
         for cmd in self.pending_manual:
             it = self.manual_intent(cmd, world)
             if it is not None:
                 intents.append(it)
+                if cmd.get("live") is not True:          # only an order that says live is sent for real
+                    self.dry_manual.add(intent_id(world.tick, it))
         self.pending_manual = []
         if self.flatten is not None:
             intents = [it for it in intents if it.tactic == "manual"] + self.flatten_intents(world)
