@@ -1,6 +1,8 @@
 # Radio Rastro y cambios para t18 (`radio.py`)
 
-Vigilante sin clave: lee las noticias de la radio, decide su relevancia para el equipo 18, comprueba con el feed público si son ciertas y avisa en la máquina donde corre (notificación de macOS) de cualquier cambio público que nos afecte. No escribe en el juego, no usa la clave y no toca `agent/`, así que el `code_hash` del operador no cambia. Puede correr en cualquier máquina del equipo sin interferir con el ejecutor.
+Vigilante sin clave: lee las noticias de la radio, decide su relevancia para el equipo 18, comprueba con el feed público si son ciertas y avisa en la máquina donde corre de cualquier cambio público que nos afecte.
+
+**Avisos (sin voz: nunca se lee el contenido en voz alta):** toda noticia nueva suena (Glass) y llega como notificación; lo ALTA (y una noticia confirmada) suena con Hero y deja una alerta en pantalla hasta pulsar OK o 2 minutos. Las noticias de El Tablón o «de oídas» llevan la etiqueta RUMOR. `--no-sound` y `--no-dialog` lo silencian. No escribe en el juego, no usa la clave y no toca `agent/`, así que el `code_hash` del operador no cambia. Puede correr en cualquier máquina del equipo sin interferir con el ejecutor.
 
 ```bash
 python3 radio.py                                  # todas las noticias con su relevancia
@@ -43,4 +45,4 @@ Los registros van a `logs/radio.jsonl` y el estado a `logs/radio_state.json`, am
 
 ## Pruebas
 
-`python3 -m unittest tests.test_radio`: 19 tests (relevancia con las noticias reales, límites de palabra, inyección en la notificación, ritmo, primera lectura silenciosa, avisos únicos, diferencias exactas, ventana del calendario, extracción de precios, veredictos y acumulación de evidencia entre lecturas). Se sabotearon 6 protecciones y en todos los casos falla algún test. Suite completa: 816 tests OK (Python 3.14).
+`python3 -m unittest tests.test_radio`: 22 tests (relevancia con las noticias reales, límites de palabra, inyección en la notificación, ritmo, primera lectura silenciosa, avisos únicos, diferencias exactas, ventana del calendario, extracción de precios, veredictos y acumulación de evidencia entre lecturas). Se sabotearon 6 protecciones y en todos los casos falla algún test. Suite completa: consultar la última ejecución en HANDOFF (Python 3.14).

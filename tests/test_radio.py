@@ -35,6 +35,13 @@ class ClassifyTests(unittest.TestCase):
         named = radio.classify({"headline": "Someone sells El Ángel Caído cheap"}, names={"el angel caido": "RET-09"})
         self.assertEqual((named["refs"], named["sets"]), (["RET-09"], ["RET"]))
 
+    def test_notice_board_hearsay_is_flagged_as_rumour(self):
+        hello = {"source": "tablon", "headline": "El Chato gives a legendary to anyone who says hello!",
+                 "body": "My cousin saw it. I swear."}
+        c = radio.classify(hello)
+        self.assertTrue(c["rumour"])
+        self.assertTrue(c["todo"][0].startswith("No actuar sin evidencia"))
+
     def test_words_match_on_boundaries_only(self):
         c = radio.classify({"headline": "Unknown dog seen in Sol", "body": "Nowhere to be found"})
         self.assertEqual((c["level"], c["score"]), ("BAJA", 0))
@@ -43,10 +50,24 @@ class ClassifyTests(unittest.TestCase):
 class NotifyTests(unittest.TestCase):
     def test_hostile_text_is_an_argument_never_part_of_the_script(self):
         evil = 'x" & (do shell script "touch /tmp/pwned") & "'
-        cmd = radio.notify_cmd(evil, evil, sound=True)
-        scripts = [cmd[i + 1] for i, a in enumerate(cmd) if a == "-e"]
-        self.assertFalse(any("pwned" in s for s in scripts))
-        self.assertEqual(cmd[cmd.index("--") + 1:], [evil, evil])
+        for cmd in (radio.notify_cmd(evil, evil), radio.dialog_cmd(evil, evil)):
+            scripts = [cmd[i + 1] for i, a in enumerate(cmd) if a == "-e"]
+            self.assertFalse(any("pwned" in s for s in scripts))
+            self.assertEqual(cmd[cmd.index("--") + 1:], [evil, evil])
+
+    def test_sound_never_speaks_and_dialog_only_for_high(self):
+        self.assertEqual(radio.ring_cmd("ALTA"), ["afplay", "/System/Library/Sounds/Hero.aiff"])
+        launched = []
+        with patch.object(radio.sys, "platform", "darwin"), \
+                patch.object(radio.subprocess, "run", lambda *a, **k: type("R", (), {"returncode": 0})()), \
+                patch.object(radio.subprocess, "Popen", lambda cmd, **k: launched.append(cmd[0])):
+            radio._RANG[0] = 0
+            radio.notify("t", "m", level="MEDIA")
+            radio._RANG[0] = 0
+            radio.notify("t", "m", level="ALTA")
+            radio.notify("t", "m", level="ALTA")       # menos de 2 s: no repite el sonido
+        self.assertEqual(launched, ["afplay", "afplay", "osascript", "osascript"])
+        self.assertNotIn("say", launched)
 
 
 class PacingTests(unittest.TestCase):
@@ -156,11 +177,12 @@ class StepTests(unittest.TestCase):
         self.assertEqual(len(self.step(first=True)), 2)
         self.assertEqual(self.sent, [])
 
-    def test_low_items_are_logged_but_not_notified(self):
+    def test_every_new_item_rings_even_low_ones(self):
         self.step(first=True)
         self.news.append(dict(ATLETI, id=9, tick=500))
         self.step()
-        self.assertEqual(self.sent, [])
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual(self.sent[0][0], "📻 Radio Rastro · BAJA para t18")
         with open(os.path.join(self.dir, "radio.jsonl"), encoding="utf-8") as f:
             rows = [json.loads(line) for line in f]
         self.assertEqual([r["id"] for r in rows if r["event"] == "news"], [2, 9])
@@ -174,7 +196,7 @@ class StepTests(unittest.TestCase):
         self.step()
         line = next(x for x in self.lines if "ahora compra rare de MAL" in x)
         self.assertIn("confirma la noticia «El Chato is looking for rare Malasaña cards»", line)
-        self.assertTrue(any(s[0].startswith("t18 · ALTA") for s in self.sent))
+        self.assertTrue(any(s[0].startswith("🔔 t18 · ALTA") for s in self.sent))
 
     def test_state_survives_restart_and_a_corrupt_file(self):
         path = os.path.join(self.dir, "state.json")

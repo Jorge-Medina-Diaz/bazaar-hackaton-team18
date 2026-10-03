@@ -55,6 +55,7 @@ WORDS = {
     "team": ("team 18", "equipo 18", "t18"),
     "duels": ("duel", "duelo"),
     "market": ("venue", "market", "fee", "mercado", "comision"),
+    "hearsay": ("my cousin", "i swear", "they say", "rumour", "rumor", "someone said", "mi primo", "lo juro", "dicen"),
 }
 
 
@@ -146,9 +147,13 @@ def classify(item, names=None, have=None):
         why.append("ventana corta")
     if item.get("source") == "boletin":
         why.append("fuente: Boletín del Bazar")
+    rumour = item.get("source") == "tablon" or has["hearsay"]
+    if rumour:
+        why.append("probable rumor (El Tablón o «me dijeron»)")
+        todo.insert(0, "No actuar sin evidencia: esperar el veredicto del feed o un cambio de menú.")
     level = "ALTA" if score >= 4 else "MEDIA" if score >= 2 else "BAJA"
     side = "compra" if has["demand"] else "vende" if has["supply"] else None   # lo que haría el dealer
-    return {"level": level, "side": side, "rare": has["rare"], "score": score, "sets": sorted(sets), "refs": sorted(refs), "dealers": sorted(dealers),
+    return {"level": level, "side": side, "rare": has["rare"], "rumour": rumour, "score": score, "sets": sorted(sets), "refs": sorted(refs), "dealers": sorted(dealers),
             "why": why or ["sin relación directa con t18"], "todo": todo}
 
 
@@ -163,21 +168,44 @@ def interval(ticks, tick_s, seen_new_recently):
     return max(tick_s, min(300.0, statistics.median(gaps) * tick_s / 8))
 
 
-def notify_cmd(title, message, sound=False):
-    script = ["on run argv", "display notification (item 2 of argv) with title (item 1 of argv)"
-              + (" sound name \"Submarine\"" if sound else ""), "end run"]
+SOUNDS = {"ALTA": "/System/Library/Sounds/Hero.aiff", "MEDIA": "/System/Library/Sounds/Glass.aiff",
+          "BAJA": "/System/Library/Sounds/Tink.aiff"}
+LOUD = {"sound": True, "dialog": True}       # --no-sound / --no-dialog
+_RANG = [0.0]
+
+
+def notify_cmd(title, message):
+    script = ["on run argv", "display notification (item 2 of argv) with title (item 1 of argv)", "end run"]
     return ["osascript"] + [x for line in script for x in ("-e", line)] + ["--", str(title)[:120], str(message)[:240]]
 
 
-def notify(title, message, sound=False):
-    """Notificación de macOS. El texto va como argumento, nunca dentro del script (no se puede inyectar)."""
+def dialog_cmd(title, message):
+    """Alerta en pantalla que se queda hasta pulsar OK (o 2 minutos). Texto como argumento, sin inyección."""
+    script = ["on run argv", "display alert (item 1 of argv) message (item 2 of argv) as critical "
+              "giving up after 120", "end run"]
+    return ["osascript"] + [x for line in script for x in ("-e", line)] + ["--", str(title)[:120], str(message)[:600]]
+
+
+def ring_cmd(level):
+    return ["afplay", SOUNDS.get(level, SOUNDS["MEDIA"])]
+
+
+def notify(title, message, level="MEDIA"):
+    """Aviso en esta máquina: notificación, sonido del sistema (sin voz: nunca se lee el contenido en voz alta)
+    y, si es ALTA, una alerta en pantalla. Nada bloquea el bucle."""
     if sys.platform != "darwin":
         return False
+    ok = False
     try:
-        cmd = notify_cmd(title, message, sound)
-        return subprocess.run(cmd, capture_output=True, timeout=10).returncode == 0
+        ok = subprocess.run(notify_cmd(title, message), capture_output=True, timeout=10).returncode == 0
+        if LOUD["sound"] and time.time() - _RANG[0] >= 2:
+            _RANG[0] = time.time()
+            subprocess.Popen(ring_cmd(level), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if LOUD["dialog"] and level == "ALTA":
+            subprocess.Popen(dialog_cmd(title, message), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except (OSError, subprocess.SubprocessError):
-        return False
+        return ok
+    return ok
 
 
 def load_state(path):
@@ -391,9 +419,11 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                 "until": now + 3600, "news": n.get("id"), "headline": n.get("headline"), "tick": n.get("tick") or 0,
                 "dealers": c["dealers"], "sets": c["sets"], "side": c["side"], "rarity": "rare" if c["rare"] else None,
                 "obs": [], "verdict": None}
-        if not first and do_notify and LEVELS.index(c["level"]) >= LEVELS.index(min_level):
-            notify(f"Radio Rastro · {c['level']} para t18", f"{n.get('headline')} — {c['todo'][0] if c['todo'] else c['why'][0]}",
-                   sound=c["level"] == "ALTA")
+        if not first and do_notify:   # toda noticia nueva suena; ALTA además deja una alerta en pantalla
+            tag = "RUMOR · " if c["rumour"] else ""
+            notify(f"📻 Radio Rastro · {tag}{c['level']} para t18",
+                   f"{n.get('headline')} — {c['todo'][0] if c['todo'] else c['why'][0]}",
+                   level=c["level"] if LEVELS.index(c["level"]) >= LEVELS.index(min_level) else "MEDIA")
     for key, w in list(state["watch"].items()):
         if now > w.get("until", 0) or "dealers" not in w:
             state["watch"].pop(key)
@@ -420,7 +450,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
                 record({"event": "evidence", "news": w["news"], **v})
                 out(("‼️ " if v["verdict"] == "confirmada" else "   ") + msg)
                 if do_notify and v["verdict"] == "confirmada":
-                    notify("Radio Rastro · noticia CONFIRMADA", msg, sound=True)
+                    notify("✅ Radio Rastro · noticia CONFIRMADA", msg, level="ALTA")
     try:
         obs = observe()
     except Exception as e:  # noqa: BLE001  la foto es un extra: las noticias ya se han procesado
@@ -443,7 +473,7 @@ def step(state, names, *, min_level="MEDIA", do_notify=True, first=False, have=N
         top = changes[0][0]
         loud = [c for c in changes if LEVELS.index(c[0]) >= LEVELS.index(min_level)]
         if do_notify and loud:
-            notify(f"t18 · {top} · {len(loud)} cambio(s)", " | ".join(t for _, t in loud[:2]), sound=top == "ALTA")
+            notify(f"🔔 t18 · {top} · {len(loud)} cambio(s)", " | ".join(t for _, t in loud[:3]), level=top)
     return fresh
 
 
@@ -452,10 +482,13 @@ def main():
     ap.add_argument("--watch", action="store_true", help="vigilar con ritmo adaptativo")
     ap.add_argument("--min-level", choices=LEVELS, default="MEDIA", help="nivel mínimo para notificar")
     ap.add_argument("--no-notify", action="store_true")
+    ap.add_argument("--no-sound", action="store_true", help="sin sonido (la notificación sigue)")
+    ap.add_argument("--no-dialog", action="store_true", help="sin alerta en pantalla para ALTA")
     ap.add_argument("--have", default=None, help="refs que tenemos, separadas por comas (afina la relevancia)")
     ap.add_argument("--state", default=os.path.join(LOG_DIR, "radio_state.json"))
     a = ap.parse_args()
     state = load_state(a.state)
+    LOUD.update(sound=not a.no_sound, dialog=not a.no_dialog)
     have = None if a.have is None else {r.strip().upper() for r in a.have.split(",") if r.strip()}
     try:
         names = card_names(get("/api/catalog"))
