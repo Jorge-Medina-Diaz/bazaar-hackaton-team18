@@ -490,6 +490,9 @@ def clock_reading(clock: Optional[Mapping], schedule: Optional[Mapping]) -> str:
 
 # -------------------------------------------------------------------------------------------- sensor
 
+_NO_VALUE = object()          # sentinel: the server answered unknown_card for one ref
+
+
 class _SysClock:
     @staticmethod
     def now() -> float:
@@ -863,11 +866,13 @@ class Sensor:
                                                  for a in me.get("assets", [])), default=str).encode()).hexdigest()
         if version != self._values_version:
             self._values, self._values_version = {}, version
+            self._no_value = set()
+        no_value = self.__dict__.setdefault("_no_value", set())   # refs the server cannot value (live 3 Oct)
         if not skip:
             order: list = []
 
             def add(r: Any) -> None:
-                if isinstance(r, str) and TOKEN_RE.fullmatch(r) and r and r not in self._values and r not in order:
+                if isinstance(r, str) and TOKEN_RE.fullmatch(r) and r and r not in self._values and r not in order                         and r not in no_value:
                     order.append(r)
             for r in self._wish:
                 add(r)
@@ -887,8 +892,19 @@ class Sensor:
                     for c in s.get("cards", []):
                         add(c.get("id"))
             for ref in order[: self.VALUES_PER_TICK]:
-                got = self._fetch("values", lambda ref=ref: self.transport.value(ref),
-                                  lambda d, ref=ref: self._p_value(d, ref), down)
+                def get(ref=ref):
+                    try:
+                        return self.transport.value(ref)
+                    except Exception as e:                          # noqa: BLE001 - re-raised below
+                        if getattr(e, "code", None) == "unknown_card":
+                            return _NO_VALUE                        # one card the server cannot value is
+                        raise                                       # not a source failure: skip that ref
+                got = self._fetch("values", get,
+                                  lambda d, ref=ref: (_NO_VALUE, []) if d is _NO_VALUE else self._p_value(d, ref),
+                                  down)
+                if got is _NO_VALUE:
+                    no_value.add(ref)
+                    continue
                 if got is None:
                     break
                 self._values[ref] = got

@@ -440,3 +440,29 @@ class TestSplit(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnknownCardValue(Base):
+    """Live 3 Oct t650: value?card answered unknown_card for one board ref; 'values' stayed down every tick
+    (the same ref was retried first), so every value-guarded intent was refused G06.valuation."""
+
+    def test_unknown_card_is_skipped_not_down(self):
+        from bazaar_sdk import BazaarError
+        real = self.t.value
+
+        def value(card):
+            if card == "ZZZ-99":
+                self.t.calls.append("value")
+                raise BazaarError("unknown_card", "no such card", 404)
+            return real(card)
+        self.t.value = value
+        self.s.want_values(["ZZZ-99", "RET-01"])
+        w, _ = self.s.snapshot(None)
+        self.assertNotIn("values", w.down)
+        self.assertIn("RET-01", w.server_values)
+        self.assertNotIn("ZZZ-99", w.server_values)
+        self.t.data["clock"]["tick"] = self.t.data["clock"].get("tick", 0) + 1
+        before = self.t.calls.count("value")
+        w, _ = self.s.snapshot(w)
+        self.assertNotIn("values", w.down)
+        self.assertEqual(self.t.calls.count("value") - before, 3)          # 3 new refs, ZZZ-99 not retried
