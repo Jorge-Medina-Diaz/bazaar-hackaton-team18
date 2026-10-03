@@ -30,7 +30,10 @@ NOTES (night build, open issues for the lead)
   open_thread intents by their args shape (dealer, side, ref, asset_ids, limit). book.thread_limit wins when present.
 - day_end_hours is not read here (its keys are not fixed); hygiene closes threads at day end, we only may open late.
 - Grant lookahead (G30.grant_soon) is left to the Gate; this module does not read the schedule.
-- Template for dealers other than abuela/chato (PROBE of level 3+): "chato_buy"; talk.TEMPLATES may need a generic one.
+- Template for dealers other than abuela/chato/picaros (PROBE of level 3+): "chato_buy".
+- Pícaros trick (live, Sat): their counter often gives another card at the asked price. Such an offer is never
+  executable (offer_safety), so on a turn whose only dealer offer is a trick we counter with our next step and ignore
+  its price and its "final" (their deadlines are never real); fallback_after bounds the thread.
 - Profiles are looked up by ref, then "SET:rarity" (the keys config/plan.json uses), then bare rarity. RET-08/CHA-08
   "fallback_dealer" picks the next profile of that dealer after a walk/close within the hour (J3).
 - "fallback_after" is read as ticks since the thread opened (J3 "10 ticks"), not "still at 32": the thread is closed
@@ -52,7 +55,7 @@ MAX_LIVE_DUELS_FOR_NEW_THREADS = 3          # >= 4 live duels -> no new threads
 STALL_TICKS = 3                             # our message unanswered this long -> close
 WALKS_PER_HOUR = 2                          # first thread + 1 reopen per hour per (dealer, ref)
 REQUIRED_SOURCES = frozenset({"clock", "me", "me/offers", "me/threads", "threads"})
-TEMPLATES = {"abuela": "abuela_buy", "chato": "chato_buy"}
+TEMPLATES = {"abuela": "abuela_buy", "chato": "chato_buy", "picaros": "picaros_buy"}
 DEFAULT_TEMPLATE = "chato_buy"
 PRIO_ACCEPT, PRIO_CLOSE, PRIO_SAY, PRIO_OPEN = 60, 50, 40, 10
 _INF = float("inf")
@@ -200,6 +203,15 @@ def _standing(t: Mapping, dealer: str, ref: str, tick: int) -> Optional[Mapping]
         if best is None or key > best[0]:
             best = (key, o)
     return best[1] if best else None
+
+
+def _dealer_spoke_offer(t: Mapping, dealer: str, at: Optional[int]) -> bool:
+    """True if the dealer's last message (at tick `at`) carries an open offer of its own (of any shape)."""
+    msgs = [m for m in t.get("messages") or () if isinstance(m, Mapping)]
+    if not msgs or at is None:
+        return False
+    o = msgs[-1].get("offer")
+    return isinstance(o, Mapping) and o.get("maker") == dealer and o.get("status") == "open"
 
 
 def _in_flight(t: Mapping) -> bool:
@@ -366,10 +378,24 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
         if not probe and type(fb) is int and fb > 0 and type(opened_tick) is int and tick - opened_tick >= fb:
             close(tid, ref, f"fallback_after {fb} ticks reached")
             continue
-        if standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0)):
+        trick = standing is None and sender == dealer and _dealer_spoke_offer(t, dealer, sender_tick)
+        if not trick and (standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0))):
             if sender == TEAM and sender_tick is not None and tick - sender_tick >= STALL_TICKS:
                 close(tid, ref, "dealer silent")
             continue                                # wait for the dealer's answer
+        if trick:
+            # the dealer answered with an offer we can never accept (another card: the Pícaros trick, or expired):
+            # counter with our next step, never accept it, never read its price or its "final"
+            nxt = next_price(profile, k, last, limit_t) if limit_t >= 1 and not probe else 0
+            if nxt < 1 or (last is not None and nxt <= last) or nxt in prices:
+                close(tid, ref, f"trick offer and cannot raise (last {last}, limit {limit_t})")
+                continue
+            tpl = TEMPLATES.get(dealer, DEFAULT_TEMPLATE)
+            out.append(make_intent(
+                "say", TACTIC, {"thread_id": tid, "ref": ref, "price": nxt, "template": tpl, "variant": _variant(tpl, k)},
+                f"{dealer} answered with an offer that is not {ref}; our step {k} -> {nxt} (limit {limit_t})",
+                f"standing bid {nxt} for {ref}", predict_dealer(dv, nxt, "buy"), PRIO_SAY))
+            continue
         s = standing["want"]["cash"]
         final = standing.get("final") is True
         exp = f"PROBE:{dealer}:{ref}" if probe else None

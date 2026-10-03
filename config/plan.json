@@ -6,13 +6,14 @@
     "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N are owned by guards.Cfg (contracts D2 defaults); not repeated here.",
     "profiles lookup order: exact ref, then 'SET:rarity', then 'rarity'. anchor/step/limit in P; fallback_after in ticks."
   ],
-  "page_sets": ["RET"],
+  "page_sets": ["RET", "LAT"],
   "protect_sets": ["SAL", "RET", "CHA", "LAT"],
-  "startup_cancels": [2463, 1652, 2591, 2592],
+  "startup_cancels": [2463, 1652, 2591, 2592, 13286],
   "baseline_bands": {"2503": 0.0, "2504": 0.0},
   "dealer_max": {
     "RET-01": 11, "RET-02": 11, "RET-03": 11, "RET-04": 11, "RET-05": 11,
     "RET-06": 25, "RET-07": 25, "RET-08": 31, "RET-09": 90, "RET-10": 90,
+    "LAT-09": 58, "LAT-10": 58,
     "CHA-01": 12, "CHA-02": 12, "CHA-03": 12, "CHA-04": 12, "CHA-05": 12,
     "CHA-06": 25, "CHA-07": 25, "CHA-08": 25, "CHA-09": 100, "CHA-10": 100
   },
@@ -21,12 +22,13 @@
     "RET-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
     "RET:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "RET:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 11,  "fallback_after": null},
+    "LAT:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 58, "fallback_after": 16},
     "CHA:rare":     {"dealer": "chato",  "anchor": 66, "step": 4, "limit": 100, "fallback_after": null},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null}
   },
   "closer": {"accept_min": 20, "default_minus": 75, "compete_minus": 20, "freeze_at": 8,
-             "endgame_hours": {"sun": 19.5, "N": 19.5}},
+             "endgame_hours": {"sun": 19.5, "N": 19.5, "*": 19.5}},
   "resupply_min": 15,
   "dup_min_price": {"RET": 30, "CHA": 30},
   "days_sign": null,

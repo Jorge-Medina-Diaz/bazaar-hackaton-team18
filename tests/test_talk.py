@@ -283,6 +283,13 @@ class G31Say(unittest.TestCase):
     def test_final_never_countered(self):
         self.assertEqual(run(say(75), w=self.w(ours=(70,), theirs=((90, True),)), b=tb()).code, "G31.final")
 
+    def test_trick_offer_does_not_bind(self):
+        # Pícaros trick: their "final" at 60 gives LAT-06, not the thread's LAT-09 -> it never blocks our next step
+        w = self.w(ours=(70,), theirs=((60, True),))
+        w.threads[7]["messages"][-1]["offer"]["give"]["types"] = ["card:LAT-06"]
+        self.assertTrue(run(say(75), w=w, b=tb()).ok)
+        self.assertEqual(run(say(75), w=self.w(ours=(70,), theirs=((60, True),)), b=tb()).code, "G31.final")
+
     def test_should_accept(self):
         self.assertEqual(run(say(85), w=self.w(ours=(70,), theirs=((84, False),)), b=tb()).code,
                          "G31.should_accept")
@@ -612,7 +619,7 @@ class Misc(unittest.TestCase):
 
     def test_templates_cover_spec_names(self):
         self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell", "pilar_sell",
-                                               "duel", "duel_days"})
+                                               "picaros_buy", "duel", "duel_days"})
 
 
 if __name__ == "__main__":

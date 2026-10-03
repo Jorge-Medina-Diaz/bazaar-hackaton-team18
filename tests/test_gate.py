@@ -377,6 +377,16 @@ class TestIdempotencyAndUnknown(GateCase):
         self.assertEqual(self.gate.execute(bid("LAT-09", 6), w2).code, "G05.unknown")
         self.assertEqual(len(self.transport.sent), 1)
 
+    def test_duel_accept_unknown_resolves(self):
+        # audit Sat: an unknown duel_accept must reconcile (duel ended / still live), never pause duels for good
+        self.start(world())
+        ev = self.gate._evidence
+        a = {"duel_id": 5, "fingerprint": "x"}
+        self.assertEqual(ev("duel_accept", a, world(duels=[{"duel": 5, "status": "deal"}]), TICK, 1)[0], True)
+        self.assertEqual(ev("duel_accept", a, world(duels=[]), TICK, 1)[0], True)
+        self.assertIsNone(ev("duel_accept", a, world(duels=[{"duel": 5, "status": "live"}]), TICK, 1)[0])
+        self.assertEqual(ev("duel_accept", a, world(duels=[{"duel": 5, "status": "live"}]), TICK, 2)[0], False)
+
     def test_send_exception_is_unknown(self):
         w = self.start(world())
 

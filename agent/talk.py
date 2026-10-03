@@ -64,6 +64,12 @@ TEMPLATES: Mapping[str, tuple] = {
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
     ),
+    "picaros_buy": (
+        "Buenas, Paco y Nando. Busco esta carta, la de verdad. ¿{p} P?",
+        "Sin prisas: {p} P y cerramos.",
+        "Me he movido yo; ¿qué tal {p} P?",
+        "Precio justo: {p} P.",
+    ),
     "pilar_sell": (
         "¡Buenas, doña Pilar! Le traigo una pieza para su colección. ¿{p} P?",
         "Se la he guardado a usted, que la sabe apreciar. ¿Qué tal {p} P?",
@@ -402,7 +408,11 @@ def _g31_say(a, world, book, valuer, cfg, counters) -> None:
     else:
         last = min(prices) if prices else None
         _need((last is None or p < last) and p >= lim, "G31.limit", f"last={last} p={p} lim={lim}")
-    standing = _dealer_standing(t, dealer)
+    from agent import offer_safety
+    topic = _get(t, "topic")
+    # only offers of the thread's own card bind us: a Pícaros "trick" (another card at the asked price) can never be
+    # accepted (G32.shape), so its "final" or its price must not freeze the haggle
+    standing = [o for o in _dealer_standing(t, dealer) if offer_safety.offer_ok(o, topic, buying=side == "buy")]
     _need(not any(o.get("final") is True for o in standing), "G31.final")
     for o in standing:
         dp = _dealer_price(o, side)

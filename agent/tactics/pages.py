@@ -34,7 +34,7 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from agent.contracts import TEAM, Need, PlanCfg
 
-DEALERS = frozenset({"abuela", "chato"})
+DEALERS = frozenset({"abuela", "chato", "picaros"})
 RARITY_RANK = {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4}
 OPEN_STATUSES = frozenset({"open", "queued"})
 CLOSED_THREAD = frozenset({"closed", "deal", "expired", "cancelled", "settled"})

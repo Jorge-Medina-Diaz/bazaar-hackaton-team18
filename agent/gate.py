@@ -655,6 +655,13 @@ class Gate:
                     if _get(m, "from") == "you" and _get(m, "price") == a.get("price") and (_int(_get(m, "tick")) or 0) >= t0:
                         return True, "duel message seen"
             return (False, "no duel message") if age >= 2 else (None, "waiting")
+        if ik == "duel_accept":                 # audit Sat: without a rule an unknown accept paused duels for good
+            for d in world.duels:
+                if _get(d, "duel", _get(d, "id")) == a.get("duel_id"):
+                    if _get(d, "status") != "live":
+                        return True, f"duel {_get(d, 'status')}"
+                    return (False, "duel still live") if age >= 2 else (None, "waiting")
+            return True, "duel gone"
         if ik == "close_thread":
             if a.get("thread_id") not in (world.threads or {}):
                 return True, "thread gone"

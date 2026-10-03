@@ -366,6 +366,18 @@ class ProposeUnitTest(Base):
         its = self._step(self._haggled(23), [need("RET-06", "abuela")])
         self.assertEqual([(i.kind, i.args["price"], i.args["template"]) for i in its], [("say", 20, "abuela_buy")])
 
+    def test_trick_offer_countered_never_accepted(self):
+        # Pícaros trick: the dealer's only live offer gives another card (RET-07) at a low "final" price
+        t = self._haggled(15, final=True)
+        trick = t["messages"][-1]["offer"]
+        trick["give"]["types"] = ["card:RET-07"]
+        t["standing_offers"] = [trick]
+        its = self._step(t, [need("RET-06", "abuela")])
+        self.assertEqual([(i.kind, i.args.get("price")) for i in its], [("say", 20)])
+        # no room left above our last price -> close, still no accept
+        its = self._step(t, [need("RET-06", "abuela")], make_book(thread_limit={7: 18}, thread_by_dealer={"abuela": 7}))
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
     def test_final_above_limit_closes(self):
         its = self._step(self._haggled(24, final=True),
                          [need("RET-06", "abuela")], make_book(thread_limit={7: 22}, thread_by_dealer={"abuela": 7}))
