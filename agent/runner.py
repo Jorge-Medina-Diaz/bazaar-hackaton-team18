@@ -66,6 +66,10 @@ FATAL_NAMES = frozenset({"GateViolation", "StopActive", "JournalError"})
 BASELINE_SOURCES = frozenset({"me/offers", "me/threads", "threads", "duels"})
 EXC_LIMIT, EXC_WINDOW = 3, 20
 SNAP_EVERY = 5
+# Keyed request budget (RULES: 5 requests/s per key, bursts of 20). The runner takes 3.5/s, burst 8 (2 kept for the
+# Gate's fresh re-reads and sends); read-only panels on the same key take agent.client.PANEL_RATE (1/s) -> 4.5/s.
+# At 2.5/s a 15 s Sunday tick left only a few seconds after the snapshot (Sat: 14 G03.late at 30 s ticks).
+RUNNER_RATE, RUNNER_BURST, RUNNER_RESERVE = 3.5, 8, 2
 MAX_SLEEP_S = 60.0
 WAKE_PAD_S = 1.0
 INBOX_CMDS = frozenset({"arm", "pause", "resume", "do", "flatten"})
@@ -967,7 +971,8 @@ def _run_locked(mode, armed, *, paths, plan_path, max_ticks, base_url, transport
             return 1
         url = base_url or os.environ.get("BAZAAR_URL") or PROD_URL
         transport = T.GuardedTransport(url, key, mode=("live" if mode == "live" else "dry"), paths=paths,
-                                       limiter=T.RateLimiter(clock=clock))
+                                       limiter=T.RateLimiter(rate=RUNNER_RATE, burst=RUNNER_BURST,
+                                                             reserve=RUNNER_RESERVE, clock=clock))
     if mode == "live" and getattr(transport, "mode", None) != "live":
         print("run: --live needs a live transport")
         return 1

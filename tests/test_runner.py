@@ -303,6 +303,17 @@ class TestLateWindow(unittest.TestCase):
         self.assertEqual(len(alarms), 1)
 
 
+class TestRequestBudget(unittest.TestCase):
+    def test_runner_plus_panels_stay_under_the_key_limit(self):
+        # RULES: 5 requests per second per key, bursts of 20; the runner was at 2.5/s (night audit: 15 s ticks)
+        from agent import client
+        self.assertGreater(runner.RUNNER_RATE, 2.5)
+        self.assertLessEqual(runner.RUNNER_RATE + client.PANEL_RATE, 5.0)
+        self.assertLessEqual(runner.RUNNER_BURST + 1, 20)
+        lim = T.RateLimiter(rate=runner.RUNNER_RATE, burst=runner.RUNNER_BURST, reserve=runner.RUNNER_RESERVE)
+        self.assertEqual((lim.rate, lim.burst, lim.reserve), (3.5, 8, 2))
+
+
 class TestLiveDayTimes(unittest.TestCase):
     """Night audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
 

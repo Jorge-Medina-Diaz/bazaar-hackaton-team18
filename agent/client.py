@@ -32,10 +32,14 @@ def _load_env(path: "str | os.PathLike" = REPO_ENV) -> None:
                     os.environ.setdefault(k, v.strip().strip('"'))
 
 
+PANEL_RATE = 1.0          # read-only panels share the team key with the runner (agent.runner.RUNNER_RATE): <= 5/s
+
+
 def client(mode: str = "read") -> GuardedTransport:
     _load_env()
     key = os.environ.get("BAZAAR_KEY")
     if not key:
         raise RuntimeError("BAZAAR_KEY is not set")
     url = os.environ.get("BAZAAR_URL") or PROD_URL
-    return GuardedTransport(url, key, mode=mode, paths=Paths.at(), limiter=RateLimiter())
+    return GuardedTransport(url, key, mode=mode, paths=Paths.at(), limiter=RateLimiter(rate=PANEL_RATE, burst=1,
+                                                                                         reserve=0))
