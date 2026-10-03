@@ -302,8 +302,10 @@ def delivery_risk(world, book, plan_cfg) -> bool:
 # --------------------------------------------------------------------------------------------- watch
 
 def unprotected_sales(world, book) -> list:
-    """G19 / INV-06: cancel own sales (and swaps) of refs with free(ref) < keep(ref), earliest expiry first."""
-    if book is None:
+    """G19 / INV-06: cancel own sales (and swaps) of refs with free(ref) < keep(ref), earliest expiry first.
+    Not on degraded data: with the catalog down build_book has no valuer and keeps every held ref (fail-closed
+    keep=1), so the manual sole-copy SAL-11 listing was cancelled on the first tick after two Saturday restarts."""
+    if book is None or "catalog" in (getattr(world, "down", None) or ()):
         return []
     by_ref: dict = {}
     for v in _live_own(world):
@@ -476,7 +478,8 @@ def startup(world, book, plan_cfg) -> list:
 def watch(world, book, valuer, cfg, plan_cfg, state: Optional[dict] = None) -> list:
     """G19 + INV-23 + day-end thread closing."""
     out = []
-    out.extend(unprotected_sales(world, book))
+    if valuer is not None:            # keep was computed without values otherwise (see unprotected_sales)
+        out.extend(unprotected_sales(world, book))
     out.extend(bid_watch(world, book, valuer, cfg, plan_cfg, state))
     out.extend(swap_watch(world, book, valuer, cfg, plan_cfg))
     out.extend(thread_watch(world, book, valuer, cfg, plan_cfg))

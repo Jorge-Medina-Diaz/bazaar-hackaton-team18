@@ -179,6 +179,17 @@ class TestJ0AndProtection(unittest.TestCase):
         out = hygiene.watch(w, make_book(w), FakeValuer(VALUES), Cfg(), PLAN)
         self.assertEqual(ids(out), {3003})          # one copy may go (2 held, keep 1); the earliest is cancelled
 
+    def test_no_g19_cancel_on_degraded_catalog(self):
+        # Sat 19:44 / 22:12: first tick after a restart, catalog down -> keep 1 for every held ref -> the manual
+        # sole-copy SAL-11 listing (16911, 19163) was cancelled. With degraded data G19 waits; with real data it acts.
+        offers = current_offers() + [_offer(3001, give_ref="SAL-10", asset_id=180, want_cash=300)]
+        down = make_world(offers=offers, down={"catalog"})
+        self.assertEqual(hygiene.unprotected_sales(down, make_book(down)), [])
+        self.assertEqual(hygiene.watch(down, make_book(down), FakeValuer(VALUES), Cfg(), PLAN), [])
+        up = make_world(offers=offers)
+        self.assertEqual(ids(hygiene.watch(up, make_book(up), None, Cfg(), PLAN)), set())      # no valuer
+        self.assertEqual(ids(hygiene.watch(up, make_book(up), FakeValuer(VALUES), Cfg(), PLAN)), {3001})
+
     def test_unprotected_swap_is_cancelled(self):
         offers = current_offers() + [{**_offer(3004, give_ref="SAL-03", asset_id=258, exp=300),
                                       "want": {"cash": 0, "assets": [], "types": ["card:RET-09"]}}]
