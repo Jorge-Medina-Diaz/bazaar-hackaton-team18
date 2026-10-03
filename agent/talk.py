@@ -476,6 +476,9 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
         try:
             from agent.guards import _thread_standing
             reserved = max([_thread_standing(t) or 0] + [int(x) for x in book.thread_prices.get(tid, ()) or ()])
+            tlim = (getattr(book, "thread_limit", None) or {}).get(tid)
+            if type(tlim) is int:                # build_book reserves min(limit, max(...)): add back exactly that
+                reserved = min(tlim, reserved)
         except Exception:  # noqa: BLE001 - unknown: no add-back (fail closed)
             reserved = 0
         _need(p <= book.cash_free + reserved, "G16.cash", f"{p} > {book.cash_free} + {reserved}")

@@ -33,7 +33,10 @@ NOTES (night build, open issues for the lead)
 - Template for dealers other than abuela/chato/picaros (PROBE of level 3+): "chato_buy".
 - Pícaros trick (live, Sat): their counter often gives another card at the asked price. Such an offer is never
   executable (offer_safety), so on a turn whose only dealer offer is a trick we counter with our next step and ignore
-  its price and its "final" (their deadlines are never real); fallback_after bounds the thread.
+  its price; a trick marked final closes the thread (countering it made them walk: final_offer_refused). A correct
+  offer expiring now is countered too unless it is final; fallback_after bounds the thread.
+- A thread where the dealer spoke last with nothing executable (lapsed final, text only) closes after STALL_TICKS.
+- fallback_after is checked after the accept branch: an executable offer at/under the limit is still taken.
 - Profiles are looked up by ref, then "SET:rarity" (the keys config/plan.json uses), then bare rarity. RET-08/CHA-08
   "fallback_dealer" picks the next profile of that dealer after a walk/close within the hour (J3).
 - "fallback_after" is read as ticks since the thread opened (J3 "10 ticks"), not "still at 32": the thread is closed
@@ -205,13 +208,13 @@ def _standing(t: Mapping, dealer: str, ref: str, tick: int) -> Optional[Mapping]
     return best[1] if best else None
 
 
-def _dealer_spoke_offer(t: Mapping, dealer: str, at: Optional[int]) -> bool:
-    """True if the dealer's last message (at tick `at`) carries an open offer of its own (of any shape)."""
+def _dealer_last_offer(t: Mapping, dealer: str) -> Optional[Mapping]:
+    """The open offer of its own (of any shape) that the dealer's message carries when the dealer spoke last."""
     msgs = [m for m in t.get("messages") or () if isinstance(m, Mapping)]
-    if not msgs or at is None:
-        return False
+    if not msgs or msgs[-1].get("sender") != dealer:
+        return None
     o = msgs[-1].get("offer")
-    return isinstance(o, Mapping) and o.get("maker") == dealer and o.get("status") == "open"
+    return o if isinstance(o, Mapping) and o.get("maker") == dealer and o.get("status") == "open" else None
 
 
 def _in_flight(t: Mapping) -> bool:
@@ -311,6 +314,7 @@ def _margin(cfg) -> float:
 def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
     """One step per open dealer thread + new buy threads for dealer needs. Pure: returns Intent[]."""
     try:
+        from agent.offer_safety import offer_ok
         from agent.valuation import predict_dealer, predict_none
     except Exception:
         return []                                   # fail closed: no prediction model, no dealer step
@@ -375,27 +379,44 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
         fb = profile.get("fallback_after")
         sender, sender_tick = _last_sender(t)
         standing = _standing(t, dealer, ref, tick)
-        if not probe and type(fb) is int and fb > 0 and type(opened_tick) is int and tick - opened_tick >= fb:
+        fb_due = not probe and type(fb) is int and fb > 0 and type(opened_tick) is int and tick - opened_tick >= fb
+        # the dealer spoke last with an offer we cannot execute: a trick (fails offer_ok: another card, the Pícaros
+        # trick) or our card at a price expiring now (lapsed). A lapsed final is the dealer's last word: wait/close.
+        spoke = _dealer_last_offer(t, dealer) if standing is None else None
+        trick = spoke is not None and not offer_ok(spoke, {"buy": {"card": ref}}, buying=True)
+        lapsed = spoke is not None and not trick and spoke.get("final") is not True
+        waiting = standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0))
+        if fb_due and waiting:
             close(tid, ref, f"fallback_after {fb} ticks reached")
             continue
-        trick = standing is None and sender == dealer and _dealer_spoke_offer(t, dealer, sender_tick)
-        if not trick and (standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0))):
-            if sender == TEAM and sender_tick is not None and tick - sender_tick >= STALL_TICKS:
-                close(tid, ref, "dealer silent")
-            continue                                # wait for the dealer's answer
-        if trick:
-            # the dealer answered with an offer we can never accept (another card: the Pícaros trick, or expired):
-            # counter with our next step, never accept it, never read its price or its "final"
+        if trick and spoke.get("final") is True:
+            # countering a Pícaros "final" makes them walk (closed_reason final_offer_refused, a walk burnt): leave
+            close(tid, ref, f"{dealer} offered a final that is not {ref}: close, never counter a final")
+            continue
+        if trick or lapsed:
+            # counter with our next step, never accept it, never read its price
             nxt = next_price(profile, k, last, limit_t) if limit_t >= 1 and not probe else 0
             if nxt < 1 or (last is not None and nxt <= last) or nxt in prices:
-                close(tid, ref, f"trick offer and cannot raise (last {last}, limit {limit_t})")
+                close(tid, ref, f"{'trick' if trick else 'lapsed'} offer and cannot raise (last {last}, limit {limit_t})")
                 continue
             tpl = TEMPLATES.get(dealer, DEFAULT_TEMPLATE)
+            what = f"an offer that is not {ref}" if trick else "an offer expiring now"
             out.append(make_intent(
                 "say", TACTIC, {"thread_id": tid, "ref": ref, "price": nxt, "template": tpl, "variant": _variant(tpl, k)},
-                f"{dealer} answered with an offer that is not {ref}; our step {k} -> {nxt} (limit {limit_t})",
+                f"{dealer} answered with {what}; our step {k} -> {nxt} (limit {limit_t})",
                 f"standing bid {nxt} for {ref}", predict_dealer(dv, nxt, "buy"), PRIO_SAY))
             continue
+        if waiting:
+            if sender == TEAM:
+                if sender_tick is not None and tick - sender_tick >= STALL_TICKS:
+                    close(tid, ref, "dealer silent")
+            else:
+                # the dealer spoke last with nothing we can accept or counter (lapsed final, text only, nothing yet):
+                # one conversation per dealer, so never wait forever
+                quiet = sender_tick if sender_tick is not None else opened_tick
+                if type(quiet) is int and tick - quiet >= STALL_TICKS:
+                    close(tid, ref, "dealer spoke last with no executable offer")
+            continue                                # wait for the dealer's answer
         s = standing["want"]["cash"]
         final = standing.get("final") is True
         exp = f"PROBE:{dealer}:{ref}" if probe else None
@@ -416,6 +437,9 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
                      "resupply": False, "venue": dealer},
                     f"{dealer} offers {ref} at {s} <= limit {limit_t} ({'final' if final else 'next ' + str(nxt0)})",
                     f"buy {ref} for {s}", predict_dealer(dv, s, "buy"), PRIO_ACCEPT))
+                continue
+            if fb_due:                              # after the accept: an offer at/under our limit is still taken
+                close(tid, ref, f"fallback_after {fb} ticks reached")
                 continue
             if final:
                 close(tid, ref, f"final {s} above limit {limit_t}: never counter a final")

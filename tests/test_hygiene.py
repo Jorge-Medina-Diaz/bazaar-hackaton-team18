@@ -385,5 +385,62 @@ class TestSwapWatchRealBook(unittest.TestCase):
         self.assertEqual(hygiene.swap_watch(c.world, c.book, c.valuer, guards.Cfg(), PLAN), [])
 
 
+class ThreadValueRealBook(unittest.TestCase):
+    """Operator note (Sat): "G19 en hygiene valora la puja propia como 2a copia (91 -> 22.8): cancela cada hilo".
+    Real guards.build_book + real Valuer: our standing buy in a dealer thread is valued as the copy after held."""
+
+    def _ctx(self, threads, my_offers=()):
+        from agent import guards
+        from agent.valuation import Valuer
+        cat = _load("catalog.json")
+        me = _load("me.json")
+        w = World(tick=210, t_hours=5.0, round=2, tick_seconds=30.0, tick_deadline=1e12,
+                  clock={"tick": 210, "paused": False, "doors": "open", "today": "sat"}, limits=FRIDAY, reading="N",
+                  me=me, my_offers=tuple(my_offers), offers_to_us=(), board=(), own_pseudonym=None,
+                  threads=threads, foreign_threads=(), duels=(), catalog=cat, schedule={"upcoming": []},
+                  released_sets=Valuer.released_from_catalog(cat), feed_new=(), server_values={}, down=frozenset())
+        v = Valuer(cat, me["affinity"], w.released_sets)
+        cfg = guards.Cfg()
+        return w, guards.build_book(w, None, v, cfg, {}, {}, {}), v, cfg
+
+    @staticmethod
+    def _thread(tid, dealer, ref, own, ask):
+        mine = {"id": 10 * tid, "maker": "t18", "to": dealer, "venue": None, "thread": tid, "status": "open",
+                "final": False, "give": {"cash": own, "assets": [], "types": []},
+                "want": {"cash": 0, "assets": [], "types": [f"card:{ref}"]}, "created_tick": 209, "expires_tick": 213}
+        hers = {"id": 10 * tid + 1, "maker": dealer, "to": "t18", "venue": None, "thread": tid, "status": "open",
+                "final": False, "give": {"cash": 0, "assets": [], "types": [f"card:{ref}"]},
+                "want": {"cash": ask, "assets": [], "types": []}, "created_tick": 210, "expires_tick": 214}
+        t = {"id": tid, "team": "t18", "with": dealer, "status": "open", "topic": {"buy": {"card": ref}},
+             "created_tick": 207, "standing_offers": [mine, hers],
+             "messages": [{"id": 1, "tick": 209, "sender": "t18", "offer": mine},
+                          {"id": 2, "tick": 210, "sender": dealer, "offer": hers}]}
+        return t, mine
+
+    def test_own_standing_buy_valued_as_first_copy(self):
+        t, mine = self._thread(392, "chato", "RET-10", 74, 95)     # live t210 shape (offer also in my_offers)
+        w, b, v, cfg = self._ctx({392: t}, (mine,))
+        first = float(v.delta_add({}, "RET-10", b.packs))
+        self.assertEqual(hygiene._dv_add(w, b, v, "RET-10", hygiene._counts_for_thread(b, "RET-10")), first)
+        self.assertEqual(hygiene.thread_watch(w, b, v, cfg, {}), [])
+
+    def test_ref_projected_twice_still_first_copy(self):
+        # two open threads for one ref: build_book projects RET-10 twice; projected - 1 was a 2nd copy -> G19 closed
+        t1, m1 = self._thread(392, "chato", "RET-10", 74, 95)
+        t2, m2 = self._thread(393, "picaros", "RET-10", 70, 99)
+        w, b, v, cfg = self._ctx({392: t1, 393: t2}, (m1, m2))
+        self.assertEqual(b.projected["RET-10"], 2)
+        self.assertEqual(hygiene.thread_watch(w, b, v, cfg, {}), [])
+
+    def test_walked_thread_is_not_open(self):
+        # live Sat: status "walked" (closed_reason persona_budget) counted as open: G19 close every tick (G33
+        # refused) and J1 never opened a pack while it stayed in me/threads
+        walked = dict(buy_thread(price=136), status="walked", closed_reason="persona_budget")
+        w = make_world(me=with_pack(_load("me.json")), offers=current_offers(), threads={7: walked})
+        out = hygiene.propose(w, make_book(w), FakeValuer(VALUES), Cfg(), PLAN, {})
+        self.assertEqual(ids(out, "close_thread", "thread_id"), set())
+        self.assertEqual(ids(out, "open_pack", "asset_id"), {900})
+
+
 if __name__ == "__main__":
     unittest.main()

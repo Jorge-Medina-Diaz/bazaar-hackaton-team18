@@ -76,7 +76,7 @@ ALLOW: Mapping[str, frozenset] = MappingProxyType({
     "offer": frozenset({"id", "maker", "to", "venue", "thread", "status", "give", "want", "expires_tick",
                         "created_tick", "final"}),
     "thread": frozenset({"id", "kind", "team", "with", "venue", "topic", "status", "created_tick", "messages",
-                         "standing_offers", "closed_reason"}),
+                         "standing_offers", "closed_reason", "until_tick"}),
     "message": frozenset({"id", "tick", "sender", "offer", "final", "price"}),
     "duel": frozenset({"duel", "session", "status", "role", "issues", "your_days_weight", "your_limit",
                        "deadline_tick", "decay_per_round", "rounds", "your_offer", "rival_offer", "messages",

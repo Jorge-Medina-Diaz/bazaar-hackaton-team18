@@ -413,6 +413,9 @@ class G32Accept(unittest.TestCase):
         self.assertTrue(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=0), fresh=self.t).ok)
         self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=-10), fresh=self.t).code,
                          "G16.cash")
+        # the add-back is capped at the thread limit, as build_book reserves it: max(84, 90) -> 86, 84 > -3 + 86
+        b = tb(cash_free=-3, thread_limit={7: 86}, thread_prices={7: (90,)})
+        self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=b, fresh=self.t).code, "G16.cash")
 
     def test_pack_in_hand(self):
         self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(packs=(900,)), fresh=self.t).code,
