@@ -20,6 +20,8 @@ NOTES (M15, night build)
   removed): a stale `arm` must never arm a new run. `do` from a one-shot CLI call comes in through run(manual=...).
 - Manual intents (`do`, `flatten`): the prediction is the Gate's own recomputation (Gate._predict), so G07 never
   trips on a human order; every other guard applies unchanged. A failure there leaves predict_none -> the Gate refuses.
+  A `do` order is sent for real only if it says "live": true (`do --live`); otherwise armed_now() drops "manual"
+  while the Gate executes it, so it ends as a "would" even in a live run. Flatten intents follow the run's mode.
 - Fast path (§1 step 4) only runs when a baseline already exists and nothing is pending reconciliation: the Gate
   takes its baseline from the World it is given and reconcile reads evidence from it, and the fast World has most
   sources down. It only executes the configured startup cancels (J0). First start without baseline: the full
@@ -67,6 +69,7 @@ SNAP_EVERY = 5
 MAX_SLEEP_S = 60.0
 WAKE_PAD_S = 1.0
 INBOX_CMDS = frozenset({"arm", "pause", "resume", "do", "flatten"})
+FLATTEN_MAX_TICKS = 10           # stop --flatten: STOP anyway after this many flatten ticks (a cancel that never lands)
 
 
 class Fatal(Exception):
@@ -168,9 +171,9 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
 
     Order: exposure reducers first (cancel, close_thread, open_pack), then priority (high first), then tactic order.
     Budgets: accepts (team/dealer + duel when DUEL_ACCEPT_SHARED) <= limits.accepts, given to the EARLIEST deadline
-    (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, limits.listings - 2); new list_offer <=
-    room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= limits.threads -
-    THREADS_MARGIN - own open threads, none while >= 4 duels are live; <= 1 message per thread / duel (a duel being
+    (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, L, max(1, L - 2)), L = limits.listings;
+    new list_offer <= room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= max(1, limits.threads -
+    THREADS_MARGIN) - own open threads, none while >= 4 duels are live; <= 1 message per thread / duel (a duel being
     accepted gets no message); duplicates (same intent id, or same cancel/close/pack target) dropped.
     The Gate re-checks every budget (G04); this only decides WHO gets the scarce slots.
     """
@@ -205,12 +208,14 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         chosen_acc = {id(it) for it in team[:acc_budget] + duel[:acc_budget]}
     accepted_duels = {it.args.get("duel_id") for it in accepts if id(it) in chosen_acc and it.kind == "duel_accept"}
 
-    listings = max(0, min(int(_cfg(cfg, "LISTINGS_PER_TICK", 6)), int(getattr(L, "listings", 0) or 0) - 2))
+    lim = int(getattr(L, "listings", 0) or 0)          # min(L, max(1, L - 2)): limit 2 or 3 keeps one slot (Gate G04)
+    listings = max(0, min(int(_cfg(cfg, "LISTINGS_PER_TICK", 6)), lim, max(1, lim - 2)))
     own_open = sum(1 for o in world.my_offers or () if _g(o, "maker") == TEAM and _g(o, "status") in OWN_OPEN)
     offer_room = max(0, int(getattr(L, "open_offers", 0) or 0) - int(_cfg(cfg, "OPEN_OFFERS_MARGIN", 4)) - own_open)
     own_threads = sum(1 for t in (world.threads or {}).values()
                       if _g(t, "status") == "open" and _g(t, "team", TEAM) == TEAM)
-    thread_room = max(0, int(getattr(L, "threads", 0) or 0) - int(_cfg(cfg, "THREADS_MARGIN", 1)) - own_threads)
+    tlim = int(getattr(L, "threads", 0) or 0)
+    thread_room = max(0, min(tlim, max(1, tlim - int(_cfg(cfg, "THREADS_MARGIN", 1)))) - own_threads)
     if len(world.duels or ()) >= 4:
         thread_room = 0
     msgs: set = set()
@@ -324,7 +329,10 @@ class Runner:
         self.exc: dict = defaultdict(lambda: deque(maxlen=EXC_LIMIT))
         self.missing_noted: set = set()
         self.pending_manual: list = list(manual or ())
+        self.dry_manual: set = set()               # intent ids of this tick's `do` orders sent without --live
+        self._manual_dry = False                   # True while the Gate executes one of them (armed_now drops manual)
         self.flatten: Optional[str] = None
+        self.flatten_ticks = 0
         self.prev: Optional[World] = None          # last World read (any kind): the sensor carries from it
         self.prev_full: Optional[World] = None     # last fully processed World: the calibrator's "before"
         self.last_tick: Optional[int] = None
@@ -369,6 +377,8 @@ class Runner:
         s = set(self.armed)
         if self.mode == "live" and tactic_green("manual", self.paths, chash=self.chash):
             s.add("manual")
+        if self._manual_dry:                       # a `do` without --live is only a "would", even in a live run
+            s.discard("manual")
         return frozenset(s)
 
     def paused(self, tactic: str) -> bool:
@@ -402,7 +412,7 @@ class Runner:
     def apply_cmd(self, cmd: Mapping, name: str = "") -> None:
         c, why = cmd.get("cmd"), str(cmd.get("why") or "")[:300]
         self.j("cmd", cmd=c, applied=True, why=why, file=name,
-               tactic=cmd.get("tactic"), intent_kind=cmd.get("kind"), args=cmd.get("args"))
+               tactic=cmd.get("tactic"), intent_kind=cmd.get("kind"), args=cmd.get("args"), live=cmd.get("live"))
         if c == "arm":
             if self._arm(str(cmd.get("tactic")), why):
                 self._save_armed()
@@ -454,6 +464,7 @@ class Runner:
     def execute(self, intents: Sequence[Intent], world: World, *, late: bool = False) -> list:
         outs = []
         for it in intents:
+            self._manual_dry = it.tactic == "manual" and intent_id(world.tick, it) in self.dry_manual
             try:
                 o = self.gate.execute(it, world)
             except Exception as e:                                       # noqa: BLE001
@@ -462,6 +473,8 @@ class Runner:
                 self.alarm(f"execute error {e.__class__.__name__}: {str(e)[:200]}", tactic=it.tactic,
                            intent_kind=it.kind)
                 continue
+            finally:
+                self._manual_dry = False
             outs.append((it, o))
         return outs
 
@@ -635,24 +648,33 @@ class Runner:
         intents = []
         if self.flatten is None and book is not None:
             intents = self.propose_all(world, book, needs)
+        self.dry_manual = set()
         for cmd in self.pending_manual:
             it = self.manual_intent(cmd, world)
             if it is not None:
                 intents.append(it)
+                if cmd.get("live") is not True:          # only an order that says live is sent for real
+                    self.dry_manual.add(intent_id(world.tick, it))
         self.pending_manual = []
+        flat: list = []
         if self.flatten is not None:
-            intents = [it for it in intents if it.tactic == "manual"] + self.flatten_intents(world)
+            flat = self.flatten_intents(world)
+            intents = [it for it in intents if it.tactic == "manual"] + flat
 
         chosen = choose(intents, world, self.cfg)
         early = [it for it in chosen if it.kind != "duel_accept"]
         held = [it for it in chosen if it.kind == "duel_accept"]
         outs = self.execute(early, world)
         if self.flatten is not None:
-            why = self.flatten
-            self.write_stop(f"flatten: {why}")
-            self.j("stop", reason=f"flatten: {why}", tick=world.tick)
-            raise Fatal(f"flatten: {why}")
-        if held or world.duels:
+            # one tick cancels at most the listings budget: keep flattening tick after tick until no own bid / buy
+            # thread is left, then STOP (dry: nothing changes, so one pass; FLATTEN_MAX_TICKS bounds a stuck cancel)
+            self.flatten_ticks += 1
+            if not flat or self.mode != "live" or self.flatten_ticks >= FLATTEN_MAX_TICKS:
+                why = self.flatten if not flat else f"{self.flatten} ({len(flat)} left after {self.flatten_ticks} ticks)"
+                self.write_stop(f"flatten: {why}")
+                self.j("stop", reason=f"flatten: {why}", tick=world.tick)
+                raise Fatal(f"flatten: {why}")
+        if self.flatten is None and (held or world.duels):     # no late duel accepts while flattening
             outs += self.late_window(world, held, outs)
 
         self.tick_row(world, outs)

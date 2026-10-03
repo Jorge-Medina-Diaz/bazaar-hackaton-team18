@@ -42,8 +42,11 @@ NOTES (M5, night build)
   duel+price). Unexplained cash/asset changes (alarm + pause of buy tactics) and "an accept of ours" are NOT
   checked tonight (need settlement accounting from the feed / cards): open issue.
 - reconcile: evidence from the World for list_offer/cancel/open_thread/say/duel_say/close_thread/open_pack;
-  accept/duel_accept only "not landed" when the offer is still open >= 2 ticks later, otherwise left frozen and
-  reported {"action": "pause", "tactic": ...} after 3 ticks. accepted_unsettled released at until_tick with
+  duel_accept by the duel's status; a dealer accept by its thread (status "deal", that offer accepted/settled or a
+  journal settlement naming the intent -> landed; thread closed/walked or that offer cancelled/expired, or the
+  thread still open >= 2 ticks later -> not landed); a team accept only "not landed" when the offer is still open
+  >= 2 ticks later, otherwise left frozen and reported {"action": "pause", "tactic": ...} once, after 3 ticks.
+  A torn intent row (journal "truncated") is resolved at once: reconciled truncated=<seq> landed=False. accepted_unsettled released at until_tick with
   landed=False/evidence "timeout" (no /api/cards check tonight: open issue). execute refuses until reconcile ran
   once in this process (INV-15: reconcile before writing).
 """
@@ -81,6 +84,8 @@ TICKS_PER_GAME_HOUR = 60
 RESPONSE_MAX = 2048
 PRED_TOL = 0.01
 IN_FLIGHT_TICKS = 2              # M17: an own offer gone from me/offers stays booked this many ticks
+DEAL_OFFER = frozenset({"accepted", "settled", "filled", "done", "deal"})      # reconcile: a dealer accept landed
+DEAD_OFFER = frozenset({"cancelled", "canceled", "expired", "failed", "rejected", "withdrawn"})
 
 
 # ------------------------------------------------------------------------------------------- requests
@@ -327,6 +332,7 @@ class Gate:
         self._blocked: set = set()            # domains blocked for this tick (odd fresh re-read)
         self._seen: dict = {}                 # iid -> status (this process)
         self._frozen_unknown: set = set()     # domains frozen by unknown outcomes in this process
+        self._pause_asked: set = set()        # iids whose unreconciled pause was already reported (once each)
         self._reconciled = False
         self._stop: Optional[str] = None
         self._frozen: Mapping = {}
@@ -356,15 +362,20 @@ class Gate:
     # ---------------------------------------------------------------- begin_tick
     def begin_tick(self, world: World) -> list:
         msgs: list = []
+        # the runner's fast path and the full tick can both begin the SAME server tick: keep its per-tick budgets
+        # (a reset let listings+cancels reach 12, the server limit) and the domains blocked in it
+        same = self._tick == world.tick and self.counters is not None
         self._tick = world.tick
-        self._blocked = set()
+        if not same:
+            self._blocked = set()
         self.book = None
         g = self._guards
         if g is None:
             msgs.append("guards not built: every write refused")
             self.counters = None
             return msgs
-        self.counters = g.Counters(tick=world.tick)
+        if not same:
+            self.counters = g.Counters(tick=world.tick)
         baseline = self._baseline(world, msgs)
         if baseline is None:
             return msgs
@@ -601,19 +612,28 @@ class Gate:
                             tick=world.tick)
                     out.append({"id": iid, "landed": False, "evidence": "timeout"})
                 continue
+            if row.get("pending") == "truncated" and _int(row.get("seq")) is not None:
+                # a torn intent row was never sent (the WAL row is fsynced before the send, agent.journal NOTES):
+                # resolve it, or it alarms every tick, keeps its domains frozen and the fast path off for good
+                self._j("reconciled", truncated=row["seq"], landed=False, maybe_intent=row.get("maybe_intent"),
+                        evidence="torn intent row: never sent", tick=world.tick)
+                out.append({"truncated": row["seq"], "landed": False, "evidence": "torn intent row"})
+                continue
             if row.get("kind") != "intent":
                 out.append({"id": iid, "action": "alarm", "why": f"pending {row.get('pending')}"})
                 continue
             ik, a, t0 = row.get("intent_kind"), row.get("args") or {}, _int(row.get("tick"))
             age = world.tick - t0 if t0 is not None else 99
             try:
-                landed, ev = self._evidence(ik, a, world, t0, age)
+                landed, ev = self._evidence(ik, a, world, t0, age, iid=iid)
             except Exception as e:                                       # noqa: BLE001
                 landed, ev = None, f"evidence error {e.__class__.__name__}"
             if landed is not None:
                 self._j("reconciled", id=iid, landed=landed, evidence=ev, tick=world.tick)
                 out.append({"id": iid, "landed": landed, "evidence": ev})
-            elif age >= 3:
+            elif age >= 3 and iid not in self._pause_asked:
+                # once per intent and process: a pause every tick undid an operator's `resume` at once
+                self._pause_asked.add(iid)
                 out.append({"id": iid, "action": "pause", "tactic": row.get("tactic"), "why": ev})
         self._reconciled = True
         try:
@@ -629,7 +649,17 @@ class Gate:
                     pass
         return out
 
-    def _evidence(self, ik: str, a: Mapping, world: World, t0: Optional[int], age: int) -> tuple:
+    def _settled(self, iid: Optional[str]) -> bool:
+        """A journal "settlement" row naming this intent id (agent.journal ingests the same rows)."""
+        if not iid:
+            return False
+        try:
+            return any(iid in (r.get("ids") or ()) for r in self.journal.rows({"settlement"}))
+        except Exception:                                                # noqa: BLE001 - no evidence, not a crash
+            return False
+
+    def _evidence(self, ik: str, a: Mapping, world: World, t0: Optional[int], age: int,
+                  iid: Optional[str] = None) -> tuple:
         t0 = t0 if t0 is not None else -1
         if ik == "list_offer":
             want = _intent_sig(a)
@@ -651,7 +681,11 @@ class Gate:
         if ik == "say":
             th = (world.threads or {}).get(a.get("thread_id"))
             for m in _get(th, "messages", ()) or ():
-                if _get(m, "sender") == TEAM and _get(m, "price") == a.get("price") and (_int(_get(m, "tick")) or 0) >= t0:
+                # the live message has no top-level price ({id, offer, sender, tick}): it is the cash of its offer
+                mo = _get(m, "offer", {}) or {}
+                prices = {_get(m, "price"), _get(_get(mo, "give", {}) or {}, "cash"),
+                          _get(_get(mo, "want", {}) or {}, "cash")} - {None, 0}
+                if _get(m, "sender") == TEAM and a.get("price") in prices and (_int(_get(m, "tick")) or 0) >= t0:
                     return True, {"msg_id": _get(m, "id")}
             return (False, "no message") if age >= 2 else (None, "waiting")
         if ik == "duel_say":
@@ -669,14 +703,35 @@ class Gate:
                         return True, f"duel {_get(d, 'status')}"
                     return (False, "duel still live") if age >= 2 else (None, "waiting")
             return True, "duel gone"
-        if ik == "close_thread":
-            if a.get("thread_id") not in (world.threads or {}):
-                return True, "thread gone"
+        if ik == "close_thread":                # World.threads keeps closed threads: the status decides
+            st = _get((world.threads or {}).get(a.get("thread_id")), "status")
+            if st != "open":
+                return True, f"thread {st or 'gone'}"
             return (False, "thread still open") if age >= 2 else (None, "waiting")
         if ik == "open_pack":
             if _asset(world, a.get("asset_id")) is None:
                 return True, "pack gone"
             return (False, "pack still held") if age >= 2 else (None, "waiting")
+        if ik == "accept" and a.get("source") == "dealer":
+            # a dealer thread's offers are never in offers_to_us / boards: the thread (or that offer) decides
+            if {"threads", "me/threads"} & set(world.down or ()):
+                return None, "threads down"
+            th = (world.threads or {}).get(a.get("thread_id"))
+            if th is None:
+                return None, "thread not seen"
+            oid, st = a.get("offer_id"), _get(th, "status")
+            ost = next((_get(o, "status") for o in list(_get(th, "standing_offers", ()) or ()) +
+                        [_get(m, "offer") for m in _get(th, "messages", ()) or ()]
+                        if isinstance(o, Mapping) and _get(o, "id") == oid), None)
+            if st == "deal" or ost in DEAL_OFFER:
+                return True, f"thread {st} offer {ost}"
+            if self._settled(iid):
+                return True, "settlement"
+            if st != "open":
+                return False, f"thread {st}"
+            if ost in DEAD_OFFER:
+                return False, f"offer {ost}"
+            return (False, "thread still open") if age >= 2 else (None, "waiting")
         if ik == "accept":
             oid = a.get("offer_id")
             still = any(_get(o, "id") == oid for o in world.offers_to_us) or any(
@@ -788,7 +843,9 @@ class Gate:
         except Exception as e:                                           # noqa: BLE001
             raise _Refuse("G02.request", f"{e.__class__.__name__}: {e}")
         # 7. dry / unarmed / paused -> would
-        armed = intent.tactic == "manual" or intent.tactic in frozenset(self._armed() or ())
+        # manual is armed like any tactic: the runner's armed_now() adds it only with "core" green in live and
+        # leaves it out for a `do` order sent without --live (it was always armed here: a dry `do` went out live)
+        armed = intent.tactic in frozenset(self._armed() or ())
         if self.mode != "live" or not armed or self._paused(intent.tactic):
             why = "mode" if self.mode != "live" else ("unarmed" if not armed else "paused")
             out = Outcome(iid, "would", why)
@@ -931,7 +988,8 @@ class Gate:
         if k in ("accept", "duel_accept") and c.accepts >= L.accepts:
             raise _Refuse("G04.accepts", f"{c.accepts}/{L.accepts}")
         if k in ("list_offer", "cancel"):
-            cap = min(int(self._cfg("LISTINGS_PER_TICK", 6)), L.listings - 2)
+            # min(L, max(1, L - 2)): a small server limit (2 or 3) keeps one slot instead of none
+            cap = min(int(self._cfg("LISTINGS_PER_TICK", 6)), L.listings, max(1, L.listings - 2))
             if c.listings >= cap:
                 raise _Refuse("G04.listings", f"{c.listings}/{cap}")
         if k == "list_offer":
@@ -942,7 +1000,7 @@ class Gate:
         if k == "open_thread":
             mine = sum(1 for th in (world.threads or {}).values()
                        if _get(th, "team", TEAM) == TEAM and _get(th, "status") == "open")   # World.threads keeps every status
-            cap = L.threads - int(self._cfg("THREADS_MARGIN", 1))
+            cap = min(L.threads, max(1, L.threads - int(self._cfg("THREADS_MARGIN", 1))))
             if mine + c.threads_opened >= cap:
                 raise _Refuse("G04.threads", f"{mine}+{c.threads_opened}/{cap}")
         if k == "say" and f"thread:{a['thread_id']}" in c.msgs:
