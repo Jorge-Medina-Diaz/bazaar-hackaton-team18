@@ -367,10 +367,13 @@ class ProposeUnitTest(Base):
         self.assertEqual([(i.kind, i.args["price"], i.args["template"]) for i in its], [("say", 20, "abuela_buy")])
 
     def test_variant_skips_egg_lines(self):
-        # the chato_buy name question (last line) is hand-sent only: rotation never reaches it
+        # egg probe lines (the last EGG_LINES[t] lines of a template) are hand-sent only: rotation never reaches them
         from agent import talk
-        n = len(talk.TEMPLATES["chato_buy"])
-        self.assertTrue(all(D._variant("chato_buy", k) < n - 1 for k in range(20)))
+        for tpl, eggs in talk.EGG_LINES.items():
+            n = len(talk.TEMPLATES[tpl])
+            self.assertGreater(n - eggs, 0, tpl)
+            got = {D._variant(tpl, k) for k in range(40)}
+            self.assertEqual(got, set(range(n - eggs)), tpl)
 
     def test_trick_offer_countered_never_accepted(self):
         # Pícaros trick: the dealer's only live offer gives another card (RET-07) at a low price

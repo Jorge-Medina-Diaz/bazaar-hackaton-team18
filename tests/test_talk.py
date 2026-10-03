@@ -660,5 +660,33 @@ class Misc(unittest.TestCase):
                                                "picaros_buy", "picaros_sell", "banco_sell", "duel", "duel_days"})
 
 
+class SundayEggLines(unittest.TestCase):
+    """Night audit (Sun 4 Oct): the hand-sent egg lines render, pass G60 and stay out of automatic rotation."""
+    LINES = {("abuela_buy", 7): "chotis", ("abuela_buy", 8): "cocido", ("abuela_sell", 5): "chotis",
+             ("abuela_sell", 6): "cocido", ("chato_sell", 3): "calamares", ("chato_buy", 5): "calamares",
+             ("banco_sell", 5): "Casa Prima"}
+
+    def test_each_line_renders_and_passes_g60(self):
+        for (tpl, i), word in self.LINES.items():
+            raw = talk.TEMPLATES[tpl][i]
+            self.assertEqual(raw.count("{p}"), 1, (tpl, i))
+            self.assertIn(word, raw)
+            for p in (6, 8, 200):
+                text = talk.render(tpl, i, p)
+                self.assertLessEqual(len(text), talk.MAX_LEN)
+                self.assertIsNone(talk.FORBIDDEN.search(text), (tpl, i))
+                self.assertTrue(talk.firewall(text, p, None, template=tpl).ok, (tpl, i))
+
+    def test_lines_are_inside_the_egg_tail(self):
+        for (tpl, i) in self.LINES:
+            self.assertGreaterEqual(i, len(talk.TEMPLATES[tpl]) - talk.EGG_LINES[tpl], (tpl, i))
+
+    def test_egg_line_through_g31(self):
+        self.assertTrue(run(say(75, variant=5), w=world(threads={7: thread(ours=(70,))}), b=tb()).ok)   # chato_buy[5]
+
+    def test_never_the_oro_de_moscu(self):
+        self.assertFalse(any("Mosc" in line for lines in talk.TEMPLATES.values() for line in lines))
+
+
 if __name__ == "__main__":
     unittest.main()

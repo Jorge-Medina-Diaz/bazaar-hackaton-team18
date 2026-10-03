@@ -20,7 +20,8 @@ NOTES (M4b, night build)
 - "Distinct from the last text of the thread": the World has no text, so it is enforced structurally:
   every template carries {p} (duel_days also {d}) and G31/G50 forbid repeating our (price[, days]).
   firewall() also takes an optional last_text for callers that have it.
-- Dealer templates exist only for abuela and chato; a new dealer has no template -> G60.template (refuse).
+- Dealer templates exist for abuela, chato and picaros (buy and sell) and for pilar and banco (sell only); a dealer
+  without a template -> G60.template (refuse).
 - `fresh` for duel_accept: the duel Mapping, or the /api/duels payload ({"duels": [...]}) or a list.
   `fresh` for a dealer accept: the thread Mapping (or {"thread": {...}}).
 """
@@ -48,6 +49,8 @@ TEMPLATES: Mapping[str, tuple] = {
         "Mi abuela también tenía un puesto así. ¿Le vendría bien {p} P?",
         "Hago un esfuerzo: {p} P. ¡Y vuelvo el domingo que viene!",
         "Es usted un encanto. ¿{p} P y cerramos con una sonrisa?",
+        "¡Buenas, Carmen! Usted que es tan castiza: ¿es verdad que el chotis se baila sobre una baldosa? ¿Me lo dejaría en {p} P?",   # Sun egg (Castizo), by hand
+        "¿Ha comido ya, Carmen? Yo hoy, cocido madrileño con sus tres vuelcos, como lo hacía mi abuela. ¿Me lo deja en {p} P?",   # Sun egg (cocido), by hand
     ),
     "chato_buy": (
         "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿{p} P?",
@@ -55,6 +58,7 @@ TEMPLATES: Mapping[str, tuple] = {
         "Me he movido yo; ¿qué tal {p} P?",
         "Sin rodeos: {p} P.",
         "{p} P por esta carta. Y perdone, señor: después de tantos años junto a Carmen, ¿cuál es su nombre de verdad?",   # Sat egg probe (prestige only), use once
+        "Buenas, Chato. ¿Dónde se come el mejor bocadillo de calamares de Madrid? Yo digo que en la Plaza Mayor, con una caña. ¿{p} P?",   # Sun egg (calamares), by hand
     ),
     "abuela_sell": (
         "¡Buenas, Carmen! Le traigo una carta preciosa para su puesto. ¿Me daría {p} P?",
@@ -62,11 +66,14 @@ TEMPLATES: Mapping[str, tuple] = {
         "Me ajusto por usted: {p} P, ¿le parece?",
         "Gracias por atenderme, Carmen. ¿La dejamos en {p} P?",
         "Ay, Carmen, ¿es verdad lo de la chulapa dorada? Le dejo esta carta en {p} P.",   # Sat egg (Sharp ear)
+        "¡Buenas, Carmen! Usted que es tan castiza: ¿es verdad que el chotis se baila sobre una baldosa? Le dejo esta carta en {p} P.",   # Sun egg (Castizo), by hand
+        "¿Ha comido ya, Carmen? Yo hoy, cocido madrileño con sus tres vuelcos, como lo hacía mi abuela. Le dejo esta carta en {p} P.",   # Sun egg (cocido), by hand
     ),
     "chato_sell": (
         "Buenas, Chato. Te traigo esta carta. ¿{p} P?",
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
+        "Buenas, Chato. ¿Dónde se come el mejor bocadillo de calamares de Madrid? Yo digo que en la Plaza Mayor, con una caña. Te la dejo en {p} P.",   # Sun egg (calamares), by hand
     ),
     "picaros_buy": (
         "Buenas, Paco y Nando. Busco esta carta, la de verdad. ¿{p} P?",
@@ -80,6 +87,7 @@ TEMPLATES: Mapping[str, tuple] = {
         "Me ajusto por usted: {p} P.",
         "Gracias por su tiempo, don Ernesto. ¿La dejamos en {p} P?",
         "Una curiosidad, don Ernesto: ¿empezó usted en el Banco de España? {p} P por esta pieza.",   # Sat egg probe
+        "Buenas, don Ernesto. Doña Pilar me dice que los domingos usted recibe en Casa Prima a los coleccionistas más consumados. Traigo tres páginas completas. ¿{p} P por esta pieza?",   # Sun egg probe: only on evidence
     ),
     "picaros_sell": (
         "Buenas, Paco y Nando. Os traigo esta carta. ¿{p} P?",
@@ -107,9 +115,12 @@ TEMPLATES: Mapping[str, tuple] = {
     ),
 }
 
-# Easter-egg probe lines sit LAST in these templates and are sent only by hand (do say ... variant=<last>);
-# automatic rotation (dealers._variant) must skip them.
-EGG_LINES: Mapping[str, int] = {"chato_buy": 1, "abuela_sell": 1, "pilar_sell": 1, "banco_sell": 1, "picaros_sell": 1}
+# Easter-egg probe lines sit LAST in these templates (EGG_LINES = how many trailing lines) and are sent only by hand
+# (do say ... variant=<index>); automatic rotation (dealers._variant) must skip them. Eggs never score (prestige).
+# Sunday (night audit): abuela_buy[7]/abuela_sell[5] Castizo, abuela_buy[8]/abuela_sell[6] cocido, chato_buy[5]/
+# chato_sell[3] calamares, banco_sell[5] Casa Prima (only on evidence). Never send "oro de Moscú" (LAT-13 is t02's).
+EGG_LINES: Mapping[str, int] = {"chato_buy": 2, "chato_sell": 1, "abuela_buy": 2, "abuela_sell": 3, "pilar_sell": 1,
+                                "banco_sell": 2, "picaros_sell": 1}
 
 MAX_LEN = 280
 FORBIDDEN = re.compile(
