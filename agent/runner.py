@@ -69,6 +69,7 @@ SNAP_EVERY = 5
 MAX_SLEEP_S = 60.0
 WAKE_PAD_S = 1.0
 INBOX_CMDS = frozenset({"arm", "pause", "resume", "do", "flatten"})
+FLATTEN_MAX_TICKS = 10           # stop --flatten: STOP anyway after this many flatten ticks (a cancel that never lands)
 
 
 class Fatal(Exception):
@@ -329,6 +330,7 @@ class Runner:
         self.dry_manual: set = set()               # intent ids of this tick's `do` orders sent without --live
         self._manual_dry = False                   # True while the Gate executes one of them (armed_now drops manual)
         self.flatten: Optional[str] = None
+        self.flatten_ticks = 0
         self.prev: Optional[World] = None          # last World read (any kind): the sensor carries from it
         self.prev_full: Optional[World] = None     # last fully processed World: the calibrator's "before"
         self.last_tick: Optional[int] = None
@@ -652,19 +654,25 @@ class Runner:
                 if cmd.get("live") is not True:          # only an order that says live is sent for real
                     self.dry_manual.add(intent_id(world.tick, it))
         self.pending_manual = []
+        flat: list = []
         if self.flatten is not None:
-            intents = [it for it in intents if it.tactic == "manual"] + self.flatten_intents(world)
+            flat = self.flatten_intents(world)
+            intents = [it for it in intents if it.tactic == "manual"] + flat
 
         chosen = choose(intents, world, self.cfg)
         early = [it for it in chosen if it.kind != "duel_accept"]
         held = [it for it in chosen if it.kind == "duel_accept"]
         outs = self.execute(early, world)
         if self.flatten is not None:
-            why = self.flatten
-            self.write_stop(f"flatten: {why}")
-            self.j("stop", reason=f"flatten: {why}", tick=world.tick)
-            raise Fatal(f"flatten: {why}")
-        if held or world.duels:
+            # one tick cancels at most the listings budget: keep flattening tick after tick until no own bid / buy
+            # thread is left, then STOP (dry: nothing changes, so one pass; FLATTEN_MAX_TICKS bounds a stuck cancel)
+            self.flatten_ticks += 1
+            if not flat or self.mode != "live" or self.flatten_ticks >= FLATTEN_MAX_TICKS:
+                why = self.flatten if not flat else f"{self.flatten} ({len(flat)} left after {self.flatten_ticks} ticks)"
+                self.write_stop(f"flatten: {why}")
+                self.j("stop", reason=f"flatten: {why}", tick=world.tick)
+                raise Fatal(f"flatten: {why}")
+        if self.flatten is None and (held or world.duels):     # no late duel accepts while flattening
             outs += self.late_window(world, held, outs)
 
         self.tick_row(world, outs)

@@ -412,6 +412,19 @@ class E2E(unittest.TestCase):
         sent = [r for r in self.rows() if r["kind"] == "intent"]
         self.assertEqual([(r["intent_kind"], r["args"]["offer_id"]) for r in sent], [("cancel", oid)])
 
+    def test_flatten_keeps_going_past_one_tick_budget(self):
+        # one tick cancels at most min(6, listings - 2); STOP used to come after that first tick with bids left
+        oids = [self._own_bid() for _ in range(8)]
+        self.green(stages=("core",))
+        self.paths.inbox.mkdir(parents=True, exist_ok=True)
+        (self.paths.inbox / "9-flatten.json").write_text(json.dumps({"cmd": "flatten", "why": "test",
+                                                                     "ts": time.time() + 3600}), encoding="utf-8")
+        self.assertEqual(self.run_("live", armed=(), ticks=10), 2)
+        sent = [r for r in self.rows() if r["kind"] == "intent"]
+        self.assertEqual(sorted(r["args"]["offer_id"] for r in sent), sorted(oids))
+        self.assertGreater(len({r["tick"] for r in sent}), 1)
+        self.assertEqual([o for o in self.g.offers.values() if o["maker"] == TEAM and o["status"] == "open"], [])
+
     def test_inbox_pause_applied(self):
         self.paths.inbox.mkdir(parents=True, exist_ok=True)
         (self.paths.inbox / "1-pause.json").write_text(json.dumps({"cmd": "pause", "tactic": "rastro", "why": "p",
