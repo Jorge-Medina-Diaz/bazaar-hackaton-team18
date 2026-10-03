@@ -517,7 +517,7 @@ def _j4_closer(cx: _Ctx, offers: list) -> None:
                         f"J4: closer sale neg_lo {pred.neg_lo:.1f}", pred, 100)
             continue
         # 2-3) bid; raise with competition or in the endgame; never lower
-        if cx.b.delivery_risk or cx.b.packs:
+        if cx.b.delivery_risk or cx.b.packs or _hygiene_risk(cx):
             continue
         compete = cx.endgame()
         for vid, o in offers:
@@ -628,6 +628,16 @@ def _any_copy(cx: _Ctx, ref: str) -> Optional[int]:
                 and a["id"] not in cx.used_assets):
             return a["id"]
     return None
+
+
+def _hygiene_risk(cx: _Ctx) -> bool:
+    """hygiene.delivery_risk, the predicate that cancels a standing closer bid: never place a bid hygiene would
+    cancel the next tick (Sat 19:08-19:44: four closer bids listed then cancelled). Missing module -> risk."""
+    try:
+        from agent.tactics import hygiene
+        return bool(hygiene.delivery_risk(cx.w, cx.b, cx.plan))
+    except Exception:  # noqa: BLE001 - fail closed
+        return True
 
 
 def _j13_ok(cx: _Ctx, o: Mapping, ref: str) -> bool:

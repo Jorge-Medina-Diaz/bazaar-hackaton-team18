@@ -79,7 +79,8 @@ def world(tick=200, board=(), boards=None, my_offers=(), assets=(), offers_to_us
     return World(tick=tick, t_hours=t_hours, round=2, tick_seconds=30.0, tick_deadline=1e12, clock={},
                  limits=FRIDAY, reading=reading, me=me, my_offers=tuple(my_offers),
                  offers_to_us=tuple(offers_to_us), board=tuple(board), own_pseudonym="mown",
-                 threads={}, foreign_threads=(), duels=(), catalog=CATALOG, schedule={},
+                 threads={}, foreign_threads=(), duels=(), catalog=CATALOG,
+                 schedule={"now_hours": t_hours, "upcoming": []},
                  released_sets=frozenset({"RET", "MAL", "SAL", "LAT"}), feed_new=(), server_values={},
                  down=frozenset(down), boards=MappingProxyType(dict(boards or {})), venues=tuple(venues),
                  leaderboard=tuple(leaderboard))
@@ -207,6 +208,13 @@ class CloserTests(unittest.TestCase):
 
     def test_no_closer_bid_with_delivery_risk_or_pack(self):
         self.assertFalse([i for i in run(world(), book(delivery_risk=True)) if i.args.get("ref") == CLOSER])
+        # hygiene's own predicate (it cancels the bid next tick): schedule unreadable, or a pack grant due
+        import dataclasses
+        down = dataclasses.replace(world(), down=frozenset({"schedule"}))
+        self.assertFalse([i for i in run(down, book()) if i.args.get("ref") == CLOSER])
+        grant = dataclasses.replace(world(), schedule={"now_hours": 10.0, "upcoming": [
+            {"at_hours": 10.01, "action": "grant_all", "params": {"packs": ["sobre"]}}]})
+        self.assertFalse([i for i in run(grant, book()) if i.args.get("ref") == CLOSER])
         self.assertEqual(run(world(), book(packs=(123,))), [])
 
     def test_one_route_per_ref(self):
