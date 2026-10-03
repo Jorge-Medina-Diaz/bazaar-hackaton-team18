@@ -129,6 +129,64 @@ class OutcomeTests(unittest.TestCase):
         self.assertEqual(a['outcomes'], b['outcomes'])
         self.assertEqual([asdict(c) for c in self.cases()[0]], [asdict(c) for c in self.cases()[0]])
 
+    def test_interleaved_buy_and_sell_of_same_card_keep_exact_thread_identity(self):
+        self.j.write('intent', id='open-abuela', intent_kind='open_thread', tick=20,
+                     args={'dealer': 'abuela', 'side': 'buy', 'ref': 'RET-01'})
+        self.j.write('result', id='open-abuela', status='ok', response={'id': 41})
+        self.j.write('intent', id='open-pilar', tactic='dealers', intent_kind='open_thread', tick=21,
+                     args={'dealer': 'pilar', 'side': 'sell', 'ref': 'RET-01'})
+        self.j.write('result', id='open-pilar', status='ok', response={'id': 99})
+        self.j.write('intent', id='say-abuela', intent_kind='say', tick=28,
+                     args={'thread_id': 41, 'ref': 'RET-01', 'price': 9})
+        self.j.write('result', id='say-abuela', status='ok', response={'status': 'queued'})
+        self.j.write('intent', id='say-pilar', tactic='dealers', intent_kind='say', tick=28,
+                     args={'thread_id': 99, 'ref': 'RET-01', 'price': 24})
+        self.j.write('result', id='say-pilar', status='ok', response={'status': 'queued'})
+        self.j.write('measure', **measure(['say-abuela']))
+        self.j.write('measure', **measure(['say-pilar'], dealers=['pilar']))
+        cases, _ = self.cases()
+        self.assertEqual([(c.id, c.dealer, c.side) for c in cases],
+                         [('thread-41', 'abuela', 'buy'), ('thread-99', 'pilar', 'sell')])
+
+    def test_ref_match_without_thread_link_is_not_enough(self):
+        self.dealer_deal(tid=41)
+        self.j.write('intent', id='unlinked', intent_kind='say', tick=28,
+                     args={'thread_id': 99, 'ref': 'RET-01', 'price': 9})
+        self.j.write('result', id='unlinked', status='ok', response={'status': 'queued'})
+        self.j.write('measure', **measure(['unlinked']))
+        cases, report = self.cases()
+        self.assertEqual(len(cases), 1)
+        self.assertEqual(report['skipped'], {'thread_identity_unverified': 1})
+
+    def test_reconciled_open_supplies_exact_thread_id(self):
+        self.j.write('intent', id='opened', intent_kind='open_thread', tick=21,
+                     args={'dealer': 'pilar', 'side': 'sell', 'ref': 'RET-01'})
+        self.j.write('reconciled', id='opened', landed=True, evidence={'thread_id': 77})
+        self.j.write('intent', id='said', intent_kind='say', tick=28,
+                     args={'thread_id': 77, 'ref': 'RET-01', 'price': 24})
+        self.j.write('result', id='said', status='ok', response={'status': 'queued'})
+        self.j.write('measure', **measure(['said'], dealers=['pilar']))
+        self.assertEqual([(c.id, c.side) for c in self.cases()[0]], [('thread-77', 'sell')])
+
+    def test_dealer_disagreement_and_conflicting_thread_results_are_refused(self):
+        self.dealer_deal(dealers=['pilar'])
+        self.assertEqual(self.cases()[1]['indexed'], 0)
+        self.j.write('result', id='open-1', status='ok', response={'id': 99})
+        self.assertEqual(self.cases()[1]['indexed'], 0)
+
+    def test_partial_journal_never_teaches_labels(self):
+        self.dealer_deal()
+        with open(self.logs / 'run' / 'journal.jsonl', 'ab') as handle:
+            handle.write(b'{"kind":"measure"')
+        cases, report = self.cases()
+        self.assertEqual((cases, report['chain_valid']), ([], False))
+
+    def test_price_is_labelled_as_intent_not_ledger_confirmation(self):
+        self.dealer_deal()
+        body = json.loads(self.cases()[0][0].body)
+        self.assertEqual(body['price_source'], 'intent_not_settlement_ledger')
+        self.assertEqual(body['outcome_verification'], 'calibrator_attributed')
+
 
 if __name__ == '__main__':
     unittest.main()

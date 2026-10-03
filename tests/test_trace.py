@@ -72,6 +72,25 @@ class TraceReadTests(unittest.TestCase):
         self.assertEqual(summaries[0]['status'], 'open')
         self.assertEqual(trace.team_cases(summaries), [])
 
+    def test_empty_folder_is_no_data_and_check_fails(self):
+        state = run_traces.state(self.dir)
+        self.assertEqual(state['observability']['status'], 'no_data')
+        result = subprocess.run([sys.executable, 'run_traces.py', '--check', '--logs', self.dir],
+                                cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+
+    def test_logs_without_feed_are_unverified_not_green(self):
+        write(self.dir, 'abuela', deal())
+        state = run_traces.state(self.dir)
+        self.assertEqual(state['observability']['status'], 'unverified')
+        self.assertEqual(state['observability']['compared_threads'], 0)
+
+    def test_require_executor_rejects_legacy_only_logs(self):
+        write(self.dir, 'abuela', deal())
+        result = subprocess.run([sys.executable, 'run_traces.py', '--check', '--require-executor',
+                                 '--logs', self.dir], cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+
 
 class EndToEndTests(unittest.TestCase):
     """The actual v2 runner writes its WAL against the fake game; the viewer reads it."""

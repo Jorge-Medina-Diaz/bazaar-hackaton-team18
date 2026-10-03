@@ -2,6 +2,25 @@
 from harness.retrieval import MemoryIndex, Scope
 
 
+def relevance_route(batch, request, *, top_k=3):
+    """After secure_request: skip reranking when all candidates fit the baseline.
+
+    This is a latency/cost policy, not proof of relevance. No evidence -> abstain;
+    missing oversized cases -> keep the ambiguity explicit.
+    """
+    if type(top_k) is not int or top_k < 1:
+        raise ValueError('Invalid selection size')
+    candidates = request['state']['candidates']
+    if not candidates:
+        return 'no_evidence'
+    if batch.get('purpose', 'relevance') == 'pattern_check':
+        return 'jev'
+    omitted = batch.get('oversize_cases_skipped', 0)
+    if type(omitted) is not int or omitted < 0:
+        raise ValueError('Invalid omitted count')
+    return 'local_fts' if len(candidates) <= top_k and omitted == 0 else 'jev'
+
+
 def prepare_reranking(cases, queries, *, model='jev-1.13.0', shortlist=6, byte_budget=12000):
     index = MemoryIndex(cases)
     batches = []

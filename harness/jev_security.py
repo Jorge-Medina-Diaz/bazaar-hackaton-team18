@@ -4,14 +4,17 @@ The caller owns trusted scope metadata. Model scores never grant permissions.
 Byte/call caps bound this process, not account spending; set a provider key cap.
 """
 from dataclasses import dataclass
+from collections import OrderedDict
+from copy import deepcopy
 import hashlib
 import json
 import math
 import re
+import time
 import urllib.error
 import urllib.request
 
-from harness.retrieval import MemoryCase, Scope, in_scope
+from harness.retrieval import MemoryCase, Scope, VERSIONS, in_scope
 
 ENDPOINT = 'https://openrouter.ai/api/alpha/decisions'
 MODEL = 'typesafe/jev-1.13'
@@ -80,7 +83,7 @@ def secure_request(batch):
         if not isinstance(query['text'], str) or not query['text'].strip():
             raise JevBlocked('invalid_query')
         scope = Scope(**query['scope'])
-        if scope.team != 'local-team' or scope.version != 'oct2-observations':
+        if scope.team != 'local-team' or scope.version not in VERSIONS:
             raise JevBlocked('untrusted_scope')
         packets = batch['request']['state']['candidates']
         if not isinstance(packets, list) or len(packets) > 6:
@@ -88,7 +91,8 @@ def secure_request(batch):
         candidates, ids = [], []
         for packet in packets:
             # Provenance fields come from our importer, never inferred by Jev.
-            case = MemoryCase(**{k: packet[k] for k in MemoryCase.__dataclass_fields__})
+            fields = MemoryCase.__dataclass_fields__
+            case = MemoryCase(**{k: packet[k] for k in fields if k in packet})
             if not in_scope(case, scope):
                 raise JevBlocked('scope_violation')
             if not SAFE_ID.fullmatch(case.id) or not isinstance(case.body, str):
@@ -98,7 +102,7 @@ def secure_request(batch):
             ids.append(case.id)
             # Do not send local source paths or arbitrary extra metadata.
             candidates.append({k: getattr(case, k) for k in (
-                'id', 'dealer', 'side', 'item', 'phase', 'body', 'evidence', 'tick')})
+                'id', 'dealer', 'side', 'item', 'phase', 'body', 'evidence', 'tick', 'round', 'regime')})
             candidates[-1]['authority'] = 'historical_evidence_only'
         if len(set(ids)) != len(ids) or ids != batch['candidate_ids']:
             raise JevBlocked('candidate_mismatch')
@@ -131,7 +135,7 @@ def secure_request(batch):
         return request
     except JevBlocked:
         raise
-    except (KeyError, TypeError, AttributeError, RecursionError):
+    except (KeyError, TypeError, ValueError, AttributeError, RecursionError):
         raise JevBlocked('invalid_plan') from None
 
 
@@ -197,11 +201,17 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 class JevClient:
     """One client/budget per evaluation. No retries or background loops."""
-    def __init__(self, api_key, *, budget=None):
+    def __init__(self, api_key, *, budget=None, cache_entries=64, cache_ttl_s=300):
         if not isinstance(api_key, str) or not re.fullmatch(r'sk-or-v1-[a-fA-F0-9]{64}', api_key):
             raise JevBlocked('invalid_key')
         self._key = api_key
         self.budget = budget or RequestBudget()
+        if (type(cache_entries) is not int or not 0 <= cache_entries <= 256
+                or type(cache_ttl_s) not in (int, float) or not math.isfinite(cache_ttl_s)
+                or not 0 <= cache_ttl_s <= 3600):
+            raise JevBlocked('invalid_cache_limits')
+        self._cache = OrderedDict()
+        self._cache_entries, self._cache_ttl_s = cache_entries, cache_ttl_s
         # Ignore ambient proxy settings; only the fixed TLS provider endpoint.
         self._opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
 
@@ -212,6 +222,18 @@ class JevClient:
             raise JevBlocked('credential_value')
         if not request['questions']:
             return {'status': 'no_evidence', 'scores': {}, 'model': None, 'usage': None}
+        # Hash the rebuilt request, including evidence, scope, questions and model.
+        # No raw text or credentials are persisted. Failed calls are never cached.
+        digest = hashlib.sha256(body).hexdigest()
+        caching = (batch.get('purpose', 'relevance') == 'relevance'
+                   and self._cache_entries > 0 and self._cache_ttl_s > 0)
+        if caching and digest in self._cache:
+            at, saved = self._cache[digest]
+            if time.monotonic() - at < self._cache_ttl_s:
+                self._cache.move_to_end(digest)
+                return {'status': 'cached', 'request_sha256': digest,
+                        **deepcopy(saved), 'usage': {'input_tokens': 0, 'output_tokens': 0, 'cost_usd': 0}}
+            del self._cache[digest]
         self.budget.reserve(len(body))
         req = urllib.request.Request(ENDPOINT, data=body, method='POST', headers={
             'Authorization': 'Bearer ' + self._key, 'Content-Type': 'application/json'})
@@ -230,4 +252,9 @@ class JevClient:
                 raise
             raise JevBlocked('invalid_response') from None
         # No raw provider bodies, request text or credentials in returned telemetry.
-        return {'status': 'evaluated', 'request_sha256': hashlib.sha256(body).hexdigest(), **result}
+        if caching:
+            self._cache[digest] = (time.monotonic(), deepcopy(result))
+            self._cache.move_to_end(digest)
+            while len(self._cache) > self._cache_entries:
+                self._cache.popitem(last=False)
+        return {'status': 'evaluated', 'request_sha256': digest, **result}

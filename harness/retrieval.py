@@ -9,6 +9,9 @@ import sqlite3
 import unicodedata
 from typing import Optional
 
+DEALERS = frozenset({'abuela', 'chato', 'pilar', 'picaros'})
+VERSIONS = frozenset({'oct2-observations', 'oct3-observations', 'harness-v2'})
+
 
 @dataclass(frozen=True)
 class MemoryCase:
@@ -24,6 +27,14 @@ class MemoryCase:
     visibility: str = 'public'
     version: str = 'oct2-observations'
     status: str = 'active'
+    round: Optional[int] = None
+    regime: str = 'unknown'
+
+    def __post_init__(self):
+        if self.round is not None and (type(self.round) is not int or self.round < 1):
+            raise ValueError('Invalid evidence round')
+        if not isinstance(self.regime, str) or len(self.regime) > 80:
+            raise ValueError('Invalid evidence regime')
 
 
 @dataclass(frozen=True)
@@ -34,6 +45,17 @@ class Scope:
     phase: str = ''
     team: str = 'local-team'
     version: str = 'oct2-observations'
+    round: Optional[int] = None
+    regime: str = ''
+    as_of_tick: Optional[int] = None
+
+    def __post_init__(self):
+        if self.round is not None and (type(self.round) is not int or self.round < 1):
+            raise ValueError('Invalid round')
+        if self.as_of_tick is not None and (type(self.as_of_tick) is not int or self.as_of_tick < 0):
+            raise ValueError('Invalid replay tick')
+        if not isinstance(self.regime, str) or len(self.regime) > 80:
+            raise ValueError('Invalid regime')
 
 
 def in_scope(case, scope):
@@ -41,17 +63,24 @@ def in_scope(case, scope):
             and (not scope.item or case.item == scope.item)
             and (not scope.phase or case.phase == scope.phase)
             and case.visibility in ('public', scope.team)
-            and case.version == scope.version and case.status == 'active')
+            and case.version == scope.version and case.status == 'active'
+            and (scope.round is None or case.round == scope.round)
+            and (not scope.regime or case.regime == scope.regime)
+            and (scope.as_of_tick is None or
+                 (type(case.tick) is int and case.tick <= scope.as_of_tick)))
 
 
 def contextual(case):
     role = {'buy': 'compra', 'sell': 'venta', 'unknown': 'lado desconocido'}.get(case.side, case.side)
     stage = {'final': 'oferta final última propuesta', 'repeated': 'precio repetido estancamiento',
-             'closed': 'conversación cerrada', 'settled': 'liquidación confirmada',
+             'closed': 'conversación cerrada', 'settled': 'liquidación registrada',
              'negotiation': 'negociación', 'policy': 'criterio económico',
              'coordination': 'conflicto entre operadores'}.get(case.phase, case.phase)
+    if case.evidence == 'harness_measure' and case.phase == 'settled':
+        stage = 'desenlace atribuido por calibrador; precio propuesto, no leído del libro de liquidaciones'
     tick = case.tick if case.tick is not None else 'desconocido'
-    return f'Dealer {case.dealer}. {role} {case.item}. {stage}. Tick {tick}.\n{case.body}'
+    return (f'Dealer {case.dealer}. {role} {case.item}. {stage}. Tick {tick}. '
+            f'Ronda {case.round}. Régimen {case.regime}.\n{case.body}')
 
 
 def tokens(text):
@@ -70,11 +99,11 @@ class MemoryIndex:
             raise ValueError('Duplicate evidence IDs')
         self.db.execute('CREATE TABLE cases (id TEXT PRIMARY KEY, dealer TEXT, side TEXT, item TEXT, '
                         'phase TEXT, body TEXT, source TEXT, evidence TEXT, tick INTEGER, '
-                        'visibility TEXT, version TEXT, status TEXT)')
+                        'visibility TEXT, version TEXT, status TEXT, round INTEGER, regime TEXT)')
         for table in ('raw_fts', 'context_fts'):
             self.db.execute(f"CREATE VIRTUAL TABLE {table} USING fts5(body, tokenize='unicode61 remove_diacritics 2')")
         for rowid, c in enumerate(self.cases, 1):
-            self.db.execute('INSERT INTO cases VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', tuple(asdict(c).values()))
+            self.db.execute('INSERT INTO cases VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tuple(asdict(c).values()))
             self.db.execute('INSERT INTO raw_fts(rowid,body) VALUES (?,?)', (rowid, c.body))
             self.db.execute('INSERT INTO context_fts(rowid,body) VALUES (?,?)', (rowid, contextual(c)))
         self.db.commit()
@@ -97,6 +126,15 @@ class MemoryIndex:
         if scope.phase:
             where += ' AND c.phase=?'
             args.append(scope.phase)
+        if scope.round is not None:
+            where += ' AND c.round=?'
+            args.append(scope.round)
+        if scope.regime:
+            where += ' AND c.regime=?'
+            args.append(scope.regime)
+        if scope.as_of_tick is not None:
+            where += ' AND c.tick IS NOT NULL AND c.tick<=?'
+            args.append(scope.as_of_tick)
         if mode == 'fused_fts':
             ranks, packets = {}, {}
             for component in ('scoped_fts', 'contextual_fts'):
@@ -142,15 +180,24 @@ def _refs(side):
     return result
 
 
-def import_feed(events, source):
+def import_feed(events, source, *, version=None, round=None, regime='unknown', as_of_tick=None):
     """One chunk per thread; no inferred settlement-to-thread join."""
+    # Metadata must describe this whole window. Never infer a fever/round from prose.
+    Scope('', '', round=round, regime=regime, as_of_tick=as_of_tick)
+    if version is not None and version not in VERSIONS:
+        raise ValueError('Unknown evidence version')
+    def metadata(dealer):
+        return {'version': version or ('oct3-observations' if dealer in ('pilar', 'picaros')
+                                      else 'oct2-observations'), 'round': round, 'regime': regime}
     groups, settlements = {}, []
     for event in sorted(events, key=lambda e: e['id']):
         if event.get('scope') != 'public':
             continue
+        if as_of_tick is not None and (type(event.get('tick')) is not int or event['tick'] > as_of_tick):
+            continue
         p = event.get('payload', {})
         dealer = p.get('with') or p.get('persona')
-        if dealer not in ('abuela', 'chato'):
+        if dealer not in DEALERS:
             continue
         tid = p.get('thread')
         if tid is not None:
@@ -164,14 +211,16 @@ def import_feed(events, source):
                                'settlement': p.get('settlement'), 'thread_association': 'unavailable'}, ensure_ascii=False)
             settlements.append(MemoryCase(f'settlement-{p["settlement"]}', dealer, direction,
                                           refs[0] if len(refs) == 1 else 'bundle', 'settled', body,
-                                          source + f'#event={event["id"]}', 'public_settlement', event['tick']))
+                                          source + f'#event={event["id"]}', 'public_settlement', event['tick'],
+                                          **metadata(dealer)))
     cases, complete = [], 0
     for tid, group in groups.items():
         rows = group['rows']
         opened = next((e['payload'] for e in rows if e['type'] == 'thread.opened'), {})
         topic = opened.get('topic') or {}
         side = 'buy' if 'buy' in topic else 'sell' if 'sell' in topic else 'unknown'
-        item = next(iter((topic.get('buy') or {}).values()), '') if side == 'buy' else ''
+        buy = topic.get('buy') or {}
+        item = buy.get('card') or buy.get('pack') or ''
         refs, dealer_prices, messages = [], [], []
         final, closed = False, False
         for e in rows:
@@ -184,7 +233,7 @@ def import_feed(events, source):
                 card_side = g if _refs(g) else w
                 side = 'buy' if (card_side is g) == is_dealer else 'sell'
             if e['type'] == 'thread.message':
-                price = w.get('cash') or g.get('cash')
+                price = w.get('cash') if type(w.get('cash')) is int else g.get('cash')
                 messages.append({'tick': e['tick'], 'role': 'dealer' if is_dealer else 'team',
                                  'price': price, 'final': bool(o.get('final')),
                                  'refs': _refs(g) + _refs(w),
@@ -200,7 +249,8 @@ def import_feed(events, source):
                            'outcome': 'closed' if closed else 'unknown_in_feed_window', 'messages': messages}, ensure_ascii=False)
         complete += bool(opened)
         cases.append(MemoryCase(f'thread-{tid}', group['dealer'], side, item, phase, body,
-                                source + f'#thread={tid}', 'public_partial_thread', max(e['tick'] for e in rows)))
+                                source + f'#thread={tid}', 'public_partial_thread', max(e['tick'] for e in rows),
+                                **metadata(group['dealer'])))
     return cases + settlements, {'threads': len(cases), 'threads_with_opening': complete,
                                 'settlements': len(settlements), 'settlement_thread_joins': 0,
                                 'dealer_texts_only': True}

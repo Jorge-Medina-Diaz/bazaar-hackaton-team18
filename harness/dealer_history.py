@@ -3,14 +3,14 @@ from collections import Counter, defaultdict
 import json
 from statistics import median
 
-from harness.retrieval import import_feed
+from harness.retrieval import DEALERS, import_feed
 
 
 def summarize_public_history(events, own_team='t18'):
     cases, coverage = import_feed(events, 'public-feed')
     threads = [c for c in cases if c.evidence == 'public_partial_thread']
     settlements = [e for e in events if e.get('scope') == 'public' and e['type'] == 'settlement'
-                   and e.get('payload', {}).get('persona') in ('abuela', 'chato')]
+                   and e.get('payload', {}).get('persona') in DEALERS]
     groups, teams = defaultdict(list), set()
     own, rival = 0, 0
     for e in settlements:

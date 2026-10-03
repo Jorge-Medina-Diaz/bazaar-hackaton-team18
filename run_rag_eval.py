@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from harness.rag_eval import evaluate_retrieval
-from harness.retrieval import MemoryCase, import_feed
+from harness.retrieval import MemoryCase, VERSIONS, import_feed
 
 
 def main():
@@ -20,10 +20,18 @@ def main():
     parser.add_argument('--byte-budget', type=int, default=8000)
     parser.add_argument('--repeats', type=int, default=20)
     parser.add_argument('--json', action='store_true')
+    parser.add_argument('--evidence-version', choices=sorted(VERSIONS))
+    parser.add_argument('--round', type=int, help='Verified round for the entire supplied feed window')
+    parser.add_argument('--regime', default='unknown', help='Verified regime, e.g. normal or sal-fever')
+    parser.add_argument('--as-of-tick', type=int, help='Import only events visible by this tick')
     args = parser.parse_args()
     raw = args.feed.read_bytes()
     payload = json.loads(raw)
-    cases, coverage = import_feed(payload['events'], str(args.feed))
+    try:
+        cases, coverage = import_feed(payload['events'], str(args.feed), version=args.evidence_version,
+                                      round=args.round, regime=args.regime, as_of_tick=args.as_of_tick)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.notes:
         cases += [MemoryCase(**row) for row in json.loads(args.notes.read_text())]
     queries = json.loads(args.queries.read_text())
@@ -32,6 +40,8 @@ def main():
     except ValueError as exc:
         parser.error(str(exc))
     report['import'] = {**coverage, 'feed': str(args.feed), 'feed_sha256': hashlib.sha256(raw).hexdigest()}
+    report['import']['context'] = {'version': args.evidence_version, 'round': args.round,
+                                    'regime': args.regime, 'as_of_tick': args.as_of_tick}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
     if args.corpus_output:

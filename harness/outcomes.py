@@ -32,6 +32,11 @@ def load(log_dir):
     reader = Journal(path, mode='dry', writer=False)
     try:
         valid = reader.verify_chain()
+        with open(path, 'rb') as handle:
+            handle.seek(0, os.SEEK_END)
+            if handle.tell():
+                handle.seek(-1, os.SEEK_END)
+                valid = valid and handle.read(1) == b'\n'
         rows = list(reader.rows())
     except Exception:
         return [], False
@@ -41,12 +46,12 @@ def load(log_dir):
 def _side(intent, opens):
     """(side, dealer of the conversation we opened for this card, if any)."""
     a, k = intent.get('args') or {}, intent.get('intent_kind')
-    opened = None
-    for o in reversed(opens):  # a dealer `say` takes its side from the conversation opened for that card
-        oa = o.get('args') or {}
-        if oa.get('ref') == a.get('ref') and (o.get('tick') or 0) <= (intent.get('tick') or 0):
-            opened = oa
-            break
+    # A shared ref is not a conversation identity. Only a successful open whose
+    # response/reconciliation names this exact thread may supply its metadata.
+    matches = [o for o in opens.get(a.get('thread_id'), [])
+               if (o.get('tick') or 0) <= (intent.get('tick') or 0)
+               and (o.get('args') or {}).get('ref') == a.get('ref')]
+    opened = (matches[0].get('args') or {}) if len(matches) == 1 else None
     if k == 'accept':
         side = a.get('side') if a.get('side') in ('buy', 'sell') else 'unknown'
     elif k == 'list_offer':
@@ -66,15 +71,24 @@ def outcome_cases(rows, valid=True):
     if valid is False:
         report['refused'] = 'journal chain broken: nothing indexed'
         return [], report
-    intents, done, opens = {}, set(), []
+    intents, done, opened_results = {}, set(), {}
     for r in rows:
         k = r.get('kind')
         if k == 'intent':
             intents[r.get('id')] = r
-            if r.get('intent_kind') == 'open_thread':
-                opens.append(r)
         elif (k == 'result' and r.get('status') in ('ok', 'sent')) or (k == 'reconciled' and r.get('landed')):
             done.add(r.get('id'))
+            result = r.get('response') if k == 'result' else r.get('evidence')
+            if isinstance(result, dict):
+                tid = result.get('thread_id', result.get('id'))
+                if type(tid) is int:
+                    opened_results.setdefault(r.get('id'), set()).add(tid)
+    opens = {}
+    for iid, tids in opened_results.items():
+        it = intents.get(iid)
+        if it and it.get('intent_kind') == 'open_thread' and len(tids) == 1:
+            for tid in tids:
+                opens.setdefault(tid, []).append(it)
     cases, seen = [], set()
     for m in rows:
         if m.get('kind') != 'measure':
@@ -102,6 +116,9 @@ def outcome_cases(rows, valid=True):
         dealers = m.get('dealers') or []
         tid = a.get('thread_id')
         if kind == 'say' or tid is not None:
+            if side not in ('buy', 'sell') or (opened_dealer and dealers and dealers != [opened_dealer]):
+                skip('thread_identity_unverified')
+                continue
             dealer = dealers[0] if len(dealers) == 1 else opened_dealer
             oid = f'thread-{tid}' if tid is not None else f'outcome-{ids[0]}'
         else:
@@ -116,6 +133,8 @@ def outcome_cases(rows, valid=True):
         seen.add(oid)
         meas, pred = m.get('meas') or {}, m.get('pred') or {}
         body = json.dumps({'tactic': it.get('tactic'), 'action': kind, 'price': a.get('price'),
+                           'price_source': 'intent_not_settlement_ledger',
+                           'outcome_verification': 'calibrator_attributed',
                            'reason': it.get('reason'),
                            'predicted_neg': [pred.get('neg_lo'), pred.get('neg_hi')],
                            'measured_neg': meas.get('neg'), 'measured_ladder': meas.get('ladder'),
@@ -123,6 +142,9 @@ def outcome_cases(rows, valid=True):
                            'opened_tick': m.get('opened')}, ensure_ascii=False)
         cases.append(MemoryCase(oid, dealer, side, a.get('ref') or 'unknown', 'settled', body,
                                 f"journal#seq={m.get('seq')}", 'harness_measure', m.get('tick'),
-                                visibility='local-team'))
+                                visibility='local-team',
+                                version='oct3-observations' if dealer in ('pilar', 'picaros') else 'oct2-observations',
+                                round=m.get('round'),
+                                regime='unknown'))
         report['indexed'] += 1
     return cases, report

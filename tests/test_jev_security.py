@@ -9,7 +9,7 @@ from unittest.mock import patch
 import urllib.error
 import urllib.request
 
-from harness.jev_plan import prepare_reranking
+from harness.jev_plan import prepare_reranking, relevance_route
 from harness.jev_security import (ENDPOINT, MODEL, JevBlocked, JevClient,
                                   RequestBudget, _NoRedirect, secure_request, validate_response)
 from harness.retrieval import MemoryCase, Scope
@@ -181,6 +181,75 @@ class JevSecurityTests(unittest.TestCase):
             link.symlink_to(path)
             with self.assertRaisesRegex(JevBlocked, 'key_location'):
                 load_key(link)
+
+    def test_cache_reuses_only_validated_identical_requests_without_extra_cost(self):
+        client = JevClient(KEY, budget=RequestBudget(max_calls=1))
+        batch, _ = fixture()
+        with patch.object(client._opener, 'open', return_value=io.BytesIO(json.dumps(response()).encode())) as send:
+            first = client.evaluate(batch)
+            first['scores']['evidence_0'] = 0  # caller mutation must not poison the cache
+            second = client.evaluate(batch)
+        self.assertEqual((send.call_count, client.budget.calls), (1, 1))
+        self.assertEqual(second['status'], 'cached')
+        self.assertEqual(second['scores'], {'evidence_0': 0.8})
+        self.assertEqual(second['usage']['cost_usd'], 0)
+        batch['request']['state']['candidates'][0]['body'] += 'Changed evidence.'
+        with self.assertRaisesRegex(JevBlocked, 'budget_exhausted'):
+            client.evaluate(batch)
+
+    def test_cache_revalidates_scope_before_returning_a_previous_score(self):
+        client = JevClient(KEY)
+        batch, _ = fixture()
+        with patch.object(client._opener, 'open', return_value=io.BytesIO(json.dumps(response()).encode())) as send:
+            client.evaluate(batch)
+            batch['request']['state']['candidates'][0]['side'] = 'sell'
+            with self.assertRaisesRegex(JevBlocked, 'scope_violation'):
+                client.evaluate(batch)
+            self.assertEqual(send.call_count, 1)
+
+    def test_cache_expires_and_releases_oldest_entry(self):
+        client = JevClient(KEY, cache_entries=1, cache_ttl_s=2)
+        batch, _ = fixture()
+        with patch.object(client._opener, 'open', side_effect=lambda *a, **k: io.BytesIO(json.dumps(response()).encode())) as send:
+            with patch('harness.jev_security.time.monotonic', return_value=0):
+                client.evaluate(batch)
+            with patch('harness.jev_security.time.monotonic', return_value=3):
+                self.assertEqual(client.evaluate(batch)['status'], 'evaluated')
+                changed, _ = fixture('A different observation of estancamiento.')
+                client.evaluate(changed)
+                self.assertEqual(client.evaluate(batch)['status'], 'evaluated')
+        self.assertEqual(send.call_count, 4)
+        self.assertEqual(len(client._cache), 1)
+
+    def test_invalid_cache_limits_fail_before_calls(self):
+        for args in ({'cache_entries': -1}, {'cache_entries': True}, {'cache_ttl_s': float('nan')}):
+            with self.subTest(args=args), self.assertRaisesRegex(JevBlocked, 'invalid_cache_limits'):
+                JevClient(KEY, **args)
+
+    def test_shortlist_routing_preserves_baseline_and_uses_no_provider(self):
+        batch, q = fixture()
+        client = JevClient(KEY)
+        with patch.object(client._opener, 'open') as send:
+            report = evaluate([batch], [q], client=client, ambiguity_only=True)
+        send.assert_not_called()
+        self.assertEqual(report['queries'][0]['status'], 'local_fts')
+        self.assertEqual(report['queries'][0]['selected'], ['thread-1'])
+        self.assertFalse(report['quality_evaluated'])
+        self.assertEqual(report['real_model_requests_attempted'], 0)
+
+    def test_ambiguity_routing_does_not_hide_omitted_evidence_or_pattern_checks(self):
+        batch, _ = fixture()
+        req = secure_request(batch)
+        self.assertEqual(relevance_route(batch, req), 'local_fts')
+        batch['oversize_cases_skipped'] = 1
+        self.assertEqual(relevance_route(batch, req), 'jev')
+        batch['purpose'] = 'pattern_check'
+        self.assertEqual(relevance_route(batch, secure_request(batch)), 'jev')
+        batch, _ = fixture()
+        candidates = batch['request']['state']['candidates']
+        batch['request']['state']['candidates'] = [dict(candidates[0], id='c'+str(i)) for i in range(4)]
+        batch['candidate_ids'] = ['c'+str(i) for i in range(4)]
+        self.assertEqual(relevance_route(batch, secure_request(batch)), 'jev')
 
 
 if __name__ == '__main__':

@@ -2,6 +2,10 @@
 
 ## Qué está implementado
 
+Actualización compatible de memoria, contexto y caché:
+[rag-jev-update.md](rag-jev-update.md). El evaluador usa FTS para listas de hasta
+tres candidatos; `--all-candidates` permite repetir el piloto anterior.
+
 `harness/jev_security.py` proporciona un cliente de evaluación de relevancia.
 No importa el cliente del Bazaar ni posee herramientas para comprar/vender.
 Las probabilidades sirven para ordenar **los documentos ya admitidos**; no

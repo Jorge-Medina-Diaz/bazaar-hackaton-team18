@@ -132,3 +132,24 @@ Las sesiones anteriores siguen en archive/docs/HANDOFF.md.
 - Verificación: 103/103 Python y 9/9 Node; cero fallos. JSON/JavaScript de ambas demos y datos RET-08/marcador 660/reloj 661 comprobados. Sin navegador automatizado disponible para QA visual; servidor local de prueba detenido. diff --check y revisión de credenciales/runtime antes del push.
 - Bot, agent/, Gate, SDK y config/plan.json conservados. No selftest operativo, reinicio ni despliegue Vercel. Datos crudos en runs/ ignorado; solo código y agregados públicos publicados.
 - Siguiente paso: Santiago diseña un experimento local desde su guía; equipo abre demo y confirma formato con organización. El operador revisa la capacidad/Intent de publicación: broker sigue desactivado. No se promete mejora del marcador v18 ni beneficios privados. Main se publica con la autorización actual de Rubén.
+
+
+## RAG/JEV preparados localmente; publicación detenida — 2026-10-03, Codex
+
+- Rubén autorizó mejoras RAG/JEV y main, y después indicó que debemos notificarle antes de cualquier implementación grande/publicación. Push detenido para revisión. No se ha creado commit ni se ha publicado este trabajo.
+- Checkout bazaar-hackaton-team18-integration, rama codex/market-opportunity-harness, base ab0bd8a incorporada por fast-forward desde main. El remoto main avanzó después a66fad1e; no mezclar automáticamente sin revisar y repetir las pruebas afectadas.
+- Cambios locales: unión exacta de aperturas/respuestas por thread_id, exclusión de diario parcial y metadatos de desenlace atribuido/precio del intent; importador Abuela/Chato/Pilar/Pícaros, filtros ronda/régimen/as_of_tick y lectura compatible de corpus antiguos; JEV con caché acotada/revalidación y evaluador que conserva FTS cuando toda la shortlist cabe en3; visor distingue ausencia de datos y evidencia sin verificar.
+- Archivos en harness/, run_jev_eval.py, run_rag_eval.py, run_traces.py, tests y docs. agent/, Gate, SDK, bazaar.py y config/plan.json sin cambios respecto a la base de este trabajo. No modelos reales/de pago ni operaciones del juego.
+- Verificación: unittest discover970casos,968pasados/2omitidos/0fallos,63,069s con Python3.14;13/13Node del analista. Regresiones dirigidas70/70. Importación offline de captura pública real:61casos (Pilar16, Pícaros15, Abuela25, Chato5), sin unir liquidaciones a hilos por inferencia. Log local runs/project-review/rag-jev-suite.log; agregado runs/project-review/rag-import-check.json.
+- Guía revisable sin publicar: docs/rag-jev-update.md. La caché no impone presupuesto económico entre procesos; no se ha demostrado mayor precisión de JEV ni funcionamiento con el diario privado real de Jorge. No se refactorizó el lector completo del visor ni se integró RAG/JEV en el ejecutor.
+- Próximo paso: Rubén revisa alcance; antes de cualquier publicación a main, incorporar conscientemente los cambios remotos nuevos, comprobar diff del ejecutor y pruebas. Mantener los cambios locales, sin sobrescribir trabajo del equipo.
+
+
+## RAG/JEV: aprobación y comprobación final para main — 2026-10-03, Codex
+
+- Rubén confirma aprobación del equipo y autoriza publicar main. Cambios preparados en codex/rag-jev-context, rebasados sobre main66fad1e; conservadas las nuevas guías de Pícaros y SAL-11/arbitraje.
+- Diff operativo vacío respecto a main: agent/, bazaar.py, bazaar_sdk.py y config/plan.json idénticos; code_hash operativo no cambia por este commit. RAG/JEV no se conectan a decisiones del bot ni se arma una táctica.
+- Suite completa de la misma implementación:970casos/968pasados/2omitidos/0fallos. Tras incorporar cambios remotos exclusivamente documentales:83/83regresiones+arquitectura y13/13Node. JavaScript del visor válido con node --check y diff --check limpio. Python3.14.7.
+- Guía de adopción: docs/rag-jev-update.md. Actualizar código del visor/evaluador; recargar solo el visor cuando corresponda. Comprobar con python3 run_traces.py --check --require-executor --logs logs (Python3.10+). No requiere reiniciar el bot por esta actualización aislada.
+- Límites: sin validación sobre diario privado real del operador, caché en memoria por cliente, presupuesto por evaluación; no se demuestra mejora de precisión semántica de JEV. Ninguna llamada de pago ni operación del juego en esta entrega. Datos crudos runs/ y claves excluidos.
+- Próximo paso: publicar sin force y verificar SHA remoto; operador revisa estado del visor y agrega contexto verificado a las ventanas de Pilar/Pícaros.

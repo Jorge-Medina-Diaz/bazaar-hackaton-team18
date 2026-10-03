@@ -29,10 +29,19 @@ def state(log_dir):
     executor = trace.executor_status(log_dir, events)
     if executor is not None:
         executor['outcomes_indexed'] = outcome_report['indexed']
+    reconciliation = trace.reconcile(summaries, feed)
+    contradiction = (bad > 0 or not reconciliation['ok'] or outcome_report['chain_valid'] is False
+                     or (executor is not None and not executor['journal_valid']))
+    compared = reconciliation['in_feed']
+    health = ('contradictory' if contradiction else 'no_data' if not events
+              else 'consistent' if compared and not reconciliation['missing_in_feed'] else 'unverified')
     return {'generated': time.time(), 'bad_lines': bad, 'events_total': len(events),
             'executor': executor, 'outcomes': outcome_report,
+            'observability': {'status': health, 'compared_threads': compared,
+                              'executor_present': executor is not None,
+                              'meaning': 'Consistency is not proof of ledger settlement or a running process.'},
             'events': events[-300:][::-1], 'threads': summaries[::-1][:200],
-            'reconcile': trace.reconcile(summaries, feed),
+            'reconcile': reconciliation,
             'memory': {'cases': len(memory), 'team_cases': len(ours), 'measured_cases': len(measured),
                        'feed_cases': len(feed),
                        'ids_unique': len({c.id for c in memory}) == len(memory)}}
@@ -136,8 +145,9 @@ async function tick(){
     const c=s.reconcile,m=s.memory;
     $('tiles').replaceChildren(...[['Conversaciones',c.journal_threads],['Abiertas',c.open],['Terminadas',c.ended],['En el feed',c.in_feed],['Casos RAG',m.cases],['Desenlaces medidos',m.measured_cases]].map(([k,v])=>{const d=document.createElement('div');d.className='tile';d.innerHTML='<b></b><span class="mut"></span>';d.firstChild.textContent=v;d.lastChild.textContent=k;return d}));
     const p=document.createElement('div');const bad=[...c.dealer_mismatch,...c.price_not_in_feed,...c.side_mismatch];
-    p.className=c.ok&&m.ids_unique?'ok':'bad';
-    p.textContent=c.ok&&m.ids_unique?'✔ Memoria cuadrada con el feed (sin duplicados ni precios contradictorios). Sin feed aún: '+c.missing_in_feed.length:'✖ Descuadre en hilos: '+bad.join(', ')+(m.ids_unique?'':' · IDs duplicados en memoria');
+    const health=s.observability.status;
+    p.className=health==='consistent'&&m.ids_unique?'ok':health==='contradictory'||!m.ids_unique?'bad':'mut';
+    p.textContent=health==='no_data'?'Sin registros: no se puede evaluar la memoria.':health==='unverified'?'Hay registros, pero falta evidencia comparable para verificar la memoria.':health==='consistent'&&m.ids_unique?'✔ Hilos comparados sin contradicciones. Esto no prueba una liquidación.':'✖ Datos contradictorios o diario incompleto. Hilos: '+bad.join(', ')+(m.ids_unique?'':' · IDs duplicados en memoria');
     $('rec').replaceChildren(p);
     $('th').replaceChildren(...s.threads.map(t=>row([[t.dealer],[t.thread],[t.side],[t.item],[(t.anchor??'?')+' → '+(t.limit??'?')],[t.ours.join(' · ')],[t.hers.join(' · ')],[t.status,t.status==='deal'?'ok':t.status==='open'?'':'mut'],[t.price],[t.reason,'wide']])));
     $('ev').replaceChildren(...s.events.map(e=>row([[hhmm(e.ts)],[e.stream],[e.tick],[e.event,e.event==='error'||e.event==='bug'?'bad':''],[detail(e),'wide']])));
@@ -153,13 +163,17 @@ def main():
     ap.add_argument('--port', type=int, default=8019)
     ap.add_argument('--logs', default=LOG_DIR)
     ap.add_argument('--check', action='store_true', help='print the reconciliation report and exit')
+    ap.add_argument('--require-executor', action='store_true', help='with --check, require a valid v2 journal with a tick')
     a = ap.parse_args()
     if a.check:
         s = state(a.logs)
         print(json.dumps({'bad_lines': s['bad_lines'], 'reconcile': s['reconcile'], 'memory': s['memory'],
-                          'outcomes': s['outcomes'], 'executor': s['executor']},
+                          'outcomes': s['outcomes'], 'executor': s['executor'], 'observability': s['observability']},
                          ensure_ascii=False, indent=2))
-        valid = s['executor'] is None or s['executor']['journal_valid']
+        valid = (s['events_total'] > 0 and s['bad_lines'] == 0
+                 and (s['executor'] is None or s['executor']['journal_valid']))
+        if a.require_executor:
+            valid = valid and s['executor'] is not None and s['executor']['tick'] is not None
         sys.exit(0 if valid and s['reconcile']['ok'] and s['memory']['ids_unique'] else 1)
     server = serve(a.host, a.port, a.logs, os.environ.get('TRACES_PASSWORD', ''))
     print(f'Trazas en http://{a.host}:{a.port} (logs: {a.logs}; Ctrl+C para parar)', flush=True)

@@ -7,7 +7,7 @@ import stat
 import tempfile
 from time import perf_counter
 
-from harness.jev_plan import prepare_reranking
+from harness.jev_plan import prepare_reranking, relevance_route
 from harness.jev_security import JevBlocked, JevClient, RequestBudget, _encoded, secure_request, validate_response
 from harness.retrieval import MemoryCase
 
@@ -31,7 +31,7 @@ def load_key(path):
     return path.read_text().strip()
 
 
-def evaluate(batches, queries, *, client=None):
+def evaluate(batches, queries, *, client=None, ambiguity_only=False):
     """Caller is an evaluator, not an executor. Labels are local only."""
     labels = {q['id']: set(q['relevant']) for q in queries}
     rows, stopped = [], False
@@ -46,6 +46,8 @@ def evaluate(batches, queries, *, client=None):
                 row['status'] = 'no_evidence'
             elif stopped:
                 row['status'] = 'not_attempted_after_failure'
+            elif ambiguity_only and relevance_route(batch, request) == 'local_fts':
+                row.update(status='local_fts', selected=ids[:3])
             elif client is None:
                 # Neutral canned probabilities; never use expected labels as model input.
                 result = validate_response({'model': request['model'], 'answers': {
@@ -59,7 +61,7 @@ def evaluate(batches, queries, *, client=None):
                 # Rank only IDs already filtered; no model-created IDs or actions.
                 row['selected'] = sorted(ids, key=lambda oid: (
                     -scores[f'evidence_{ids.index(oid)}'], ids.index(oid)))[:3]
-            if client is not None and row['status'] in ('evaluated', 'no_evidence'):
+            if client is not None and row['status'] in ('evaluated', 'cached', 'local_fts', 'no_evidence'):
                 expected = labels[batch['query_id']]
                 row['baseline_recall_at_3'] = len(set(ids[:3]) & expected) / len(expected) if expected else None
                 row['recall_at_3'] = len(set(row['selected']) & expected) / len(expected) if expected else None
@@ -91,6 +93,8 @@ def main():
     parser.add_argument('--live', action='store_true', help='Send at most 9 bounded requests to OpenRouter')
     parser.add_argument('--key-file', type=Path, help='Owner-only secret file outside checkout; alternatively env')
     parser.add_argument('--max-calls', type=int, default=9)
+    parser.add_argument('--all-candidates', action='store_true',
+                        help='Evaluate even shortlists of three or fewer (explicit development comparison)')
     args = parser.parse_args()
     try:
         cases = [MemoryCase(**row) for row in json.loads(args.corpus.read_text())]
@@ -99,15 +103,20 @@ def main():
         budget = RequestBudget(max_calls=args.max_calls)
         # Check every request before the first real call.
         requests = [secure_request(b) for b in batches]
-        if sum(bool(r['questions']) for r in requests) > budget.max_calls:
+        routed = [r for b, r in zip(batches, requests)
+                  if r['questions'] and (args.all_candidates or relevance_route(b, r) == 'jev')]
+        if len(routed) > budget.max_calls:
             raise JevBlocked('plan_exceeds_call_limit')
-        if sum(len(_encoded(r)) for r in requests if r['questions']) > budget.max_total_bytes:
+        if sum(len(_encoded(r)) for r in routed) > budget.max_total_bytes:
             raise JevBlocked('plan_exceeds_byte_limit')
         root = Path(__file__).resolve().parent / 'runs'
         if not args.output.resolve().is_relative_to(root):
             raise JevBlocked('report_location')
         client = JevClient(load_key(args.key_file), budget=budget) if args.live else None
-        report = evaluate(batches, queries, client=client)
+        report = evaluate(batches, queries, client=client, ambiguity_only=not args.all_candidates)
+        report['routing_policy'] = 'all_candidates' if args.all_candidates else 'ambiguous_shortlists_only'
+        report['local_queries'] = sum(r['status'] == 'local_fts' for r in report['queries'])
+        report['cache_hits'] = sum(r['status'] == 'cached' for r in report['queries'])
         # Reports contain identifiers/probabilities only, no request bodies or keys.
         args.output.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=args.output.parent, prefix='.jev-report-')
