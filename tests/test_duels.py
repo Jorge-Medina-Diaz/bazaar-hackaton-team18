@@ -281,7 +281,7 @@ class TestPolicy(unittest.TestCase):
         self.assertEqual(D.decide(D.view(duel(role="seller", L=60, deadline=116), 100), {}), ("say", 100, None))
 
     def test_slow_ascent_silent_rival(self):
-        # buyer L=100, start 100, deadline 116: anchor 60 -> 99 at deadline-2, 75 % of the way by deadline-5
+        # buyer L=100, start 100, deadline 116: anchor 60; the walk stops at slow_cap 0.8 of the way (60+0.8*39=91)
         d = duel(L=100, deadline=116)
         prices = {}
         for t in range(100, 116):
@@ -290,8 +290,8 @@ class TestPolicy(unittest.TestCase):
                 d["messages"].append(msg("you", t, p))
                 prices[t] = p
         self.assertEqual(prices[100], 60)
-        self.assertEqual(max(prices.values()), 99)
-        self.assertEqual(prices[114], 99)
+        self.assertEqual(max(prices.values()), 60 + round(0.8 * 39))
+        self.assertEqual(prices[max(prices)], 60 + round(0.8 * 39))     # stays at the cap until the deadline
         at_tail = max(p for t, p in prices.items() if t <= 111)
         self.assertLessEqual(at_tail, 60 + round(0.75 * 39) + 1)
         seq = [prices[t] for t in sorted(prices)]
@@ -328,7 +328,8 @@ class TestTwoIssues(unittest.TestCase):
 
     def test_unreadable_days_no_message(self):
         self.assertEqual(D.decide(D.view(self.two(w=None, meaning="x"), 100), {})[0], "wait")
-        self.assertEqual(D.decide(D.view(self.two(w=2.0, meaning=None), 100), {})[0], "wait")
+        # days_meaning is free text the Sensor never passes: the weight alone makes the duel playable
+        self.assertEqual(D.decide(D.view(self.two(w=2.0, meaning=None), 100), {})[0], "say")
 
     def test_sign_unknown_worst_case_margin(self):
         # w = 3 -> every price needs surplus >= 1 + 30
@@ -464,3 +465,19 @@ class TestHarvest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLiveReviewFixes(unittest.TestCase):
+    """Sat 3 Oct review before Duels I: text-only rival messages, repeated rival prices."""
+
+    def test_text_only_rival_message_does_not_freeze(self):
+        d = duel(L=100, deadline=116, msgs=[msg("you", 100, 75), {"tick": 101, "from": "R", "text": "hola", "price": None,
+                                                                   "days": None}])
+        v = D.view(d, 102)
+        self.assertTrue(v.ok, v.why)
+
+    def test_no_concession_to_a_repeated_price(self):
+        d = duel(L=100, deadline=116, msgs=[msg("you", 100, 75), msg("R", 101, 150), msg("you", 102, 80),
+                                            msg("R", 103, 150)],
+                 rival_offer={"price": 150, "days": None, "tick": 103, "id": 9})
+        self.assertEqual(D.decide(D.view(d, 104), {})[0], "wait")

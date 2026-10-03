@@ -56,6 +56,7 @@ DEFAULTS: Mapping[str, Any] = {
     "final_frac": 0.6,     # final offer goes this fraction of the way from our offer to the limit
     "slow_keep": 0.25,     # slow ascent keeps this share of the way for the tail
     "slow_tail": 3,        # ... spent over the last slow_tail ticks before deadline - 2
+    "slow_cap": 0.8,       # silent rival: never walk more than this share of the way to the limit (live review)
     "e8_ticks": 2,         # E8: silence after the first answer of the first rival that speaks
     "T": None,             # duel length override (ticks)
     "days_sign": None,     # +1: more days is better for us; -1: fewer; None: unknown (worst case)
@@ -174,6 +175,8 @@ def view(duel: Mapping, tick: int) -> DuelView:
         if not isinstance(m, Mapping):
             return bad("shape.message")
         t, p, dd = _int(m.get("tick")), _int(m.get("price")), m.get("days")
+        if p is None and m.get("price") is None and m.get("from") != "you" and t is not None:
+            continue                     # rival text-only message (price null): no offer, not a freeze (live review)
         if t is None or p is None or (dd is not None and _int(dd) is None):
             return bad("shape.message")
         (ours if m.get("from") == "you" else rivals).append((t, p, dd, i))
@@ -212,7 +215,7 @@ def _days_model(v: DuelView, P: Mapping):
     if not v.two_issue:
         return True, None, (lambda d: 0.0)
     w = v.days_weight
-    if w is None or not v.days_meaning_known:
+    if w is None:                        # days_meaning never reaches the World (free text): weight is enough
         return False, None, None
     sign = P.get("days_sign")
     aw = abs(w)
@@ -346,7 +349,7 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
             frac = (1 - P["slow_keep"]) * max(0, v.tick - t0) / max(1, tail_start - t0)
         else:
             frac = (1 - P["slow_keep"]) + P["slow_keep"] * (v.tick - tail_start) / max(1, P["slow_tail"])
-        p = _clamp(v, anchor + (Lm - anchor) * min(1.0, frac), need_say)
+        p = _clamp(v, anchor + (Lm - anchor) * min(P["slow_cap"], frac), need_say)
         p = max(p, mine) if buyer else min(p, mine)
         return ("say", p, say_days) if p != mine else wait
 
@@ -368,6 +371,8 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
         return ("say", p, say_days) if p != mine else wait
 
     # 6. v0 corrected: concede one step only when the rival answered our last message (K-06)
+    if rival_after_ours and len(v.rivals) >= 2 and v.rivals[-1][1] == v.rivals[-2][1] and not late:
+        return wait                      # rival did not move: no concession for a repeated price (Day-2 hint 5)
     if rival_after_ours:
         p = nxt
         if ok_r:                                                         # never offer more than the rival asks
