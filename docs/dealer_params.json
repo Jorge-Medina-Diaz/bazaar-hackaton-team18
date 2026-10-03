@@ -1,11 +1,12 @@
 {
- "updated": "2026-10-03T18:18:46",
+ "updated": "2026-10-03T18:23:48",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 28,
    "cierres": [
     22,
     23,
+    24,
     24,
     24,
     24,
@@ -33,12 +34,12 @@
    ],
    "p_sube": {
     "2-3": 0.72,
-    "1": 0.8,
+    "1": 0.81,
     "4+": 0.8
    },
    "n_sube": {
-    "2-3": 39,
-    "1": 30,
+    "2-3": 40,
+    "1": 32,
     "4+": 5
    },
    "final_min": 4,
@@ -47,7 +48,7 @@
    "mejora_max": 5
   },
   "pilar|venta|resto·uncommon": {
-   "hilos": 49,
+   "hilos": 50,
    "cierres": [
     14,
     16,
@@ -109,12 +110,12 @@
    ],
    "p_sube": {
     "2-3": 0.52,
-    "1": 0.53,
+    "1": 0.55,
     "4+": 0.41
    },
    "n_sube": {
     "2-3": 48,
-    "1": 62,
+    "1": 66,
     "4+": 34
    },
    "final_min": 4,
@@ -133,7 +134,7 @@
    "mejora_max": null
   },
   "pilar|venta|resto·None": {
-   "hilos": 17,
+   "hilos": 20,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -143,7 +144,7 @@
    "mejora_max": 0
   },
   "pilar|venta|fav·rare": {
-   "hilos": 15,
+   "hilos": 17,
    "cierres": [
     65,
     65,
@@ -206,9 +207,10 @@
    "mejora_max": 9
   },
   "picaros|venta|resto·common": {
-   "hilos": 56,
+   "hilos": 57,
    "cierres": [
     4,
+    5,
     5,
     5,
     5,
@@ -222,22 +224,24 @@
    ],
    "p_sube": {
     "2-3": 0.21,
-    "1": 0.12,
+    "1": 0.13,
     "4+": 0.0
    },
    "n_sube": {
     "2-3": 52,
-    "1": 42,
+    "1": 45,
     "4+": 4
    },
    "final_min": 3,
-   "final_med": 4.0,
+   "final_med": 4,
    "perdona_max": 1,
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
    "hilos": 38,
    "cierres": [
+    52,
+    52,
     52,
     52,
     53,
@@ -248,6 +252,10 @@
     55,
     56,
     56,
+    57,
+    57,
+    57,
+    57,
     57,
     57,
     57,
@@ -269,14 +277,14 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 9,
+    "2-3": 11,
     "1": 10,
-    "4+": 15
+    "4+": 16
    },
    "final_min": 2,
-   "final_med": 3,
+   "final_med": 3.0,
    "perdona_max": 15,
-   "mejora_max": 18
+   "mejora_max": 19
   },
   "picaros|venta|resto·uncommon": {
    "hilos": 14,
@@ -342,6 +350,20 @@
    "final_med": null,
    "perdona_max": null,
    "mejora_max": null
+  },
+  "pilar|venta|fav·epic": {
+   "hilos": 1,
+   "cierres": [],
+   "p_sube": {
+    "4+": 1.0
+   },
+   "n_sube": {
+    "4+": 4
+   },
+   "final_min": 6,
+   "final_med": 6,
+   "perdona_max": null,
+   "mejora_max": 22
   }
  }
 }
