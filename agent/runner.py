@@ -320,6 +320,8 @@ class Runner:
                  journal: Any, gate: Any, sensor: Any, calibrator: Any, cfg: Any, clock: Any,
                  manual: Sequence[Mapping] = (), started: Optional[float] = None, chash: Optional[str] = None):
         self.mode, self.paths, self.plan_cfg = mode, paths, plan_cfg
+        self.plan_now: Mapping = plan_cfg          # plan_cfg with today's day end / endgame from the live schedule
+        self._sched_seen: dict = {}                # pages.effective_plan memory (last live close, stalls hour)
         self.transport, self.journal, self.gate, self.sensor = transport, journal, gate, sensor
         self.calibrator, self.cfg, self.clock = calibrator, cfg, clock
         self.started = time.time() if started is None else started
@@ -539,7 +541,7 @@ class Runner:
 
     def propose_all(self, world: World, book: Any, needs: list) -> list:
         intents: list = []
-        v, cfg, pc = self.valuer, self.cfg, self.plan_cfg
+        v, cfg, pc = self.valuer, self.cfg, self.plan_now
         for name, modpath in TACTIC_MODULES:
             mod = self._module(name, modpath)
             if mod is None:
@@ -646,6 +648,7 @@ class Runner:
         if reasons:
             raise Fatal("calibrator: " + "; ".join(map(str, reasons))[:400])
 
+        self.update_plan(world)
         needs = self.plan_needs(world, valuer)
         book = self.gate.book
 
@@ -690,12 +693,35 @@ class Runner:
             self.snap(world)
         return True
 
+    def update_plan(self, world: World) -> None:
+        """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""
+        try:
+            from agent.tactics import pages
+            pc, self._sched_seen = pages.effective_plan(self.plan_cfg, world, self._sched_seen)
+        except Exception as e:                                           # noqa: BLE001 - keep the last plan
+            if _is_fatal(e):
+                raise
+            self.alarm(f"effective_plan failed: {e.__class__.__name__}: {str(e)[:200]}")
+            return
+        day = pages.today(world)
+        def hours(p):
+            de = (p.get("day_end_hours") or {}).get(day)
+            eg = ((p.get("closer") or {}).get("endgame_hours") or {}).get(day)
+            return tuple(round(x, 3) if type(x) in (int, float) and math.isfinite(x) else None for x in (de, eg))
+        old, new = hours(self.plan_now), hours(pc)
+        self.plan_now = pc
+        moved = any((a is None) != (b is None) or (a is not None and abs(a - b) > 1 / 60) for a, b in zip(old, new))
+        if moved:
+            seen = self._sched_seen.get(day) or {}
+            self.j("param", name="day_times", game_day=day, day_end=new[0], endgame=new[1], close=seen.get("close"),
+                   stalls=seen.get("stalls"), tick=world.tick)
+
     def plan_needs(self, world: World, valuer: Any) -> list:
         if valuer is None:
             return []
         try:
             from agent.tactics import pages
-            needs, frozen = pages.plan(world, valuer, self.plan_cfg, self.frozen)
+            needs, frozen = pages.plan(world, valuer, self.plan_now, self.frozen)
         except Exception as e:                                           # noqa: BLE001
             if _is_fatal(e):
                 raise
@@ -743,7 +769,7 @@ class Runner:
         if mod is None:
             return []
         try:
-            got = mod.propose(fresh, self.cfg, self.plan_cfg, dict(self.plan_cfg.get("duels") or {}),
+            got = mod.propose(fresh, self.cfg, self.plan_now, dict(self.plan_now.get("duels") or {}),
                               self.state["duels"])
         except Exception as e:                                           # noqa: BLE001
             if _is_fatal(e):

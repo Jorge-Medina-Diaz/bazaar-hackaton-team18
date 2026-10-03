@@ -257,6 +257,33 @@ class TestLateWindow(unittest.TestCase):
         self.assertEqual(len(alarms), 1)
 
 
+class TestLiveDayTimes(unittest.TestCase):
+    """Night audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
+
+    def sun(self, t, close, paused=False):
+        return make_world(t_hours=t, clock=MappingProxyType({"paused": paused, "doors": "open", "today": "sun"}),
+                          schedule=MappingProxyType({"now_hours": t, "upcoming": (MappingProxyType(
+                              {"at_hours": close, "action": "day_closes", "params": MappingProxyType({"day": "sun"})}),)}))
+
+    def test_tactics_get_the_live_hours_and_a_param_row(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"*": 18.783}}}
+        r.update_plan(self.sun(16.7, 22.65))                       # clock jumped: close 22.65
+        self.assertAlmostEqual(r.plan_now["day_end_hours"]["sun"], 22.65 - 5 / 60, places=3)
+        self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["N"], 22.65 - 35 / 60, places=3)
+        seen = []
+        with mock.patch("agent.tactics.hygiene.propose", side_effect=lambda w, b, v, c, pc, st: seen.append(pc) or []),                 mock.patch("agent.tactics.dealers.propose", return_value=[]),                 mock.patch("agent.tactics.dealers.DealerState.rebuild", return_value=None),                 mock.patch("agent.tactics.rastro.propose", return_value=[]),                 mock.patch("agent.tactics.duels.propose", return_value=[]):
+            r.propose_all(self.sun(16.7, 22.65), object(), [])
+        self.assertIs(seen[0], r.plan_now)
+        rows = [x for x in r.journal.rows if x["kind"] == "param" and x.get("name") == "day_times"]
+        self.assertEqual(len(rows), 1)
+        r.update_plan(self.sun(16.71, 22.65))                      # same hours: no new row
+        r.update_plan(self.sun(16.8, 22.2))                        # a pause moved the close: new row
+        rows = [x for x in r.journal.rows if x["kind"] == "param" and x.get("name") == "day_times"]
+        self.assertEqual(len(rows), 2)
+        self.assertAlmostEqual(rows[-1]["endgame"], round(22.2 - 35 / 60, 3), places=3)
+
+
 # ----------------------------------------------------------------------------------------- end to end
 
 class GameClock:

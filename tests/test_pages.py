@@ -262,5 +262,97 @@ class ProtectTest(unittest.TestCase):
         self.assertNotIn("LAV-03", [r for _, r in pages.spare_assets(listed, {"SAL", "LAT"})])
 
 
+def _sun(t, close, stalls=None, *, doors="open", paused=False, today="sun", upcoming=None):
+    """A Sunday World for the live-schedule day end: today's day_closes at `close`, stalls closing at `stalls`."""
+    up = [] if upcoming is None else list(upcoming)
+    if upcoming is None:
+        up.append({"at_hours": close + 0.0, "action": "day_closes", "params": {"day": "sun"},
+                   "wall": "2026-10-04T15:00:00+02:00"})
+        if stalls is not None:
+            up += [{"at_hours": stalls, "action": "persona", "params": {"id": p, "enabled": False}}
+                   for p in ("abuela", "chato", "pilar", "picaros", "banco")]
+    w = make_world(t_hours=t, today=today)
+    import dataclasses
+    return dataclasses.replace(w, clock={"today": today, "doors": doors, "paused": paused},
+                               schedule={"now_hours": t, "upcoming": up})
+
+
+class LiveDayEndTest(unittest.TestCase):
+    """Night audit (Sun 4 Oct): day end / endgame follow the live schedule, not plan hours (sun 19.283 / 18.783)."""
+    PLAN = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}}}
+
+    def eff(self, w, seen=None):
+        return pages.effective_plan(self.PLAN, w, seen)
+
+    def test_resume_at_13_367(self):
+        # no jump: Sunday 09:00-15:00 = t 13.367-19.367; the re-based stalls close one hour earlier (18.367)
+        pc, _ = self.eff(_sun(13.4, 19.367))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
+        self.assertAlmostEqual(pc["closer"]["endgame_hours"]["N"], 19.367 - 35 / 60, places=3)
+        pc, _ = self.eff(_sun(13.4, 19.367, 18.367))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.267, places=3)       # stalls - 6 min
+        self.assertAlmostEqual(pc["closer"]["endgame_hours"]["sun"], 18.7837, places=3)
+        self.assertFalse(pages.past_day_end(_sun(18.2, 19.367, 18.367), pc))
+        self.assertTrue(pages.past_day_end(_sun(18.27, 19.367, 18.367), pc))
+
+    def test_clock_jump_to_16_65(self):
+        # jump: CHA + round 3 at 09:00, stalls 21.65, close 22.65; the plan hours would fire at 09:00
+        w = _sun(19.5, 22.65, 21.65)                                              # ~11:50 after a jump
+        self.assertTrue(pages.past_day_end(w, self.PLAN))                         # the bug this fixes
+        pc, _ = self.eff(w)
+        self.assertFalse(pages.past_day_end(w, pc))
+        self.assertFalse(pages.endgame(w, pc))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 21.55, places=3)
+        self.assertTrue(pages.endgame(_sun(22.07, 22.65), self.eff(_sun(22.07, 22.65))[0]))
+
+    def test_a_pause_moves_the_triggers(self):
+        # the server re-projects day_closes after a pause (Sat: 14.086 -> 13.367): the triggers follow
+        late = self.eff(_sun(17.0, 19.367))[0]
+        early = self.eff(_sun(17.0, 18.9))[0]
+        self.assertLess(early["closer"]["endgame_hours"]["sun"], late["closer"]["endgame_hours"]["sun"])
+        self.assertTrue(pages.endgame(_sun(18.4, 18.9), early))
+        self.assertFalse(pages.endgame(_sun(18.4, 19.367), late))
+
+    def test_stalls_hour_is_kept_after_the_entries_fire(self):
+        _, seen = self.eff(_sun(18.0, 19.367, 18.367))
+        pc, seen = self.eff(_sun(18.4, 19.367), seen)                             # persona entries gone
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 18.267, places=3)
+        self.assertTrue(pages.past_day_end(_sun(18.4, 19.367), pc))
+
+    def test_one_dealer_off_is_not_the_stalls_closing(self):
+        up = [{"at_hours": 19.367, "action": "day_closes", "params": {"day": "sun"}},
+              {"at_hours": 15.0, "action": "persona", "params": {"id": "pilar", "enabled": False}}]
+        pc, _ = self.eff(_sun(14.0, 0, upcoming=up))
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
+
+    def test_no_live_schedule(self):
+        # cold start (schedule unread) or paused with nothing seen: no trigger at all (never the stale plan hour)
+        cold = _sun(20.0, 0, upcoming=[])
+        pc, _ = self.eff(cold)
+        self.assertFalse(pages.past_day_end(cold, pc))
+        self.assertFalse(pages.endgame(cold, pc))
+        # paused after a live read: the last live close stays
+        _, seen = self.eff(_sun(17.0, 19.367))
+        paused = _sun(17.0, 22.65, paused=True)
+        pc, _ = self.eff(paused, seen)
+        self.assertAlmostEqual(pc["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
+        # schedule read but no close entry: the plan's hours
+        pc, _ = self.eff(_sun(14.0, 0, upcoming=[{"at_hours": 15.0, "action": "bench", "params": {}}]))
+        self.assertEqual(pc["day_end_hours"]["sun"], 19.283)
+
+    def test_stale_today_uses_the_next_close(self):
+        up = [{"at_hours": 19.367, "action": "day_closes", "params": {"day": "sun"}}]
+        w = _sun(13.4, 0, today="sat", upcoming=up)
+        pc, _ = self.eff(w)
+        self.assertAlmostEqual(pc["day_end_hours"]["sat"], 19.367 - 5 / 60, places=3)
+        self.assertFalse(pages.past_day_end(w, pc))
+
+    def test_today_missing_is_not_guessed(self):
+        import dataclasses
+        w = dataclasses.replace(make_world(t_hours=15.0), clock={})
+        self.assertEqual(pages.today(w), "default")
+        self.assertFalse(pages.past_day_end(w, self.PLAN))
+
+
 if __name__ == "__main__":
     unittest.main()

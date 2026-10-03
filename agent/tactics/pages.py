@@ -244,10 +244,85 @@ def _sales_seen(world) -> Counter:
 
 
 def today(world) -> str:
+    """clock.today; missing -> "default" (never guessed from t_hours: Sunday spans t 13.37-19.37 or 16.65-22.65)."""
     d = (world.clock or {}).get("today") if isinstance(world.clock, Mapping) else None
     if type(d) is str and d:
         return d
-    return "sun" if (world.t_hours or 0) >= 18.0 else "sat"
+    return "default"
+
+
+# Day end / endgame from the server's live schedule (night audit, Sun 4 Oct). While the clock runs the server
+# re-projects the wall-anchored "day_closes" entry onto game hours every read (Sat 22:55: day_closes sun 19.365), so
+# the triggers follow a late start, a clock jump (16.65 at 09:00) or any pause. Fixed plan hours are only a fallback.
+DAY_END_BEFORE_CLOSE_H = 5 / 60        # hygiene closes dealer threads, pages drops dealer Needs: 5 min before close
+ENDGAME_BEFORE_CLOSE_H = 35 / 60       # closer endgame (boards, El Rastro): 35 min before close
+STALLS_MARGIN_H = 0.1                  # dealer day end: 6 min before the stalls close ("Finale: stalls close")
+STALLS_MIN_PERSONAS = 3                # a stall close = >= 3 personas disabled at the same hour (not one dealer's break)
+NEVER = math.inf
+
+
+def _live_schedule(world) -> Optional[Sequence]:
+    """world.schedule["upcoming"] when the doors are open, the clock runs and the list is not empty; else None."""
+    c = world.clock if isinstance(world.clock, Mapping) else {}
+    sched = world.schedule if isinstance(world.schedule, Mapping) else {}
+    up = sched.get("upcoming")
+    if c.get("doors") != "open" or c.get("paused") is True or not isinstance(up, (list, tuple)) or not up:
+        return None
+    return up
+
+
+def live_times(world) -> tuple:
+    """-> (close_h, stalls_h) from the live schedule; None for what is not there.
+    close_h: today's day_closes (else the next one, if clock.today is stale); stalls_h: earliest hour at which
+    >= STALLS_MIN_PERSONAS persona entries say enabled: false."""
+    up = _live_schedule(world)
+    if up is None:
+        return None, None
+    day, t = today(world), world.t_hours if _num(world.t_hours) else 0.0
+    mine, nxt, off = [], [], Counter()
+    for e in up:
+        if not isinstance(e, Mapping) or not _num(e.get("at_hours")):
+            continue
+        at, pr = float(e["at_hours"]), e.get("params") if isinstance(e.get("params"), Mapping) else {}
+        if e.get("action") == "day_closes":
+            (mine if pr.get("day") == day else nxt).append(at)
+        elif e.get("action") == "persona" and pr.get("enabled") is False:
+            off[at] += 1
+    close = min(mine) if mine else min([a for a in nxt if a >= t - 1e-9], default=None)
+    stalls = min([a for a, n in off.items() if n >= STALLS_MIN_PERSONAS], default=None)
+    return close, stalls
+
+
+def effective_plan(plan_cfg: Mapping, world, seen: Optional[Mapping] = None) -> tuple:
+    """-> (plan_cfg for this tick, seen). Today's day_end_hours / closer.endgame_hours derived from the live schedule:
+    day end = min(close - 5 min, stalls - 6 min), endgame = close - 35 min. `seen` (held by the runner, per day) keeps
+    the last live close and the stalls hour once their entries have fired and left "upcoming".
+    No live close and nothing seen: schedule readable -> the plan's hours; cold start / paused -> no trigger (a stale
+    plan hour after a clock jump would close every dealer thread at 11:38)."""
+    seen = dict(seen or {})
+    day = today(world)
+    close, stalls = live_times(world)
+    prev = seen.get(day) or {}
+    close = close if close is not None else prev.get("close")
+    stalls = stalls if stalls is not None else prev.get("stalls")
+    seen[day] = {"close": close, "stalls": stalls}
+    if close is None and stalls is None:
+        if _live_schedule(world) is not None:
+            return plan_cfg, seen                       # schedule read, no close in it: plan hours
+        day_end = endgame = NEVER
+    else:
+        ends = [x for x in (close - DAY_END_BEFORE_CLOSE_H if close is not None else None,
+                            stalls - STALLS_MARGIN_H if stalls is not None else None) if x is not None]
+        day_end = round(min(ends), 4)
+        eh0 = ((plan_cfg.get("closer") or {}).get("endgame_hours") or {}).get(day)
+        endgame = round(close - ENDGAME_BEFORE_CLOSE_H, 4) if close is not None else (eh0 if _num(eh0) else NEVER)
+    pc = dict(plan_cfg)
+    pc["day_end_hours"] = dict(pc.get("day_end_hours") or {}, **{day: day_end})
+    cl = dict(pc.get("closer") or {})
+    keys = set(cl.get("endgame_hours") or {}) | {day, "*"} | ({world.reading} if isinstance(world.reading, str) else set())
+    cl["endgame_hours"] = {k: endgame for k in keys}
+    pc["closer"] = cl
+    return pc, seen
 
 
 def past_day_end(world, plan_cfg) -> bool:
