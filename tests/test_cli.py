@@ -213,10 +213,15 @@ class TestRunAndSelftest(Base):
 
     def test_clockcheck_against_fake(self):
         from sim.world import FakeGame
+        from agent import transport
         g = FakeGame(seed=1)
         buf = io.StringIO()
-        with redirect_stdout(buf):
+        # Runner tests use an epoch-based fake clock; clockcheck uses monotonic.
+        # Isolate the process-wide limiter so stage order cannot cause a huge sleep.
+        previous = transport._PUBLIC_LAST[0]
+        with redirect_stdout(buf), mock.patch.object(transport, '_PUBLIC_LAST', [float('-inf')]):
             rc = bazaar.cmd_clockcheck("http://127.0.0.1:9", http=g.http)
+        self.assertEqual(transport._PUBLIC_LAST[0], previous)
         self.assertEqual(rc, 0, buf.getvalue())
         self.assertIn("reading", buf.getvalue())
 

@@ -81,6 +81,11 @@ def executor_status(log_dir, events):
     try:
         reader = Journal(path, mode='dry', writer=False)
         valid = reader.verify_chain()
+        with open(path, 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            if f.tell():
+                f.seek(-1, os.SEEK_END)
+                valid = valid and f.read(1) == b'\n'
         pending = len(reader.pending())
         unknown = sorted(reader.unknown_domains())
     except Exception:

@@ -1,0 +1,55 @@
+# Traspaso actual — 2026-10-03
+
+## Integración autorizada por Rubén
+
+- Repositorio: Jorge-Medina-Diaz/bazaar-hackaton-team18. Preparación aislada en
+  `/Users/ruben/projects/bazaar-hackaton-team18-integration`, rama
+  `codex/integrate-harnesses`, desde origin/main ae73a8a.
+- Integradas `harness-v2` de Jorge (incluidas las correcciones en vivo hasta
+  5dcbab1) y `codex/evaluation-harness` 562f312. Conservados los commits originales.
+- Gate, transporte, contratos, tácticas, SDK y config/plan.json son idénticos a
+  la rama de Jorge. JEV/RAG permanecen como evaluaciones independientes; no se
+  conectan al World ni deciden cifras, permisos o aceptaciones.
+- README resuelto conservando el arranque v2 y añadiendo las evaluaciones. Los
+  imports del selector/broker antiguo se sustituyeron por copias puras offline
+  en harness/legacy_baseline.py, legacy_broker.py y broker_sim.py, sin CLI/red ni
+  escrituras. No se importa ni reactiva archive/.
+- El visor lee el WAL logs/run/journal.jsonl, muestra modo/tick/tácticas/pendientes
+  y comprueba la cadena sin reparar archivos. HTTP ok/queued no se convierte en
+  liquidación ni en memoria de desenlace. No sirve snapshots ni untrusted.jsonl.
+- La prueba de extremo a extremo usa ahora el runner v2 y servidor falso. Se
+  añadieron regresiones para modo dry, lectura sin mutación, cadena/corte de línea
+  y ausencia de falsas liquidaciones. Los fallos iniciales de imports y fixtures
+  se corrigieron respetando el candado de escritor de Jorge.
+- Detectado un fallo de aislamiento en tests/test_cli.py: el selftest ejecuta
+  runner antes de clockcheck y la hora del reloj falso quedaba en _PUBLIC_LAST,
+  provocando una espera enorme al cambiar a monotonic. Corregida solo la fixture
+  de clockcheck mediante parche temporal del limitador; transporte/CLI de
+  producción intactos. Regresión con _PUBLIC_LAST=10^12 pasa en 1,008 s.
+- Pruebas/resultados finales se registran debajo antes del push. Ninguna operación
+  real del juego ni llamada de pago a JEV durante esta integración. Claves,
+  contraseñas, state/, logs/ y runs/ excluidos del contenido publicado.
+
+## Próximo paso del único operador
+
+Leer docs/integration-handoff.md. Jorge actualiza main cuando pueda detener el
+runner entre operaciones, conservando archivos locales; repite selftest porque
+cambia el hash del código. Comprueba status y abre run_traces_tunnel.py --logs logs
+desde su máquina. Los demás observan por el visor y proponen cambios; no arrancan
+un segundo ejecutor. Todavía falta validar el visor con sus logs reales y enlazar
+desenlaces v2 con liquidaciones antes de alimentar RAG.
+
+Las sesiones anteriores siguen en archive/docs/HANDOFF.md.
+
+## Validación final
+
+- Suite completa: 778 casos ejecutados en 90,176 s; 776 pasaron, dos omitidos,
+  cero fallos/errores. Las salidas STOP/candado son casos deliberados de las
+  pruebas contra el servidor falso, no operaciones del juego real.
+- Panel web: 5/5 pruebas pasaron. Trazas v2: 16/16 pasaron, incluido runner real
+  contra el servidor falso y archivo cortado sin reparación.
+- Harness económico histórico PASS: 127 casos de mercado, 13 de arbitraje;
+  preflight JEV: nueve solicitudes preparadas y 63 preguntas, sin red.
+- `bazaar.py status` local: sin STOP, candado libre, sin tácticas armadas ni diario
+  operativo. Escaneo de credenciales/archivos runtime y diff --check correctos.
+- Selftest final: seis etapas GREEN: core 396, hygiene 27, dealers 155, rastro 42, closer 63 y duels 122. Exit 0. Las etapas comparten pruebas; no sumar esas cifras como casos independientes. El archivo de aprobación local no se publica y el operador debe repetir selftest tras actualizar.
