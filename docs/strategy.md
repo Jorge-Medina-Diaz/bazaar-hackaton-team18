@@ -87,6 +87,9 @@ Cada jugada la ejecuta una táctica del arnés y pasa por el Gate. "Armar" pasa 
 | **J11** | **Venue `auto` a comisión 0**, solo si E15 mide ≥ 3 tratos/h en venues de equipo durante 2 h y `cash_free − coste del plan de páginas ≥ 270`. Por el Gate (intent `open_venue` de la mejora L4), nunca a mano. Nunca operamos en él. | E15 | Acceso a mm_points por flujo ajeno | Una condición falla → puesto | M-02..M-09, RULES l.76, l.119 | Guarda propia de L4 |
 | **J12** | **Domingo, CHA:** el mismo patrón que J3 + J4 en un solo modo: raras a El Chato (≤ 100, valor 112) → infrecuentes (Abuela ≤ 25, El Chato patrón t03 ≤ 31) → comunes (≤ 12) → cierre con equipo a min(floor(122 − 50), cash_free) = 72. Sin hilos nuevos durante Duels III. Último trato con dealer a las 13:45 (N). | CHA publicado | +50 si se llega a 9/10 y se cumple la puja; nada se pierde si la caja no llega | Igual que J3 y J4 | V-05, V-06, D-10 | igual que J3 y J4 |
 
+### 2.0 Elegir contraparte con `affinity.py` (X-15)
+Para J5, J6, J13 y los duelos: `python3 affinity.py --card <ref> --price <p>` da, por equipo, P(le vale ≥ p). Se publica o se puja pensando en los que salen **COMPRADOR** (≥ 80 %) y se busca carta en los que salen **VENDEDOR**. `--set RET` ordena quién valora más un barrio. Solo informa (lectura, fuera del World): las cifras siguen saliendo de nuestro valor y de las guardas. `python3 affinity.py --watch 60` en marcha en la máquina A graba las fotos del leaderboard que alimentan la señal de puntuación.
+
 ### 2.1 Qué NO hacemos (lista cerrada; la impone el Gate)
 1. **Comprar sobres.** No existe el intent.
 2. **Pagar a un dealer más de V_lo − 1**, ni venderle por menos de V + 1.
