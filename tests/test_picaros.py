@@ -64,6 +64,9 @@ class TrickTests(unittest.TestCase):
         self.assertEqual(picaros.text_prices("Seventy-three pesos"), {73})
         self.assertEqual(picaros.text_prices("trece perlas, amigo"), {13})
         self.assertEqual(picaros.text_prices("Fine, 13 P. Last offer"), {13})
+        self.assertEqual(picaros.text_prices("ciento ochenta y siete primas"), {187})   # caso real, mensaje 8663
+        self.assertEqual(picaros.text_prices("one hundred and fifty-five"), {155})
+        self.assertEqual(picaros.text_prices("¡Ciento treinta y nueve! Hecho"), {139})
 
 
 class ProfileTests(unittest.TestCase):

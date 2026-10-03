@@ -51,12 +51,28 @@ def text_prices(text):
     t = _norm(text)
     out = {int(m) for m in re.findall(r"\b(\d{1,4})\s*(?:p\b|primas|pesos|perlas|coins)", t)}
     out |= {int(m) for m in re.findall(r"\b(?:for|por|a)\s+(\d{1,4})\b", t)}
-    for m in re.finditer(r"\b([a-z]+)(?:[\s-]+(?:y\s+)?([a-z]+))?\b", t):
-        a, b = WORDS.get(m.group(1)), WORDS.get(m.group(2) or "")
-        if a is not None and a >= 10:
-            out.add(a + (b if b is not None and b < 10 and a % 10 == 0 and a >= 20 else 0))
-        elif a is not None and a >= 4:
-            out.add(a)
+    toks = re.findall(r"[a-z]+", t)
+    i = 0
+    while i < len(toks):                      # números en letra: «ciento ochenta y siete», «one hundred and five»
+        if toks[i] not in WORDS and toks[i] not in ("ciento", "doscientos", "trescientos"):
+            i += 1
+            continue
+        total, cur, used = 0, 0, False
+        while i < len(toks) and (toks[i] in WORDS or toks[i] in ("ciento", "doscientos", "trescientos", "y", "and")):
+            w = toks[i]
+            if w in ("y", "and"):
+                i += 1
+                continue
+            v = {"ciento": 100, "doscientos": 200, "trescientos": 300}.get(w, WORDS.get(w))
+            if w == "hundred":
+                cur = max(cur, 1) * 100
+            else:
+                cur += v
+            used = True
+            i += 1
+        total += cur
+        if used and total >= 4:
+            out.add(total)
     return out
 
 
