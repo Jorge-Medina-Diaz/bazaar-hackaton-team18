@@ -22,11 +22,11 @@
     "RET-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
     "RET:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "RET:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 11,  "fallback_after": null},
-    "CHA:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 100, "fallback_after": null},
+    "CHA:rare":     {"dealer": "chato",  "anchor": 66, "step": 4, "limit": 100, "fallback_after": null},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null}
   },
-  "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
+  "closer": {"accept_min": 20, "default_minus": 75, "compete_minus": 20, "freeze_at": 8,
              "endgame_hours": {"sun": 21.0}},
   "resupply_min": 15,
   "dup_min_price": {"RET": 30, "CHA": 30},
