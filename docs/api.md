@@ -34,7 +34,7 @@ Cuerpos (OpenAPI): `PostMessage {text, price?, days?, offer?, topic?}` (vale par
   - La Abuela vendiendo: `give.types = ["pack:sobre_barrio"]` o `["card:SAL-02"]` y `want.cash` = su precio.
   - La Abuela comprando: `give.cash` = lo que paga y `want.assets = [{id, kind, ref, ...}]`.
   - `agent/haggle.offer_ok()` comprueba esta estructura antes de aceptar; todas las ofertas reales del feed la pasan.
-- **`expires_in_ticks` se cuenta en unidades de 15 s**: con ticks de 60 s, pedir 120 da 30 ticks reales, 60 da 15 y 240 da 60 (medido, ticks 51, 68 y 69). El sábado, con ticks de 30 s, se divide entre 2. `market.expiry()` lo compensa. Las ofertas en El Rastro caducan a los 40 ticks si no se dice otra cosa (en la práctica, 30): las 5 del starter ya no están (`/api/me/offers` vacío).
+- **`expires_in_ticks` se cuenta en unidades de 15 s**: con ticks de 60 s, pedir 120 da 30 ticks reales, 60 da 15 y 240 da 60 (medido, ticks 51, 68 y 69). Con ticks de 30 s se divide entre 2; **desde el sáb 3 oct el tick vuelve a 60 s** (pedido 240 → 60 ticks reales). `market.expiry()` lo compensa. Las ofertas en El Rastro caducan a los 40 ticks si no se dice otra cosa (en la práctica, 30): las 5 del starter ya no están (`/api/me/offers` vacío).
 - Topics con vendedores: `{"buy": {"pack"|"card": id}}`, `{"buy": {"rarity", "set"}}`, `{"sell": {"assets": [ids]}}`.
 
 ## Públicas (sin clave)

@@ -101,7 +101,7 @@ It starts slow so everyone learns the rhythm, and gets faster each day:
 | Day | Open (Madrid) | One tick every |
 |---|---|---|
 | Friday | Fri 19:00–23:00 | 60 s |
-| Saturday | Sat 09:00–23:00 | 30 s |
+| Saturday | Sat 09:00–23:00 | ~~30 s~~ **60 s** (changed by the organisers, Sat 3 Oct — team note) |
 | Sunday | Sun 09:00–15:00 | 15 s |
 
 Outside these hours nothing ticks: offers stay open and nothing settles until the doors open again.

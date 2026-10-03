@@ -75,7 +75,7 @@ Casi todos los rivales son código: el texto no mueve cifras. Mantener `plain` c
 - Logrolling: el issue que el rival no mueve es el que le importa. Si apenas mueve los días y a nosotros nos dan igual, le damos sus días **a cambio de precio**: la misma utilidad para nosotros con más pastel. La regla actual (`0` si el peso es ≥ 0, si no `10`) es un marcador de posición.
 
 ## 6. Operativa
-- **Duelos I: sáb 11:30 (hora 6,5).** 17 rivales × 2 = 34 duelos, 3 a la vez, 16 ticks de 30 s → ~1,5 h. Duelos II sáb 18:30 (2 rondas, 6 a la vez). Duelos III dom 11:00. Final dom 14:00.
+- **Duelos I: sáb 11:30 (hora 6,5).** 17 rivales × 2 = 34 duelos, 3 a la vez, 16 ticks de **60 s** (cambio del sáb 3 oct) → 16 min por duelo, ~3 h para los 34 (12 tandas de 3). Duelos II sáb 18:30 (2 rondas, 6 a la vez). Duelos III dom 11:00. Final dom 14:00.
 - El runner tiene que estar vivo toda la sesión y relanzarse solo si cae (en la práctica 4 duelos se quedaron con un único mensaje nuestro).
 - Respetar 5 req/s: con 3–6 duelos a la vez son 2 GET + hasta 6 POST por tick; cabe.
 

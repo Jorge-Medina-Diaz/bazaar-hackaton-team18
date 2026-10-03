@@ -1,8 +1,8 @@
 # Síntesis: dónde estamos y qué sabemos
 
-*Última actualización: vie 2 oct, tick 150 (hora de juego 2,5). Mantener al día: es lo primero que hay que leer.*
+*Última actualización: sáb 3 oct, tick 279 (hora de juego 3,65, ronda 2 «Gran Vía»). Mantener al día: es lo primero que hay que leer.*
 
-> **Ahora mismo:** 247 P · puesto **7** (19,42) · `neg_points` 79,0 · `ladder_points` 0,051 · `market` 0 · 16 tratos · nivel 2 (Abuela + **El Chato**, activo) · sin mercado propio. Pendientes abiertos en [decisions.md](decisions.md#pendiente-de-decidir-vie-2-oct-tick-111).
+> **Ahora mismo:** 116 P · **puesto 1** (29,29) · `neg_points` 53,4 · `market` 6,5 (Market Test: eficiencia 0,90 con el puesto starter `v18`) · `ladder_points` 0,078 · 27 tratos · nivel 2 (Abuela + El Chato). **Doña Pilar** (nivel 3, coleccionista: paga por encima de catálogo y vende sobres de oro) ya la tiene t13; abre para todos en la hora 5,5. Radio Rastro anunciada. Álbum 32/50: **SAL 10/10 y RET 10/10**, LAT 8/10, LAV 2/10, MAL 2/10. Faltan: LAT-09/10 · LAV-01/02/05/06/07/08/09/10 · MAL-01/02/03/06/07/08/09/10. En El Rastro hay 12 cartas nuestras a la venta, entre ellas las copias únicas LAT-02/03/04/06/07/08, MAL-04, LAV-03 y LAV-04. Próximo: Market Test (hora 5,0), **Duelos I (5,15)** y Pilar abierta a todos (5,5).
 
 | Documento | Para qué |
 |---|---|
@@ -39,7 +39,8 @@
 - Nunca llamar a `/api/admin/*`. Una sola clave y un solo ejecutor a la vez.
 - Nunca aceptar una oferta sin `offer_ok()`. Nunca aceptar en un duelo fuera de `your_limit`.
 - Antes de un experimento, apuntar la hipótesis en experiments.md. Después, el resultado y el `score` antes y después.
-- Respetar los límites: 1 aceptación por tick, 1 mensaje por hilo y tick, 5 req/s, 6 hilos, 30 ofertas, 3 sobres por hora y 8 tratos por hora con la Abuela.
+- Respetar los límites: 1 aceptación por tick, 1 mensaje por hilo y tick, 12 ofertas nuevas por tick (las canceladas cuentan), 5 req/s, 6 hilos, 30 ofertas abiertas, 3 sobres por hora y 8 tratos por hora con la Abuela. Los números vigentes están en `GET /api/clock` → `limits`.
+- **Ritmo: 1 tick cada 60 s** (cambio del sáb 3 oct; el domingo está anunciado a 15 s). Nunca fijar segundos en el código: leer `tick_seconds` del reloj (`market.expiry()` ya lo hace). Con 60 s hay tiempo para decidir cada oferta, pero cada tick perdido cuesta el doble de reloj: en duelos, 16 ticks = 16 min.
 - Cada vez que se abra un nivel: `python3 probe.py` y leer `GET /api/levels` antes de tocar nada.
 
 ## Preguntas abiertas (por orden)
