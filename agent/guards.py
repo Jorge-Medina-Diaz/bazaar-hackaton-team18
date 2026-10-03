@@ -570,6 +570,8 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                     if it.get("intent_kind") == "list_offer":
                         _note_trade(recent, it.get("args") or {}, r.get("tick") or 0)
         for p in journal.pending():
+            if p.get("pending") == "accepted_unsettled" and _int(p.get("tick")) is not None                     and world.tick > p["tick"] and "me" not in (world.down or ()):
+                continue   # settles at T+1 (settles_at_tick): from T+1 the World read already shows the card and cash
             # M2 rows: the row kind is "intent" and the intent's own kind is in "intent_kind"
             it = p if p.get("kind") == "intent" else (intents.get(p.get("id")) or {})
             kind, args = it.get("intent_kind"), it.get("args") or {}

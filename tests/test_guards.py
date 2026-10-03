@@ -832,6 +832,50 @@ class _OpenedJournal:
         return set()
 
 
+class _UnsettledJournal:
+    """A dealer buy of RET-01 at 9 accepted at tick 210 (result ok), its accepted_unsettled row still pending."""
+
+    def __init__(self):
+        self._rows = [{"kind": "intent", "id": "a1", "intent_kind": "accept", "tick": 210,
+                       "args": {"source": "dealer", "side": "buy", "ref": "RET-01", "price": 9, "thread_id": 5,
+                                "offer_id": 77}},
+                      {"kind": "result", "id": "a1", "status": "ok", "code": None, "response": {"queued": True},
+                       "tick": 210}]
+
+    def rows(self, kinds):
+        return iter([r for r in self._rows if r["kind"] in kinds])
+
+    def pending(self):
+        return [{"kind": "accepted_unsettled", "id": "a1", "offer_id": 77, "ref": "RET-01", "price": 9,
+                 "until_tick": 212, "tick": 210, "pending": "accepted_unsettled"}]
+
+    def unknown_domains(self):
+        return set()
+
+
+class AcceptedUnsettledCountedOnce(unittest.TestCase):
+    """Night audit: the server settles an accept at T+1 (settles_at_tick); from then on the World shows the card and
+    the cash, so the pending row must not add price / projected / paths again (Sat ticks 212-213: cash_free < 0)."""
+
+    def test_after_settlement_tick_counted_once(self):
+        plain = Ctx(tick=211, my_offers=()).book
+        b = Ctx(tick=211, my_offers=(), journal=_UnsettledJournal()).book
+        self.assertEqual(b.cash_free, plain.cash_free)
+        self.assertEqual(b.projected.get("RET-01", 0), plain.projected.get("RET-01", 0))
+        self.assertEqual(b.paths.get("RET-01", 0), plain.paths.get("RET-01", 0))
+
+    def test_same_tick_still_pending(self):
+        plain = Ctx(tick=210, my_offers=()).book
+        b = Ctx(tick=210, my_offers=(), journal=_UnsettledJournal()).book
+        self.assertEqual(b.cash_free, plain.cash_free - 9)
+        self.assertEqual(b.projected.get("RET-01", 0), plain.projected.get("RET-01", 0) + 1)
+
+    def test_me_down_keeps_the_reservation(self):
+        plain = Ctx(tick=211, my_offers=(), down={"me"}).book
+        b = Ctx(tick=211, my_offers=(), down={"me"}, journal=_UnsettledJournal()).book
+        self.assertEqual(b.paths.get("RET-01", 0), plain.paths.get("RET-01", 0) + 1)
+
+
 def _live_thread(tid=392, ref="RET-10", ask=95, ask_types=None, dealer="chato"):
     """Live 3 Oct t210 shape: messages carry only id/offer/sender/tick (no top-level price)."""
     def offer(oid, maker, cash_give, cash_want, types_give, types_want, status, tick):
