@@ -481,10 +481,13 @@ class GuardedTransport(Bazaar):
         if reason:
             raise StopActive(reason)
         url = self.url + path
-        headers = {"X-Team-Key": self.key, "Accept": "application/json", "Content-Type": "application/json"}
+        headers = {"X-Team-Key": self.key, "Accept": "application/json"}
+        payload = None if body is None else data                        # like the SDK: bodiless writes send no body
+        if payload is not None:
+            headers["Content-Type"] = "application/json"
         token = _SENDING.set((method, url))
         try:
-            status, raw = self._http_fn(method, url, data, headers, self.timeout)
+            status, raw = self._http_fn(method, url, payload, headers, self.timeout)
             r = classify(status, raw)
         except GateViolation:
             raise
