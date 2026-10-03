@@ -393,7 +393,8 @@ def swap_watch(world, book, valuer, cfg, plan_cfg) -> list:
         if v["side"] != "swap" or not v["ref"] or not v["want_ref"]:
             continue
         try:
-            gain = _dv_add(world, book, valuer, v["want_ref"], _m(book.projected))
+            # build_book already counts this swap's wanted copy in projected: value it as if not yet received
+            gain = _dv_add(world, book, valuer, v["want_ref"], _counts_without(book, v["want_ref"]))
             lose = max(float(valuer.delta_remove(book.held, v["ref"], book.packs)), _your_value(world, v["ref"]))
             g = gain - lose
         except Exception:
