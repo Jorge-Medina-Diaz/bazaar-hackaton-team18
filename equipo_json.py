@@ -18,7 +18,7 @@ import time
 from agent.client import client
 from agent.redact import redact
 
-ASSET_KEYS = ("kind", "ref", "rarity", "set", "your_value")
+ASSET_KEYS = ("id", "kind", "ref", "rarity", "set", "your_value")   # id: la página ajusta con el feed copia a copia
 
 
 def snapshot(c) -> dict:

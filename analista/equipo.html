@@ -49,6 +49,14 @@
 .mini b{font-variant-numeric:tabular-nums}
 .chart svg{max-height:150px}
 .scroll.short{max-height:190px;overflow:auto}
+.track-in{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.track-in input{width:7.5rem;font:500 13px var(--f-mono);text-transform:uppercase}
+.cd{cursor:pointer}
+.cd.sel{outline:2px solid var(--foil);outline-offset:1px}
+tr.ours td{background:color-mix(in srgb,var(--foil) 10%,transparent)}
+.notes{display:grid;gap:4px;margin:0;padding:0;list-style:none;font-size:12.5px}
+.notes li{padding:6px 10px;border-radius:6px;background:var(--chip);overflow-wrap:anywhere}
+.notes li.bad{border-left:3px solid var(--bad)} .notes li.ok{border-left:3px solid var(--ok)} .notes li.info{border-left:3px solid var(--cobalt)}
 @media (max-width:700px){.cards{grid-template-columns:repeat(6,minmax(0,1fr))}.set{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
@@ -95,6 +103,19 @@
       <header><h2>Nuestros últimos tratos</h2><span class="small muted">feed público</span></header>
       <div class="scroll short"><table id="trades"><tbody></tbody></table></div>
     </section>
+
+    <section class="panel c12" id="trk">
+      <header><h2 id="trk-h">Seguimiento de carta</h2>
+        <span class="track-in"><label class="small muted" for="trk-ref">Carta</label><input id="trk-ref" list="trk-list" value="LAT-06" spellcheck="false" autocomplete="off"><datalist id="trk-list"></datalist><span class="small muted">o haz clic en una carta del álbum</span></span></header>
+      <div class="kpis" id="trk-kpis"></div>
+      <ul class="notes" id="trk-notes"></ul>
+      <div class="grid">
+        <div class="c6" style="min-width:0"><h3>Nuestras copias</h3><div class="scroll"><table id="trk-copies"><thead><tr><th>Copia</th><th>Entrada</th><th>Salida</th><th>Estado</th><th class="num">Resultado</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="c6" style="min-width:0"><h3>El Rastro ahora</h3><div class="scroll short"><table id="trk-book"><thead><tr><th>Tipo</th><th class="num">Precio</th><th>Quién</th><th class="num">Caduca</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="c12" style="min-width:0"><h3>Tratos vistos de esta carta</h3><div class="scroll short"><table id="trk-deals"><thead><tr><th>Tick</th><th>Dónde</th><th>De</th><th>A</th><th class="num">Precio</th><th class="num">vs valor t18</th></tr></thead><tbody></tbody></table></div></div>
+      </div>
+      <p class="small muted">Fuentes públicas: feed grabado (<code>assets/rivales-seed.js</code>) + feed y libro de El Rastro en vivo. Las copias se siguen por id de activo; «en mano» solo queda confirmado con <code>equipo.json</code>. Los tratos con dealers solo restan si son pérdida a nuestros valores (P-04). Resultado de una venta: precio − comisión − valor; de una compra en mano: valor − precio − comisión.</p>
+    </section>
   </div>
 
   <details class="small muted">
@@ -105,6 +126,7 @@
 </main>
 <footer class="foot">Público: <code>/api/leaderboard</code>, <code>/api/catalog</code>, <code>/api/feed</code>, <code>/api/schedule</code>, sin clave. Privado: <code>equipo.json</code> arrastrado, que no sale del navegador. Topes de dealer: <code>plan-public.js</code> (repo).</footer>
 
+<script src="assets/rivales-seed.js"></script>
 <script src="assets/core.js"></script>
 <script>
 "use strict";
@@ -122,8 +144,8 @@ Core.get("/api/catalog").then(c => { catalog = c; Core.emit(); }).catch(() => {}
 function loadMe(obj) {
   const m = obj && (obj.me || obj);
   if (!m || !Array.isArray(m.assets) || m.cash == null) throw new Error("no parece /api/me (faltan assets o cash)");
-  me = {cash: m.cash, tick: m.tick, assets: m.assets.filter(a => a.kind === "card").map(a => ({ref: a.ref, rarity: a.rarity, your_value: a.your_value})),
-    packs: m.assets.filter(a => a.kind === "pack").length, collection_value: m.collection_value, loaded: Date.now()};
+  me = {cash: m.cash, tick: m.tick, assets: m.assets.filter(a => a.kind === "card").map(a => ({id: a.id, ref: a.ref, rarity: a.rarity, your_value: a.your_value})),
+    packs: m.assets.filter(a => a.kind === "pack").length, packTypes: m.assets.filter(a => a.kind === "pack").map(a => a.ref || null), collection_value: m.collection_value, loaded: Date.now()};
   try { localStorage.setItem(MEKEY, JSON.stringify(me)); } catch (e) {}
   Core.emit();
 }
@@ -168,7 +190,17 @@ function holdings() {
   const cnt = {}, moved = {};
   if (me) me.assets.forEach(a => cnt[a.ref] = (cnt[a.ref] || 0) + 1);
   const mv = ourMoves(me ? me.tick : null);
-  mv.forEach(m => m.cards.forEach(i => { const d = i.to === US ? 1 : i.frm === US ? -1 : 0; moved[i.ref] = (moved[i.ref] || 0) + d; if (me) cnt[i.ref] = Math.max(0, (cnt[i.ref] || 0) + d); }));
+  // Con ids (equipo_json.py actual) se ajusta copia a copia: una venta solo resta si esa copia estaba en el fichero y una
+  // compra solo suma si no estaba. Así una copia que llegó por una vía que el feed no muestra (sobre, regalo, hueco del
+  // feed) y se vendió después no deja la carta a 0. Ficheros antiguos sin ids: ajuste por recuento, como antes.
+  const ids = me && me.assets.every(a => a.id != null) ? new Set(me.assets.map(a => a.id)) : null;
+  mv.forEach(m => m.cards.forEach(i => {
+    const d = i.to === US ? 1 : i.frm === US ? -1 : 0; if (!d) return;
+    moved[i.ref] = (moved[i.ref] || 0) + d;
+    if (!me) return;
+    if (ids && i.id != null) { if (d < 0 && !ids.has(i.id)) return; if (d > 0 && ids.has(i.id)) return; d < 0 ? ids.delete(i.id) : ids.add(i.id); }
+    cnt[i.ref] = Math.max(0, (cnt[i.ref] || 0) + d);
+  }));
   const cash = me ? me.cash + mv.reduce((a, m) => a + m.cash, 0) : null;
   return {cnt, moved, cash, adj: mv.length};
 }
@@ -213,7 +245,7 @@ function renderAlbum(H) {
       const st = me ? (n > 0 ? "have" : "miss" + (s.target && s.released ? " tgt" : "")) : "unk";
       const sub = me ? (n > 0 ? (c.page ? "" : "extra") : (Core.DEALER_MAX[c.ref] ? Core.DEALER_MAX[c.ref] + " P" : fmt(Core.value(c.ref, c.rarity), 0) + " v")) : RN[c.rarity].slice(0, 4);
       const tip = `${c.ref} ${c.name} · ${RN[c.rarity] || c.rarity}` + (me ? ` · tenemos ${n}` : "") + ` · valor ${fmt(Core.value(c.ref, c.rarity), 1)}` + (Core.DEALER_MAX[c.ref] ? ` · tope ${Core.DEALER_MAX[c.ref]}` : "") + (mv ? ` · feed ${mv > 0 ? "+" : ""}${mv}` : "");
-      return `<div class="cd ${st} r-${c.rarity} ${c.page ? "" : "xtra"}" title="${esc(tip)}"><b>${esc(num)}</b><small>${esc(sub)}</small>${n > 1 ? `<span class="dup">×${n}</span>` : ""}${mv ? `<span class="mv ${mv > 0 ? "in" : "out"}">${mv > 0 ? "+" : ""}${mv}</span>` : ""}</div>`;
+      return `<div class="cd ${st} r-${c.rarity} ${c.page ? "" : "xtra"} ${c.ref === trackRef ? "sel" : ""}" data-ref="${esc(c.ref)}" title="${esc(tip)}"><b>${esc(num)}</b><small>${esc(sub)}</small>${n > 1 ? `<span class="dup">×${n}</span>` : ""}${mv ? `<span class="mv ${mv > 0 ? "in" : "out"}">${mv > 0 ? "+" : ""}${mv}</span>` : ""}</div>`;
     }).join("");
     return `<div class="set ${s.released ? "" : "off"}"><div class="nm ${s.target ? "target" : ""}"><b>${esc(s.id)}</b><span>${esc(s.name)}</span>
       <span class="muted">${s.released ? (me ? `${have}/${page.length}${have === page.length ? " ✓" : ""}` : `×${fmt(Core.MULT[s.id], 1)}`) : "sale " + esc(s.release)}</span></div><div class="cards">${cells}</div></div>`;
@@ -273,12 +305,100 @@ function renderAlerts(H, k) {
   const out = [], u = usRow(), R = rivals();
   if (u && R[0] && u.rank > 1) out.push(["warn", `Vamos ${u.rank}.º, a ${fmt(R[0].score - u.score)} de ${R[0].team}.`]);
   if (u) R.forEach(t => { if (t.market - u.market >= 2) out.push(["info", `${t.team} nos saca ${fmt(t.market - u.market)} en mercado.`]); });
-  if (me && Core.state.clock && Core.state.clock.tick - me.tick > 240) out.push(["warn", `equipo.json tiene ${Core.state.clock.tick - me.tick} ticks: pedir uno nuevo al operador.`]);
+  if (me && Core.state.clock && Core.state.clock.tick - me.tick > 60) out.unshift(["warn", `equipo.json es del tick ${me.tick} (${Core.state.clock.tick - me.tick} ticks): vuelve a cargarlo; las cartas se ajustan con el feed y pueden desviarse.`]);
+  if (me && !me.assets.every(a => a.id != null)) out.unshift(["info", "equipo.json sin ids de copia: el ajuste con el feed es aproximado. Regenerarlo con equipo_json.py actualizado."]);
   if (H.cash != null && k.cost > H.cash) out.push(["bad", `Caja ${H.cash} P < ${k.cost} P para completar las páginas objetivo publicadas.`]);
   Core.alerts(out.slice(0, 4));
 }
 
-Core.on(() => { const H = holdings(); renderSrc(); const k = renderKpis(H); renderAlbum(H); renderVs(); renderCash(H, k); renderEvents(); renderTrades(); renderAlerts(H, k); });
+// ---------- seguimiento de una carta (LAT-06 por defecto) ----------
+const SEED = (globalThis.T18RivalSeed || {}).events || [];
+let trackRef = String(Core.setting("equipo:track", "LAT-06") || "LAT-06").toUpperCase();
+$("#trk-ref").value = trackRef;
+$("#trk-ref").addEventListener("change", e => { const v = e.target.value.trim().toUpperCase(); if (/^[A-Z]{3}-\d{2}$/.test(v)) { trackRef = v; Core.set("equipo:track", v); } });
+$("#album").addEventListener("click", e => {
+  const c = e.target.closest(".cd[data-ref]"); if (!c) return;
+  trackRef = c.dataset.ref; $("#trk-ref").value = trackRef; Core.set("equipo:track", trackRef);
+  $("#trk").scrollIntoView({behavior: "smooth", block: "start"});
+});
+function allEvents() {
+  const by = new Map(); SEED.forEach(e => by.set(e.id, e)); Core.feed().forEach(e => by.set(e.id, e));
+  return [...by.values()].sort((a, b) => a.id - b.id);
+}
+const who = x => x === US ? "t18" : ({abuela: "Abuela", chato: "El Chato", pilar: "Pilar", picaros: "Pícaros"})[x] || x || "—";
+function renderTrack(H) {
+  const ref = trackRef, E = allEvents(), tick = Core.state.clock && Core.state.clock.tick;
+  const all = pageCards().flatMap(s => s.cards), card = all.find(c => c.ref === ref);
+  const rarity = card ? card.rarity : null, val = Core.value(ref, rarity);
+  $("#trk-h").textContent = `Seguimiento de carta · ${ref}${card ? " · " + card.name : ""}`;
+  if (!$("#trk-list").childElementCount && all.length) $("#trk-list").innerHTML = all.map(c => `<option value="${esc(c.ref)}">${esc(c.name)}</option>`).join("");
+
+  // tratos de la carta y nuestras copias, por id de activo
+  const deals = E.filter(e => e.type === "settlement").flatMap(e => (e.payload.items || []).filter(i => i.ref === ref).map(i => ({tick: e.tick, p: e.payload, i})));
+  const copies = new Map();
+  const cp = id => { if (!copies.has(id)) copies.set(id, {id, serial: null, in: null, out: null, asks: []}); return copies.get(id); };
+  deals.forEach(({tick: tk, p, i}) => {
+    const leg = {tick: tk, price: p.price, fee: p.fee || 0, dealer: !!p.persona};
+    if (i.to === US) { const c = cp(i.id); c.serial = i.serial ?? c.serial; c.in = {...leg, from: i.frm}; }
+    if (i.frm === US) { const c = cp(i.id); c.serial = i.serial ?? c.serial; c.out = {...leg, to: i.to}; }
+  });
+  E.filter(e => e.type === "offer.listed" && e.actor === US).forEach(e => {
+    const o = e.payload.offer || {};
+    ((o.give || {}).assets || []).filter(a => a.ref === ref).forEach(a => cp(a.id).asks.push({tick: e.tick, price: (o.want || {}).cash}));
+  });
+  const book = (Core.state.rastro || []).filter(o => Core.bidCards(o).includes(ref) || ((o.give || {}).assets || []).some(a => a.ref === ref));
+  const liveAsk = id => book.find(o => ((o.give || {}).assets || []).some(a => a.id === id));
+  const rows = [...copies.values()].sort((a, b) => a.id - b.id).map(c => {
+    const la = c.out ? null : liveAsk(c.id), lastAsk = c.asks[c.asks.length - 1];
+    const state = c.out ? "vendida" : la ? `en mano · a la venta a ${(la.want || {}).cash} P` : "en mano";
+    const res = val == null ? null : c.out ? c.out.price - c.out.fee - val : c.in ? val - c.in.price - c.in.fee : null;
+    return {c, la, lastAsk, state, res};
+  });
+  const kept = rows.filter(r => !r.c.out).length;
+  const held = me ? (H.cnt[ref] || 0) : null;
+  const asks = book.filter(o => ((o.give || {}).assets || []).some(a => a.ref === ref)).map(o => (o.want || {}).cash).filter(x => x != null);
+  const bids = book.filter(o => Core.bidCards(o).includes(ref)).map(o => (o.give || {}).cash || 0);
+  const bestAsk = asks.length ? Math.min(...asks) : null, bestBid = bids.length ? Math.max(...bids) : null;
+  const ourLive = rows.find(r => r.la);
+
+  $("#trk-kpis").innerHTML = [
+    ["Valor para t18", val == null ? "—" : fmt(val, 1), rarity ? `${RN[rarity]} · ${Core.setOf(ref)} ×${fmt(Core.MULT[Core.setOf(ref)], 1)}` : ""],
+    ["En mano", held == null ? `${kept}` : String(held), held == null ? "según el feed · carga equipo.json para confirmar" : `equipo.json · tick ${me.tick}`],
+    ["Nuestro anuncio", ourLive ? `${(ourLive.la.want || {}).cash} P` : "—", ourLive ? `copia #${ourLive.c.id} · caduca tick ${ourLive.la.expires_tick}${tick ? ` (faltan ${ourLive.la.expires_tick - tick})` : ""}` : "sin anuncio vivo en El Rastro"],
+    ["Mejor venta", bestAsk == null ? "—" : `${bestAsk} P`, `${asks.length} en El Rastro ahora`],
+    ["Mejor puja", bestBid == null ? "—" : `${bestBid} P`, `${bids.length} en El Rastro ahora`],
+  ].map(([k, v, s2]) => `<div class="kpi"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s2)}</span></div>`).join("");
+
+  const notes = [];
+  rows.forEach(r => {
+    const c = r.c;
+    if (c.out && val != null) notes.push([r.res >= 0 ? "ok" : "bad", `Copia #${c.id}: vendida a ${who(c.out.to)} a ${c.out.price} P en el tick ${c.out.tick}, ${r.res >= 0 ? "+" : ""}${fmt(r.res, 1)} P frente a nuestro valor (${fmt(val, 1)})${r.res < 0 && c.out.dealer ? ". Con dealers las pérdidas restan negociación" : ""}.`]);
+    if (!c.in && c.out) notes.push(["info", `Copia #${c.id}: su entrada no aparece en el feed público (probablemente salió de un sobre).`]);
+    if (c.in && !c.out) notes.push(["info", `Copia #${c.id}: comprada a ${who(c.in.from)} a ${c.in.price} P en el tick ${c.in.tick}${c.asks.length ? `; anunciada ${c.asks.length} veces en El Rastro (la última a ${r.lastAsk.price} P, tick ${r.lastAsk.tick})${c.asks.length > 3 ? ": a ese precio nadie la compra" : ""}` : ""}.`]);
+  });
+  if (ourLive && bestBid != null && val != null) {
+    const net = bestBid - Math.ceil(bestBid * 0.05) - 1 - val;
+    notes.push(["info", `Pedimos ${(ourLive.la.want || {}).cash} P y la mejor puja es ${bestBid} P: aceptar la puja dejaría ${sign(net, 1)} P frente a nuestro valor (5 % + 1 P de comisión de El Rastro).`]);
+  }
+  if (held != null && held !== kept) notes.push(["info", `equipo.json dice ${held} y el feed sigue ${kept}: el feed es una muestra, vale lo que diga equipo.json.`]);
+  $("#trk-notes").innerHTML = notes.map(([c, m]) => `<li class="${c}">${esc(m)}</li>`).join("") || '<li>sin movimientos de t18 con esta carta en el feed grabado</li>';
+
+  $("#trk-copies tbody").innerHTML = rows.map(r => `<tr><td>#${r.c.id}${r.c.serial != null ? ` <span class="muted small">nº ${r.c.serial}</span>` : ""}</td>
+    <td>${r.c.in ? `${esc(who(r.c.in.from))} · ${r.c.in.price} P · t${r.c.in.tick}` : '<span class="muted">no vista (¿sobre?)</span>'}</td>
+    <td>${r.c.out ? `${esc(who(r.c.out.to))} · ${r.c.out.price} P · t${r.c.out.tick}` : r.c.asks.length ? `<span class="muted">${r.c.asks.length} anuncios, último ${r.lastAsk.price} P</span>` : "—"}</td>
+    <td>${esc(r.state)}</td><td class="num ${r.res == null ? "" : cls(r.res)}">${r.res == null ? "—" : sign(r.res, 1)}</td></tr>`).join("")
+    || '<tr><td colspan="5" class="empty">no vemos copias de t18 en el feed</td></tr>';
+  $("#trk-book tbody").innerHTML = book.map(o => {
+    const ask = ((o.give || {}).assets || []).find(a => a.ref === ref), ours = ask && copies.has(ask.id);
+    return `<tr class="${ours ? "ours" : ""}"><td>${ask ? "venta" : "puja"}</td><td class="num">${ask ? (o.want || {}).cash : (o.give || {}).cash}</td><td>${ours ? "<b>t18</b> · #" + ask.id : esc(o.maker)}</td><td class="num">${o.expires_tick ?? "—"}</td></tr>`;
+  }).join("") || '<tr><td colspan="4" class="empty">nada en El Rastro ahora</td></tr>';
+  $("#trk-deals tbody").innerHTML = deals.slice().reverse().map(({tick: tk, p, i}) => {
+    const d = val == null ? null : i.to === US ? val - p.price - (p.fee || 0) : i.frm === US ? p.price - (p.fee || 0) - val : null;
+    return `<tr class="${i.to === US || i.frm === US ? "ours" : ""}"><td class="num">${tk}</td><td>${esc(p.persona ? who(p.persona) : p.venue)}</td><td>${esc(who(i.frm))}</td><td>${esc(who(i.to))}</td><td class="num">${p.price}</td><td class="num ${d == null ? "" : cls(d)}">${d == null ? "—" : sign(d, 1)}</td></tr>`;
+  }).join("") || '<tr><td colspan="6" class="empty">sin tratos grabados</td></tr>';
+}
+
+Core.on(() => { const H = holdings(); renderSrc(); const k = renderKpis(H); renderAlbum(H); renderVs(); renderCash(H, k); renderEvents(); renderTrades(); renderTrack(H); renderAlerts(H, k); });
 Core.onSecond(renderEvents);
 Core.start("equipo.html");
 </script>
