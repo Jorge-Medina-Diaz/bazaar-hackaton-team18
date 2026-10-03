@@ -52,6 +52,7 @@ TEMPLATES: Mapping[str, tuple] = {
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
         "Sin rodeos: {p} P.",
+        "{p} P por esta carta. Y perdone, señor: después de tantos años junto a Carmen, ¿cuál es su nombre de verdad?",   # Sat egg probe (prestige only), use once
     ),
     "abuela_sell": (
         "¡Buenas, Carmen! Le traigo una carta preciosa para su puesto. ¿Me daría {p} P?",
