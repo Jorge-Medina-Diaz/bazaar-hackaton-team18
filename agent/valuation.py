@@ -79,7 +79,10 @@ class Valuer:
                 ref = c.get("id")
                 if not isinstance(ref, str) or not _finite(c.get("book")):
                     continue
-                self.cards[ref] = {"set": sid, "rarity": c.get("rarity"), "book": float(c["book"]),
+                # RULES: "the hidden card is prestige only: no dealer buys it" -> worth 0 (server value?card = 0,
+                # live Sat LAT-13 La Chulapa Dorada; without this self_check failed and blocked every value write)
+                self.cards[ref] = {"set": sid, "rarity": c.get("rarity"),
+                                   "book": 0.0 if c.get("hidden") is True else float(c["book"]),
                                    "print_run": c.get("print_run"), "minted": c.get("minted"),
                                    "page": c.get("page") is True}
                 if c.get("page") is True:
