@@ -331,6 +331,18 @@ class TestTwoIssues(unittest.TestCase):
         # days_meaning is free text the Sensor never passes: the weight alone makes the duel playable
         self.assertEqual(D.decide(D.view(self.two(w=2.0, meaning=None), 100), {})[0], "say")
 
+    def test_null_weight_uses_plan_fallback(self):
+        # server sends your_days_weight null: silent unless plan duels.days_weight_fallback is set; then day 5, margin 1+5w
+        d = self.two(L=100, w=None, meaning=None)
+        self.assertEqual(D.decide(D.view(d, 100), {})[0], "wait")
+        kind, p, days = D.decide(D.view(d, 100), {"days_weight_fallback": 1.0})
+        self.assertEqual((kind, days), ("say", 5))
+        self.assertLessEqual(p, 94)
+        # a real server weight wins over the fallback
+        ro = {"price": 80, "days": 5, "tick": 114, "id": 4}
+        d3 = self.two(L=100, w=3.0, meaning=None, msgs=[msg("you", 100, 60, 5), msg("R", 114, 80, 5)], rival_offer=ro)
+        self.assertEqual(D.decide(D.view(d3, 114), {"days_weight_fallback": 5.0})[0], "accept")   # 20 >= 1+15 (w=3)
+
     def test_sign_unknown_worst_case_margin(self):
         # w = 3, sign unknown -> we send day 5 and need surplus >= 1 + 3*max(d, 10-d) (the Gate's G50/G51 rule)
         d = self.two(L=100, w=3.0, meaning="delivery days", msgs=[msg("you", 100, 60, 0)])

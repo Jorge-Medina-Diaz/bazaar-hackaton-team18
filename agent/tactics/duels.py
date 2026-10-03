@@ -60,6 +60,7 @@ DEFAULTS: Mapping[str, Any] = {
     "e8_ticks": 2,         # E8: silence after the first answer of the first rival that speaks
     "T": None,             # duel length override (ticks)
     "days_sign": None,     # +1: more days is better for us; -1: fewer; None: unknown (worst case)
+    "days_weight_fallback": None,   # assumed |your_days_weight| when the server sends null (None: stay silent)
     "accept_paused": False,
     "e8_hold_until": None,
 }
@@ -216,6 +217,8 @@ def _days_model(v: DuelView, P: Mapping):
         return True, None, (lambda d: 0.0)
     w = v.days_weight
     if w is None:                        # days_meaning never reaches the World (free text): weight is enough
+        w = P.get("days_weight_fallback")    # ponytail: plan duels.days_weight_fallback, used only when the server sends null
+    if type(w) not in (int, float) or isinstance(w, bool):
         return False, None, None
     sign = P.get("days_sign")
     aw = abs(w)

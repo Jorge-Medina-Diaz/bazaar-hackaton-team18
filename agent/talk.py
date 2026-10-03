@@ -486,9 +486,12 @@ def _duel_basics(d: Mapping) -> tuple:
     return (1 if role == "seller" else -1), float(lim), ("days" in issues)
 
 
-def _days_penalty(d: Mapping, days: int) -> float:
-    """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d."""
+def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
+    """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d.
+    A null weight uses cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback); none -> refuse."""
     w = d.get("your_days_weight")
+    if w is None:
+        w = _cfg(cfg, "DAYS_WEIGHT_FALLBACK", None)
     _need(_num(w), "G50.days_unknown")
     return abs(float(w)) * max(days, 10 - days)
 
@@ -504,7 +507,7 @@ def _g50_say(a, world, cfg, counters) -> None:
     _need(p >= 1, "G50.price")
     if two:
         _need(type(days) is int and 0 <= days <= 10, "G50.missing_days")
-        penalty = _days_penalty(d, days)
+        penalty = _days_penalty(d, days, cfg)
     else:
         _need(days is None, "G50.days_not_issue")
         penalty = 0.0
@@ -551,7 +554,7 @@ def _g51_accept(a, world, cfg, counters, fresh, now) -> None:
     if two:
         rd = rival.get("days")
         _need(type(rd) is int and 0 <= rd <= 10, "G51.days")
-        penalty = _days_penalty(d, rd)
+        penalty = _days_penalty(d, rd, cfg)
     else:
         penalty = 0.0
     _need(s * (rp - lim) >= 1 + penalty, "G51.limit", f"rival={rp} L={lim} pen={penalty}")

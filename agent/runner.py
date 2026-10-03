@@ -817,6 +817,9 @@ def _make_cfg(plan_cfg: Mapping) -> Any:
         upd["DAYS_SIGN"] = plan_cfg["days_sign"]
     if type(plan_cfg.get("grant_lookahead_ticks")) is int:
         upd["GRANT_LOOKAHEAD_TICKS"] = plan_cfg["grant_lookahead_ticks"]
+    fb = (plan_cfg.get("duels") or {}).get("days_weight_fallback") if isinstance(plan_cfg.get("duels"), Mapping) else None
+    if type(fb) in (int, float) and fb > 0:
+        upd["DAYS_WEIGHT_FALLBACK"] = float(fb)
     if type(plan_cfg.get("resupply_min")) in (int, float):
         upd["RESUPPLY_MIN"] = float(plan_cfg["resupply_min"])
     return dataclasses.replace(cfg, **upd) if upd else cfg

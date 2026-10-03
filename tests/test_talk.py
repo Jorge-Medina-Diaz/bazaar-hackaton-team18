@@ -477,6 +477,15 @@ class G50DuelSay(unittest.TestCase):
         self.assertEqual(run(dsay(70), w=world(duels=(d,))).code, "G50.missing_days")
         self.assertEqual(run(dsay(70, days=3), w=world(duels=(d,))).code, "G50.days_unknown")
 
+    def test_two_issue_null_weight_fallback(self):
+        # cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback) replaces a null weight: day 5 -> penalty 5 -> p >= 56
+        d = duel(issues=("price", "days"), w=None)
+        cfg = SimpleNamespace(**vars(CFG), DAYS_WEIGHT_FALLBACK=1.0)
+        chk = lambda p, days: talk.check(dsay(p, days=days), world(duels=(d,)), book(), FakeValuer(), cfg, counters(),  # noqa: E731
+                                         fresh=None, now=990.0)
+        self.assertEqual(chk(55, 5).code, "G50.limit")
+        self.assertTrue(chk(56, 5).ok)
+
     def test_two_issue_with_weight(self):
         d = duel(issues=("price", "days"), w=0.5)      # penalty at days 0 = 0.5 * 10 = 5 -> p >= 56
         self.assertTrue(run(dsay(56, days=0), w=world(duels=(d,))).ok)

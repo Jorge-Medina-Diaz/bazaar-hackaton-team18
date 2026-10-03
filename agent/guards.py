@@ -80,6 +80,7 @@ class Cfg:
     RIVAL_TOP_N: int = 5
     GRANT_LOOKAHEAD_TICKS: int = 3
     DAYS_SIGN: Optional[int] = None
+    DAYS_WEIGHT_FALLBACK: Optional[float] = None   # plan duels.days_weight_fallback (null server weight)
     ABUELA_DEALS_HOUR_MAX: int = 6
     TICKS_PER_GAME_HOUR: int = 60          # measured: tick 159 at t_hours 2.65
     MIN_EXPIRES: int = 4
