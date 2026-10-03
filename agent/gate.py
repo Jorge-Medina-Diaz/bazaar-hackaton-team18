@@ -42,8 +42,10 @@ NOTES (M5, night build)
   duel+price). Unexplained cash/asset changes (alarm + pause of buy tactics) and "an accept of ours" are NOT
   checked tonight (need settlement accounting from the feed / cards): open issue.
 - reconcile: evidence from the World for list_offer/cancel/open_thread/say/duel_say/close_thread/open_pack;
-  accept/duel_accept only "not landed" when the offer is still open >= 2 ticks later, otherwise left frozen and
-  reported {"action": "pause", "tactic": ...} after 3 ticks. accepted_unsettled released at until_tick with
+  duel_accept by the duel's status; a dealer accept by its thread (status "deal", that offer accepted/settled or a
+  journal settlement naming the intent -> landed; thread closed/walked or that offer cancelled/expired, or the
+  thread still open >= 2 ticks later -> not landed); a team accept only "not landed" when the offer is still open
+  >= 2 ticks later, otherwise left frozen and reported {"action": "pause", "tactic": ...} once, after 3 ticks. accepted_unsettled released at until_tick with
   landed=False/evidence "timeout" (no /api/cards check tonight: open issue). execute refuses until reconcile ran
   once in this process (INV-15: reconcile before writing).
 """
@@ -81,6 +83,8 @@ TICKS_PER_GAME_HOUR = 60
 RESPONSE_MAX = 2048
 PRED_TOL = 0.01
 IN_FLIGHT_TICKS = 2              # M17: an own offer gone from me/offers stays booked this many ticks
+DEAL_OFFER = frozenset({"accepted", "settled", "filled", "done", "deal"})      # reconcile: a dealer accept landed
+DEAD_OFFER = frozenset({"cancelled", "canceled", "expired", "failed", "rejected", "withdrawn"})
 
 
 # ------------------------------------------------------------------------------------------- requests
@@ -327,6 +331,7 @@ class Gate:
         self._blocked: set = set()            # domains blocked for this tick (odd fresh re-read)
         self._seen: dict = {}                 # iid -> status (this process)
         self._frozen_unknown: set = set()     # domains frozen by unknown outcomes in this process
+        self._pause_asked: set = set()        # iids whose unreconciled pause was already reported (once each)
         self._reconciled = False
         self._stop: Optional[str] = None
         self._frozen: Mapping = {}
@@ -607,13 +612,15 @@ class Gate:
             ik, a, t0 = row.get("intent_kind"), row.get("args") or {}, _int(row.get("tick"))
             age = world.tick - t0 if t0 is not None else 99
             try:
-                landed, ev = self._evidence(ik, a, world, t0, age)
+                landed, ev = self._evidence(ik, a, world, t0, age, iid=iid)
             except Exception as e:                                       # noqa: BLE001
                 landed, ev = None, f"evidence error {e.__class__.__name__}"
             if landed is not None:
                 self._j("reconciled", id=iid, landed=landed, evidence=ev, tick=world.tick)
                 out.append({"id": iid, "landed": landed, "evidence": ev})
-            elif age >= 3:
+            elif age >= 3 and iid not in self._pause_asked:
+                # once per intent and process: a pause every tick undid an operator's `resume` at once
+                self._pause_asked.add(iid)
                 out.append({"id": iid, "action": "pause", "tactic": row.get("tactic"), "why": ev})
         self._reconciled = True
         try:
@@ -629,7 +636,17 @@ class Gate:
                     pass
         return out
 
-    def _evidence(self, ik: str, a: Mapping, world: World, t0: Optional[int], age: int) -> tuple:
+    def _settled(self, iid: Optional[str]) -> bool:
+        """A journal "settlement" row naming this intent id (agent.journal ingests the same rows)."""
+        if not iid:
+            return False
+        try:
+            return any(iid in (r.get("ids") or ()) for r in self.journal.rows({"settlement"}))
+        except Exception:                                                # noqa: BLE001 - no evidence, not a crash
+            return False
+
+    def _evidence(self, ik: str, a: Mapping, world: World, t0: Optional[int], age: int,
+                  iid: Optional[str] = None) -> tuple:
         t0 = t0 if t0 is not None else -1
         if ik == "list_offer":
             want = _intent_sig(a)
@@ -651,7 +668,11 @@ class Gate:
         if ik == "say":
             th = (world.threads or {}).get(a.get("thread_id"))
             for m in _get(th, "messages", ()) or ():
-                if _get(m, "sender") == TEAM and _get(m, "price") == a.get("price") and (_int(_get(m, "tick")) or 0) >= t0:
+                # the live message has no top-level price ({id, offer, sender, tick}): it is the cash of its offer
+                mo = _get(m, "offer", {}) or {}
+                prices = {_get(m, "price"), _get(_get(mo, "give", {}) or {}, "cash"),
+                          _get(_get(mo, "want", {}) or {}, "cash")} - {None, 0}
+                if _get(m, "sender") == TEAM and a.get("price") in prices and (_int(_get(m, "tick")) or 0) >= t0:
                     return True, {"msg_id": _get(m, "id")}
             return (False, "no message") if age >= 2 else (None, "waiting")
         if ik == "duel_say":
@@ -669,14 +690,35 @@ class Gate:
                         return True, f"duel {_get(d, 'status')}"
                     return (False, "duel still live") if age >= 2 else (None, "waiting")
             return True, "duel gone"
-        if ik == "close_thread":
-            if a.get("thread_id") not in (world.threads or {}):
-                return True, "thread gone"
+        if ik == "close_thread":                # World.threads keeps closed threads: the status decides
+            st = _get((world.threads or {}).get(a.get("thread_id")), "status")
+            if st != "open":
+                return True, f"thread {st or 'gone'}"
             return (False, "thread still open") if age >= 2 else (None, "waiting")
         if ik == "open_pack":
             if _asset(world, a.get("asset_id")) is None:
                 return True, "pack gone"
             return (False, "pack still held") if age >= 2 else (None, "waiting")
+        if ik == "accept" and a.get("source") == "dealer":
+            # a dealer thread's offers are never in offers_to_us / boards: the thread (or that offer) decides
+            if {"threads", "me/threads"} & set(world.down or ()):
+                return None, "threads down"
+            th = (world.threads or {}).get(a.get("thread_id"))
+            if th is None:
+                return None, "thread not seen"
+            oid, st = a.get("offer_id"), _get(th, "status")
+            ost = next((_get(o, "status") for o in list(_get(th, "standing_offers", ()) or ()) +
+                        [_get(m, "offer") for m in _get(th, "messages", ()) or ()]
+                        if isinstance(o, Mapping) and _get(o, "id") == oid), None)
+            if st == "deal" or ost in DEAL_OFFER:
+                return True, f"thread {st} offer {ost}"
+            if self._settled(iid):
+                return True, "settlement"
+            if st != "open":
+                return False, f"thread {st}"
+            if ost in DEAD_OFFER:
+                return False, f"offer {ost}"
+            return (False, "thread still open") if age >= 2 else (None, "waiting")
         if ik == "accept":
             oid = a.get("offer_id")
             still = any(_get(o, "id") == oid for o in world.offers_to_us) or any(

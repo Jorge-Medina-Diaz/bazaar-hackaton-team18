@@ -387,6 +387,51 @@ class TestIdempotencyAndUnknown(GateCase):
         self.assertIsNone(ev("duel_accept", a, world(duels=[{"duel": 5, "status": "live"}]), TICK, 1)[0])
         self.assertEqual(ev("duel_accept", a, world(duels=[{"duel": 5, "status": "live"}]), TICK, 2)[0], False)
 
+    def test_dealer_accept_unknown_resolves_and_pauses_once(self):
+        # an unknown dealer accept never reconciled (its offer is in the thread, not in offers_to_us/boards): its
+        # domains stayed frozen and reconcile asked for a pause every tick, undoing a manual resume
+        self.start(world())
+        a = {"offer_id": 77, "source": "dealer", "ref": "SAL-01", "side": "buy", "price": 20, "thread_id": 9,
+             "give_asset": None, "fingerprint": "x", "resupply": False, "venue": "picaros"}
+
+        def th(status, ost):
+            o = {"id": 77, "maker": "picaros", "status": ost, "give": {"cash": 0}, "want": {"cash": 20}}
+            return {9: {"id": 9, "team": TEAM, "with": "picaros", "status": status, "standing_offers": [],
+                        "messages": [{"id": 1, "tick": TICK, "sender": "picaros", "offer": o}]}}
+        ev = self.gate._evidence
+        self.assertIs(ev("accept", a, world(threads=th("deal", "accepted")), TICK, 1)[0], True)
+        self.assertIs(ev("accept", a, world(threads=th("open", "accepted")), TICK, 1)[0], True)
+        self.assertIs(ev("accept", a, world(threads=th("walked", "cancelled")), TICK, 1)[0], False)
+        self.assertIs(ev("accept", a, world(threads=th("open", "expired")), TICK, 1)[0], False)
+        self.assertIsNone(ev("accept", a, world(threads=th("open", "open")), TICK, 1)[0])
+        self.assertIs(ev("accept", a, world(threads=th("open", "open")), TICK, 2)[0], False)
+        self.journal.write("intent", id="dacc1", tactic="dealers", intent_kind="accept", args=a, tick=TICK)
+        self.journal.write("unknown", id="dacc1", domains=["offer:77", "thread:9"], error="timeout", tick=TICK)
+        self.assertIn("thread:9", self.journal.unknown_domains())
+        res = self.gate.reconcile(world(tick=TICK + 1, threads=th("deal", "accepted")))
+        self.assertEqual([r.get("landed") for r in res], [True])
+        self.assertNotIn("thread:9", self.journal.unknown_domains())
+        # no evidence at all (a team accept whose offer left every board): one pause request, not one per tick
+        b = dict(a, offer_id=78, source="team", thread_id=None, venue="rastro")
+        self.journal.write("intent", id="tacc1", tactic="rastro", intent_kind="accept", args=b, tick=TICK)
+        self.journal.write("unknown", id="tacc1", domains=["offer:78"], error="timeout", tick=TICK)
+        pauses = [r for t in (3, 4, 5) for r in self.gate.reconcile(world(tick=TICK + t)) if r.get("action") == "pause"]
+        self.assertEqual([(r["id"], r["tactic"]) for r in pauses], [("tacc1", "rastro")])
+
+    def test_say_and_close_thread_evidence_from_live_shapes(self):
+        # live messages are {id, offer, sender, tick} (price inside the offer); World keeps closed threads
+        self.start(world())
+        mine = {"id": 5, "maker": TEAM, "status": "open", "give": {"cash": 31}, "want": {"cash": 0}}
+        threads = {9: {"id": 9, "team": TEAM, "with": "abuela", "status": "open", "standing_offers": [],
+                       "messages": [{"id": 3, "tick": TICK, "sender": TEAM, "offer": mine}]}}
+        got = self.gate._evidence("say", {"thread_id": 9, "price": 31}, world(threads=threads), TICK, 1)
+        self.assertEqual(got, (True, {"msg_id": 3}))
+        self.assertIsNone(self.gate._evidence("say", {"thread_id": 9, "price": 30}, world(threads=threads), TICK, 1)[0])
+        close = {"thread_id": 9, "ref": None}
+        self.assertIsNone(self.gate._evidence("close_thread", close, world(threads=threads), TICK, 1)[0])
+        closed = {9: dict(threads[9], status="closed")}
+        self.assertIs(self.gate._evidence("close_thread", close, world(threads=closed), TICK, 1)[0], True)
+
     def test_send_exception_is_unknown(self):
         w = self.start(world())
 
