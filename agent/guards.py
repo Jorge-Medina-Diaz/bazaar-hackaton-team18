@@ -165,8 +165,10 @@ def _assets(world) -> dict:
 
 
 def _pack_types(world) -> tuple:
+    """Types of the packs in hand: only kind "pack" (an unknown asset kind is not a pack: it made book.packs
+    non-empty and G14 refused every trade)."""
     return tuple(a.get("ref") if isinstance(a.get("ref"), str) else ""
-                 for a in _assets(world).values() if a.get("kind") != "card")
+                 for a in _assets(world).values() if a.get("kind") == "pack")
 
 
 def ticks_per_hour(world, cfg: Optional[Cfg] = None) -> int:

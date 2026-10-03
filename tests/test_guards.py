@@ -823,6 +823,17 @@ class ThreadPricesAndReserve(unittest.TestCase):
         self.assertEqual(guards._thread_standing(th), 74)
 
 
+class PackTypesOnlyPacks(unittest.TestCase):
+    def test_unknown_asset_kind_is_not_a_pack(self):
+        me = copy.deepcopy(ME)
+        me["assets"].append({"id": 990, "kind": "badge", "ref": "egg"})
+        c = Ctx(me=me)
+        self.assertEqual(c.book.packs, ())
+        self.assertTrue(c.check(c.bid("RET-01", 3)).code != "G14.pack")
+        me["assets"].append({"id": 991, "kind": "pack", "ref": "sobre_barrio"})
+        self.assertEqual(Ctx(me=me).book.packs, ("sobre_barrio",))
+
+
 class TicksPerGameHour(unittest.TestCase):
     """A game hour is a wall hour: 3600 / tick_seconds ticks (60 hard-coded made Saturday's 30 s hour 30 min)."""
 
