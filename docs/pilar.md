@@ -14,12 +14,17 @@ Nada de Abuela o Chato se da por válido para Pilar: lo no medido en ella está 
 - Su texto dice "última palabra" y sigue subiendo: solo vale `final: true`.
 - Raras, épicas y fiebre de SAL: **sin datos**.
 
-## Reglas (`harness/pilar_guide.py`, `next_move`)
+## Reglas (`harness/pilar_guide.py`, `next_move`, con parámetros de `docs/dealer_params.json`)
 
-1. Solo **repetidas**. Suelo = **V + 1** de esa copia. Nunca una copia única de SAL/RET.
-2. Ancla = apertura esperada + 8 (SAL/RET ≈ 30, resto ≈ 24). *(E2)*
-3. −1 P por mensaje, uno por tick, texto nuevo y cortés; nunca repetir precio.
-4. Al tocar su precio: pedir **su precio + 1** una vez; si no lo toma, **aceptar el suyo** si ≥ suelo. Nunca contraofertar en o bajo su precio. *(E1)*
+Aprendido solo de Pilar (`python3 -m harness.dealer_tuner`), sáb ~17:00:
+- Sube más cuando bajamos **1 P** (infrecuentes SAL/RET 78 % frente a 64 % con 2–3; resto 54/44/31 %; raras SAL 100 %).
+- Su 1.er `final` llega en su respuesta **4** (raras: 5). **Perdona a 1 P** (4 de 5 a 0–1 P; 0 de 6 a 2 P, con `final` en la mitad).
+- Se ha movido como mucho +4 en infrecuentes y +10 en raras SAL (cierres 69–70).
+
+1. Solo **repetidas**; suelo = **V + 1**. Nunca una copia única de SAL/RET.
+2. Ancla = su precio + lo máximo que se ha movido + 1 (SAL/RET infrecuente ≈ 27; rara SAL ≈ 72).
+3. **−1 P por mensaje**, uno por tick, texto nuevo y cortés; nunca repetir precio.
+4. En el mensaje nº `final_min` (4; raras 5): pedir **su precio + 1**. Si no lo toma, aceptar el suyo si ≥ suelo.
 5. `final` ≥ suelo → aceptar; `final` < suelo → cerrar. `cooloff` → no reabrir hasta `until_tick`. Máx. 6 tratos/hora.
 
 ## Uso (operador, máquina A, bajo el Gate; primero en seco)
