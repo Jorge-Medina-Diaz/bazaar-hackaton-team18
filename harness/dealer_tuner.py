@@ -131,5 +131,7 @@ def get(dealer, side, ref, rarity, fav_sets=None):
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description="Recalcula docs/dealer_params.json con el feed público acumulado (solo lectura).")
-    ap.add_argument("feeds", nargs="*", default=[ALL], help="ficheros JSONL de eventos del feed (por defecto logs/feed.jsonl)")
-    a = ap.parse_args(); write(a.feeds); print(open(KB).read())
+    ap.add_argument("feeds", nargs="*", help="ficheros JSONL de eventos; por defecto data/feeds/*/chunk-*.jsonl (todos los autores) + logs/feed.jsonl")
+    a = ap.parse_args()
+    from harness.feed_store import chunk_files
+    write(a.feeds or chunk_files() + [ALL]); print(open(KB).read())

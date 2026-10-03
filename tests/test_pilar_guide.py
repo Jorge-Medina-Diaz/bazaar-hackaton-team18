@@ -110,3 +110,32 @@ class DealerTunerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FeedStoreTest(unittest.TestCase):
+    def test_two_authors_never_overwrite_and_dedupe(self):
+        from harness import feed_store
+        with tempfile.TemporaryDirectory() as d:
+            old = feed_store.ROOT
+            feed_store.ROOT = d
+            try:
+                e1 = {"id": 1, "tick": 10, "type": "x", "payload": {}}
+                e2 = {"id": 2, "tick": 11, "type": "x", "payload": {}}
+                a, b = os.path.join(d, "a.jsonl"), os.path.join(d, "b.jsonl")
+                with open(a, "w") as f:
+                    f.write(json.dumps(e1) + "\n" + json.dumps(e2) + "\n")
+                with open(b, "w") as f:
+                    f.write(json.dumps(e2) + "\n" + json.dumps({"id": 3, "tick": 12, "type": "x", "payload": {}}) + "\n")
+                p1 = feed_store.add("ruben", [a])
+                before = open(p1).read()
+                p2 = feed_store.add("santi", [b])
+                self.assertNotEqual(p1, p2)
+                self.assertEqual(open(p1).read(), before)                  # el chunk de otro autor no se toca
+                self.assertEqual([e["id"] for e in feed_store.load_all()], [1, 2, 3])
+                self.assertIsNone(feed_store.add("santi", [b]))            # nada nuevo: no crea ficheros
+                self.assertEqual(feed_store.verify()["conflicts"], [])
+                with open(os.path.join(d, "santi", "chunk-00010-00010-zzz.jsonl"), "w") as f:
+                    f.write(json.dumps({"id": 1, "tick": 10, "type": "y", "payload": {}}) + "\n")
+                self.assertEqual(len(feed_store.verify()["conflicts"]), 1)  # misma id, distinto contenido: se reporta
+            finally:
+                feed_store.ROOT = old

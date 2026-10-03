@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-03T17:24:12",
+ "updated": "2026-10-03T17:27:18",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 19,
@@ -32,7 +32,7 @@
    "mejora_max": 4
   },
   "pilar|venta|resto·uncommon": {
-   "hilos": 43,
+   "hilos": 45,
    "cierres": [
     14,
     16,
@@ -57,6 +57,7 @@
     18,
     18,
     18,
+    19,
     19,
     19,
     19,
@@ -157,26 +158,26 @@
    "mejora_max": 3
   },
   "picaros|venta|resto·common": {
-   "hilos": 23,
+   "hilos": 24,
    "cierres": [
     5,
     5
    ],
    "p_sube": {
     "2-3": 0.14,
-    "1": 0.14
+    "1": 0.12
    },
    "n_sube": {
     "2-3": 7,
-    "1": 21
+    "1": 24
    },
    "final_min": 3,
-   "final_med": 3,
+   "final_med": 3.0,
    "perdona_max": null,
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 9,
+   "hilos": 12,
    "cierres": [
     54,
     54,
@@ -186,6 +187,8 @@
     59,
     59,
     62,
+    63,
+    63,
     67
    ],
    "p_sube": {
@@ -195,7 +198,7 @@
    },
    "n_sube": {
     "2-3": 6,
-    "1": 2,
+    "1": 3,
     "4+": 1
    },
    "final_min": 2,
@@ -204,17 +207,18 @@
    "mejora_max": 17
   },
   "picaros|venta|resto·uncommon": {
-   "hilos": 9,
+   "hilos": 10,
    "cierres": [
+    11,
     12,
     12
    ],
    "p_sube": {
-    "2-3": 0.33,
+    "2-3": 0.43,
     "1": 1.0
    },
    "n_sube": {
-    "2-3": 6,
+    "2-3": 7,
     "1": 2
    },
    "final_min": 4,
@@ -222,8 +226,18 @@
    "perdona_max": 1,
    "mejora_max": 3
   },
+  "picaros|venta|resto·None": {
+   "hilos": 3,
+   "cierres": [],
+   "p_sube": {},
+   "n_sube": {},
+   "final_min": null,
+   "final_med": null,
+   "perdona_max": null,
+   "mejora_max": 0
+  },
   "picaros|compra|resto·None": {
-   "hilos": 9,
+   "hilos": 7,
    "cierres": [],
    "p_sube": {
     "1": 1.0,
@@ -237,16 +251,6 @@
    "final_med": 3,
    "perdona_max": null,
    "mejora_max": 42
-  },
-  "picaros|venta|resto·None": {
-   "hilos": 2,
-   "cierres": [],
-   "p_sube": {},
-   "n_sube": {},
-   "final_min": null,
-   "final_med": null,
-   "perdona_max": null,
-   "mejora_max": 0
   },
   "picaros|compra|resto·epic": {
    "hilos": 1,
