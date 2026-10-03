@@ -83,7 +83,9 @@ ALLOW: Mapping[str, frozenset] = MappingProxyType({
                        "result", "price", "days"}),
     "duel_offer": frozenset({"id", "price", "tick", "days"}),
     "duel_message": frozenset({"tick", "from", "price", "days"}),
-    "venue": frozenset({"id", "owner", "status", "fee_bps", "fee_per_card", "house", "mechanism", "starter"}),
+    "venue": frozenset({"id", "owner", "status", "fee_bps", "fee_per_card", "house", "mechanism", "starter",
+                        "pending_fee"}),
+    "pending_fee": frozenset({"fee_bps", "fee_per_card", "effective_tick"}),
     "event": frozenset({"id", "tick", "t", "type", "scope", "actor", "payload"}),
     "schedule": frozenset({"now_hours", "upcoming"}),
     "upcoming": frozenset({"at_hours", "action", "params", "wall"}),
@@ -351,7 +353,9 @@ def _p_venue(v: Any, tick: int) -> tuple:
     _need(_int(v.get("fee_per_card")) and v["fee_per_card"] >= 0, "venue.fee_per_card: int")
     fee_bps, per_card = v["fee_bps"], v["fee_per_card"]
     pend = v.get("pending_fee")
-    if isinstance(pend, Mapping) and _int(pend.get("effective_tick")) and pend["effective_tick"] >= tick:
+    # an announced fee counts at once (max of both); only one already in effect (effective_tick < tick) is ignored,
+    # a missing / malformed effective_tick counts (fail closed: the fee can only look higher)
+    if isinstance(pend, Mapping) and not (_int(pend.get("effective_tick")) and pend["effective_tick"] < tick):
         if _int(pend.get("fee_bps")):
             fee_bps = max(fee_bps, pend["fee_bps"])
         if _int(pend.get("fee_per_card")):
@@ -360,6 +364,8 @@ def _p_venue(v: Any, tick: int) -> tuple:
     out = {"id": vid, "owner": v["owner"], "status": v["status"], "fee_bps": fee_bps, "fee_per_card": per_card,
            "house": v.get("house") is True, "starter": v.get("starter") is True,
            "mechanism": rules.get("mechanism") if isinstance(rules, Mapping) else None}
+    if isinstance(pend, Mapping):          # kept (ints only) so a later check can see an announced fee change
+        out["pending_fee"] = {k: pend[k] for k in ALLOW["pending_fee"] if _int(pend.get(k)) and pend[k] >= 0}
     return split_untrusted(out)
 
 
