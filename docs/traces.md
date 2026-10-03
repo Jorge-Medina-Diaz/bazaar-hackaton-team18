@@ -15,10 +15,31 @@ python3 run_traces_tunnel.py --logs logs
 ```
 
 El túnel exige contraseña local privada (usuario `equipo`). Las respuestas HTTP
-`ok` o `queued` no demuestran liquidación. Los eventos v2 se muestran, pero sus
-conversaciones todavía no se convierten en casos de desenlace para el RAG: falta
-un enlace explícito con liquidaciones. La memoria histórica y el lector antiguo
+`ok` o `queued` no demuestran liquidación. La memoria histórica y el lector antiguo
 se conservan separados. `untrusted.jsonl` y snapshots privados no se sirven.
+
+### Desenlaces v2 para el RAG (`harness/outcomes.py`)
+
+El único desenlace aceptado es la fila `measure` del calibrador: una liquidación
+detectada en el estado del juego, unida al `intent` que la causó y juzgada contra
+su predicción por el cambio real de nuestros puntos. Entra en memoria como caso
+privado (`local-team`, fase `settled`) solo si:
+
+- la cadena del diario es válida (si no, no se indexa nada);
+- la medida es de un solo trato (`ambiguous` falso) y su origen es solo el arnés;
+- el veredicto no es `excluded`, `unattributed`, `info` ni `out_of_band`;
+- el `intent` es `accept`, `list_offer` o `say` y consta como enviado.
+
+Los tratos con dealers usan el id `thread-<id>` y se fusionan con el hilo público
+del feed; los tratos con equipos usan `outcome-<intent>`. El visor y `--check`
+muestran `outcomes` (medidas, indexadas, omitidas por motivo). Está fuera de
+`agent/`: no cambia el `code_hash` del operador.
+
+Verificación: con el runner v2 real contra el servidor falso (semillas 11, 3, 7 y 23)
+se indexaron 5 desenlaces y los 5 coinciden con el libro de liquidaciones del
+juego en carta, lado, contraparte, precio y efecto en puntos. Es conservador:
+en la semilla 11 hubo 8 liquidaciones y se indexaron 2; el resto quedó fuera por
+ambigüedad o veredicto. Falta validarlo con el diario real de Jorge.
 
 Lo siguiente describe el formato anterior, que sigue admitido por compatibilidad:
 

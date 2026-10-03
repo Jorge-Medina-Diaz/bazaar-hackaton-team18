@@ -54,6 +54,7 @@ docs/harness-spec.md   el contrato (arquitectura, firmas, invariantes INV-xx, gu
 docs/knowledge.md      hechos verificados (P-xx puntuación, D-xx dealers, U-xx duelos)
 docs/strategy.md       el libro de jugadas que implementan las tácticas
 docs/research-context.md  ideas y bibliografía (para jueces)
+docs/pilar.md          Doña Pilar (nivel 3): estrategia y runbook de ventas manuales por la Gate (J14)
 docs/openapi.json      API oficial
 SHOWCASE.md            para jueces
 archive/               scripts y notas superados (con SystemExit al importar: no se ejecutan)

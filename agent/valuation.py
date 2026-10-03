@@ -8,9 +8,16 @@ NOTES (M3, night build)
   no Valuer means valuation_ok = False upstream).
 - 4th+ copy (never measured, V-10): worth 0 when we BUY it, MARG[-1] when we SELL it. collection_value() itself
   uses MARG[-1] (the vlib model), delta_add() uses the buy view, delta_remove() the sell view.
-- master_bonus (V-10) is published but never observed: NOT modelled (only matters with epic+legendary owned).
+- master_bonus (V-10, V-13) is published but never observed. Modelled by ANALOGY with the page bonus (INFERRED,
+  not measured): master_bonus x sum(base) of the set's 10 page cards + its epic + its legendary, once >= 1 copy of
+  each is held, affinity sets only. It can only fire with an epic AND a legendary of that set held; a catalog
+  without master_bonus -> 0.0, a non-finite one -> ValueError. A set lacking an epic or a legendary has no master.
 - Pack slots draw from the released sets only, weighted by print_run - minted (V-02); `minted` defaults to the
-  catalog's per-card "minted". A pack type that is not in the catalog -> UnknownPack (INV-19: valuation_ok = False).
+  catalog's per-card "minted". Official rule: when a rarity runs out (no stock over the released sets) the slot
+  gives the next rarity DOWN (legendary -> epic -> rare -> uncommon -> common); the mass of a fallback rarity
+  merges with that rarity's own odds in the same slot. UnknownPack only if nothing at or below has stock, if a
+  rarity on the way is absent from a released set (bad data, not a stock-out), on an unknown rarity name or a
+  bad probability, or for a pack type that is not in the catalog (INV-19: valuation_ok = False).
 - An unknown card ref, or a set without affinity -> UnknownCard (a KeyError): callers refuse, never guess.
 - Late inputs: fee() takes the venue fee parameters (D2) and venue_fee() reads them from a World.venues row
   (fail closed on a malformed row); predict_team() takes fee_bps / per_card / cards keywords (defaults = El Rastro).
@@ -43,6 +50,9 @@ class UnknownCard(KeyError):
     """A card ref that the catalog / affinity does not describe."""
 
 
+RARITIES = ("common", "uncommon", "rare", "epic", "legendary")     # ascending: a slot falls back to the left
+
+
 def _finite(x: Any) -> bool:
     return type(x) in (int, float) and math.isfinite(x)
 
@@ -58,17 +68,22 @@ class Valuer:
             raise ValueError("catalog without values")
         marg = values.get("copy_marginals")
         pb = values.get("page_bonus")
-        if not (isinstance(marg, (list, tuple)) and marg and all(_finite(m) for m in marg) and _finite(pb)):
+        mb = values.get("master_bonus", 0.0)
+        if not (isinstance(marg, (list, tuple)) and marg and all(_finite(m) for m in marg) and _finite(pb)
+                and _finite(mb)):
             raise ValueError("catalog values malformed")
         self.marg = tuple(float(m) for m in marg)
         self.page_bonus = float(pb)
+        self.master_bonus = float(mb)
         self.affinity = {str(k): float(v) for k, v in dict(affinity).items() if _finite(v)}
         self.released_sets = frozenset(released_sets)
         self.cards: dict = {}          # ref -> {set, rarity, book, print_run, minted, page}
         self.pages: dict = {}          # set -> tuple of page refs
+        self.masters: dict = {}        # set -> page refs + epic + legendary (INFERRED, V-13); only sets with both
         for s in catalog.get("sets") or ():
             sid = s.get("id")
             page_refs = []
+            top = {"epic": [], "legendary": []}
             for c in s.get("cards") or ():
                 ref = c.get("id")
                 if not isinstance(ref, str) or not _finite(c.get("book")):
@@ -78,7 +93,11 @@ class Valuer:
                                    "page": c.get("page") is True}
                 if c.get("page") is True:
                     page_refs.append(ref)
+                elif c.get("rarity") in top:
+                    top[c["rarity"]].append(ref)
             self.pages[sid] = tuple(page_refs)
+            if page_refs and top["epic"] and top["legendary"]:
+                self.masters[sid] = tuple(page_refs) + tuple(top["epic"]) + tuple(top["legendary"])
         self.packs: dict = {}
         for p in catalog.get("packs") or ():
             if isinstance(p, Mapping) and isinstance(p.get("id"), str) and isinstance(p.get("slots"), list):
@@ -137,22 +156,34 @@ class Valuer:
         for sid, refs in self.pages.items():
             if refs and sid in self.affinity and all(counts.get(r, 0) > 0 for r in refs):
                 v += self.page_bonus * sum(self.base(r) for r in refs)
+        if self.master_bonus:
+            for sid, refs in self.masters.items():
+                if sid in self.affinity and all(counts.get(r, 0) > 0 for r in refs):
+                    v += self.master_bonus * sum(self.base(r) for r in refs)
         return v
 
     def _slot_dist(self, rarity: str, minted: Optional[Mapping]) -> list:
-        cands = [r for r, c in self.cards.items() if c["set"] in self.released_sets and c["rarity"] == rarity]
-        w = []
-        for r in cands:
-            c = self.cards[r]
-            m = minted.get(r, 0) if minted is not None else (c["minted"] or 0)
-            pr = c["print_run"]
-            if not _finite(pr) or not _finite(m):
-                raise UnknownPack(f"no print run for {r}")
-            w.append(max(pr - m, 0))
-        s = sum(w)
-        if s <= 0:
-            raise UnknownPack(f"no candidates for rarity {rarity!r}")
-        return [(r, wi / s) for r, wi in zip(cands, w) if wi > 0]
+        """[(ref, q)] for one slot rarity; an exhausted rarity falls back to the next one down."""
+        if rarity not in RARITIES:
+            raise UnknownPack(f"unknown rarity {rarity!r}")
+        live = {c["set"] for c in self.cards.values() if c["set"] in self.released_sets}
+        for rar in RARITIES[RARITIES.index(rarity)::-1]:
+            cands = [r for r, c in self.cards.items() if c["set"] in self.released_sets and c["rarity"] == rar]
+            # "runs out" = listed but minted out; a rarity absent from a released set is bad data, not stock-out
+            if not cands or {self.cards[r]["set"] for r in cands} != live:
+                raise UnknownPack(f"rarity {rar!r} missing from a released set")
+            w = []
+            for r in cands:
+                c = self.cards[r]
+                m = minted.get(r, 0) if minted is not None else (c["minted"] or 0)
+                pr = c["print_run"]
+                if not _finite(pr) or not _finite(m):
+                    raise UnknownPack(f"no print run for {r}")
+                w.append(max(pr - m, 0))
+            s = sum(w)
+            if s > 0:
+                return [(r, wi / s) for r, wi in zip(cands, w) if wi > 0]
+        raise UnknownPack(f"no stock at or below rarity {rarity!r}")
 
     def _pack_ev(self, pack_type: str, counts: Mapping, minted: Optional[Mapping], side: str) -> float:
         p = self.packs.get(pack_type)
@@ -163,13 +194,16 @@ class Valuer:
         for slot in p["slots"]:
             if not isinstance(slot, Mapping):
                 raise UnknownPack(f"{pack_type}: bad slot")
+            dist: dict = {}                               # ref -> merged mass (fallbacks included)
             for rar, pr in slot.items():
-                if not _finite(pr):
+                if not _finite(pr) or pr < 0:
                     raise UnknownPack(f"{pack_type}: bad probability")
                 for r, q in self._slot_dist(rar, minted):
-                    c2 = Counter(counts)
-                    c2[r] += 1
-                    ev += pr * q * (self._cards_total(c2, side) - t0)
+                    dist[r] = dist.get(r, 0.0) + pr * q
+            for r, pq in dist.items():
+                c2 = Counter(counts)
+                c2[r] += 1
+                ev += pq * (self._cards_total(c2, side) - t0)
         return ev
 
     def _total(self, counts: Mapping, packs: Iterable[str], minted: Optional[Mapping], side: str) -> float:

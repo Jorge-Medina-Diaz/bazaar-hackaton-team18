@@ -669,11 +669,12 @@ def apply(book: Book, intent: Intent, outcome: Outcome) -> Book:
 # ------------------------------------------------------------------------------------------- check
 
 def check(intent, world, book, valuer, cfg, counters, *, fresh=None, now: float) -> Verdict:
-    """PURE. Globals G02-G06 (+ one-sided G07), then the team / publication / pack / thread-close guards.
+    """PURE. Globals G02-G06 (+ one-sided G07), G61 (no pack is ever bought), then the team / publication / pack / thread-close guards.
     TALK_KINDS and dealer accepts go to agent.talk.check. Any exception -> refuse (fail closed)."""
     try:
         cfg = cfg or Cfg()
         _globals(intent, world, book, cfg, counters, now)
+        _g61(intent, world, fresh)
         kind, a = intent.kind, intent.args
         if kind in TALK_KINDS or (kind == "accept" and a["source"] == "dealer"):
             try:
@@ -745,6 +746,68 @@ def _globals(it, world, book, cfg, counters, now) -> None:
     # G14 unopened pack
     if book.packs:
         _need(kind in _PACK_OK_KINDS, "G14.pack")
+
+
+_PACK_RELEASE_KINDS = frozenset({"cancel", "close_thread", "open_pack"})
+
+
+def _pack_ids(world) -> frozenset:
+    cat = world.catalog if isinstance(world.catalog, Mapping) else {}
+    return frozenset(p.get("id") for p in cat.get("packs") or () if isinstance(p, Mapping))
+
+
+def _is_pack_ref(ref: Any, ids: frozenset) -> bool:
+    return isinstance(ref, str) and (ref.startswith("pack:") or "sobre_" in ref or ref in ids)
+
+
+def _receives_pack(offer: Any) -> bool:
+    """The maker's give carries anything but cards (a pack asset or a non-card type). Unreadable -> True."""
+    if not isinstance(offer, Mapping):
+        return False
+    give = offer.get("give")
+    if give is None:
+        return False
+    if not isinstance(give, Mapping):
+        return True
+    for a in give.get("assets") or ():
+        if not isinstance(a, Mapping) or a.get("kind", "card") != "card" or "pack" in a:
+            return True
+    for t in give.get("types") or ():
+        if not (isinstance(t, str) and t.startswith("card:")):
+            return True
+    return "packs" in give and bool(give.get("packs"))
+
+
+def _g61(it: Intent, world, fresh) -> None:
+    """Packs are never bought (strategy §2.1.1, INV-09): no intent names, threads for or receives a pack."""
+    if it.kind in _PACK_RELEASE_KINDS:
+        return
+    a, ids = it.args, _pack_ids(world)
+    for k in ("ref", "want_ref"):
+        _need(not _is_pack_ref(a.get(k), ids), "G61.pack_buy", str(a.get(k)))
+    tid = a.get("thread_id")
+    if tid is not None:
+        t = (world.threads or {}).get(tid)
+        _need(not (isinstance(t, Mapping) and _is_pack_ref(_thread_buy_ref(t), ids)), "G61.pack_buy",
+              f"thread {tid}")
+    if it.kind == "accept" and isinstance(fresh, Mapping):
+        f = fresh
+        ft = f.get("thread", f)
+        offers = [f.get("offer")] + [o for o in _thread_offers(ft) if o.get("id") == a["offer_id"]]
+        topic = ft.get("topic") if isinstance(ft, Mapping) else None
+        _need(not (isinstance(topic, Mapping) and isinstance(topic.get("buy"), Mapping) and "pack" in topic["buy"]),
+              "G61.pack_buy", "fresh topic")
+        _need(not any(_receives_pack(o) for o in offers), "G61.pack_buy", "offer gives a pack")
+
+
+def _thread_offers(t: Any) -> list:
+    if not isinstance(t, Mapping):
+        return []
+    out = [o for o in t.get("standing_offers") or () if isinstance(o, Mapping)]
+    for m in t.get("messages") or ():
+        if isinstance(m, Mapping) and isinstance(m.get("offer"), Mapping):
+            out.append(m["offer"])
+    return out
 
 
 def _g07(it: Intent, neg_lo: float) -> None:

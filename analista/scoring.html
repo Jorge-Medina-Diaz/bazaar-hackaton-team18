@@ -188,7 +188,7 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
     <div style="display:grid;gap:10px">
       <h3>Valor en primas, a tus valores</h3>
       <div class="hb" id="pagebars"></div>
-      <p class="small muted">Libro: común 10, infrecuente 25, rara 70, épica 180, legendaria 450. Valor = libro × multiplicador; la 2.ª copia vale el 25 % y la 3.ª el 10 %. Bonus de página = 0,25 × la suma de las 10 primeras copias. <span class="cf meas">medido</span> V-01. El master bonus (0,1, las 12 cartas) está publicado pero nunca se ha visto. <span class="cf inf">no observado</span></p>
+      <p class="small muted">Libro: común 10, infrecuente 25, rara 70, épica 180, legendaria 450. Valor = libro × multiplicador; la 2.ª copia vale el 25 % y la 3.ª el 10 %. Bonus de página = 0,25 × la suma de las 10 primeras copias. <span class="cf meas">medido</span> V-01. El master bonus (0,1: la página más su épica y su legendaria, las 12 cartas) está publicado pero nunca se ha visto. <span class="cf inf">no observado</span> Rareza y sobres: §3b.</p>
     </div>
     <div style="display:grid;gap:10px;align-content:start">
       <h3>Lo que llega a la puntuación</h3>
@@ -197,6 +197,37 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
       <p class="small muted">SAL-10, la carta que cerró SAL, valía +69,9 y contó exactamente <b>+50,0</b>. Puede ser un tope por trato. Por eso pagar hasta <code>valor_de_cierre − 50</code> da lo mismo que pagar menos. <span class="cf meas">medido</span> P-07</p>
     </div>
   </div>
+</section>
+
+<!-- 3b. Rareza y sobres -->
+<section class="panel">
+  <header><span class="eyebrow">3b · Rareza y sobres</span><h2>Qué trae cada sobre y cuánto vale para t18</h2>
+  <p class="small muted" id="catinfo">cargando /api/catalog…</p></header>
+  <div class="grid2">
+    <div style="display:grid;gap:10px;align-content:start">
+      <h3>Cinco rarezas, tiradas fijas</h3>
+      <div class="scroll"><table class="tbl" id="rartbl"></table></div>
+      <p class="small muted">Acuñadas = copias que ya existen en los sets publicados. Las épicas y legendarias (la carta 11 y la 12 de cada barrio) <b>no están en la página</b>: solo cuentan para el master bonus. <span class="cf rule">catálogo oficial</span></p>
+    </div>
+    <div style="display:grid;gap:10px;align-content:start">
+      <h3>Cuatro sobres: odds por hueco</h3>
+      <div class="scroll"><table class="tbl" id="packtbl"></table></div>
+      <p class="small muted">«1.ª copia» = valor a nuestros multiplicadores si cada carta fuese nueva para nosotros: es un <b>techo</b>. Los repetidos valen el 25 % / 10 %, así que el valor real es menor (V-09: el de barrio ~18 el sábado, no ~30). El bonus de página solo sube algo si la carta cierra una página. <span class="cf inf">calculado en vivo</span></p>
+    </div>
+  </div>
+  <div class="grid2">
+    <ul class="tight small">
+      <li><b>Cada hueco</b> saca una carta de esa rareza <b>de los sets publicados</b>, ponderada por las copias que quedan (tirada − acuñadas). Con CHA publicado el domingo y 0 acuñadas, CHA pesa más en todos los huecos. <span class="cf rule">regla</span> <span class="cf meas">V-02</span></li>
+      <li><b>Si una rareza se agota</b>, el hueco da la rareza de abajo. <span class="cf rule">regla</span> Nuestro modelo (<code>agent/valuation.py</code>) falla cerrado en ese caso; hoy no ocurre (ver «quedan»).</li>
+      <li><b>Comprar un sobre</b> es un trato con dealer a su valor esperado: si el precio supera nuestro valor, resta neg; si no, no suma (solo un hueco de escalera). <b>Lo que sale al abrirlo es suerte y no puntúa.</b> <span class="cf meas">P-08 P-09</span></li>
+    </ul>
+    <ul class="tight small">
+      <li><b>Master bonus:</b> «la página más su épica y su legendaria» suman otro 0,1 (sobre el valor de las 12). <span class="cf rule">regla</span> <span class="cf inf">nunca observado</span> Hoy no hay ninguna legendaria acuñada: solo salen del hueco 5 de plata (2 %) y oro (15 %). Inalcanzable salvo suerte.</li>
+      <li><b>Valor de libro</b> es el precio público de referencia; nuestro valor = libro × multiplicador del barrio × [1; 0,25; 0,1] por copia. <span class="cf meas">V-01</span></li>
+      <li><b>Abrir en cuanto llega:</b> un sobre sin abrir cuenta a su valor esperado y abarata cada carta que compramos mientras tanto. <span class="cf meas">P-06</span></li>
+    </ul>
+  </div>
+  <div class="callout" id="packcall"></div>
 </section>
 
 <!-- 4. Mercados -->
@@ -326,7 +357,7 @@ function drawPage() {
   hbars($("pagebars"), [
     {lab: "10 cartas (1.ª copia)", val: cards, color: "var(--neg)", tip: "5 comunes + 3 infrecuentes + 2 raras"},
     {lab: "Bonus de página", val: bonus, color: "var(--foil)", tip: "0,25 × valor de las 10 cartas"},
-    {lab: "Épica", val: ep, color: "var(--mkt)", tip: "Fuera de la página. Ninguna acuñada aún (X-03)"},
+    {lab: "Épica", val: ep, color: "var(--mkt)", tip: "Fuera de la página; 9 copias por épica. Acuñadas: ver §3b"},
     {lab: "Legendaria", val: lg, color: "var(--mkt)", tip: "Fuera de la página; 3 copias en todo el juego"},
     {lab: "Master bonus", val: master, color: "var(--unk)", hatch: true, tip: "Publicado (0,1) y nunca observado"},
     {lab: "2.ª copia de una común", val: BOOK.c * aff * 0.25, color: "var(--unk)", tip: "Repetido: 25 % del valor"},
@@ -346,6 +377,67 @@ for (const a of AFFS) {
   seg.appendChild(b);
 }
 drawPage();
+
+// 3b. rareza y sobres (catálogo público, CORS *)
+const RORDER = ["common", "uncommon", "rare", "epic", "legendary"];
+const RES = {common: "Común", uncommon: "Infrecuente", rare: "Rara", epic: "Épica", legendary: "Legendaria"};
+const MULT = {CHA: 1.6, RET: 1.3, SAL: 1.1, LAT: 0.9, LAV: 0.7, MAL: 0.5}; // V-04
+const PACKS = {
+  sobre_barrio: {n: "Barrio", price: 22, where: "Abuela: abre a 30, cierra a 19–24 (D-05)",
+    verdict: "No comprar: con nuestros repetidos vale ~18 el sábado y ~24 el domingo (V-09), igual o por debajo del precio. Llega gratis con la subvención: abrirlo al momento."},
+  sobre_bienvenida: {n: "Bienvenida", price: null, where: "No se vende: regalo al desbloquear nivel (D-17)",
+    verdict: "Gratis. Abrirlo al llegar, tras cerrar los hilos de compra (J1)."},
+  sobre_plata: {n: "Plata", price: 188, where: "El Chato: 188 (D-01)",
+    verdict: "No comprar: 188 está por encima incluso del techo."},
+  sobre_oro: {n: "Oro", price: 420, where: "Doña Pilar: lista 420, abre a 504 (D-21)",
+    verdict: "No comprar: el techo solo roza 420 el domingo con CHA; con nuestros repetidos (SAL completa, LAT 8/10) queda muy por debajo (~286 en t93, pilar.md). Es la única vía a una legendaria (15 %), pero el master bonus no compensa."},
+};
+function packModel(cat, sets) {
+  const cards = cat.sets.filter(s => sets.has(s.id)).flatMap(s => s.cards.map(c => ({...c, set: s.id})));
+  const byR = {};
+  for (const r of RORDER) {
+    const cs = cards.filter(c => c.rarity === r).map(c => ({w: Math.max(0, c.print_run - c.minted), ours: c.book * (MULT[c.set] ?? 1), book: c.book}));
+    const W = cs.reduce((a, c) => a + c.w, 0);
+    byR[r] = W > 0 ? {ours: cs.reduce((a, c) => a + c.w * c.ours, 0) / W, book: cs.reduce((a, c) => a + c.w * c.book, 0) / W} : null;
+  }
+  // si una rareza se agota, el hueco da la de abajo (regla del catálogo)
+  const pick = r => { for (let i = RORDER.indexOf(r); i >= 0; i--) if (byR[RORDER[i]]) return byR[RORDER[i]]; return {ours: 0, book: 0}; };
+  return p => p.slots.reduce((a, s) => a + Object.entries(s).reduce((b, [r, q]) => b + q * pick(r).ours, 0), 0);
+}
+const pRarePlus = p => 1 - p.slots.reduce((a, s) => a * (1 - ["rare", "epic", "legendary"].reduce((b, r) => b + (s[r] ?? 0), 0)), 1);
+const oddsTxt = p => p.slots.map(s => Object.entries(s).map(([r, q]) => q === 1 ? RES[r][0] : `${RES[r][0]} ${fmt(100 * q, 0)}%`).join(" / ")).join(" · ");
+async function loadCatalog() {
+  try {
+    const r = await fetch(API + "/api/catalog", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const cat = await r.json();
+    const out = new Set(cat.sets.filter(s => s.released).map(s => s.id));
+    const sun = new Set(cat.sets.map(s => s.id));
+    $("catinfo").textContent = `Publicados: ${[...out].join(", ")}${sun.size > out.size ? " · el domingo entra " + [...sun].filter(x => !out.has(x)).join(", ") : ""}. Marginales por copia ${cat.values.copy_marginals.join(" / ")}, bonus de página ${cat.values.page_bonus}, master ${cat.values.master_bonus}.`;
+    let rt = `<thead><tr><th>Rareza</th><th class="r">Libro</th><th class="r">Tirada</th><th class="r">Acuñadas</th><th class="r">Quedan</th><th class="r">RET ×1,3</th><th class="r">CHA ×1,6</th></tr></thead><tbody>`;
+    for (const k of RORDER) {
+      const R = cat.rarities[k], cs = cat.sets.filter(s => s.released).flatMap(s => s.cards).filter(c => c.rarity === k);
+      const m = cs.reduce((a, c) => a + c.minted, 0), pr = cs.reduce((a, c) => a + c.print_run, 0);
+      rt += `<tr><td><span class="sw" style="background:${R.color};height:12px"></span>${RES[k]}</td><td class="r num">${R.book}</td><td class="r num">${R.print_run}</td><td class="r num">${m} / ${pr}</td><td class="r num">${fmt(100 * (1 - m / pr), 0)} %</td><td class="r num">${fmt(R.book * 1.3)}</td><td class="r num">${fmt(R.book * 1.6)}</td></tr>`;
+    }
+    $("rartbl").innerHTML = rt + "</tbody>";
+    const evNow = packModel(cat, out), evSun = packModel(cat, sun);
+    let pt = `<thead><tr><th>Sobre</th><th>Huecos</th><th class="r">Libro esp.</th><th class="r">1.ª copia hoy</th><th class="r">Con CHA</th><th class="r">≥1 rara</th><th>Precio</th></tr></thead><tbody>`;
+    const verd = [];
+    for (const p of cat.packs) {
+      const M = PACKS[p.id] ?? {n: p.name, price: null, where: "?", verdict: "Sobre nuevo: valorarlo antes de nada."};
+      const a = evNow(p), b = evSun(p), bad = M.price != null && M.price > Math.max(a, b);
+      pt += `<tr><td><span class="sw" style="background:${p.color};height:12px"></span>${M.n}</td><td class="small mono">${oddsTxt(p)}</td><td class="r num">${fmt(p.expected_book)}</td><td class="r num">${fmt(a)}</td><td class="r num">${fmt(b)}</td><td class="r num">${fmt(100 * pRarePlus(p), 0)} %</td><td class="small" style="color:${bad ? "var(--bad)" : "inherit"}">${M.price ?? "—"}<br><span class="muted">${M.where}</span></td></tr>`;
+      verd.push(`<li><b>${M.n}:</b> ${M.verdict}</li>`);
+    }
+    $("packtbl").innerHTML = pt + "</tbody>";
+    $("packcall").innerHTML = `<b>Para la estrategia: no compramos sobres</b> (no existe el intent: <code>strategy.md</code> §2.1, punto 1). Las cartas sueltas por debajo de nuestro valor llenan huecos de escalera; un sobre al precio de dealer es pérdida a nuestros valores.<ul class="tight" style="margin-top:6px">${verd.join("")}</ul>`;
+  } catch (e) {
+    $("catinfo").textContent = "no se pudo leer /api/catalog (" + e.message + "); reintento en 60 s";
+    setTimeout(loadCatalog, 60000);
+  }
+}
+loadCatalog();
 
 // 4. trato
 function drawTrade() {

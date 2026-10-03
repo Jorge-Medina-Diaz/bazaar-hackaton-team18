@@ -18,7 +18,8 @@ NOTES (M4b, night build)
 - "Distinct from the last text of the thread": the World has no text, so it is enforced structurally:
   every template carries {p} (duel_days also {d}) and G31/G50 forbid repeating our (price[, days]).
   firewall() also takes an optional last_text for callers that have it.
-- Dealer templates exist only for abuela and chato; a new dealer has no template -> G60.template (refuse).
+- Dealer templates exist only for abuela, chato and pilar (sell only); any other dealer or side has no
+  template -> G60.template (refuse).
 - `fresh` for duel_accept: the duel Mapping, or the /api/duels payload ({"duels": [...]}) or a list.
   `fresh` for a dealer accept: the thread Mapping (or {"thread": {...}}).
 """
@@ -62,6 +63,14 @@ TEMPLATES: Mapping[str, tuple] = {
         "Buenas, Chato. Te traigo esta carta. ¿{p} P?",
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
+    ),
+    # Doña Pilar (level 3, docs/pilar.md): a shrewd collector who only sells gold packs, so we only sell to her.
+    # Formal and to the point: flattery and big asks do not move her (t13, thread 456).
+    "pilar_sell": (
+        "Buenas tardes, Doña Pilar. Le traigo una carta en muy buen estado para su álbum. ¿Le parecen {p} P?",
+        "Usted sabe distinguir una buena pieza. Por esta le pido {p} P.",
+        "Me acerco a su cifra, Doña Pilar: {p} P.",
+        "Con todo respeto por su colección: {p} P.",
     ),
     "duel": (
         "Propuesta justa para cerrar pronto y que ganemos los dos: {p} P.",

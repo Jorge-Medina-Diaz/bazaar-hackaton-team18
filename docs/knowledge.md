@@ -60,6 +60,9 @@ Estado: sábado 3 oct 2026, ~00:45, juego cerrado. Datos hasta el cierre del vie
 - **V-08** `[medido · alta]` Álbum al cierre: SAL 10/10 (completa), LAT 8/10 (faltan LAT-09 y LAT-10), LAV 2/10, MAL 2/10. Caja 260 P, nivel 2, sin venue.
 - **V-09** `[inferido · media]` Valor esperado de un sobre de barrio a nuestros valores: ~11,5 sin RET y ~18 con RET el sábado (17,97–18,3 según el modelo), ~24 el domingo con CHA. Sobre de plata: ~112–114 el sábado. Las dos dimensiones coinciden dentro de ±0,4.
 - **V-10** `[medido · media]` catalog.json publica master_bonus 0,1. Nunca se ha observado, igual que el valor de la 4.ª copia.
+- **V-11** `[regla oficial · alta]` Sobres (`/api/catalog`, bazaar.causaprima.ai/cards#packs). Barrio: C · C · C 75 %/I 25 % (libro esp. 33,8). Bienvenida: C · I · I 60 %/R 40 % (78). Plata: C · C · I · I · R 86 %/É 12 %/L 2 % (160,8). Oro: I · I · R · R · É 85 %/L 15 % (410,5). Cada hueco saca de los sets publicados; si una rareza se agota, da la de abajo (`agent/valuation.py` ya lo modela: el hueco pasa a la rareza de abajo y suma su masa a la de esa rareza; solo falla cerrado si no queda nada por debajo o si una rareza falta del catálogo de un set publicado, que es dato roto, no agotamiento).
+- **V-12** `[inferido · alta]` Techo a nuestros multiplicadores (todo 1.ª copia, sin repetidos ni bonus), ponderado por copias restantes, catálogo del sáb 3 oct: barrio 30,5 → 34,7 con CHA; bienvenida 70,6 → 81,1; plata 145,4 → 166,7; oro 371,0 → 423,7. El valor real es menor (repetidos, V-09). Plata a 188 es pérdida incluso en el techo; oro a 420 solo lo roza el domingo en el techo. Se recalcula en vivo en la web del analista (scoring §3b).
+- **V-13** `[regla oficial · media]` Master bonus: «la página más su épica y su legendaria» suman otro 0,1 (catálogo). Rareza: libro 10/25/70/180/450, tirada 300/90/30/9/3 por carta; épica y legendaria no están en la página. `agent/valuation.py` ya lo modela con la base inferida por analogía con el bonus de página (0,1 × suma de los valores base de las 12 cartas del set, solo sets con afinidad); nunca observado, y solo puede saltar con la épica Y la legendaria del set en mano.
 
 ## 3. Dealers
 
@@ -82,6 +85,11 @@ Estado: sábado 3 oct 2026, ~00:45, juego cerrado. Datos hasta el cierre del vie
 - **D-17** `[medido · alta]` El nivel 2 lo anunció un admin en t=1,183, lo activó en t=1,633 y lo abrió a todos exactamente 1,0 h después. Lo desbloquearon 18 equipos y todos recibieron un sobre de bienvenida gratis (no figura en RULES). Los niveles 3–5 no están en el schedule.
 - **D-18** `[medido · media]` El recuento de tratos que hace el servidor para desbloquear es más estricto que "no a precio de apertura": a nosotros nos contó 3 de 4, y t15, con al menos 4 liquidaciones con la Abuela, no entró pronto. La regla exacta no se ha podido reproducir.
 - **D-19** `[inferido · media]` Para entrar pronto en el nivel 3 tenemos 0 o 1 tratos con El Chato que cuenten (LAT-08 a 32 frente a 33; la venta a 13 fue a su precio de apertura). La regla del nivel 3 se desconoce.
+- **D-20** `[API · alta]` Nivel 3 = **Doña Pilar**, coleccionista: anunciada en t=3,425 y activada en t=3,508. Abre a todos a las +2,0 h (t=5,51). Desbloqueo anticipado con 3 tratos con El Chato: solo lo tiene t13 (tick 262). Estrategia en [pilar.md](pilar.md).
+- **D-21** `[API · alta]` Pilar compra infrecuentes, raras y épicas. SAL y RET aparecen aparte como favoritas ("pays over book for the cards she loves") y también compra las de cualquier set publicado. **No compra comunes.** Solo vende `sobre_oro` (apertura 504, lista 420, 1 por equipo y hora); 6 tratos por equipo y hora.
+- **D-22** `[API · alta]` Rasgos de Pilar: paciencia 0,6, generosidad 0,5, astucia 0,75, memoria 0,7, rigor 0,6, charla 0,55. Es el dealer más duro y el que más recuerda.
+- **D-23** `[medido · baja]` Un solo dato de precio: a la petición de 49 de t13 por LAV-08 (infrecuente no favorita) respondió con **16** (0,64 × libro), con final:false (hilo 456, tick 294).
+- **D-24** `[medido · alta]` La Gate no vende a un dealer por debajo de `ceil(dv_rm + DEALER_MARGIN)` (G30–G32). Una LAT infrecuente (22,5) no se vende a Pilar por menos de 24.
 
 ## 4. El Rastro (mercado entre equipos)
 
@@ -103,7 +111,7 @@ Estado: sábado 3 oct 2026, ~00:45, juego cerrado. Datos hasta el cierre del vie
 
 - **X-01** `[medido · alta]` Se conoce el dueño final de 535 de los 538 activos (los 3 abiertos son LAV-09#3, LAT-06#6 y SAL-08#10) y las dos partes de los 46 tratos entre equipos. 45 de los 46 tienen precio; falta el de LAT-10 de t06 a t15 (tick 142, en un hueco del feed).
 - **X-02** `[medido · alta]` De LAT-10 solo hay 2 copias: la #1 de t03 (de su mano inicial, nunca movida) y la #2 de t15 (que con ella completó LAT). De LAT-09 hay 4: t01 #1, t14 #2, t15 #3 y El Chato #4 (se la compró a t13 por 46 en t120, trato #1897).
-- **X-03** `[medido · alta]` Hay pocas raras acuñadas: entre 2 y 5 por rara (la tirada es 30). No hay ninguna épica ni legendaria acuñada.
+- **X-03** `[medido · alta]` Hay pocas raras acuñadas: entre 2 y 5 por rara (la tirada es 30). No hay ninguna épica ni legendaria acuñada. **Actualizado sáb 3 oct (catálogo):** 64/300 raras acuñadas en sets publicados; 2 épicas (LAV-11 y LAT-11, 1 copia cada una) y 0 legendarias.
 - **X-04** `[medido · alta]` Ningún equipo ha tenido nunca 2 copias de la misma rara, y El Chato acuña raras nuevas a 90–93 (8 el viernes). La estrategia del cuello de botella no es viable.
 - **X-05** `[medido · alta]` t07 y t04 tienen LAT en 8/10 y les faltan 09 y 10; a t14 le faltan 03, 08 y 10. `[inferido · media]` t07 y t14 valoran LAT a ≥ 0,93–1,0, con márgenes estrechos. Compiten con nosotros por las raras de LAT.
 - **X-06** `[inferido · media]` El único equipo que podría vender LAT-10 es t03; si no, queda El Chato (82–93). LAT-09 la tienen t01 (inactivo desde t103), t14, t15 y El Chato. Nuestras pujas de 62 en El Rastro no tienen ningún vendedor realista.

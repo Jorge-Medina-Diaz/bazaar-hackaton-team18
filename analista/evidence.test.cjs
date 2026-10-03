@@ -47,7 +47,7 @@ test('export requires actual observed clock, classification and catalogue', () =
   assert.throws(()=>E.exportPublic({}, {}, {sets:[]}, 'now'));
 });
 test('generated limits exactly match repository plan', () => {
-  const plan=fs.readFileSync(path.join(__dirname,'../config/plan.json'));
+  const plan=fs.readFileSync(path.join(__dirname,'../config/plan.json'),'utf8').replace(/\r\n/g,'\n'); // git autocrlf checkouts
   const text=fs.readFileSync(path.join(__dirname,'plan-public.js'),'utf8');
   const compiled=JSON.parse(text.match(/Object.freeze\((.*)\);/)[1]);
   assert.deepEqual(compiled.dealer_max,JSON.parse(plan).dealer_max);
