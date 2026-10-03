@@ -197,6 +197,35 @@ class TestValueModel(unittest.TestCase):
         self.assertLess(d2, -50)                          # loses the SAL page bonus
 
 
+class TestSelfCheckRobust(unittest.TestCase):
+    """Sat review: nothing unmeasured may fail self_check (valuation_ok False blocks every value write)."""
+
+    def test_unknown_asset_kind_is_not_a_pack(self):
+        me = dict(ME159)
+        me["assets"] = list(ME159["assets"]) + [{"id": 9998, "kind": "ticket", "ref": "golden_ticket"}]
+        self.assertEqual(Valuer.holdings(me), Valuer.holdings(ME159))
+        ok, err, mism = valuer().self_check(me, VALUES_ALL)
+        self.assertTrue(ok, mism)
+        me["assets"].append({"id": 9999, "kind": "pack", "ref": "sobre_nuevo"})   # a real unknown pack still fails
+        self.assertFalse(valuer().self_check(me, VALUES_ALL)[0])
+
+    def test_fourth_copy_not_compared(self):
+        v = valuer()
+        me = dict(ME159)
+        extra = [dict(a, id=8000 + i, your_value=0.0) for i, a in
+                 enumerate(a for a in ME159["assets"] if a.get("ref") == "LAT-01")]
+        me["assets"] = list(ME159["assets"]) + extra                        # LAT-01 x4
+        c, packs = Valuer.holdings(me)
+        self.assertEqual(c["LAT-01"], 4)
+        me["collection_value"] = v._total(c, packs, None, "buy")            # server prices the 4th copy at 0
+        ok, err, mism = v.self_check(me, VALUES_ALL)
+        self.assertTrue(ok, mism)
+        me["collection_value"] = v.collection_value(c, packs)               # ... or at MARG[-1]
+        self.assertTrue(v.self_check(me, VALUES_ALL)[0])
+        me["collection_value"] = v.collection_value(c, packs) + 5.0         # anything else is still a mismatch
+        self.assertFalse(v.self_check(me, VALUES_ALL)[0])
+
+
 class TestMasterBonus(unittest.TestCase):
     def test_master_bonus_fires_with_page_epic_legendary(self):
         # Sat t950: the server valued SAL-12 at 593.5 with our page + SAL-11 held = page/master model (495 without)
