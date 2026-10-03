@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-03T22:55:51",
+ "updated": "2026-10-03T23:45:56",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 36,
@@ -165,7 +165,7 @@
    "mejora_max": 0
   },
   "pilar|venta|fav·rare": {
-   "hilos": 45,
+   "hilos": 46,
    "cierres": [
     65,
     65,
@@ -215,11 +215,16 @@
     72,
     72,
     72,
+    72,
     74,
     74,
     74,
     74,
     74,
+    75,
+    75,
+    75,
+    75,
     75,
     75,
     75,
@@ -266,18 +271,18 @@
     87
    ],
    "p_sube": {
-    "2-3": 0.81,
+    "2-3": 0.82,
     "1": 1.0,
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 74,
+    "2-3": 79,
     "1": 15,
     "4+": 36
    },
    "final_min": 4,
    "final_med": 5,
-   "perdona_max": 11,
+   "perdona_max": 14,
    "mejora_max": 17
   },
   "pilar|venta|resto·rare": {
@@ -351,7 +356,7 @@
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 139,
+   "hilos": 140,
    "cierres": [
     48,
     48,
@@ -528,7 +533,7 @@
    },
    "n_sube": {
     "2-3": 37,
-    "1": 50,
+    "1": 51,
     "4+": 46
    },
    "final_min": 2,
