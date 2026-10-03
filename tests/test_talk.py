@@ -409,7 +409,9 @@ class G32Accept(unittest.TestCase):
     def test_margin_and_cash(self):
         v = FakeValuer(add={"LAT-09": 84.5})
         self.assertFalse(run(dealer_accept(self.oid, 84), w=self.w, b=tb(), v=v, fresh=self.t).ok)
-        self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=80), fresh=self.t).code,
+        # the Book's cash_free already excludes this thread's reserve (its standing 84): add-back, live Sat SAL-11
+        self.assertTrue(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=0), fresh=self.t).ok)
+        self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=-10), fresh=self.t).code,
                          "G16.cash")
 
     def test_pack_in_hand(self):

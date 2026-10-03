@@ -416,11 +416,18 @@ class Gate:
                 continue
             prev[key] = dict(o, _unseen=True)
         self._sent_offers = {}
+        # a thread offer of ours that left me/offers while a newer own offer is open in the SAME thread was
+        # superseded by our counter (the server cancels it), not accepted: never book it (live Sat: each step of
+        # a Pícaros haggle took its price out of cash_free, 303 cash -> cash_free 4, so G16 refused the accept)
+        open_threads = {_get(o, "thread") for o in now_open.values() if _get(o, "thread") is not None}
         for oid, o in prev.items():
             exp = _int(_get(o, "expires_tick"))
+            if _get(o, "thread") is not None and _get(o, "thread") in open_threads:
+                continue
             if oid not in now_open and (exp is None or exp >= world.tick):
                 flight[oid] = (o, world.tick + IN_FLIGHT_TICKS)
-        flight = {k: v for k, v in flight.items() if v[1] >= world.tick and k not in now_open}
+        flight = {k: v for k, v in flight.items() if v[1] >= world.tick and k not in now_open
+                  and not (_get(v[0], "thread") is not None and _get(v[0], "thread") in open_threads)}
         self._flight, self._prev_open = flight, now_open
         if book is None or not flight:
             return book

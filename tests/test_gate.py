@@ -433,6 +433,24 @@ class TestIdempotencyAndUnknown(GateCase):
             self.gate.execute(bid("LAT-09", 5), w)
 
 
+class TestInFlightThreadOffers(GateCase):
+    def test_superseded_thread_offer_not_booked(self):
+        # live Sat: our counter in a dealer thread cancels our previous offer; it must not leave cash_free
+        def own(oid, cash, thread):
+            return {"id": oid, "maker": TEAM, "to": "picaros", "venue": None, "thread": thread, "status": "open",
+                    "give": {"cash": cash, "assets": [], "types": []},
+                    "want": {"cash": 0, "assets": [], "types": ["card:SAL-11"]},
+                    "expires_tick": TICK + 4, "created_tick": TICK}
+        w1 = self.start(world(my_offers=[own(1, 130, 77)]))
+        b1 = self.gate._in_flight(w1, FakeGuards.build_book(w1, self.journal, None, None, None, None, None))
+        w2 = world(tick=TICK + 1, my_offers=[own(2, 133, 77)])
+        b2 = self.gate._in_flight(w2, FakeGuards.build_book(w2, self.journal, None, None, None, None, None))
+        self.assertEqual(b2.cash_free, 200 - 10)                 # 130 not booked: superseded, not accepted
+        w3 = world(tick=TICK + 2, my_offers=[])
+        b3 = self.gate._in_flight(w3, FakeGuards.build_book(w3, self.journal, None, None, None, None, None))
+        self.assertEqual(b3.cash_free, 200 - 10 - 133)           # the last offer vanished: may be accepted
+
+
 class TestBudgetsAndBook(GateCase):
     def test_100_accepts_one_send(self):
         offers = [offer(5000 + i, ref="LAT-09", price=5) for i in range(100)]

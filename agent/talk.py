@@ -451,7 +451,14 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
         _need(p <= lim, "G32.limit", f"{p} > {lim}")
         _need(_dv_add(world, book, valuer, ref) - p >= margin, "G32.margin")
         _closes_forbidden(book, valuer, cfg, ref, "G32")
-        _need(p <= book.cash_free, "G16.cash")
+        # the Book already reserved this thread's own max(standing, our prices) (guards.build_book): add it back,
+        # or every accept inside a thread needs twice its price (live Sat: SAL-11 at 159 refused, cash 303)
+        try:
+            from agent.guards import _thread_standing
+            reserved = max([_thread_standing(t) or 0] + [int(x) for x in book.thread_prices.get(tid, ()) or ()])
+        except Exception:  # noqa: BLE001 - unknown: no add-back (fail closed)
+            reserved = 0
+        _need(p <= book.cash_free + reserved, "G16.cash", f"{p} > {book.cash_free} + {reserved}")
     else:
         ids = tuple((topic.get("sell") or {}).get("assets") or ())
         _protected_ok(world, book, ref, ids, "G32", own_thread=True)
