@@ -361,6 +361,29 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(radio.diff(obs(), new), [])
 
 
+class RateLimitTests(unittest.TestCase):
+    def test_429_becomes_rate_limited_with_server_wait_and_reads_are_spaced(self):
+        import io
+        import urllib.error
+
+        def boom(req, timeout=10):
+            raise urllib.error.HTTPError(req.full_url, 429, "Too Many", {"Retry-After": "90"}, io.BytesIO(b""))
+        with patch.object(radio.urllib.request, "urlopen", boom):
+            with self.assertRaises(radio.RateLimited) as ctx:
+                radio.get("/api/news")
+        self.assertEqual(ctx.exception.wait, 90.0)
+        stamps = []
+
+        class Ok:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return b"{}"
+        with patch.object(radio.urllib.request, "urlopen", lambda req, timeout=10: stamps.append(time.time()) or Ok()):
+            radio.get("/a")
+            radio.get("/b")
+        self.assertGreaterEqual(stamps[1] - stamps[0], radio.GAP_S - 0.01)
+
+
 class ClockTests(unittest.TestCase):
     def test_pause_and_resume_are_reported_once_with_ticks(self):
         run, stop = {"tick": 630, "t_hours": 6.575, "paused": False}, {"tick": 630, "t_hours": 6.575, "paused": True}

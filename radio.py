@@ -30,6 +30,7 @@ import subprocess
 import sys
 import time
 import unicodedata
+import urllib.error
 import urllib.request
 
 URL = os.environ.get("BAZAAR_URL", "https://bazaar.causaprima.ai").rstrip("/")
@@ -63,10 +64,33 @@ def norm(text):
     return "".join(c for c in unicodedata.normalize("NFKD", str(text or "").lower()) if not unicodedata.combining(c))
 
 
+_LAST_GET = [0.0]
+GAP_S = 0.35          # separación mínima entre lecturas: nunca una ráfaga
+
+
+class RateLimited(Exception):
+    def __init__(self, wait):
+        super().__init__(f"429: esperar {wait:.0f} s")
+        self.wait = wait
+
+
 def get(path, timeout=10):
+    pause = GAP_S - (time.time() - _LAST_GET[0])
+    if pause > 0:
+        time.sleep(pause)
+    _LAST_GET[0] = time.time()
     req = urllib.request.Request(URL + path, headers={"User-Agent": "t18-radio/1"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            try:
+                wait = float(e.headers.get("Retry-After") or 60)
+            except (TypeError, ValueError):
+                wait = 60.0
+            raise RateLimited(max(5.0, wait)) from None
+        raise
 
 
 def card_names(catalog):
@@ -574,7 +598,7 @@ def main():
             print(show(n, classify(n, names, have), clock))
         return
     print(f"Radio Rastro: vigilando {URL}/api/news (avisos desde {a.min_level}; Ctrl+C para parar)", flush=True)
-    burst = 0
+    burst, limited = 0, 0
     while True:
         tick_s, doors = 30.0, "open"
         try:
@@ -589,7 +613,7 @@ def main():
                     notify(f"⏸️ t18 · reloj del juego", f"🕒 {when(clock)}\n{change[1]}", level=change[0])
             fresh = step(state, names, min_level=a.min_level, do_notify=not a.no_notify, first=first, clock=clock,
                          have=have)
-            first = False
+            first, limited = False, 0
             burst = 10 if fresh else max(0, burst - 1)
             save_state(a.state, state)
             wait = interval(state["ticks"], tick_s, burst > 0)
@@ -601,6 +625,13 @@ def main():
                     "doors": doors})
             print(f"   · {when(clock)}: {len(fresh)} nuevas; próxima lectura a las {hhmmss(time.time() + wait)} "
                   f"({wait:.0f} s)", flush=True)
+        except RateLimited as e:   # el servidor pide calma: respetarlo y alargar si se repite
+            limited = min(4, limited + 1)
+            wait = min(600.0, max(e.wait, 60.0) * 2 ** (limited - 1))
+            record({"event": "rate_limited", "wait": wait})
+            print(f"   · {hhmmss()} · 429 del servidor: espero {wait:.0f} s", flush=True)
+            time.sleep(wait)
+            continue
         except Exception as e:  # noqa: BLE001  la red falla a veces: reintentar sin caerse
             wait = 60.0
             record({"event": "error", "error": type(e).__name__, "detail": str(e)[:200]})
