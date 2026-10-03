@@ -34,7 +34,7 @@
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
              "endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}},
   "resupply_min": 15,
-  "dup_min_price": {"RET": 30, "CHA": 30},
+  "dup_min_price": {"RET": 30, "CHA": 30, "SAL": 70, "LAT": 18},
   "days_sign": null,
   "duels": {"anchor": 0.65, "slow_cap": 0.78, "days_weight_fallback": 1.0},
   "day_end_hours": {"sat": 13.28, "sun": 19.283},
