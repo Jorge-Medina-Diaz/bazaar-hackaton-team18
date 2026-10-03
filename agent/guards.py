@@ -83,7 +83,7 @@ class Cfg:
     DAYS_SIGN: Optional[int] = None
     DAYS_WEIGHT_FALLBACK: Optional[float] = None   # plan duels.days_weight_fallback (null server weight)
     ABUELA_DEALS_HOUR_MAX: int = 6
-    TICKS_PER_GAME_HOUR: int = 60          # measured: tick 159 at t_hours 2.65
+    TICKS_PER_GAME_HOUR: int = 60          # fallback only (tick_seconds unknown): see ticks_per_hour()
     MIN_EXPIRES: int = 4
     MAX_EXPIRES: int = 240
 
@@ -167,6 +167,15 @@ def _assets(world) -> dict:
 def _pack_types(world) -> tuple:
     return tuple(a.get("ref") if isinstance(a.get("ref"), str) else ""
                  for a in _assets(world).values() if a.get("kind") != "card")
+
+
+def ticks_per_hour(world, cfg: Optional[Cfg] = None) -> int:
+    """Ticks per game hour. A game hour is a wall hour, so 3600 / tick_seconds (60 at 60 s on Friday: t159 =
+    2.65 h; 120 at 30 s; 240 on Sunday at 15 s). cfg.TICKS_PER_GAME_HOUR only when tick_seconds is unknown."""
+    ts = getattr(world, "tick_seconds", None)
+    if _finite(ts) and ts > 0:
+        return max(1, int(round(3600.0 / ts)))
+    return int(getattr(cfg, "TICKS_PER_GAME_HOUR", 60) or 60)
 
 
 def free(book: Book, ref: str, world=None) -> int:
@@ -462,7 +471,8 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
     thread_limit, thread_prices, thread_ref, thread_by_dealer, thread_res = {}, {}, {}, {}, {}
     deals_hour: Counter = Counter()
     abuela_open = False
-    hour_ago = world.tick - cfg.TICKS_PER_GAME_HOUR
+    tph = ticks_per_hour(world, cfg)
+    hour_ago = world.tick - tph
     for tid, t in (world.threads or {}).items():
         if not isinstance(t, Mapping):
             continue
@@ -518,7 +528,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                     dealer = args.get("dealer") or (world.threads.get(args.get("thread_id")) or {}).get("with")
                     until = r.get("until_tick") or (resp.get("until_tick") if isinstance(resp, Mapping) else None)
                     if isinstance(dealer, str):
-                        dealer_block[dealer] = until if _int(until) else (r.get("tick") or world.tick) + cfg.TICKS_PER_GAME_HOUR
+                        dealer_block[dealer] = until if _int(until) else (r.get("tick") or world.tick) + tph
                 if it.get("intent_kind") == "accept" and r.get("status") == "ok" and args.get("venue", RASTRO) == RASTRO:
                     _note_trade(recent, args, r.get("tick") or it.get("tick") or 0)
             elif k == "settlement":
@@ -625,7 +635,7 @@ def _grant_soon(world, ticks: Any, cfg: Cfg) -> bool:
         up = (world.schedule or {}).get("upcoming")
         if not isinstance(up, (list, tuple)) or not _finite(world.t_hours):
             return True
-        horizon = world.t_hours + float(ticks) / cfg.TICKS_PER_GAME_HOUR
+        horizon = world.t_hours + float(ticks) / ticks_per_hour(world, cfg)
         for e in up:
             params = e.get("params") or {}
             if isinstance(params, Mapping) and params.get("packs"):

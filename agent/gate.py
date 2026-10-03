@@ -36,7 +36,8 @@ NOTES (M5, night build)
 - Counters are incremented on ok, unknown AND would (so a dry run respects the same per-tick budgets).
   Messages are recorded in Counters.msgs as "thread:<id>" / "duel:<id>".
 - dealer_block on cooloff/persona_quota: until_tick from the response body when present, else the next game hour
-  assuming 60 ticks per game hour (measured Friday: t159 = 2.65 h). Written in the result row as dealer_block.
+  with 3600 / tick_seconds ticks per game hour (a game hour is a wall hour; 60 only when tick_seconds is unknown).
+  Written in the result row as dealer_block.
 - Foreign writer (begin_tick): explained = journal.own_objects(baseline) ∪ baseline ∪ any journal intent row
   whose shape matches (list_offer: give/want signature; open_thread: dealer; say: thread+price; duel_say:
   duel+price). Unexplained cash/asset changes (alarm + pause of buy tactics) and "an accept of ours" are NOT
@@ -77,10 +78,17 @@ NO_DEADLINE_KINDS = frozenset({"cancel", "close_thread"})
 FRESH_KINDS = frozenset({"accept", "duel_accept"})
 TEXT_KINDS = frozenset({"say", "duel_say"})
 DEALER_BLOCK_CODES = frozenset({"cooloff", "persona_quota"})
-TICKS_PER_GAME_HOUR = 60
+TICKS_PER_GAME_HOUR = 60         # fallback when tick_seconds is unknown (Friday 60 s ticks)
 RESPONSE_MAX = 2048
 PRED_TOL = 0.01
 IN_FLIGHT_TICKS = 2              # M17: an own offer gone from me/offers stays booked this many ticks
+
+
+def _ticks_per_hour(world: Any) -> float:
+    """A game hour is a wall hour: 3600 / tick_seconds ticks (120 at 30 s, 240 at 15 s), as guards.ticks_per_hour."""
+    ts = getattr(world, "tick_seconds", None)
+    ok = type(ts) in (int, float) and math.isfinite(ts) and ts > 0
+    return 3600.0 / ts if ok else float(TICKS_PER_GAME_HOUR)
 
 
 # ------------------------------------------------------------------------------------------- requests
@@ -860,7 +868,7 @@ class Gate:
                     until = _int(_get(body, "until_tick"))
                     if until is None:
                         frac = world.t_hours - math.floor(world.t_hours)
-                        until = world.tick + max(1, math.ceil((1.0 - frac) * TICKS_PER_GAME_HOUR))
+                        until = world.tick + max(1, math.ceil((1.0 - frac) * _ticks_per_hour(world)))
                     extra["dealer_block"] = {dealer: until}
                     try:
                         db = dict(self.book.dealer_block)

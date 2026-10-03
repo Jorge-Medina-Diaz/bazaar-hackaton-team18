@@ -821,3 +821,22 @@ class ThreadPricesAndReserve(unittest.TestCase):
         c = Ctx(my_offers=(mine,), threads={392: th}, journal=_OpenedJournal(392, 160, "picaros"))
         self.assertEqual(base.book.cash_free - c.book.cash_free, 74)
         self.assertEqual(guards._thread_standing(th), 74)
+
+
+class TicksPerGameHour(unittest.TestCase):
+    """A game hour is a wall hour: 3600 / tick_seconds ticks (60 hard-coded made Saturday's 30 s hour 30 min)."""
+
+    def test_derived_from_tick_seconds(self):
+        from agent import gate
+        for ts, tph in ((60.0, 60), (30.0, 120), (15.0, 240)):
+            w = replace(Ctx().world, tick_seconds=ts)
+            self.assertEqual(guards.ticks_per_hour(w), tph)
+            self.assertEqual(gate._ticks_per_hour(w), tph)
+        self.assertEqual(guards.ticks_per_hour(replace(Ctx().world, tick_seconds=0)), 60)
+        self.assertEqual(gate._ticks_per_hour(replace(Ctx().world, tick_seconds=float("nan"))), 60)
+
+    def test_deals_hour_window_at_30s_ticks(self):
+        deal = {"id": 5, "team": "t18", "with": "abuela", "status": "deal", "topic": {"buy": {"card": "RET-06"}},
+                "created_tick": 120, "messages": [], "standing_offers": []}
+        self.assertEqual(Ctx(tick=200, threads={5: deal}).book.dealer_deals_hour.get("abuela"), 1)   # 80 < 120
+        self.assertIsNone(Ctx(tick=241, threads={5: deal}).book.dealer_deals_hour.get("abuela"))
