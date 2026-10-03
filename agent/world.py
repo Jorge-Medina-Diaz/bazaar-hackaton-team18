@@ -317,6 +317,19 @@ def _duel_offer(o: Any, what: str) -> Optional[dict]:
     return _project(o, "duel_offer")
 
 
+def _days_sign(m: Any):
+    """Server duel field days_meaning -> -1 (fewer days better: 'each delivery day costs you ...'),
+    +1 ('each delivery day adds ... to your side'), else None. Exact phrases (Duels II live)."""
+    if not isinstance(m, str):
+        return None
+    m = m.strip().lower()
+    if m.startswith("each delivery day costs you"):
+        return -1
+    if m.startswith("each delivery day adds") and "to your side" in m:
+        return 1
+    return None
+
+
 def _p_duel(d: Any) -> tuple:
     _need(isinstance(d, Mapping), "duel: object")
     _need(_int(d.get("duel")), "duel.duel: int")
@@ -329,6 +342,7 @@ def _p_duel(d: Any) -> tuple:
     _need(isinstance(d.get("issues", []), list), "duel.issues: list")
     _need(isinstance(d.get("messages", []), list), "duel.messages: list")
     out = _project(d, "duel")
+    out["days_sign"] = _days_sign(d.get("days_meaning"))   # the server's text stays out: only -1/+1/None enters
     out["your_offer"] = _duel_offer(d.get("your_offer"), "duel.your_offer")
     out["rival_offer"] = _duel_offer(d.get("rival_offer"), "duel.rival_offer")
     msgs = []

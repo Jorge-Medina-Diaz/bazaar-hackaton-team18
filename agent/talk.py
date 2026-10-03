@@ -527,6 +527,8 @@ def days_sign_of(duel: Mapping) -> Optional[int]:
     """Sign of the days issue from the SERVER's own duel field days_meaning (not rival text). Exact phrases seen
     in Duels II: buyer "each delivery day costs you this much cash" (-1: fewer days is better), seller "each
     delivery day adds this much cash to your side" (+1). Anything else -> None (worst case)."""
+    if isinstance(duel, Mapping) and duel.get("days_sign") in (1, -1):   # World: the sensor's derived field
+        return duel["days_sign"]
     m = duel.get("days_meaning") if isinstance(duel, Mapping) else None
     if not isinstance(m, str):
         return None
