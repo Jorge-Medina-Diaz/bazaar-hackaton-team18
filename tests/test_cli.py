@@ -175,6 +175,20 @@ class TestStopResumeStatus(Base):
         self.assertIn("STOP     STOP", out)
 
 
+    def test_status_flags_a_stale_runner(self):
+        import time as _t
+        from agent.journal import Journal
+        with writer_lock(self.paths):
+            j = Journal(self.paths.journal, mode="dry", writer=True, clock=lambda: _t.time() - 600)
+            j.write("tick", tick=7, cash=1, cash_free=1, reading="N", down=[])
+            with NoNetwork():
+                rc, out = cli("--root", str(self.root), "status")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("STALE?", out)
+        with NoNetwork():
+            rc, out = cli("--root", str(self.root), "status")
+        self.assertNotIn("STALE?", out)                       # no runner: an old row is not news
+
 class TestRunAndSelftest(Base):
     def test_two_runs_second_exits_3(self):
         with writer_lock(self.paths):

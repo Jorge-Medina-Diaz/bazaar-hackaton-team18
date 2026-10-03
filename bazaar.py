@@ -198,6 +198,9 @@ def selftest(paths: Paths, *, stages: Sequence[str] = STAGES, runner_fn: Callabl
 
 # ------------------------------------------------------------------------------------------ status
 
+STALE_TICK_ROW_S = 90.0           # > 3 Sunday ticks (15 s) and > 2 Saturday ticks (30 s) without a tick row
+
+
 def status(paths: Paths) -> int:
     """0 API calls: reads files only."""
     from agent.transport import stop_active
@@ -235,9 +238,14 @@ def status(paths: Paths) -> int:
     if last_tick:
         _out(f"tick     {last_tick.get('tick')} cash {last_tick.get('cash')} cash_free {last_tick.get('cash_free')} "
              f"reading {last_tick.get('reading')} down {last_tick.get('down')}")
+        age = time.time() - float(last_tick.get("ts") or 0)
+        if isinstance(holder, dict) and age > STALE_TICK_ROW_S:
+            # Sat 22:55-23:43 the machine slept and nobody saw it: the runner writes a tick row every open tick
+            _out(f"STALE?   last tick row {int(age)} s ago with a runner holding the lock: if the doors are open, "
+                 f"the runner is stuck or the machine slept")
     _out(f"pending  {len(pend)} {[p.get('id') for p in pend][:10]}")
     _out(f"unknowns {unk[:20]}")
-    for kind, n in (("measure", 5), ("alarm", 5), ("stop", 3), ("pause", 5)):
+    for kind, n in (("measure", 5), ("alarm", 5), ("stop", 3), ("pause", 5), ("dropped", 5), ("param", 3)):
         sel = [r for r in rows if r.get("kind") == kind][-n:]
         for r in sel:
             _out(f"{kind:8s} t{r.get('tick')} " + json.dumps({k: v for k, v in r.items()
