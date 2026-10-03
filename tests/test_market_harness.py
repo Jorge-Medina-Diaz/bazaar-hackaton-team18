@@ -15,6 +15,7 @@ def fixture():
     s = synthetic_frames(2)[1]  # compatible price, 12 ticks left, complete scan
     s["leaderboard"]["teams"] = [{"team": "t01", "rank": 1, "score": 20, "market": 7.5},
                                     {"team": "t18", "rank": 2, "score": 19, "market": 7.5}]
+    s["leaderboard"].update(tick=s["clock"]["tick"], round=2)
     return s
 
 

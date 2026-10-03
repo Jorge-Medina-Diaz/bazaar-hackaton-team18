@@ -23,6 +23,7 @@ if sys.version_info < (3, 10):
 from agent import affinity
 from agent.contracts import PROD_URL
 from agent.transport import RateLimiter, public_get
+from market_harness.core import TEAM, REF, analyze, events_at, integer, leaderboard_age
 
 HERE = Path(__file__).resolve().parent
 VERDICTS = frozenset({"pass", "soft_fail", "hard_fail", "surprise_up", "info",
@@ -70,6 +71,10 @@ def make_report(leaderboard: dict, clock: dict, feed: dict, catalog: dict,
     rarity = {c["id"]: c["rarity"] for s in catalog.get("sets", []) for c in s.get("cards", [])}
     events, skipped = [], 0
     for event in feed.get("events", []):
+        if (not isinstance(event, dict) or event.get("scope") == "private" or
+                (integer(clock.get("tick")) and integer(event.get("tick")) and event["tick"] > clock["tick"])):
+            skipped += 1
+            continue
         try:
             # Skip unsupported shapes explicitly; never enrich an ID with invented offer fields.
             affinity.evidence([event], rarity)
@@ -90,7 +95,9 @@ def make_report(leaderboard: dict, clock: dict, feed: dict, catalog: dict,
     ticks = [e["tick"] for e in events if type(e.get("tick")) is int]
     return {"schema": 1, "source": source,
             "fetched_at": fetched_at or datetime.now(timezone.utc).isoformat(),
-            "snapshot_tick": leaderboard.get("snapshot_tick"), "round": leaderboard.get("round"),
+            "snapshot_tick": leaderboard_age({"leaderboard": leaderboard, "clock": clock})["tick"],
+            "leaderboard_freshness": leaderboard_age({"leaderboard": leaderboard, "clock": clock}),
+            "round": leaderboard.get("round"),
             "clock": {k: clock.get(k) for k in ("tick", "paused", "doors")}, "teams": teams,
             "affinity": {"classification": "inferred", "model": "agent.affinity / 720 permutations",
                          "events": len(events), "skipped_events": skipped,
@@ -99,6 +106,41 @@ def make_report(leaderboard: dict, clock: dict, feed: dict, catalog: dict,
             "coverage": {"complete": False, "selection": "browser_retained_settlements_and_bids"
                          if source == "analyst_browser_export" else "api_window"},
             "journal": journal_summary(journal)}
+
+
+def market_summary(snapshot: dict) -> dict:
+    """Public evidence for the pitch; a sale price never becomes private profit."""
+    radar = analyze(snapshot)
+    trades = {}
+    for e in events_at(snapshot, radar["tick"]):
+        p = e["payload"]
+        parties = p.get("parties", [])
+        if (e["type"] != "settlement" or not integer(p.get("settlement")) or not p.get("venue")
+                or not isinstance(parties, list) or len(parties) != 2 or "t18" not in parties
+                or not all(TEAM.fullmatch(str(t)) for t in parties)
+                or not integer(p.get("price")) or not integer(p.get("fee"))):
+            continue
+        transfers = []
+        if not isinstance(p.get("items"), list):
+            continue
+        for item in p["items"]:
+            if (isinstance(item, dict) and item.get("kind") == "card" and REF.fullmatch(str(item.get("ref")))
+                    and item.get("frm") in parties and item.get("to") in parties
+                    and item["frm"] != item["to"]):
+                transfers.append({k: item[k] for k in ("ref", "frm", "to")})
+        if transfers:
+            trades[p["settlement"]] = {"settlement": p["settlement"], "event_id": e["id"],
+                                        "tick": e["tick"], "venue": p["venue"], "price": p["price"],
+                                        "fee_observed": p["fee"], "fee_payer": None,
+                                        "transfers": transfers, "private_profit": None, "causal_score_effect": None}
+    own = [t for t in radar["teams"] if t["team"] == "t18"]
+    return {"tick": radar["tick"], "books_scanned": radar["books_scanned"],
+            "compatible_pairs": radar["compatible_count"], "blocks": radar["blocks"],
+            "own_venues": own[0]["venues"] if own else [], "coverage": radar["feed_window"],
+            "own_settlements_in_window": len(trades),
+            "own_settlements": sorted(trades.values(), key=lambda t: t["tick"])[-5:],
+            "judge_score": None, "rubric": "Only ideas and craft are official; detailed rubric pending.",
+            "decision": "Prioritize a reproducible demo, sourced outcomes and measured limits; keep trading under the operator's controls."}
 
 
 def render(report: dict, analyst_url: str = "../analista/index.html") -> str:
@@ -141,6 +183,7 @@ def main(argv=None) -> int:
     mode.add_argument("--refresh", action="store_true", help="Four public GETs, once, without a key")
     mode.add_argument("--offline", type=Path, help="JSON: leaderboard, clock, feed, catalog; marked offline")
     mode.add_argument("--analyst-export", type=Path, help="Public JSON exported by analista/index.html; no network")
+    mode.add_argument("--market-snapshot", type=Path, help="Frozen market radar snapshot with catalog; no network")
     ap.add_argument("--journal", type=Path, help="Optional local WAL; exports counts, never its content")
     ap.add_argument("--output", type=Path, default=Path("runs/jury"))
     ap.add_argument("--team-output", type=Path, help="Also generate jurado.html and plan-public.js for analyst bundle")
@@ -154,12 +197,20 @@ def main(argv=None) -> int:
     elif args.analyst_export:
         data = analyst_input(args.analyst_export)
         source = "analyst_browser_export"
+    elif args.market_snapshot:
+        data = json.loads(args.market_snapshot.read_text(encoding="utf-8"))
+        for key in ("leaderboard", "clock", "feed", "catalog", "venues", "books"):
+            if not isinstance(data.get(key), dict):
+                raise ValueError("Market snapshot incomplete: " + key)
+        source = "market_snapshot"
     else:
         data = json.loads(args.offline.read_text(encoding="utf-8"))
         source = "offline_input"
     report = make_report(**{k: data[k] for k in ("leaderboard", "clock", "feed", "catalog")},
                          journal=args.journal, source=source,
-                         fetched_at=data.get("captured_at") if args.analyst_export else None)
+                         fetched_at=data.get("captured_at") if args.analyst_export or args.market_snapshot else None)
+    if args.market_snapshot:
+        report["market"] = market_summary(data)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "evidence.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     analyst_url = Path(os.path.relpath(HERE.parent / "analista" / "index.html", args.output)).as_posix()

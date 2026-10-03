@@ -1,8 +1,11 @@
 # Radar y evaluación de conversión del mercado
 
-Entrega en `codex/market-opportunity-harness`, actualizada sobre main `500e6ea`.
+Entrega en `codex/market-opportunity-harness`, integrada con avances de main.
 Objetivo: encontrar contrapartes concretas para el puesto gratuito v18 y medir
 qué ocurre después de una propuesta, antes de gastar caja o sustituir el puesto.
+
+Siguiente investigación: [guía para Santiago](market-research-santiago.md).
+Datos de la reanudación: [escaneo en vivo](market-live-2026-10-03.md).
 
 ## Uso inmediato del analista
 
@@ -22,6 +25,8 @@ Resultados locales, excluidos de Git:
 - `runs/market-harness/brief.md`: los 18 equipos y cinco parejas prioritarias.
 - `radar.json`: cotizaciones, bloqueos, descartes y todos los candidatos.
 - `snapshot.json` y `snapshot-<fecha>.json`: fotos para repetir evaluaciones.
+- `public-events.json`: eventos públicos únicos, validados y guardados atómicamente.
+- `movement.md` / `timeline.json`: movimiento observado cuando se pasa `--previous`.
 
 Repetir el análisis sin red o comparar con otra foto:
 
@@ -33,6 +38,21 @@ python3 -m market_harness refresh --previous runs/market-harness/snapshot.json
 `--previous` se carga antes de recoger y guardar la nueva foto.
 Las métricas distinguen contadores acumulados del venue de eventos en una ventana
 limitada; no convierten un feed de 500 eventos en un historial completo.
+
+El marcador muestra su propio tick y retraso frente al reloj. Los grupos conservan
+ids alternativos sin repetir propuestas equivalentes en el brief. Foto bloqueada:
+`compatible_count=null` significa indeterminado, no ausencia de cruces.
+
+```bash
+python3 -m market_harness timeline \
+  --snapshot foto-nueva.json --previous foto-anterior.json
+```
+
+Repetir `--snapshot` para historial. `--archive` recupera eventos observados sin
+convertir su unión en una ventana completa. Tasas por horas de juego comparables;
+no tiempo de pared durante pausas. Desaparición de oferta no equivale a liquidación.
+La recogida incluye catálogo para generar la demo sin otra consulta:
+`python3 -m jury.report --market-snapshot runs/market-harness/snapshot.json`.
 
 ## Qué decide y qué no sabe
 

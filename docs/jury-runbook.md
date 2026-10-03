@@ -69,3 +69,13 @@ Para reconstruir los archivos del paquete del equipo, usar
 Los topes se generan desde `config/plan.json`; no se copia ni modifica el estado
 operativo de Jorge. Las propuestas de Duelos II y CHA están en
 [analista.md](analista.md); el cambio A de días sigue pendiente de su revisión.
+
+## Recibir el radar y preparar la siguiente decisión
+
+`python3 -m market_harness refresh` guarda una foto pública con catálogo. Reutilizar
+esa misma foto, sin red: `python3 -m jury.report --market-snapshot runs/market-harness/snapshot.json`.
+Abrir `runs/jury/demo.html`: separa marcador/reloj y muestra liquidaciones propias
+confirmadas, sin inventar beneficio o puntos de jueces. Para el bundle estático,
+añadir `--output jury --team-output analista` y revisar antes de desplegar.
+
+[Prioridades del jurado](jury-priorities.md) y [investigación para Santiago](market-research-santiago.md).

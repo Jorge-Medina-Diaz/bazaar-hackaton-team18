@@ -124,3 +124,26 @@ live; no certifica autoría, cada compra individual ni ausencia de ambigüedad.
 
 Formato, duración y formulario de entrega aún por confirmar con la organización.
 [Mensaje preparado y guion provisional](docs/jury-runbook.md).
+
+## 7. Decidir qué terminar para los 40 puntos del jurado
+
+[Prioridades y evidencia](docs/jury-priorities.md) enlaza la decisión, su prueba,
+el resultado y el límite conocido. Los criterios son internos; no inventamos una
+rúbrica oficial ni una nota automática del jurado.
+
+El [escaneo en vivo](docs/market-live-2026-10-03.md) confirma la venta RET-08 de
+t18 a t04 por 27 P, tick 645. La clasificación 640 ya nos situaba terceros: no
+atribuimos esa subida a una venta posterior. Las fotos parciales bloquean
+propuestas; los tests verifican que desaparición de oferta no sea un cierre.
+El resultado útil para la presentación es poder demostrar cómo corregimos esas
+interpretaciones y cómo conservamos incertidumbre y trazabilidad.
+
+La misma foto pública alimenta la demo sin otra consulta ni modelo:
+
+```bash
+python3 -m jury.report --market-snapshot runs/market-harness/snapshot.json
+```
+
+Muestra precio y fuente de liquidaciones, nunca beneficio privado o puntos de
+jurado calculados. El operador sigue negociando con sus controles mientras los
+otros roles preparan análisis y evidencia.

@@ -13,6 +13,35 @@ def integer(x, minimum=0):
     return type(x) is int and x >= minimum
 
 
+def leaderboard_age(snapshot):
+    """The scoreboard is an earlier snapshot, not the final clock's live score."""
+    lb = snapshot.get("leaderboard", {})
+    stamp = lb.get("snapshot_tick")
+    if not integer(stamp):
+        stamp = lb.get("tick")
+    clock = snapshot.get("clock", {}).get("tick")
+    if not integer(stamp) or not integer(clock):
+        return {"tick": None, "age_ticks": None, "status": "unknown", "round": lb.get("round")}
+    age = clock - stamp
+    return {"tick": stamp, "age_ticks": age if age >= 0 else None,
+            "status": "future_inconsistent" if age < 0 else "same_tick" if age == 0 else "lagged",
+            "round": lb.get("round")}
+
+
+def group_opportunities(opportunities):
+    """Compact equivalent quotes; keep every original id as mutually exclusive alternatives."""
+    groups = {}
+    for o in opportunities:
+        key = (o["target"], o["ref"], o["seller"], o["buyer"], o["ask"]["price"], o["bid"]["price"],
+               o["ask"]["venue"], o["bid"]["venue"], o["target_buyer_cost_at_ask"],
+               o["buyer_fee_saving_if_accepting_same_ask"])
+        if key not in groups:
+            groups[key] = {**o, "equivalent_pairs": []}
+        groups[key]["equivalent_pairs"].append({"id": o["id"], "ask_id": o["ask"]["id"],
+                                                "bid_id": o["bid"]["id"], "expires": o["expires"]})
+    return list(groups.values())
+
+
 def fee(price, venue, cards=1):
     """Ceiling, paid by the accepting side; never assume it is the ask author."""
     bps, per = venue.get("fee_bps"), venue.get("fee_per_card")
@@ -178,6 +207,12 @@ def analyze(snapshot, target="v18", previous=None, max_scan_ticks=2):
     teams = []
     prior_teams = {t["team"]: t for t in (previous or {}).get("leaderboard", {}).get("teams", [])}
     prior_venues = {v["venue"]: v for v in (previous or {}).get("venues", {}).get("venues", [])}
+    age, prior_age = leaderboard_age(snapshot), leaderboard_age(previous or {})
+    comparable = (previous is not None and age["status"] != "future_inconsistent"
+                  and prior_age["status"] != "future_inconsistent"
+                  and integer(age["tick"]) and integer(prior_age["tick"])
+                  and age["tick"] >= prior_age["tick"] and age["round"] is not None
+                  and age["round"] == prior_age["round"])
     for t in sorted(snapshot.get("leaderboard", {}).get("teams", []), key=lambda t: t["rank"]):
         tid = t["team"]
         own = [v for v in venues.values() if v.get("owner") == tid and v.get("status") == "open"]
@@ -185,7 +220,7 @@ def analyze(snapshot, target="v18", previous=None, max_scan_ticks=2):
         counts = Counter(e["type"] for e in events if e.get("actor") == tid)
         venue_ids = {v["venue"] for v in own}
         teams.append({"team": tid, "rank": t["rank"], "score": t["score"], "market": t["market"],
-                      "score_delta": t["score"] - prior_teams[tid]["score"] if tid in prior_teams else None,
+                      "score_delta": t["score"] - prior_teams[tid]["score"] if comparable and tid in prior_teams else None,
                       "listed_in_feed": counts["offer.listed"], "dealer_messages_in_feed": sum(
                           1 for e in events if e["type"] == "thread.message" and e.get("actor") == tid
                           and e["payload"].get("kind") == "persona"),
@@ -204,12 +239,14 @@ def analyze(snapshot, target="v18", previous=None, max_scan_ticks=2):
                                  for v in own]})
     return {"schema": 1, "captured_at": snapshot.get("captured_at"), "tick": tick,
             "scan_start_tick": start, "paused": snapshot.get("clock", {}).get("paused"),
+            "leaderboard": age,
             "target": target, "blocks": blocks, "rejected": rejected, "teams": teams,
             "books_scanned": len(snapshot.get("books", {})), "resolved_quotes": len(quotes),
             "feed_window": {"count": len(events), "first_tick": events[0]["tick"] if events else None,
                             "last_tick": events[-1]["tick"] if events else None, "bounded": True},
             "venue_trades": {v: d.get("trades", 0) for v, d in venues.items()},
-            "compatible_count": sum(o["status"] == "compatible_quotes" for o in opportunities),
+            "compatible_count": None if blocks else sum(o["status"] == "compatible_quotes" for o in opportunities),
+            "opportunity_groups": group_opportunities(opportunities),
             "opportunities": opportunities,
             "limitations": ["Public quotes are not inventory, cash, private value or guaranteed execution.",
                             "Feed is bounded; absence is not inactivity or proof of no settlement.",
@@ -218,9 +255,11 @@ def analyze(snapshot, target="v18", previous=None, max_scan_ticks=2):
 
 
 def brief(report, limit=5):
+    age = report.get("leaderboard", {})
     lines = [f"# Radar de mercado · tick {report['tick']}", "",
              f"Pausado: {report['paused']} · libros: {report['books_scanned']} · "
              f"cotizaciones identificadas y vigentes: {report['resolved_quotes']}.",
+             f"Marcador tick {age.get('tick')} · edad {age.get('age_ticks')} ticks · {age.get('status')}.",
              f"Parejas compatibles en {report['target']}: {report['compatible_count']}. "
              f"Bloqueos: {', '.join(report['blocks']) or 'ninguno en esta foto'}.", "",
              "## Todos los equipos (ventana pública limitada)", "",
@@ -231,13 +270,15 @@ def brief(report, limit=5):
         lines.append(f"| {t['team']} | {t['rank']} | {t['market']:.2f} | {t['listed_in_feed']} | "
                      f"{t['team_trades_in_feed']} | {t['announcements_in_feed']} | {venue} |")
     lines += ["", "## Próximas parejas a revisar", ""]
-    for o in report["opportunities"][:limit]:
+    for o in report.get("opportunity_groups", report["opportunities"])[:limit]:
         lines.append(f"- {o['ref']}: {o['seller']} pide {o['ask']['price']} P / "
                      f"{o['buyer']} ofrece {o['bid']['price']} P. {o['status']}; "
-                     f"cambio mínimo {o['required_price_change']} P; quedan {o['remaining_ticks']} ticks.")
+                     f"cambio mínimo {o['required_price_change']} P; quedan {o['remaining_ticks']} ticks "
+                     f"({len(o.get('equivalent_pairs', [o]))} pares alternativos; no sumar tratos).")
         if o["draft"]:
             lines.append(f"  Borrador local: {o['draft']}")
     if not report["opportunities"]:
-        lines.append("Sin parejas verificables con los datos disponibles.")
+        lines.append("Resultado indeterminado: foto bloqueada." if report["blocks"]
+                     else "Sin parejas verificables con los datos disponibles.")
     lines += ["", "## Límites", ""] + [f"- {s}" for s in report["limitations"]]
     return "\n".join(lines) + "\n"

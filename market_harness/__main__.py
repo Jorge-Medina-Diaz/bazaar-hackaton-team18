@@ -9,6 +9,7 @@ import re
 
 from market_harness.core import analyze, brief
 from market_harness.evaluation import conversions, evaluate, synthetic_frames
+from market_harness.timeline import archive_snapshot, movement_brief, read_archive, timeline, with_archive
 
 
 def collect(get=None):
@@ -26,7 +27,8 @@ def collect(get=None):
             s["errors"][key] = type(e).__name__
             return {}
     for key, path in (("clock_start", "/api/clock"), ("leaderboard", "/api/leaderboard"),
-                      ("venues", "/api/venues"), ("schedule", "/api/schedule")):
+                      ("venues", "/api/venues"), ("schedule", "/api/schedule"),
+                      ("catalog", "/api/catalog")):
         s[key] = read(key, path)
     for v in s["venues"].get("venues", []):
         vid = v.get("venue", "")
@@ -50,7 +52,7 @@ def save(path, data):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("mode", choices=("refresh", "offline", "evaluate", "conversions"))
+    p.add_argument("mode", choices=("refresh", "offline", "evaluate", "conversions", "timeline"))
     p.add_argument("--snapshot", action="append", default=[], help="Frozen public snapshot; repeat for replay")
     p.add_argument("--previous", help="Previous snapshot, for score/venue deltas")
     p.add_argument("--target", default="v18")
@@ -58,6 +60,7 @@ def main(argv=None):
     p.add_argument("--as-of", type=int, help="Replay ignores COMPLETE frames later than this tick")
     p.add_argument("--synthetic", type=int, default=0, help="Number of hypothetical scenarios, not real data")
     p.add_argument("--campaigns", help="JSON list with verified announcement ids; never sends them")
+    p.add_argument("--archive", help="Existing public event archive for offline history; refresh defaults to out/public-events.json")
     args = p.parse_args(argv)
     if args.synthetic < 0 or args.synthetic > 10000:
         p.error("--synthetic must be in 0..10000")
@@ -68,14 +71,24 @@ def main(argv=None):
     if args.mode == "conversions" and not args.campaigns:
         p.error("conversions needs --campaigns")
     out = Path(args.out)
-    if args.mode == "evaluate":
+    if args.mode == "timeline":
+        result = timeline([load(s) for s in args.snapshot], args.target,
+                          load(args.previous) if args.previous else None, args.as_of,
+                          read_archive(args.archive) if args.archive else None)
+        save(out / "timeline.json", result)
+        (out / "movement.md").write_text(movement_brief(result), encoding="utf-8")
+        print(movement_brief(result))
+    elif args.mode == "evaluate":
         snapshots = [load(s) for s in args.snapshot] + synthetic_frames(args.synthetic)
         result = evaluate(snapshots, args.target, args.as_of)
         result["synthetic_frames_requested"] = args.synthetic
         save(out / "evaluation.json", result)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.mode == "conversions":
-        result = conversions(load(args.snapshot[-1]), load(args.campaigns))
+        s = load(args.snapshot[-1])
+        if args.archive:
+            s = with_archive(s, read_archive(args.archive))
+        result = conversions(s, load(args.campaigns))
         save(out / "conversions.json", result)
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
@@ -84,9 +97,23 @@ def main(argv=None):
         if args.mode == "refresh":
             stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
             save(out / f"snapshot-{stamp}.json", s)
+            # Preserve the failed observation, but never replace the previous
+            # latest snapshot if the archive cannot validate/merge this frame.
+            archive_snapshot(args.archive or out / "public-events.json", s)
             save(out / "snapshot.json", s)
-        result = analyze(s, args.target, previous)
+            observed = s
+        else:
+            observed = with_archive(s, read_archive(args.archive)) if args.archive else s
+        result = analyze(observed, args.target, previous)
+        if observed is not s:
+            result["feed_window"]["source"] = "public_archive_union_not_current_feed_window"
+            result["feed_window"]["coverage_complete"] = None
+            result["feed_window"]["bounded"] = False
         save(out / "radar.json", result)
+        if previous:
+            movement = timeline([s], args.target, previous)
+            save(out / "timeline.json", movement)
+            (out / "movement.md").write_text(movement_brief(movement), encoding="utf-8")
         out.mkdir(parents=True, exist_ok=True)
         (out / "brief.md").write_text(brief(result), encoding="utf-8")
         print(brief(result))
