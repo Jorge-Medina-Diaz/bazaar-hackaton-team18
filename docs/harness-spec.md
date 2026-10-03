@@ -318,7 +318,7 @@ class Valuer:                              # sin E/S de ficheros
     def collection_value(self, counts, packs=(), minted=None) -> float   # V-01 + V-02
     def delta_add(self, counts, ref, packs=(), minted=None) -> float
     def delta_remove(self, counts, ref, packs=(), minted=None) -> float
-    def pack_ev(self, pack_type: str, counts, minted=None) -> float      # UnknownPack si el tipo no está en el catálogo
+    def pack_ev(self, pack_type: str, counts, minted=None) -> float      # UnknownPack si el tipo no está en el catálogo; rareza agotada → la de abajo; master_bonus inferido (V-13)
     def closes_page(self, counts: Mapping[str, int], ref: str) -> bool  # se llama con Book.projected
     def self_check(self, me, server_values=None, tol=0.11) -> tuple[bool, float, list]
 def fee(price: int, cards: int = 1, fee_bps: int = 500, per_card: int = 1) -> int
@@ -550,6 +550,7 @@ Además, todo kind que dependa del valor (todos salvo cancel, close_thread, open
 
 **Texto (M4b)**
 - **G60 Firewall.** Plantilla del contexto; `set(re.findall(r"\d+", text)) ⊆ {str(p), str(d)}`; sin `(?i)l[íi]mite|limit|reserv|m[íi]nimo|m[áa]ximo|presupuesto|budget|valor|value|afinidad|affinity|multiplic|clave|key|token|tk-|bk_|http|system|ignore|\{|\}`; ≤ 280; sin control; distinto del último texto del hilo. Las plantillas se validan al importar.
+- **G61 Sobres.** Ningún sobre se compra: salvo `cancel`, `close_thread` y `open_pack`, se rechaza si `ref`/`want_ref` es un sobre (`pack:`, `sobre_` o id del catálogo), si el hilo es de compra de un sobre o si la oferta aceptada nos da algo que no es carta (ilegible → rechazo) → `G61.pack_buy`.
 
 **Vigilancia (`hygiene.watch`, propone; el Gate comprueba con G23/G33)**
 - Venta propia con `free(ref) < keep(ref)` → `cancel`, de una en una recalculando, primero la que caduca antes (desde el harvest: 2463 y 1652).

@@ -92,7 +92,8 @@ Cada jugada la ejecuta una táctica del arnés y pasa por el Gate. "Armar" pasa 
 Para J5, J6, J13 y los duelos: `python3 affinity.py --card <ref> --price <p>` da, por equipo, P(le vale ≥ p). Se publica o se puja pensando en los que salen **COMPRADOR** (≥ 80 %) y se busca carta en los que salen **VENDEDOR**. `--set RET` ordena quién valora más un barrio. Solo informa (lectura, fuera del World): las cifras siguen saliendo de nuestro valor y de las guardas. `python3 affinity.py --watch 60` en marcha en la máquina A graba las fotos del leaderboard que alimentan la señal de puntuación.
 
 ### 2.1 Qué NO hacemos (lista cerrada; la impone el Gate)
-1. **Comprar sobres.** No existe el intent.
+1. **Comprar sobres.** No existe el intent. Confirmado con las odds oficiales (V-11, V-12): a precio de dealer (barrio ~22, plata 188, oro 420) ningún sobre vale más que su precio a nuestros valores con nuestros repetidos. El domingo CHA (0 acuñadas) pesa más en cada hueco y sube el techo; revisar solo si la máquina A mide con `Valuer.pack_ev` un valor real ≥ precio + 1.
+   La Gate lo impone con `G61.pack_buy`: rechaza todo intent (salvo cancelar, cerrar hilo o abrir sobre) cuyo `ref`/`want_ref`, hilo u oferta aceptada nos dé un sobre.
 2. **Pagar a un dealer más de V_lo − 1**, ni venderle por menos de V + 1.
 3. **Cerrar RET o CHA comprando la carta de cierre a un dealer** (cuenta con lo que tenemos, lo aceptado sin liquidar, los hilos con precio en pie y nuestras pujas).
 4. **Comprar la primera rara de LAT a El Chato** (−22 a −30).
