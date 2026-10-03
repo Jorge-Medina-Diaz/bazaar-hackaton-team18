@@ -1,5 +1,12 @@
 # Traspaso actual — 2026-10-03
 
+## Radio Rastro y cambios para t18 (Claude) — sáb 3 oct, tick ~430
+
+- Rubén pidió vigilar la radio, avisar en su máquina con lo relevante para t18 y subirlo a main. Añadidos `radio.py`, `tests/test_radio.py` y `docs/radio.md`. Solo lecturas públicas sin clave; `agent/` intacto (code_hash b96eb95d4edb5656).
+- Investigado: las noticias solo las emiten los organizadores (rutas admin); los equipos no pueden publicar. Las ciertas mueven el mercado. El vigilante verifica con el feed (precios del dealer en los barrios citados frente al control de la misma rareza) y avisa de cambios exactos (puesto, adelantamientos, dealers, menús, barrios, acuñaciones, niveles, próximo evento).
+- Pruebas: 19 tests del vigilante, 6 mutaciones detectadas, suite completa 816 OK (Python 3.14); notificación real probada en macOS con texto hostil sin ejecución.
+- Siguiente paso: dejarlo corriendo (`python3 radio.py --watch`) en una máquina que no sea el ejecutor o junto a él, y actuar solo sobre noticias `confirmada` bajo el Gate.
+
 ## Integración autorizada por Rubén
 
 - Repositorio: Jorge-Medina-Diaz/bazaar-hackaton-team18. Preparación aislada en
