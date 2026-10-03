@@ -1,0 +1,2482 @@
+{
+ "tick": 200,
+ "own_pseudonym": "mcd38ffd5",
+ "bases": {
+  "buy": {
+   "intent": {
+    "side": "buy",
+    "ref": "LAT-09",
+    "price": 20,
+    "give_asset": null
+   },
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  "sell": {
+   "intent": {
+    "side": "sell",
+    "ref": "LAV-03",
+    "price": 30,
+    "give_asset": 261
+   },
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  "swap": {
+   "intent": {
+    "side": "swap",
+    "ref": "LAT-10",
+    "price": 0,
+    "give_asset": 295
+   },
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  }
+ },
+ "twisted": [
+  {
+   "name": "buy:status_queued",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "queued",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:status_settled",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "settled",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:expires_now",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 200,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:to_other_team",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": "t05",
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:venue_rival",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "v01",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:maker_t18",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "t18",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:maker_own_pseudonym",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "mcd38ffd5",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:thread_set",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": 77,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:extra_top_escrow",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false,
+    "escrow": {
+     "cash": 5
+    }
+   }
+  },
+  {
+   "name": "buy:extra_want_key",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": [],
+     "conditions": [
+      "also give SAL-10"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:extra_give_key",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": [],
+     "bonus": {
+      "cash": 1
+     }
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:want_specific_foreign_asset",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [
+      {
+       "id": 999,
+       "kind": "card",
+       "ref": "SAL-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "SAL",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:give_side_list",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": [
+     {
+      "cash": 0,
+      "assets": [
+       {
+        "id": 7001,
+        "kind": "card",
+        "ref": "LAT-09",
+        "serial": 3,
+        "rarity": "rare",
+        "set": "LAT",
+        "print_run": 300
+       }
+      ],
+      "types": []
+     }
+    ],
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:want_side_none",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": null,
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:status_queued",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "queued",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:status_settled",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "settled",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:expires_now",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 200,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:to_other_team",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": "t05",
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:venue_rival",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "v01",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:maker_t18",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "t18",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:maker_own_pseudonym",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "mcd38ffd5",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:thread_set",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": 77,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:extra_top_escrow",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false,
+    "escrow": {
+     "cash": 5
+    }
+   }
+  },
+  {
+   "name": "sell:extra_want_key",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ],
+     "conditions": [
+      "also give SAL-10"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:extra_give_key",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": [],
+     "bonus": {
+      "cash": 1
+     }
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:want_specific_foreign_asset",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 999,
+       "kind": "card",
+       "ref": "SAL-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "SAL",
+       "print_run": 300
+      }
+     ],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:give_side_list",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": [
+     {
+      "cash": 30,
+      "assets": [],
+      "types": []
+     }
+    ],
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:want_side_none",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": null,
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:status_queued",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "queued",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:status_settled",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "settled",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:expires_now",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 200,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:to_other_team",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": "t05",
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:venue_rival",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "v01",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:maker_t18",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "t18",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:maker_own_pseudonym",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "mcd38ffd5",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:thread_set",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": 77,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:extra_top_escrow",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false,
+    "escrow": {
+     "cash": 5
+    }
+   }
+  },
+  {
+   "name": "swap:extra_want_key",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ],
+     "conditions": [
+      "also give SAL-10"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:extra_give_key",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": [],
+     "bonus": {
+      "cash": 1
+     }
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:want_specific_foreign_asset",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 999,
+       "kind": "card",
+       "ref": "SAL-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "SAL",
+       "print_run": 300
+      }
+     ],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:give_side_list",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": [
+     {
+      "cash": 0,
+      "assets": [
+       {
+        "id": 7002,
+        "kind": "card",
+        "ref": "LAT-10",
+        "serial": 3,
+        "rarity": "rare",
+        "set": "LAT",
+        "print_run": 300
+       }
+      ],
+      "types": []
+     }
+    ],
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:want_side_none",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": null,
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:wrong_ref",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-08",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:two_assets",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      },
+      {
+       "id": 7009,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:asset_and_type",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": [
+      "card:LAT-09"
+     ]
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:cash_bool",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": true,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:cash_str",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": "20",
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:cash_float",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20.0,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:cash_negative",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": -20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:price_higher",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 25,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:give_cash_too",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 3,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:asset_kind_pack",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "pack",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:asset_id_bool",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": true,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:asset_set_mismatch",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7001,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "SAL",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "buy:type_is_pack",
+   "base": "buy",
+   "offer": {
+    "id": 9001,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "pack:sobre_oro"
+     ]
+    },
+    "want": {
+     "cash": 20,
+     "assets": [],
+     "types": []
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:want_two_types",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03",
+      "card:LAV-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:want_type_lowercase",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:lav-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:want_type_no_prefix",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:want_cash_too",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 5,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:give_asset_too",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [
+      {
+       "id": 7010,
+       "kind": "card",
+       "ref": "MAL-01",
+       "serial": 3,
+       "rarity": "common",
+       "set": "MAL",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:price_lower",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 12,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "sell:types_and_cards",
+   "base": "sell",
+   "offer": {
+    "id": 9002,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 30,
+     "assets": [],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAV-03"
+     ],
+     "cards": [
+      "LAV-03"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:want_cash",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 5,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:give_cash",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 5,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:want_two_cards",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04",
+      "card:MAL-05"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:give_two_cards",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      },
+      {
+       "id": 7011,
+       "kind": "card",
+       "ref": "LAT-09",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:same_ref_both_sides",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:LAT-10"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:wants_other_ref",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-10",
+       "serial": 3,
+       "rarity": "rare",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:SAL-10"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  },
+  {
+   "name": "swap:gives_other_ref",
+   "base": "swap",
+   "offer": {
+    "id": 9003,
+    "maker": "m7f3a9c21",
+    "to": null,
+    "venue": "rastro",
+    "thread": null,
+    "status": "open",
+    "give": {
+     "cash": 0,
+     "assets": [
+      {
+       "id": 7002,
+       "kind": "card",
+       "ref": "LAT-08",
+       "serial": 3,
+       "rarity": "uncommon",
+       "set": "LAT",
+       "print_run": 300
+      }
+     ],
+     "types": []
+    },
+    "want": {
+     "cash": 0,
+     "assets": [],
+     "types": [
+      "card:MAL-04"
+     ]
+    },
+    "expires_tick": 230,
+    "created_tick": 190,
+    "final": false
+   }
+  }
+ ]
+}

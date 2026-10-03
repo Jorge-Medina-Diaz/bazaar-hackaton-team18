@@ -1,0 +1,362 @@
+{
+ "id": "t18",
+ "name": "Team 18",
+ "cash": 260,
+ "level": 2,
+ "unlocked": [
+  "abuela",
+  "chato"
+ ],
+ "badges": [],
+ "frozen": false,
+ "affinity": {
+  "LAV": 0.7,
+  "MAL": 0.5,
+  "LAT": 0.9,
+  "SAL": 1.1,
+  "RET": 1.3,
+  "CHA": 1.6
+ },
+ "assets": [
+  {
+   "id": 180,
+   "kind": "card",
+   "ref": "SAL-10",
+   "serial": 3,
+   "rarity": "rare",
+   "set": "SAL",
+   "print_run": 30,
+   "name": "Museo Lázaro Galdiano",
+   "your_value": 149.9
+  },
+  {
+   "id": 256,
+   "kind": "card",
+   "ref": "SAL-04",
+   "serial": 10,
+   "rarity": "common",
+   "set": "SAL",
+   "print_run": 300,
+   "name": "Café en Goya",
+   "your_value": 83.9
+  },
+  {
+   "id": 257,
+   "kind": "card",
+   "ref": "SAL-01",
+   "serial": 10,
+   "rarity": "common",
+   "set": "SAL",
+   "print_run": 300,
+   "name": "Escaparate de Serrano",
+   "your_value": 83.9
+  },
+  {
+   "id": 260,
+   "kind": "card",
+   "ref": "SAL-05",
+   "serial": 10,
+   "rarity": "common",
+   "set": "SAL",
+   "print_run": 300,
+   "name": "Taxi Blanco",
+   "your_value": 83.9
+  },
+  {
+   "id": 261,
+   "kind": "card",
+   "ref": "LAV-03",
+   "serial": 11,
+   "rarity": "common",
+   "set": "LAV",
+   "print_run": 300,
+   "name": "Té Moruno",
+   "your_value": 7.0
+  },
+  {
+   "id": 262,
+   "kind": "card",
+   "ref": "LAT-04",
+   "serial": 9,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "Mercado de la Cebada",
+   "your_value": 9.0
+  },
+  {
+   "id": 264,
+   "kind": "card",
+   "ref": "SAL-03",
+   "serial": 9,
+   "rarity": "common",
+   "set": "SAL",
+   "print_run": 300,
+   "name": "Perrito con Abrigo",
+   "your_value": 83.9
+  },
+  {
+   "id": 267,
+   "kind": "card",
+   "ref": "LAT-07",
+   "serial": 6,
+   "rarity": "uncommon",
+   "set": "LAT",
+   "print_run": 90,
+   "name": "Vermut del Domingo",
+   "your_value": 22.5
+  },
+  {
+   "id": 268,
+   "kind": "card",
+   "ref": "SAL-07",
+   "serial": 7,
+   "rarity": "uncommon",
+   "set": "SAL",
+   "print_run": 90,
+   "name": "Mercado de la Paz",
+   "your_value": 100.4
+  },
+  {
+   "id": 269,
+   "kind": "card",
+   "ref": "SAL-06",
+   "serial": 5,
+   "rarity": "uncommon",
+   "set": "SAL",
+   "print_run": 90,
+   "name": "La Galería",
+   "your_value": 100.4
+  },
+  {
+   "id": 270,
+   "kind": "card",
+   "ref": "SAL-09",
+   "serial": 3,
+   "rarity": "rare",
+   "set": "SAL",
+   "print_run": 30,
+   "name": "El Marqués",
+   "your_value": 149.9
+  },
+  {
+   "id": 294,
+   "kind": "card",
+   "ref": "LAT-02",
+   "serial": 10,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "Puesto del Rastro",
+   "your_value": 9.0
+  },
+  {
+   "id": 295,
+   "kind": "card",
+   "ref": "MAL-04",
+   "serial": 12,
+   "rarity": "common",
+   "set": "MAL",
+   "print_run": 300,
+   "name": "El Tatuador",
+   "your_value": 5.0
+  },
+  {
+   "id": 313,
+   "kind": "card",
+   "ref": "LAT-03",
+   "serial": 11,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "Huevos Rotos",
+   "your_value": 9.0
+  },
+  {
+   "id": 317,
+   "kind": "card",
+   "ref": "LAT-05",
+   "serial": 8,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "El Organillero",
+   "your_value": 2.2
+  },
+  {
+   "id": 326,
+   "kind": "card",
+   "ref": "SAL-02",
+   "serial": 12,
+   "rarity": "common",
+   "set": "SAL",
+   "print_run": 300,
+   "name": "El Portero",
+   "your_value": 83.9
+  },
+  {
+   "id": 379,
+   "kind": "card",
+   "ref": "LAT-01",
+   "serial": 16,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "Caña en la Cava Baja",
+   "your_value": 2.2
+  },
+  {
+   "id": 383,
+   "kind": "card",
+   "ref": "SAL-08",
+   "serial": 4,
+   "rarity": "uncommon",
+   "set": "SAL",
+   "print_run": 90,
+   "name": "Guantería Antigua",
+   "your_value": 100.4
+  },
+  {
+   "id": 422,
+   "kind": "card",
+   "ref": "MAL-05",
+   "serial": 13,
+   "rarity": "common",
+   "set": "MAL",
+   "print_run": 300,
+   "name": "Café de Madrugada",
+   "your_value": 5.0
+  },
+  {
+   "id": 423,
+   "kind": "card",
+   "ref": "LAV-04",
+   "serial": 17,
+   "rarity": "common",
+   "set": "LAV",
+   "print_run": 300,
+   "name": "Mural de la Esquina",
+   "your_value": 7.0
+  },
+  {
+   "id": 424,
+   "kind": "card",
+   "ref": "LAT-01",
+   "serial": 17,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "Caña en la Cava Baja",
+   "your_value": 2.2
+  },
+  {
+   "id": 457,
+   "kind": "card",
+   "ref": "LAT-06",
+   "serial": 5,
+   "rarity": "uncommon",
+   "set": "LAT",
+   "print_run": 90,
+   "name": "La Chulapa",
+   "your_value": 22.5
+  },
+  {
+   "id": 498,
+   "kind": "card",
+   "ref": "LAT-08",
+   "serial": 8,
+   "rarity": "uncommon",
+   "set": "LAT",
+   "print_run": 90,
+   "name": "Las Vistillas",
+   "your_value": 22.5
+  },
+  {
+   "id": 508,
+   "kind": "card",
+   "ref": "LAT-05",
+   "serial": 16,
+   "rarity": "common",
+   "set": "LAT",
+   "print_run": 300,
+   "name": "El Organillero",
+   "your_value": 2.2
+  }
+ ],
+ "collection_value": 505.4,
+ "album": {
+  "pages": [
+   {
+    "set": "LAV",
+    "name": "Lavapiés",
+    "have": 2,
+    "of": 10,
+    "complete": false,
+    "master": false
+   },
+   {
+    "set": "MAL",
+    "name": "Malasaña",
+    "have": 2,
+    "of": 10,
+    "complete": false,
+    "master": false
+   },
+   {
+    "set": "LAT",
+    "name": "La Latina",
+    "have": 8,
+    "of": 10,
+    "complete": false,
+    "master": false
+   },
+   {
+    "set": "SAL",
+    "name": "Salamanca",
+    "have": 10,
+    "of": 10,
+    "complete": true,
+    "master": false
+   }
+  ],
+  "filled": 22,
+  "slots": 40
+ },
+ "tick": 157,
+ "tick_seconds": 60.0,
+ "score": {
+  "team": "t18",
+  "name": "Team 18",
+  "score": 19.19,
+  "negotiating": 19.19,
+  "market": 0.0,
+  "neg_points": 74.5,
+  "mm_points": 0.0,
+  "duel_points": 0.0,
+  "ladder_points": 0.051,
+  "bench_efficiency": null,
+  "bench_points": null,
+  "bench_venue": null,
+  "level": 2,
+  "album_filled": 22,
+  "album_slots": 40,
+  "pages_complete": 1,
+  "rarest": {
+   "ref": "SAL-10",
+   "name": "Museo Lázaro Galdiano",
+   "serial": 3,
+   "print_run": 30,
+   "rarity": "rare"
+  },
+  "luck": -25.5,
+  "deals": 17,
+  "badges": [],
+  "adjustments": [],
+  "frozen": false,
+  "venue": null,
+  "luck_private": -17.5,
+  "rank": 7
+ },
+ "venue": null,
+ "open_threads": []
+}

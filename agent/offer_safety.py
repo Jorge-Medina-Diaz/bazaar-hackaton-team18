@@ -1,4 +1,10 @@
-"""Pure checks shared by the haggler and its offline tests."""
+"""Pure checks shared by the haggler, the guards (M4a, G32) and their offline tests.
+
+Hardened in M4a (night build): any non-empty key in give/want other than cash/assets/types fails (G11 rule),
+asset ids must be positive ints (bool is not int), and a non-dict side fails closed.
+"""
+
+_SIDE_KEYS = frozenset({'cash', 'assets', 'types'})
 
 
 def _cash(side):
@@ -8,13 +14,31 @@ def _cash(side):
     return cash
 
 
+def _clean_side(side):
+    """A side must be a dict whose only non-empty keys are cash/assets/types (lists for the last two)."""
+    if not isinstance(side, dict):
+        raise ValueError('side is not a dict')
+    for k, v in side.items():
+        if k not in _SIDE_KEYS and v not in (None, 0, '', [], {}):
+            raise ValueError(f'unexpected key {k!r}')
+        if v is False or v is True:
+            raise ValueError('bool value')
+    for k in ('assets', 'types'):
+        if side.get(k) is not None and not isinstance(side.get(k), list):
+            raise ValueError(f'{k} is not a list')
+    return side
+
+
 def offer_ok(offer, topic, buying=True):
     """Check exactly one requested item, or exactly the assets we chose to sell."""
     try:
-        give, want = offer['give'], offer['want']
+        give, want = _clean_side(offer['give']), _clean_side(offer['want'])
         if buying:
             item = topic['buy']
             kind, ref = ('pack', item['pack']) if 'pack' in item else ('card', item['card'])
+            for a in give.get('assets') or []:
+                if type(a.get('id')) is not int or a['id'] <= 0:
+                    return False
             got = list(give.get('types') or []) + [f"{a['kind']}:{a['ref']}" for a in give.get('assets') or []]
             return (not want.get('assets') and not want.get('types') and _cash(give) == 0
                     and _cash(want) >= 1 and len(got) == 1 and got[0] == f'{kind}:{ref}')
@@ -29,11 +53,13 @@ def offer_ok(offer, topic, buying=True):
 
 
 def executable_offer(offer, topic, *, dealer, team, tick, buying=True):
+    """`tick` is the first tick the offer must still be alive at (G32 passes w.tick + 1, the G10 rule)."""
     try:
         return (offer['maker'] == dealer and offer.get('to') == team
                 and offer['status'] == 'open'
                 and type(offer['id']) is int and offer['id'] > 0
-                and (offer.get('expires_tick') is None or offer['expires_tick'] >= tick)
+                and (offer.get('expires_tick') is None
+                     or (type(offer['expires_tick']) is int and offer['expires_tick'] >= tick))
                 and offer_ok(offer, topic, buying))
     except (KeyError, TypeError):
         return False
