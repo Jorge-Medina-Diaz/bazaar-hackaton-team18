@@ -142,6 +142,9 @@ def _refs(side):
     return result
 
 
+DEALERS = ('abuela', 'chato', 'pilar')  # Pilar (nivel 3) incluida: sus hilos se descartaban
+
+
 def import_feed(events, source):
     """One chunk per thread; no inferred settlement-to-thread join."""
     groups, settlements = {}, []
@@ -150,7 +153,7 @@ def import_feed(events, source):
             continue
         p = event.get('payload', {})
         dealer = p.get('with') or p.get('persona')
-        if dealer not in ('abuela', 'chato'):
+        if dealer not in DEALERS:
             continue
         tid = p.get('thread')
         if tid is not None:
