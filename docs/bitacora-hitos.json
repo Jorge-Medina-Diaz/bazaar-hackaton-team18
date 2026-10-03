@@ -1,0 +1,433 @@
+{
+ "calendario": [
+  {
+   "accion": "persona_opens",
+   "at_hours": 8.667,
+   "exacta": false,
+   "nota": "Los Pícaros opens for everyone",
+   "pasado": true,
+   "ts": 1791041698
+  },
+  {
+   "accion": "bench",
+   "at_hours": 9.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "pasado": true,
+   "ts": 1791042904
+  },
+  {
+   "accion": "persona_patch",
+   "at_hours": 9.15,
+   "exacta": false,
+   "nota": "Salamanca fever: Doña Pilar pays 25 % over book for Salamanca until 17:30",
+   "pasado": true,
+   "ts": 1791043465
+  },
+  {
+   "accion": "persona_opens",
+   "at_hours": 10.417,
+   "exacta": false,
+   "nota": "Don Ernesto opens for everyone",
+   "pasado": true,
+   "ts": 1791048024
+  },
+  {
+   "accion": "bench",
+   "at_hours": 11.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "ts": 1791050131
+  },
+  {
+   "accion": "persona_patch",
+   "at_hours": 11.15,
+   "exacta": false,
+   "nota": "The fever breaks",
+   "ts": 1791050671
+  },
+  {
+   "accion": "duels",
+   "at_hours": 11.65,
+   "exacta": false,
+   "nota": "Duels II: price and delivery day; the pie grows for teams that trade on what each side cares about",
+   "ts": 1791052471
+  },
+  {
+   "accion": "bench",
+   "at_hours": 13.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "ts": 1791057330
+  },
+  {
+   "accion": "day_closes",
+   "at_hours": 14.075,
+   "exacta": true,
+   "nota": "Closed until Sunday 09:00",
+   "ts": 1791061200
+  },
+  {
+   "accion": "day_opens",
+   "at_hours": 14.075,
+   "exacta": true,
+   "nota": "Sunday opens",
+   "ts": 1791097200
+  },
+  {
+   "accion": "bench",
+   "at_hours": 14.65,
+   "exacta": false,
+   "nota": "The hard Market Test: firmer and more impatient traders",
+   "ts": 1791099270
+  },
+  {
+   "accion": "bench",
+   "at_hours": 15.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "ts": 1791100530
+  },
+  {
+   "accion": "set_release",
+   "at_hours": 16.65,
+   "exacta": false,
+   "nota": "Chamberí released",
+   "ts": 1791106470
+  },
+  {
+   "accion": "round",
+   "at_hours": 16.65,
+   "exacta": false,
+   "nota": "Round 3 starts",
+   "ts": 1791106470
+  },
+  {
+   "accion": "grant_all",
+   "at_hours": 16.7,
+   "exacta": false,
+   "nota": "The Sunday allowance: 150 primas for everyone",
+   "ts": 1791106650
+  },
+  {
+   "accion": "bench",
+   "at_hours": 17.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "ts": 1791107730
+  },
+  {
+   "accion": "duels",
+   "at_hours": 18.65,
+   "exacta": false,
+   "nota": "Duels III: two issues, shorter clock, harder decay",
+   "ts": 1791113670
+  },
+  {
+   "accion": "bench",
+   "at_hours": 19.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "ts": 1791114930
+  },
+  {
+   "accion": "day_closes",
+   "at_hours": 20.075,
+   "exacta": true,
+   "nota": "The Bazaar closes",
+   "ts": 1791118800
+  },
+  {
+   "accion": "bench",
+   "at_hours": 21.0,
+   "exacta": false,
+   "nota": "The Market Test: every venue gets the same synthetic book",
+   "ts": 1791122130
+  },
+  {
+   "accion": "announce",
+   "at_hours": 21.45,
+   "exacta": false,
+   "nota": "finale warning",
+   "ts": 1791123750
+  },
+  {
+   "accion": "persona",
+   "at_hours": 21.65,
+   "exacta": false,
+   "nota": "Finale: stalls close",
+   "ts": 1791124470
+  },
+  {
+   "accion": "duels",
+   "at_hours": 21.65,
+   "exacta": false,
+   "nota": "The Grand Final: the last duel wave, on the big screen",
+   "ts": 1791124470
+  },
+  {
+   "accion": "announce",
+   "at_hours": 22.55,
+   "exacta": false,
+   "nota": "freeze warning",
+   "ts": 1791127710
+  },
+  {
+   "accion": "end_round",
+   "at_hours": 22.65,
+   "exacta": false,
+   "nota": "Scores freeze",
+   "ts": 1791128070
+  }
+ ],
+ "entradas": [
+  {
+   "autor": "Santi",
+   "evidencia": "docs/foro-agentes.md",
+   "por_que": "El objetivo es fomentar trade P2P, no ingresos (las comisiones no puntúan, RULES l.122); como operadores del foro vemos todas las negociaciones, así que incluir v18 sería conflicto de interés (docs/foro-agentes.md R-05)",
+   "texto": "Foro P2P de agentes (La Lonja): comisión 0, ruteo al venue auto de menor volumen; v18 fuera del ruteo salvo autorización escrita de la organización",
+   "tipo": "decisión",
+   "ts": 1791048603
+  }
+ ],
+ "hitos": [
+  {
+   "texto": "Abre The Bazaar: Ronda 1 «Friday · El Rastro» (peso 0,5), ticks de 60 s",
+   "tipo": "oficial",
+   "ts": 1790960400
+  },
+  {
+   "texto": "Cierra el viernes",
+   "tipo": "oficial",
+   "ts": 1790974800
+  },
+  {
+   "texto": "Cierre del viernes: SAL 10/10, LAT 8/10, LAV 2/10, MAL 2/10; caja 260 P, nivel 2, sin mercado (V-08)",
+   "tipo": "equipo",
+   "ts": 1790974800
+  },
+  {
+   "texto": "Estrategia v2 tras el equipo rojo (docs/strategy.md)",
+   "tipo": "equipo",
+   "ts": 1790974980
+  },
+  {
+   "texto": "Harness v2 integrado: Gate única, 779 tests en verde",
+   "tipo": "equipo",
+   "ts": 1791009300
+  },
+  {
+   "texto": "Abre el sábado: Ronda 2 «Saturday · Gran Vía» (peso 1), ticks de 30 s",
+   "tipo": "oficial",
+   "ts": 1791010800
+  },
+  {
+   "texto": "Arreglo en vivo de G04.threads: 16 hilos viejos bloqueaban todo open_thread",
+   "tipo": "lección",
+   "ts": 1791013320
+  },
+  {
+   "texto": "Mesa del Analista en vivo: https://t18-analista.vercel.app",
+   "tipo": "equipo",
+   "ts": 1791019920
+  },
+  {
+   "texto": "Radio Rastro: vigilante de noticias con relevancia para t18",
+   "tipo": "equipo",
+   "ts": 1791020760
+  },
+  {
+   "aprox": true,
+   "texto": "Duelos I terminados; análisis de ganadores y brechas (tick ~588)",
+   "tipo": "oficial",
+   "ts": 1791025500
+  },
+  {
+   "aprox": true,
+   "texto": "Venta RET-08 a t04 por 27 P (tick 645); el marcador del tick 640 ya nos daba 3.º",
+   "tipo": "equipo",
+   "ts": 1791034200
+  },
+  {
+   "aprox": true,
+   "texto": "RET 10/10: segunda página completa (con SAL); caja 235 P (tick 804)",
+   "tipo": "equipo",
+   "ts": 1791039420
+  }
+ ],
+ "ranking": [
+  {
+   "metric": "neg",
+   "rank": 1,
+   "round": 2,
+   "score": 22.08,
+   "tick": 230,
+   "ts": 1791014759
+  },
+  {
+   "metric": "neg",
+   "rank": 2,
+   "round": 2,
+   "score": 21.11,
+   "tick": 340,
+   "ts": 1791018244
+  },
+  {
+   "metric": "neg",
+   "rank": 3,
+   "round": 2,
+   "score": 19.34,
+   "tick": 470,
+   "ts": 1791022058
+  },
+  {
+   "metric": "neg",
+   "rank": 4,
+   "round": 2,
+   "score": 19.08,
+   "tick": 490,
+   "ts": 1791022659
+  },
+  {
+   "metric": "neg",
+   "rank": 3,
+   "round": 2,
+   "score": 19.98,
+   "tick": 510,
+   "ts": 1791023258
+  },
+  {
+   "metric": "neg",
+   "rank": 2,
+   "round": 2,
+   "score": 21.6,
+   "tick": 530,
+   "ts": 1791023859
+  },
+  {
+   "metric": "neg",
+   "rank": 1,
+   "round": 2,
+   "score": 22.9,
+   "tick": 550,
+   "ts": 1791024459
+  },
+  {
+   "metric": "neg",
+   "rank": 1,
+   "round": 2,
+   "score": 21.24,
+   "tick": 640,
+   "ts": 1791034658
+  },
+  {
+   "metric": "neg",
+   "rank": 2,
+   "round": 2,
+   "score": 21.37,
+   "tick": 760,
+   "ts": 1791038259
+  },
+  {
+   "metric": "neg",
+   "rank": 4,
+   "round": 2,
+   "score": 21.11,
+   "tick": 780,
+   "ts": 1791038858
+  },
+  {
+   "metric": "neg",
+   "rank": 5,
+   "round": 2,
+   "score": 20.35,
+   "tick": 800,
+   "ts": 1791039465
+  },
+  {
+   "market": 7.5,
+   "metric": "total",
+   "neg": 20.35,
+   "rank": 8,
+   "round": 2,
+   "score": 27.85,
+   "tick": 810,
+   "ts": 1791039749
+  },
+  {
+   "market": 7.5,
+   "metric": "total",
+   "neg": 19.49,
+   "rank": 7,
+   "round": 2,
+   "score": 26.99,
+   "tick": 920,
+   "ts": 1791043076
+  },
+  {
+   "metric": "neg",
+   "rank": 5,
+   "round": 2,
+   "score": 19.49,
+   "tick": 920,
+   "ts": 1791043076
+  },
+  {
+   "market": 7.5,
+   "metric": "total",
+   "neg": 20.29,
+   "rank": 6,
+   "round": 2,
+   "score": 27.79,
+   "tick": 940,
+   "ts": 1791043744
+  },
+  {
+   "metric": "neg",
+   "rank": 4,
+   "round": 2,
+   "score": 20.4,
+   "tick": 970,
+   "ts": 1791044375
+  },
+  {
+   "market": 7.5,
+   "metric": "total",
+   "neg": 21.27,
+   "rank": 5,
+   "round": 2,
+   "score": 28.77,
+   "tick": 1010,
+   "ts": 1791045714
+  },
+  {
+   "market": 7.5,
+   "metric": "total",
+   "neg": 21.01,
+   "rank": 6,
+   "round": 2,
+   "score": 28.51,
+   "tick": 1030,
+   "ts": 1791046361
+  },
+  {
+   "metric": "neg",
+   "rank": 3,
+   "round": 2,
+   "score": 21.93,
+   "tick": 1050,
+   "ts": 1791046988
+  },
+  {
+   "market": 7.5,
+   "metric": "total",
+   "neg": 22.85,
+   "rank": 5,
+   "round": 2,
+   "score": 30.35,
+   "tick": 1080,
+   "ts": 1791047694
+  }
+ ],
+ "ultima_red": 1791049591
+}

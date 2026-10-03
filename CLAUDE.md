@@ -49,6 +49,7 @@ live_monitor.py, observe_performance.py, inventory_panel.py, laboratorio.py, neg
 affinity.py (+ agent/affinity.py, puro: multiplicador probable de cada rival por barrio, X-15; --history)
 rivals.py              rol analista: clasificación, mercados de equipo y pujas grandes de El Rastro (docs/analista.md)
 analista/index.html    panel del analista sin clave, publicado en https://t18-analista.vercel.app (docs/analista.md)
+bitacora.py            docs/bitacora.md: línea de tiempo, decisiones y lecciones para el jurado (bloques AUTO, solo GET públicos)
                        paneles y laboratorio: solo lectura (GuardedTransport en modo "read") o fuera de línea
 docs/harness-spec.md   el contrato (arquitectura, firmas, invariantes INV-xx, guardas, runbook §13)
 docs/knowledge.md      hechos verificados (P-xx puntuación, D-xx dealers, U-xx duelos)
@@ -70,4 +71,5 @@ state/, logs/, runs/   locales, fuera de Git
 - Antes de `--live`: `selftest` en verde; las tácticas armadas deben tener su etapa en verde con el mismo `code_hash`.
 - Kill: `python3 bazaar.py stop "motivo"` o un fichero `STOP` en la raíz. Tras una caída, relanzar el mismo `run`.
 - Si falta una función, falla cerrado (rechazar), nunca actuar sin comprobar.
+- Al tomar una decisión de equipo: `python3 bitacora.py decision "..." --why "..."` (o «Decisión: / Por qué:» en el commit).
 - Simple: stdlib, funciones, sin frameworks. No editar `agent/contracts.py` (congelado) ni `bazaar_sdk.py`.

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Refresca docs/bitacora.md tras cada commit, pull o merge (bitacora.py: solo lecturas públicas sin clave).
+# Activar una vez por clon: git config core.hooksPath .githooks
+cd "$(git rev-parse --show-toplevel)" || exit 0
+for py in python3 python; do
+  if "$py" -c "import sys; sys.exit(sys.version_info < (3, 9))" >/dev/null 2>&1; then
+    "$py" bitacora.py --max-age 10 --quiet >/dev/null 2>&1 &
+    exit 0
+  fi
+done
+exit 0
