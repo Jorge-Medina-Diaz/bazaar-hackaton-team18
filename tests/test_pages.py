@@ -196,6 +196,17 @@ class PlanTest(unittest.TestCase):
         late = make_world(t_hours=17.95, today="sat")
         self.assertEqual(pages.plan(late, valuer_for(late), cfg, {})[0], [])         # day end -> no dealer Need
 
+    def test_extra_need_waits_for_release(self):
+        cfg = copy.deepcopy(self.cfg)
+        cfg["profiles"]["CHA-10"] = {"dealer": "picaros", "anchor": 130, "step": 3, "limit": 170, "fallback_after": 24}
+        cfg["page_sets"] = []
+        cfg["extra_needs"] = [{"ref": "CHA-10", "max_price": 170}]
+        w = make_world()                                                   # CHA not released yet
+        self.assertEqual(pages.plan(w, valuer_for(w), cfg, {})[0], [])
+        rel = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"))
+        needs = pages.plan(rel, valuer_for(rel), cfg, {})[0]
+        self.assertEqual([(n.ref, n.source) for n in needs], [("CHA-10", "picaros")])
+
     def test_day_end_drops_dealer_needs(self):
         w = make_world(t_hours=17.95, today="sat")
         needs, _ = pages.plan(w, valuer_for(w), self.cfg, {})

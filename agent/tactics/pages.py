@@ -427,8 +427,8 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
         try:
             ref = e["ref"]
             dealer = ((plan_cfg.get("profiles") or {}).get(ref) or {}).get("dealer")
-            if no_dealers or held[ref] >= 1 or dealer not in DEALERS:
-                continue                            # (an open thread keeps its Need, as the page Needs do)
+            if no_dealers or held[ref] >= 1 or dealer not in DEALERS                     or ref.split("-", 1)[0] not in (world.released_sets or ()):
+                continue                            # unreleased set: the card cannot be bought yet (CHA before 16.65)
             dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
             cap = min(int(e["max_price"]), math.floor(dv - 1))
             if cap >= 1:
