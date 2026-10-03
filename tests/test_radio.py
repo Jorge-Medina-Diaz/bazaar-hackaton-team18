@@ -346,6 +346,21 @@ class TimeTests(unittest.TestCase):
         self.assertTrue(any("🕒 emitida tick 403" in x for x in lines))
 
 
+class ScheduleTests(unittest.TestCase):
+    FEVER = [9.15, "persona_patch", "Salamanca fever: Doña Pilar pays 25 % over book for Salamanca until 17:30"]
+
+    def test_a_scheduled_dealer_patch_on_our_sets_is_high_when_it_appears_and_when_it_starts(self):
+        new = obs(upcoming=obs()["upcoming"] + [self.FEVER])
+        got = radio.diff(obs(), new)
+        self.assertIn(("ALTA", "Nuevo en el calendario (h 9,15): " + self.FEVER[2], ()), got)
+        soon = dict(new, now_h=9.0)
+        self.assertIn("ALTA", [lvl for lvl, t, _ in radio.diff(new, soon) if t.startswith("Próximo en 0,15")])
+
+    def test_benches_are_not_reannounced_as_new(self):
+        new = obs(upcoming=obs()["upcoming"] + [[7.0, "bench", "The Market Test"]])
+        self.assertEqual(radio.diff(obs(), new), [])
+
+
 class ClockTests(unittest.TestCase):
     def test_pause_and_resume_are_reported_once_with_ticks(self):
         run, stop = {"tick": 630, "t_hours": 6.575, "paused": False}, {"tick": 630, "t_hours": 6.575, "paused": True}
