@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mercado · Mesa del Analista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/nav.css">
+<style>
+.grid-heat td.cell{text-align:center;font-variant-numeric:tabular-nums}
+.grid-heat td.cell small{display:block;color:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="pagehead">
+    <div><span class="eyebrow">El Rastro y mercados de equipo</span><h1>Mercado</h1></div>
+    <p>Dónde se negocia, a qué precio y quién lo hace. Cada carta se compara con su valor para nosotros (base 10 / 25 / 70 × multiplicador: CHA 1,6 · RET 1,3 · SAL 1,1 · LAT 0,9 · LAV 0,7 · MAL 0,5) para encontrar gangas y pujas que conviene servir. El seudónimo del libro se traduce a equipo cuando el feed publicó la misma oferta.</p>
+  </div>
+  <div id="alerts" aria-live="polite"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <section class="panel c7">
+      <header><h2>Venues</h2><span class="small muted">todos los mercados abiertos · ritmo de la última hora</span></header>
+      <div class="scroll"><table id="venues"><thead></thead><tbody></tbody></table></div>
+    </section>
+    <section class="panel c5">
+      <header><h2>Puntuación de mercado</h2><span class="small muted">clasificación pública, guardada en este navegador</span></header>
+      <div class="chart" id="mchart"></div>
+      <div class="legend" id="mlegend"></div>
+      <h3>Tratos acumulados por venue de equipo</h3>
+      <div class="chart" id="vchart"></div>
+      <div class="legend" id="vlegend"></div>
+    </section>
+
+    <section class="panel c12">
+      <header><h2>Libro de El Rastro por carta</h2>
+        <span class="form" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+          <label>Barrio<select id="bset"><option value="">todos</option><option>CHA</option><option>RET</option><option>SAL</option><option>LAT</option><option>LAV</option><option>MAL</option></select></label>
+          <label>Rareza<select id="brar"><option value="">todas</option><option value="common">común</option><option value="uncommon">infrecuente</option><option value="rare">rara</option></select></label>
+          <label>Mostrar<select id="bopp"><option value="">todo</option><option value="opp">solo oportunidades</option></select></label>
+          <label>Comisión compra (%)<input id="bfee" type="number" min="0" max="10" step="0.5" value="5"></label>
+        </span></header>
+      <div class="scroll tall"><table id="book"><thead></thead><tbody></tbody></table></div>
+      <p class="small muted">«Comprar»: mejor venta + comisión (5 % + 1 P) por debajo de nuestro valor. «Servir puja»: la mejor puja supera nuestro valor + 2 (solo si la carta nos sobra; nunca la última copia de una página protegida).</p>
+    </section>
+
+    <section class="panel c7">
+      <header><h2>Tratos recientes</h2><span class="small">
+        <select id="tsrc" aria-label="Origen"><option value="">todos</option><option value="teams">entre equipos</option><option value="dealers">con dealers</option></select></span></header>
+      <div class="scroll tall"><table id="trades"><thead><tr>
+        <th>Tick</th><th>Dónde</th><th>Vende</th><th>Compra</th><th>Carta</th><th class="num">Precio</th><th class="num">Valor t18</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+    <section class="panel c5">
+      <header><h2>Actividad por equipo</h2><span class="small muted">settlements grabados</span></header>
+      <div class="scroll tall"><table id="teams"><thead></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="panel c12">
+      <header><h2>Precio mediano por barrio y rareza</h2><span class="small muted">entre equipos · debajo, con dealers · n = número de tratos</span></header>
+      <div class="scroll"><table id="heat" class="grid-heat"><thead></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+</main>
+<footer class="foot">Solo GET públicos (<code>/api/venues</code>, <code>/api/venues/rastro/offers</code>, <code>/api/feed</code>, <code>/api/leaderboard</code>). El feed devuelve los últimos ~10 min: los tratos se acumulan mientras la página está abierta.</footer>
+
+<script src="assets/core.js"></script>
+<script>
+"use strict";
+const {$, esc, fmt, pct, hhmm, median, US} = Core;
+const SETS = ["CHA", "RET", "SAL", "LAT", "LAV", "MAL"], RAR = ["common", "uncommon", "rare"], RN = {common: "común", uncommon: "infrecuente", rare: "rara"};
+
+function trades() {
+  return Core.feedOf("settlement").map(e => {
+    const p = e.payload || {}, it = (p.items || []).find(i => i.kind === "card") || (p.items || [])[0] || {};
+    const n = (p.items || []).filter(i => i.kind === "card").length || 1;
+    return {id: e.id, tick: e.tick, where: p.venue || p.persona || "—", dealer: !!p.persona, seller: it.frm, buyer: it.to, ref: it.ref || it.kind, rarity: it.rarity,
+      set: Core.setOf(it.ref), n, price: p.price, unit: p.price / n, value: Core.value(it.ref, it.rarity), fee: p.fee};
+  }).filter(t => t.price != null);
+}
+const tph = () => { const c = Core.state.clock; return c ? 3600 / (c.tick_seconds || 30) : 120; };
+
+function renderKpis(T) {
+  const c = Core.state.clock, lb = Core.state.lb;
+  const last = c ? T.filter(t => t.tick > c.tick - tph()) : [];
+  const teamT = last.filter(t => !t.dealer), dealT = last.filter(t => t.dealer);
+  const offs = Core.state.rastro || [];
+  const vs = (Core.state.venues || []).filter(v => v.owner !== "world");
+  const vrate = vs.reduce((a, v) => a + (Core.venueRate(v.venue) || 0), 0);
+  let mk = "—", mks = "";
+  if (lb && lb.teams) { const us = lb.teams.find(t => t.team === US), best = [...lb.teams].sort((a, b) => b.market - a.market)[0];
+    mk = fmt(us && us.market); mks = `líder ${best.team} con ${fmt(best.market)}`; }
+  const tiles = [["Tratos última hora", last.length, `${teamT.length} entre equipos · ${dealT.length} con dealers`],
+    ["Volumen última hora", fmt(last.reduce((a, t) => a + t.price, 0), 0) + " P", `mediana ${fmt(median(teamT.map(t => t.unit)), 1)} P entre equipos`],
+    ["Libro de El Rastro", offs.length, `${offs.filter(Core.isAsk).length} ventas · ${offs.filter(Core.isCardBid).length} pujas`],
+    ["Venues de equipo", fmt(vrate, 1) + "/h", `${vs.filter(v => v.trades > 0).length} con tratos de ${vs.length}`],
+    ["Nuestro mercado", mk, mks, true]];
+  $("#kpis").innerHTML = tiles.map(([k, v, s, hl]) => `<div class="kpi ${hl ? "hl" : ""}"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s)}</span></div>`).join("");
+}
+function renderVenues() {
+  const vs = Core.state.venues; if (!vs) return;
+  const tot = vs.filter(v => v.owner !== "world").reduce((a, v) => a + v.trades, 0) || 1;
+  const rows = vs.map(v => ({venue: v.venue, name: Core.fixText(v.name), owner: v.owner, mech: (v.rules || {}).mechanism || "casa", starter: v.starter, fee: (v.fee_bps || 0) / 100,
+    trades: v.trades, volume: v.volume, avg: v.trades ? v.volume / v.trades : null, rate: Core.venueRate(v.venue), share: v.owner === "world" ? null : v.trades / tot, status: v.status}));
+  Core.sortable($("#venues"), rows, [{key: "venue", label: "Venue", sort: 1}, {key: "owner", label: "Dueño", sort: 1}, {key: "mech", label: "Tipo", sort: 1}, {key: "fee", label: "Com.", num: 1, sort: 1},
+    {key: "trades", label: "Tratos", num: 1, sort: 1}, {key: "volume", label: "Volumen", num: 1, sort: 1}, {key: "avg", label: "P medio", num: 1, sort: 1}, {key: "rate", label: "Ritmo", num: 1, sort: 1}, {key: "share", label: "Cuota", num: 1, sort: 1}],
+    r => `<tr class="${r.owner === US ? "us" : r.rate > 3 ? "miss" : ""}"><td class="wrap">${esc(r.venue)} <span class="muted small">${esc(r.name)}</span></td><td>${esc(r.owner)}</td>
+      <td>${esc(r.mech)}${r.starter ? " · puesto" : ""}</td><td class="num">${fmt(r.fee, 1)} %</td><td class="num">${r.trades}</td><td class="num">${r.volume}</td><td class="num">${fmt(r.avg, 1)}</td>
+      <td class="num">${r.rate == null ? "—" : fmt(r.rate, 1) + "/h"}</td><td class="num">${r.share == null ? "—" : pct(r.share)}</td></tr>`, "trades", -1);
+}
+function renderCharts() {
+  const H = Core.D.hist.slice(-200), lb = Core.state.lb;
+  if (lb) {
+    const top = [...lb.teams].sort((a, b) => b.market - a.market).slice(0, 5).map(t => t.team);
+    const teams = [...new Set([US, ...top])].slice(0, 6);
+    const s = teams.map(t => ({name: t, bold: t === US, pts: H.filter(h => h.teams[t]).map(h => [h.ts, h.teams[t].market])}));
+    $("#mchart").innerHTML = Core.lineChart(s, {xfmt: hhmm, h: 180, empty: "hacen falta dos fotos de la clasificación", label: "puntuación de mercado"});
+    $("#mlegend").innerHTML = Core.legend(s);
+  }
+  const V = Core.D.vhist, vs = (Core.state.venues || []).filter(v => v.owner !== "world" && v.trades > 0).sort((a, b) => b.trades - a.trades).slice(0, 6);
+  const s2 = vs.map(v => ({name: `${v.venue} (${v.owner})`, bold: v.owner === US, pts: V.filter(h => h.v[v.venue] != null).map(h => [h.ts, h.v[v.venue]])}));
+  $("#vchart").innerHTML = Core.lineChart(s2, {xfmt: hhmm, h: 160, y0: 0, yfmt: v => fmt(v, 0), empty: "ningún venue de equipo con tratos aún", label: "tratos por venue"});
+  $("#vlegend").innerHTML = Core.legend(s2);
+}
+function renderBook(T) {
+  const offs = Core.state.rastro; if (!offs) return;
+  const who = Core.teamOfPseudo(), fee = Number(Core.setting("bfee", 5)) / 100;
+  const fs = Core.setting("bset", ""), fr = Core.setting("brar", ""), fo = Core.setting("bopp", "");
+  const by = {};
+  const row = (ref, rarity) => by[ref] || (by[ref] = {ref, set: Core.setOf(ref), rarity, asks: [], bids: []});
+  offs.forEach(o => {
+    if (Core.isAsk(o)) o.give.assets.forEach(a => row(a.ref, a.rarity).asks.push({p: o.want.cash / o.give.assets.length, who: who[o.maker] || o.maker, id: o.id}));
+    if (Core.isCardBid(o)) Core.bidCards(o).forEach(ref => row(ref, null).bids.push({p: o.give.cash, who: who[o.maker] || o.maker, id: o.id}));
+  });
+  const lastBy = {}; T.filter(t => !t.dealer).forEach(t => (lastBy[t.ref] || (lastBy[t.ref] = [])).push(t.unit));
+  const rarOf = {}; T.forEach(t => { if (t.rarity) rarOf[t.ref] = t.rarity; });
+  const rows = Object.values(by).map(r => {
+    r.rarity = r.rarity || rarOf[r.ref] || (r.asks[0] && null);
+    const ask = r.asks.sort((a, b) => a.p - b.p)[0], bid = r.bids.sort((a, b) => b.p - a.p)[0];
+    const v = Core.value(r.ref, r.rarity);
+    const cost = ask ? ask.p * (1 + fee) + 1 : null;
+    const mineA = ask && ask.who === US, mineB = bid && bid.who === US;
+    const buy = !mineA && v != null && cost != null && cost < v, sell = !mineB && v != null && bid && bid.p >= v + 2;
+    const recent = (lastBy[r.ref] || []).slice(-5);
+    return {ref: r.ref, set: r.set, rarity: r.rarity, value: v, ask: ask ? ask.p : null, askWho: ask && ask.who, nA: r.asks.length, bid: bid ? bid.p : null, bidWho: bid && bid.who, nB: r.bids.length,
+      spread: ask && bid ? ask.p - bid.p : null, last: recent.length ? median(recent) : null, edge: buy ? v - cost : sell ? bid.p - v : null, opp: buy ? "comprar" : sell ? "servir puja" : mineA || mineB ? "nuestra" : ""};
+  }).filter(r => (!fs || r.set === fs) && (!fr || r.rarity === fr) && (!fo || (r.opp && r.opp !== "nuestra")));
+  Core.sortable($("#book"), rows, [{key: "ref", label: "Carta", sort: 1}, {key: "rarity", label: "Rareza", sort: 1}, {key: "value", label: "Valor t18", num: 1, sort: 1},
+    {key: "ask", label: "Mejor venta", num: 1, sort: 1}, {key: "askWho", label: "Vende"}, {key: "nA", label: "#V", num: 1, sort: 1}, {key: "bid", label: "Mejor puja", num: 1, sort: 1},
+    {key: "bidWho", label: "Puja"}, {key: "nB", label: "#P", num: 1, sort: 1}, {key: "spread", label: "Spread", num: 1, sort: 1}, {key: "last", label: "Último (med.)", num: 1, sort: 1},
+    {key: "edge", label: "Margen", num: 1, sort: 1}, {key: "opp", label: "Oportunidad", sort: 1}],
+    r => `<tr class="${r.opp === "comprar" ? "hit" : r.opp ? "watch" : ""}"><td><b>${esc(r.ref)}</b></td><td>${esc(RN[r.rarity] || r.rarity || "—")}</td><td class="num">${fmt(r.value, 1)}</td>
+      <td class="num">${r.ask ?? "—"}</td><td class="mono small">${esc(r.askWho || "")}</td><td class="num">${r.nA}</td><td class="num">${r.bid ?? "—"}</td><td class="mono small">${esc(r.bidWho || "")}</td>
+      <td class="num">${r.nB}</td><td class="num">${fmt(r.spread, 0)}</td><td class="num">${fmt(r.last, 1)}</td><td class="num">${r.edge == null ? "—" : "+" + fmt(r.edge, 1)}</td>
+      <td>${r.opp ? `<span class="pill ${r.opp === "comprar" ? "ok" : r.opp === "nuestra" ? "" : "info"}">${r.opp}</span>` : ""}</td></tr>`, "edge", -1);
+}
+function renderTrades(T) {
+  const src = Core.setting("tsrc", "");
+  const rows = T.filter(t => !src || (src === "dealers") === t.dealer).slice(-120).reverse();
+  $("#trades tbody").innerHTML = rows.map(t => {
+    const d = t.value != null ? t.unit - t.value : null;
+    return `<tr class="${t.seller === US || t.buyer === US ? "us" : ""}"><td class="num">${t.tick}</td><td>${esc(t.where)}</td><td>${esc(t.seller)}</td><td>${esc(t.buyer)}</td>
+      <td>${esc(t.ref)}${t.n > 1 ? ` +${t.n - 1}` : ""} <span class="muted small">${esc(RN[t.rarity] || "")}</span></td><td class="num"><b>${t.price}</b></td>
+      <td class="num">${fmt(t.value, 1)}${d != null ? ` <span class="small ${d > 0 ? "down" : "up"}">(${d > 0 ? "+" : ""}${fmt(d, 0)})</span>` : ""}</td></tr>`;
+  }).join("") || '<tr><td colspan="7" class="empty">aún no hay tratos grabados</td></tr>';
+}
+function renderTeams(T) {
+  const by = {};
+  const g = t => by[t] || (by[t] = {team: t, buys: 0, sells: 0, spent: 0, earned: 0, dealer: 0, teamT: 0});
+  T.forEach(t => {
+    if (t.buyer && !/^(abuela|chato|pilar|world)$/.test(t.buyer)) { const r = g(t.buyer); r.buys++; r.spent += t.price; t.dealer ? r.dealer++ : r.teamT++; }
+    if (t.seller && !/^(abuela|chato|pilar|world)$/.test(t.seller)) { const r = g(t.seller); r.sells++; r.earned += t.price; t.dealer ? r.dealer++ : r.teamT++; }
+  });
+  const rows = Object.values(by).map(r => Object.assign(r, {n: r.buys + r.sells, vol: r.spent + r.earned, net: r.earned - r.spent}));
+  Core.sortable($("#teams"), rows, [{key: "team", label: "Equipo", sort: 1}, {key: "n", label: "Tratos", num: 1, sort: 1}, {key: "buys", label: "Compras", num: 1, sort: 1},
+    {key: "sells", label: "Ventas", num: 1, sort: 1}, {key: "teamT", label: "Con equipos", num: 1, sort: 1}, {key: "vol", label: "Volumen", num: 1, sort: 1}, {key: "net", label: "Caja neta", num: 1, sort: 1}],
+    r => `<tr class="${r.team === US ? "us" : ""}"><td>${esc(r.team)}</td><td class="num">${r.n}</td><td class="num">${r.buys}</td><td class="num">${r.sells}</td><td class="num">${r.teamT}</td>
+      <td class="num">${r.vol}</td><td class="num ${r.net > 0 ? "up" : r.net < 0 ? "down" : ""}">${r.net > 0 ? "+" : ""}${r.net}</td></tr>`, "n", -1);
+}
+function renderHeat(T) {
+  const cell = (list) => list.length ? `${fmt(median(list), 1)}<small>n = ${list.length}</small>` : "—";
+  $("#heat thead").innerHTML = `<tr><th>Barrio</th><th class="num">mult.</th>${RAR.map(r => `<th class="num">${RN[r]} · equipos</th><th class="num">${RN[r]} · dealers</th><th class="num">${RN[r]} · valor t18</th>`).join("")}</tr>`;
+  $("#heat tbody").innerHTML = SETS.map(s => `<tr class="${s === "CHA" || s === "RET" ? "watch" : ""}"><td><b>${s}</b></td><td class="num">${fmt(Core.MULT[s], 1)}</td>${RAR.map(r => {
+    const tt = T.filter(t => t.set === s && t.rarity === r);
+    return `<td class="cell">${cell(tt.filter(t => !t.dealer).map(t => t.unit))}</td><td class="cell">${cell(tt.filter(t => t.dealer).map(t => t.unit))}</td><td class="cell muted">${fmt(Core.value(s + "-01", r), 1)}</td>`;
+  }).join("")}</tr>`).join("");
+}
+function renderAlerts() {
+  const out = [];
+  (Core.state.venues || []).forEach(v => { const r = Core.venueRate(v.venue); if (v.owner !== "world" && r != null && r > 3) out.push(["bad", `${v.venue} (${v.owner}) va a ${fmt(r, 1)} tratos/h: replantear abrir mercado propio.`]); });
+  const offs = Core.state.rastro || [];
+  const who = Core.teamOfPseudo();
+  offs.filter(Core.isAsk).filter(o => who[o.maker] !== US).forEach(o => o.give.assets.forEach(a => { const v = Core.value(a.ref, a.rarity), cost = o.want.cash / o.give.assets.length * 1.05 + 1;
+    if (v != null && (a.set === "CHA" || a.set === "RET") && cost < v - 5) out.push(["ok", `Ganga: ${a.ref} a ${o.want.cash} P en El Rastro (#${o.id}); vale ${fmt(v, 1)} para nosotros.`]); }));
+  Core.alerts(out.slice(0, 8));
+}
+
+["bset", "brar", "bopp", "tsrc"].forEach(k => Core.bind("#" + k, k, "change"));
+Core.bind("#bfee", "bfee");
+Core.on(() => { const T = trades(); renderKpis(T); renderVenues(); renderCharts(); renderBook(T); renderTrades(T); renderTeams(T); renderHeat(T); renderAlerts(); });
+Core.start("mercado.html");
+</script>
+</body>
+</html>

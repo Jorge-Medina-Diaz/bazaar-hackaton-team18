@@ -117,7 +117,13 @@ Los topes solo se alcanzan si el vendedor no baja. El regateo llegó a 86 desde 
 - Uso local: `cd analista && python3 -m http.server 8765` y abrir http://localhost:8765 (o abrir el fichero directamente).
 - Publicado en Vercel (proyecto `t18-analista`, aparte del panel del equipo). Republicar tras un cambio: `cd analista && npx vercel deploy --prod --yes`.
 - Ritmo: clock y feed cada 15 s; clasificación, mercados y El Rastro cada 30 s; calendario cada 5 min (≈ 0,2 lecturas/s).
-- Contenido: cuentas atrás del calendario, clasificación con Δ 1 h y tendencia, gráfico de evolución, mercados con tratos/h y alerta, pujas y ventas de El Rastro filtrables con nuestros sobrantes, nuestros tratos comparados con `dealer_max`, pujas de cierre rivales por RET/CHA (J13), calculadora de `days_sign` y de caja para CHA.
+- Páginas (cabecera común con pestañas, reloj, cuenta atrás del próximo evento, pausa y tema):
+  - **Mesa** (`/`): resumen para decidir (lo de abajo), exportación para el jurado.
+  - **Duelos** (`/duelos`): en vivo, progreso de cada sesión (acuerdos frente a sin acuerdo por tick), escenarios difíciles, Δ de negociación por equipo durante la sesión (aproximado: incluye otros tratos). Privado: arrastrar `duelos.json` (comando en la página; lo genera el operador con `client("read")`) o `logs/run/journal.jsonl` → hallazgos FUERTE/DÉBIL automáticos (tasa de acuerdo frente al torneo, duelos escapados con el rival dentro del límite, pérdida por decay, comprador frente a vendedor, quién aceptó, concesión, ancla), tabla duelo a duelo y rechazos de la Gate. Los ficheros no salen del navegador. Validado con la práctica del viernes: 389,5 P, 15,7 % de decay, 3,8 rondas (= U-08).
+  - **Mercado** (`/mercado`): venues con ritmo y cuota, libro de El Rastro por carta frente a nuestro valor (gangas «comprar» y pujas para «servir», sin contar nuestras ofertas), seudónimo → equipo cruzando ids con el feed, tratos recientes, actividad por equipo, precio mediano por barrio y rareza, puntuación de mercado.
+  - **Scoring** (`/scoring`) y **Jurado** (`jurado.html`).
+- Código: `analista/assets/core.js` (lecturas, historia y feed compartidos entre páginas en localStorage; usa `evidence.js` y `plan-public.js`), `assets/base.css`, `assets/nav.css`.
+- Contenido de la Mesa: cuentas atrás del calendario, clasificación con Δ 1 h y tendencia, gráfico de evolución, mercados con tratos/h y alerta, pujas y ventas de El Rastro filtrables con nuestros sobrantes, nuestros tratos comparados con `dealer_max`, pujas de cierre rivales por RET/CHA (J13), calculadora de `days_sign` y de caja para CHA.
 - El feed público devuelve como mucho 500 eventos; los minutos cubiertos dependen de la actividad. El panel acumula una selección de hasta 3.000 eventos en el navegador (localStorage), así que conviene dejarlo abierto. No garantiza un historial completo.
 
 ### Registro horario

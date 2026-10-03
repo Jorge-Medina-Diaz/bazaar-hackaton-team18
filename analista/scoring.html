@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Peso del Scoring · t18</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/nav.css">
+<style>
+/* Peso de cada mecanismo en la puntuación. Estático + /api/leaderboard público (CORS *), sin clave. */
+:root{
+  --paper:#eef1f6; --sheet:#ffffff; --ink:#14213d; --muted:#5b6478; --rule:#d8dde6; --chip:#e7ebf3; --grid:#e6e9ef;
+  --foil:#f2b705; --ok:#1f7a4d; --warn:#a35a00; --bad:#b3261e;
+  --neg:#2443b8; --mkt:#0d9488; --jdg:#c2410c; --unk:#9aa3b5;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0e1420; --sheet:#161e2f; --ink:#e6eaf3; --muted:#9aa4ba; --rule:#2a3550; --chip:#222c44; --grid:#222b40;
+  --foil:#f5c637; --ok:#5cc792; --warn:#f0a64a; --bad:#ff8a80;
+  --neg:#6f8cf5; --mkt:#0fa89a; --jdg:#e06f22; --unk:#5d6884; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e1420; --sheet:#161e2f; --ink:#e6eaf3; --muted:#9aa4ba; --rule:#2a3550; --chip:#222c44; --grid:#222b40;
+  --foil:#f5c637; --ok:#5cc792; --warn:#f0a64a; --bad:#ff8a80;
+  --neg:#6f8cf5; --mkt:#0fa89a; --jdg:#e06f22; --unk:#5d6884; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.55 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px;padding-inline:16px;padding-block:18px 56px}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.15;text-wrap:balance}
+h1{font-size:clamp(24px,3.6vw,34px);font-weight:800}
+h2{font-size:19px;font-weight:800}
+h3{font-size:15px;font-weight:800}
+p{margin:0;max-width:72ch}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+code{background:var(--chip);padding:.05em .35em;border-radius:4px}
+.muted{color:var(--muted)} .small{font-size:12.5px}
+.num{font-variant-numeric:tabular-nums}
+.eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:inherit}
+
+.top{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.badge{font:600 12px/1 var(--f-mono);background:var(--foil);color:#2a1f00;padding:6px 8px;border-radius:4px}
+.top nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.top nav a,button,select{font:500 12.5px var(--f-body);color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:6px 10px;text-decoration:none;cursor:pointer}
+.top nav a[aria-current]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:16px;display:grid;gap:12px;align-content:start;min-width:0}
+.panel>header{display:grid;gap:4px}
+.grid2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+.lead{font-size:15px}
+
+/* chips de confianza */
+.cf{display:inline-block;font:500 10.5px/1 var(--f-mono);padding:3px 6px;border-radius:999px;border:1px solid var(--rule);color:var(--muted);white-space:nowrap;vertical-align:1px}
+.cf.rule{border-color:var(--ink);color:var(--ink)}
+.cf.meas{border-color:var(--ok);color:var(--ok)}
+.cf.inf{border-style:dashed}
+
+/* barra apilada 100 */
+.stack{display:flex;gap:2px;height:52px;border-radius:6px;overflow:hidden}
+.stack>div{display:flex;flex-direction:column;justify-content:center;padding:0 10px;color:#fff;min-width:0;position:relative}
+.stack>div b{font:800 20px/1 var(--f-display)} .stack>div span{font-size:12px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-neg{background:var(--neg)} .s-mkt{background:var(--mkt)} .s-jdg{background:var(--jdg)}
+.s-unk{background:repeating-linear-gradient(45deg,var(--unk) 0 6px,transparent 6px 10px);color:var(--ink)!important;border:1px dashed var(--unk)}
+.stack.thin{height:34px} .stack.thin b{font-size:15px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* tabla de mecanismos */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tbl td.r,.tbl th.r{text-align:right}
+.scroll{overflow-x:auto}
+.sw{display:inline-block;width:8px;height:22px;border-radius:2px;vertical-align:middle;margin-right:8px}
+
+/* barras horizontales */
+.hb{display:grid;grid-template-columns:minmax(110px,170px) 1fr 64px;gap:6px 10px;align-items:center;font-size:13px}
+.hb .lab{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .track{height:18px;position:relative}
+.hb .bar{height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.hb .val{text-align:right;font:500 12.5px var(--f-mono)}
+
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--rule);font-family:var(--f-mono)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.row{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center}
+input[type=range]{width:min(320px,100%);accent-color:var(--neg)}
+input[type=number]{font:500 13px var(--f-mono);width:84px;padding:5px 6px;border:1px solid var(--rule);border-radius:6px;background:var(--sheet);color:var(--ink)}
+
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{border:1px solid var(--rule);border-radius:8px;padding:10px 12px;display:grid;gap:2px}
+.kpi b{font:800 24px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+
+.callout{border-left:4px solid var(--foil);background:var(--chip);padding:10px 12px;border-radius:0 6px 6px 0;font-size:13.5px}
+.callout.bad{border-left-color:var(--bad)}
+ul.tight{margin:0;padding-left:18px;display:grid;gap:4px}
+.never{display:flex;gap:6px;flex-wrap:wrap}
+.never span{background:var(--chip);border-radius:999px;padding:4px 10px;font-size:12.5px;text-decoration:line-through;text-decoration-color:var(--bad)}
+
+svg text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+svg .gl{stroke:var(--grid);stroke-width:1}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--paper);font:12px/1.4 var(--f-body);padding:6px 8px;border-radius:6px;z-index:20;max-width:260px;opacity:0;transition:opacity .08s}
+.me .lab{color:var(--ink);font-weight:600}
+.lbrow{display:grid;grid-template-columns:44px 1fr 56px;gap:8px;align-items:center;font-size:12.5px}
+.lbrow .track{display:flex;gap:2px;height:16px}
+.lbrow .track div{height:100%}
+.lbrow .track div:first-child{border-radius:0}
+.lbrow .track div:last-child{border-radius:0 4px 4px 0}
+.lbrow.me{font-weight:700}
+.lbrow.me .tm::after{content:" ◀";color:var(--foil)}
+footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <div class="brand">
+    <span class="badge">Persona 2 · sin clave</span>
+    <h1>Peso del scoring</h1>
+  </div>
+  <select id="theme" aria-label="Tema" hidden><option value="">Tema: sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select>
+</div>
+
+<p class="lead">Cuánto pesa cada mecanismo del Bazaar en la nota final y qué vale en puntos cada acción: completar una página, comerciar en El Rastro, el Market Test, los duelos. Cada cifra lleva su nivel de confianza:
+<span class="cf rule">regla oficial</span> <span class="cf meas">medido</span> <span class="cf inf">inferido</span>. Fuentes: <code>RULES.md</code> y <code>docs/knowledge.md</code> (P-xx, V-xx, U-xx, M-xx).</p>
+
+<!-- 1. El reparto -->
+<section class="panel">
+  <header><span class="eyebrow">1 · El reparto</span><h2>100 puntos: 60 los da el juego y 40 los jueces</h2></header>
+  <div class="stack" role="img" aria-label="Negociar 30, Mercado 30, Jueces 40">
+    <div class="s-neg" style="flex:30"><b>30</b><span>Negociar</span></div>
+    <div class="s-mkt" style="flex:30"><b>30</b><span>Hacer mercado</span></div>
+    <div class="s-jdg" style="flex:40"><b>40</b><span>Jueces: ideas y oficio</span></div>
+  </div>
+  <p class="small muted">El leaderboard público solo muestra los 60 del juego (<code>weights: negotiating 30, market 30</code>). Los 40 de los jueces se ponen aparte. <span class="cf rule">regla oficial</span></p>
+
+  <h3 style="margin-top:6px">Cada día es una ronda, y las rondas se promedian</h3>
+  <div class="stack thin" role="img" aria-label="Viernes 20 %, sábado 40 %, domingo 40 %">
+    <div class="s-unk" style="flex:20"><b>20 %</b><span>Viernes (×0,5)</span></div>
+    <div class="s-neg" style="flex:40;opacity:.85"><b>40 %</b><span>Sábado (×1)</span></div>
+    <div class="s-neg" style="flex:40"><b>40 %</b><span>Domingo (×1)</span></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b class="num">0,4</b><span>puntos finales por cada punto de ronda el sábado o el domingo</span></div>
+    <div class="kpi"><b class="num">0,2</b><span>puntos finales por cada punto de ronda del viernes (ya cerrado)</span></div>
+    <div class="kpi"><b class="num">24</b><span>puntos finales en juego entre el sábado y el domingo (60 × 0,8)</span></div>
+  </div>
+  <p class="small muted">Una ronda en curso cuenta por la parte del día ya jugada y cuenta entera al acabar el día. <span class="cf rule">regla oficial</span> P-16</p>
+</section>
+
+<!-- 2. Mecanismos -->
+<section class="panel">
+  <header><span class="eyebrow">2 · Mecanismos</span><h2>De dónde sale cada punto de ronda</h2>
+  <p class="small muted">Techo dentro de los 60 de una ronda. Las partes internas no las publica nadie: las barras rayadas son lo que inferimos de los datos.</p></header>
+  <div class="hb" id="mechbars"></div>
+  <div class="legend"><span><i style="background:var(--neg)"></i>Negociar</span><span><i style="background:var(--mkt)"></i>Mercado</span><span><i style="background:repeating-linear-gradient(135deg,var(--unk) 0 3px,transparent 3px 5px);border:1px dashed var(--unk)"></i>Reparto desconocido</span></div>
+  <div class="scroll"><table class="tbl">
+    <thead><tr><th>Mecanismo</th><th>Cómo suma</th><th class="r">Techo</th><th>Confianza</th></tr></thead>
+    <tbody>
+      <tr><td><span class="sw" style="background:var(--neg)"></span>Escalera de dealers</td><td>Tus 3 mejores tratos por nivel (Abuela, El Chato, Doña Pilar…). Un hueco vacío cuenta 0 y los niveles altos pesan más. Solo suben los tratos que son <b>ganancia</b> a nuestros valores.</td><td class="r num">≈ 12,5</td><td><span class="cf rule">regla</span> <span class="cf meas">mecánica medida</span> <span class="cf inf">techo inferido</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--neg)"></span>Valor ganado con equipos</td><td>Comprar: V − precio − comisión (si aceptas). Vender: precio − comisión − V. V es el cambio del valor total de la colección. Visto un <b>+50</b> máximo por trato.</td><td class="r num">≈ 17,5</td><td><span class="cf meas">medido</span> <span class="cf inf">techo inferido</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--neg)"></span>Duelos</td><td>Parte del pastel capturada en cada trato: |precio − límite| × (1 − decay)^rondas. Sin acuerdo = 0 y fuera del límite resta.</td><td class="r num">?</td><td><span class="cf rule">regla</span> <span class="cf meas">fórmula medida</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--mkt)"></span>Market Test (banco)</td><td>Parte de las ganancias posibles que realiza tu venue en un libro sintético, cada 2 h. El puesto gratis da la mitad; la media del top 3 se lleva todo. Cuenta tu mejor venue abierto y se promedian las sesiones.</td><td class="r num">≈ 15</td><td><span class="cf rule">regla</span> <span class="cf inf">techo inferido del leaderboard</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--mkt)"></span>Flujo en tu venue</td><td>Valor creado entre <i>otros</i> equipos que comercian en tu venue. Las comisiones cobradas no cuentan.</td><td class="r num">≈ 15</td><td><span class="cf rule">regla</span> <span class="cf inf">techo inferido</span></td></tr>
+      <tr><td><span class="sw" style="background:var(--unk)"></span>Flags</td><td>Denunciar un mensaje de mala fe: si aciertas, suma; si te equivocas, resta.</td><td class="r num">?</td><td><span class="cf rule">regla</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">El reparto 12,5 / 17,5 dentro de Negociar sale de P-13 y P-15: hasta el tick 40 solo existía la escalera y el máximo era exactamente 12,5. Dónde caen los duelos dentro de los 30 no está medido. El 15 / 15 de Mercado sale de que casi todos los equipos con el puesto tienen 7,5 (la mitad del banco) y nadie pasa de 12,5.</div>
+</section>
+
+<!-- 3. Álbum -->
+<section class="panel">
+  <header><span class="eyebrow">3 · Álbum</span><h2>¿Cuánto vale completar una página?</h2>
+  <p class="small muted">Una página son las 10 cartas de un barrio: 5 comunes, 3 infrecuentes y 2 raras. El valor depende de tu multiplicador del barrio. Elige uno:</p></header>
+  <div class="row">
+    <div class="seg" id="affseg" role="group" aria-label="Multiplicador del barrio"></div>
+    <span class="small muted" id="affnote"></span>
+  </div>
+  <div class="grid2">
+    <div style="display:grid;gap:10px">
+      <h3>Valor en primas, a tus valores</h3>
+      <div class="hb" id="pagebars"></div>
+      <p class="small muted">Libro: común 10, infrecuente 25, rara 70, épica 180, legendaria 450. Valor = libro × multiplicador; la 2.ª copia vale el 25 % y la 3.ª el 10 %. Bonus de página = 0,25 × la suma de las 10 primeras copias. <span class="cf meas">medido</span> V-01. El master bonus (0,1, las 12 cartas) está publicado pero nunca se ha visto. <span class="cf inf">no observado</span></p>
+    </div>
+    <div style="display:grid;gap:10px;align-content:start">
+      <h3>Lo que llega a la puntuación</h3>
+      <div class="kpis" id="pagekpis"></div>
+      <div class="callout bad"><b>Tener el álbum lleno no puntúa por sí mismo.</b> Solo puntúa el valor que ganas al comerciar. El bonus entra en <code>neg_points</code> únicamente con el trato que cierra la página, y solo si esa carta se compra <b>a otro equipo</b>. Comprada a un dealer da 0 (con dealers solo cuentan las pérdidas). Sacada de un sobre es suerte y no cuenta.</div>
+      <p class="small muted">SAL-10, la carta que cerró SAL, valía +69,9 y contó exactamente <b>+50,0</b>. Puede ser un tope por trato. Por eso pagar hasta <code>valor_de_cierre − 50</code> da lo mismo que pagar menos. <span class="cf meas">medido</span> P-07</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Mercados -->
+<section class="panel">
+  <header><span class="eyebrow">4 · Operar en mercados</span><h2>Un trato en El Rastro o con un dealer, en primas de puntuación</h2>
+  <p class="small muted">Mueve el precio y el valor V que la carta añade a tu colección (el que da <code>/api/me/value</code>).</p></header>
+  <div class="row">
+    <label class="small">Precio <input type="number" id="px" value="40" min="1" step="1"></label>
+    <label class="small">V (valor para nosotros) <input type="number" id="vv" value="60" min="0" step="0.5"></label>
+    <label class="small">Lado <select id="side"><option value="buy">Compro</option><option value="sell">Vendo</option></select></label>
+  </div>
+  <div class="hb" id="tradebars"></div>
+  <div class="grid2">
+    <ul class="tight small">
+      <li><b>El Rastro:</b> comisión = ceil(5 % × precio + 1 P por carta). <b>La paga quien acepta</b>, no quien publica. Mejor publicar que aceptar. <span class="cf meas">medido 44/44</span></li>
+      <li><b>Dealers:</b> comprar suma min(0, V − precio) y vender min(0, precio − V). <b>Con un dealer solo se puede perder neg.</b> Lo que se gana es un hueco de escalera, y solo si el trato es ganancia. <span class="cf meas">medido 11/12</span></li>
+      <li><b>Sobres:</b> comprar uno es un trato con dealer a su valor esperado. Abrirlo no mueve nada. <span class="cf meas">medido</span></li>
+    </ul>
+    <ul class="tight small">
+      <li><b>Venues de otros equipos:</b> su comisión la fija el dueño (hasta 10 % y 5 P por carta). Con nuestros tratos, el dueño gana puntos de mercado.</li>
+      <li><b>Tu propio venue:</b> no puedes operar en él. Gana cuando <i>otros</i> crean valor en él. Cuesta 250 P de fianza más 20 P.</li>
+      <li><b>Nunca cuenta:</b> el número de tratos ni las comisiones que cobres. <span class="cf rule">regla</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5. Market Test + duelos -->
+<div class="grid2">
+  <section class="panel">
+    <header><span class="eyebrow">5 · Market Test</span><h2>Cada sesión de banco pesa más el domingo</h2>
+    <p class="small muted">La ronda promedia sus sesiones. Con menos sesiones, cada una pesa más.</p></header>
+    <div class="hb" id="benchbars"></div>
+    <p class="small muted">Puntos finales que suma una sesión al pasar de la mitad (puesto, 7,5) al banco completo (15), suponiendo un banco de 15. Sábado: unas 8 (horas 5, 7, 9, 11, 13, 14,65 difícil y 15, más las ya jugadas). Domingo: 3 (horas 17, 19 y 21). <span class="cf inf">inferido</span></p>
+    <div class="callout">Un venue <code>board</code> con broker greedy da exactamente lo mismo que el puesto gratis (M-04). Si el broker se cae, la sesión vale 0 (M-05). Solo compensa con un emparejamiento mejor que greedy y un supervisor que lo mantenga vivo.</div>
+  </section>
+
+  <section class="panel">
+    <header><span class="eyebrow">6 · Duelos</span><h2>Cada ronda de mensajes encoge el pastel</h2>
+    <p class="small muted">Parte del excedente que queda tras n rondas (ronda = min(mensajes nuestros, del rival)). Callar no cuesta. <span class="cf meas">medido 148/148</span></p></header>
+    <div id="decay" style="position:relative"></div>
+    <div class="legend" id="decaylegend"></div>
+    <p class="small muted">En la práctica, v0 perdió el 15,7 % del excedente por decay, con 3,8 rondas de media. Duelos II (precio y días): el pastel crece si se cambia días por precio con quien más los valora.</p>
+  </section>
+</div>
+
+<!-- 7. En vivo -->
+<section class="panel">
+  <header><span class="eyebrow">7 · En vivo</span><h2>Cómo se reparte hoy la puntuación de cada equipo</h2>
+  <p class="small muted" id="lbinfo">cargando /api/leaderboard…</p></header>
+  <div class="legend"><span><i style="background:var(--neg)"></i>Negociar (de 30)</span><span><i style="background:var(--mkt)"></i>Mercado (de 30)</span></div>
+  <div id="lb" style="display:grid;gap:5px"></div>
+  <div class="kpis" id="lbkpis"></div>
+</section>
+
+<!-- 8. Nunca -->
+<section class="panel">
+  <header><span class="eyebrow">8 · Lo que nunca cuenta</span><h2>Actividad no es valor</h2></header>
+  <div class="never"><span>número de tratos</span><span>comisiones cobradas</span><span>lo que sale de un sobre (luck)</span><span>regalos</span><span>easter eggs</span><span>concesiones de los organizadores</span><span>caja sobrante al final</span><span>álbum lleno en sí</span></div>
+  <p class="small muted">Lo que una ronda nos quita: penalizaciones en % de la ronda, y los tratos entre equipos que se pasan todo el valor (colusión) cuentan 0 hasta que los revisen. <span class="cf rule">regla oficial</span></p>
+</section>
+
+<footer>
+  <span>Página del rol analista (t18). Solo lee datos públicos sin clave. El reparto interno de Negociar y Mercado es una inferencia; si las medidas nuevas lo contradicen, mandan <code>docs/knowledge.md</code> y las medidas.</span>
+</footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+"use strict";
+const API = "https://bazaar.causaprima.ai";
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 1) => Number(x).toLocaleString("es-ES", {minimumFractionDigits: d, maximumFractionDigits: d});
+
+// tema (preferencia local)
+(() => {
+  const sel = $("theme");
+  let t = ""; try { t = localStorage.getItem("t18-theme") || ""; } catch (e) {}
+  const apply = v => { if (v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme; };
+  sel.value = t; apply(t);
+  sel.onchange = () => { apply(sel.value); try { localStorage.setItem("t18-theme", sel.value); } catch (e) {} drawDecay(); };
+})();
+
+// tooltip compartido
+const tip = $("tip");
+function bindTip(el, html) {
+  el.addEventListener("mousemove", e => { tip.innerHTML = html; tip.style.opacity = 1;
+    tip.style.left = Math.min(e.clientX + 12, innerWidth - 270) + "px"; tip.style.top = (e.clientY + 12) + "px"; });
+  el.addEventListener("mouseleave", () => tip.style.opacity = 0);
+}
+
+// barras horizontales: rows [{lab, val, max, color, hatch, txt, tip}]
+function hbars(el, rows, max) {
+  el.innerHTML = "";
+  for (const r of rows) {
+    const lab = document.createElement("div"); lab.className = "lab"; lab.textContent = r.lab; lab.title = r.lab;
+    const tr = document.createElement("div"); tr.className = "track";
+    const b = document.createElement("div"); b.className = "bar" + (r.hatch ? " hatch" : "");
+    b.style.width = Math.max(0, Math.min(100, 100 * Math.abs(r.val) / max)) + "%";
+    b.style.background = r.hatch ? `repeating-linear-gradient(135deg,${r.color} 0 5px,transparent 5px 9px)` : r.color;
+    if (r.hatch) b.style.border = `1px dashed ${r.color}`;
+    tr.appendChild(b);
+    const v = document.createElement("div"); v.className = "val num"; v.textContent = r.txt ?? fmt(r.val);
+    el.append(lab, tr, v);
+    if (r.tip) { bindTip(tr, r.tip); bindTip(lab, r.tip); }
+  }
+}
+
+// 2. mecanismos
+hbars($("mechbars"), [
+  {lab: "Escalera de dealers", val: 12.5, color: "var(--neg)", hatch: true, txt: "≈12,5", tip: "Inferido: máximo observado cuando solo existía la escalera (P-13)"},
+  {lab: "Tratos con equipos", val: 17.5, color: "var(--neg)", hatch: true, txt: "≈17,5", tip: "Inferido: 30 − 12,5 (P-15). Los duelos caen dentro de los 30"},
+  {lab: "Market Test", val: 15, color: "var(--mkt)", hatch: true, txt: "≈15", tip: "Inferido: el puesto da 7,5 = la mitad del banco"},
+  {lab: "Flujo en tu venue", val: 15, color: "var(--mkt)", hatch: true, txt: "≈15", tip: "Inferido: 30 − banco"},
+  {lab: "Jueces (fuera del juego)", val: 40, color: "var(--jdg)", txt: "40", tip: "Regla oficial: ideas y oficio"},
+], 40);
+
+// 3. página
+const BOOK = {c: 10, u: 25, r: 70, e: 180, l: 450};
+const AFFS = [0.5, 0.7, 0.9, 1.1, 1.3, 1.6];
+const OURS = {0.5: "MAL", 0.7: "LAV", 0.9: "LAT", 1.1: "SAL", 1.3: "RET", 1.6: "CHA"};
+let aff = 1.6, REF = 186;
+function drawPage() {
+  const cards = (5 * BOOK.c + 3 * BOOK.u + 2 * BOOK.r) * aff, bonus = 0.25 * cards;
+  const ep = BOOK.e * aff, lg = BOOK.l * aff, master = 0.1 * (cards + ep + lg);
+  const lastCommon = BOOK.c * aff + bonus;
+  $("affnote").textContent = `para t18 es ${OURS[aff]} (V-04)`;
+  hbars($("pagebars"), [
+    {lab: "10 cartas (1.ª copia)", val: cards, color: "var(--neg)", tip: "5 comunes + 3 infrecuentes + 2 raras"},
+    {lab: "Bonus de página", val: bonus, color: "var(--foil)", tip: "0,25 × valor de las 10 cartas"},
+    {lab: "Épica", val: ep, color: "var(--mkt)", tip: "Fuera de la página. Ninguna acuñada aún (X-03)"},
+    {lab: "Legendaria", val: lg, color: "var(--mkt)", tip: "Fuera de la página; 3 copias en todo el juego"},
+    {lab: "Master bonus", val: master, color: "var(--unk)", hatch: true, tip: "Publicado (0,1) y nunca observado"},
+    {lab: "2.ª copia de una común", val: BOOK.c * aff * 0.25, color: "var(--unk)", tip: "Repetido: 25 % del valor"},
+  ], 450 * 1.6);
+  const counted = Math.min(50, bonus + BOOK.c * aff);
+  const rpts = 17.5 * counted / REF;
+  $("pagekpis").innerHTML = `
+    <div class="kpi"><b class="num">${fmt(lastCommon)}</b><span>P vale la última carta si es una común (su valor + bonus)</span></div>
+    <div class="kpi"><b class="num">+${fmt(counted)}</b><span>neg en primas si la compras a un equipo por casi nada (con el tope de 50)</span></div>
+    <div class="kpi"><b class="num">≈ ${fmt(rpts)}</b><span>puntos de ronda <span class="cf inf">inferido</span>, ≈ ${fmt(rpts * 0.4)} finales</span></div>
+    <div class="kpi"><b class="num">0</b><span>si la carta de cierre la vende un dealer o sale de un sobre</span></div>`;
+}
+const seg = $("affseg");
+for (const a of AFFS) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = "×" + fmt(a);
+  b.setAttribute("aria-pressed", a === aff); b.onclick = () => { aff = a; [...seg.children].forEach(x => x.setAttribute("aria-pressed", x === b)); drawPage(); };
+  seg.appendChild(b);
+}
+drawPage();
+
+// 4. trato
+function drawTrade() {
+  const p = Math.max(1, Math.round(+$("px").value || 1)), V = +$("vv").value || 0, buy = $("side").value === "buy";
+  const fee = Math.ceil(0.05 * p + 1);
+  const raw = buy ? V - p : p - V;
+  const post = Math.min(50, raw), accept = Math.min(50, raw - fee), dealer = Math.min(0, raw);
+  const col = x => x >= 0 ? "var(--ok)" : "var(--bad)";
+  const s = x => (x > 0 ? "+" : "") + fmt(x);
+  hbars($("tradebars"), [
+    {lab: "Rastro, publico yo", val: post, color: col(post), txt: s(post), tip: "Publicamos y otro acepta: no pagamos comisión"},
+    {lab: "Rastro, acepto yo", val: accept, color: col(accept), txt: s(accept), tip: `Pagamos la comisión: ${fee} P`},
+    {lab: "Con un dealer", val: dealer, color: col(dealer), txt: s(dealer), tip: dealer === 0 && raw > 0 ? "La ganancia no suma neg: solo puede llenar un hueco de escalera" : "Con dealers solo cuenta la pérdida"},
+    {lab: "Escalera (dealer)", val: raw > 0 ? 1 : 0, color: "var(--neg)", txt: raw > 0 ? "hueco ✓" : "—", tip: raw > 0 ? "Puede llenar uno de los 3 huecos del nivel del dealer" : "Un trato con pérdida no llena huecos"},
+  ], Math.max(10, Math.abs(raw) + fee, 50));
+}
+["px", "vv", "side"].forEach(id => $(id).addEventListener("input", drawTrade));
+drawTrade();
+
+// 5. banco
+hbars($("benchbars"), [
+  {lab: "1 sesión del sábado", val: 7.5 / 8 * 0.4, color: "var(--mkt)", hatch: true, txt: "≈" + fmt(7.5 / 8 * 0.4, 2), tip: "7,5 / ~8 sesiones × 0,4"},
+  {lab: "1 sesión del domingo", val: 7.5 / 3 * 0.4, color: "var(--mkt)", txt: "≈" + fmt(7.5 / 3 * 0.4, 2), tip: "7,5 / 3 sesiones × 0,4"},
+  {lab: "Sesión con broker caído", val: -7.5 / 3 * 0.4, color: "var(--bad)", txt: "−" + fmt(7.5 / 3 * 0.4, 2), tip: "Un board sin broker da 0, en vez de los 7,5 del puesto (domingo)"},
+], 1.2);
+
+// 6. decay (SVG de líneas)
+const DECAYS = [{d: 0.06, n: "Duelos I · 0,06", c: "var(--mkt)"}, {d: 0.08, n: "Duelos II · 0,08", c: "var(--neg)"}, {d: 0.10, n: "Duelos III y final · 0,10", c: "var(--jdg)"}];
+$("decaylegend").innerHTML = DECAYS.map(x => `<span><i style="background:${x.c}"></i>${x.n}</span>`).join("");
+function drawDecay() {
+  const el = $("decay"), W = Math.max(280, el.clientWidth || 460), H = 220, m = {l: 40, r: 56, t: 10, b: 28}, N = 10;
+  const x = i => m.l + (W - m.l - m.r) * i / N, y = v => m.t + (H - m.t - m.b) * (1 - (v - 0.3) / 0.7);
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Parte del pastel que queda por ronda">`;
+  for (const v of [0.4, 0.6, 0.8, 1]) s += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
+  for (let i = 0; i <= N; i += 2) s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${i}</text>`;
+  for (const D of DECAYS) {
+    const pts = [...Array(N + 1).keys()].map(i => `${x(i)},${y((1 - D.d) ** i)}`).join(" ");
+    s += `<polyline fill="none" stroke="${D.c}" stroke-width="2" stroke-linejoin="round" points="${pts}"/>`;
+    s += `<text x="${x(N) + 6}" y="${y((1 - D.d) ** N) + 4}" style="fill:var(--ink)">${Math.round(100 * (1 - D.d) ** N)}%</text>`;
+  }
+  s += `<line id="dxh" class="gl" y1="${m.t}" y2="${H - m.b}" x1="-10" x2="-10" style="stroke:var(--muted)"/>`;
+  s += `<rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="dhit"/></svg>`;
+  el.innerHTML = s;
+  const hit = el.querySelector("#dhit"), xh = el.querySelector("#dxh");
+  hit.addEventListener("mousemove", e => {
+    const r = hit.getBoundingClientRect(), i = Math.round(N * (e.clientX - r.left) / r.width);
+    xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i));
+    tip.innerHTML = `<b>${i} rondas</b><br>` + DECAYS.map(D => `${D.n}: ${fmt(100 * (1 - D.d) ** i, 0)} %`).join("<br>");
+    tip.style.opacity = 1; tip.style.left = Math.min(e.clientX + 12, innerWidth - 270) + "px"; tip.style.top = (e.clientY + 12) + "px";
+  });
+  hit.addEventListener("mouseleave", () => { tip.style.opacity = 0; xh.setAttribute("x1", -10); xh.setAttribute("x2", -10); });
+}
+drawDecay(); addEventListener("resize", drawDecay);
+
+// 7. leaderboard en vivo
+async function loadLB() {
+  try {
+    const r = await fetch(API + "/api/leaderboard", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json(), teams = [...d.teams].sort((a, b) => b.score - a.score);
+    $("lbinfo").textContent = `snapshot del tick ${d.snapshot_tick} · ronda ${d.round} · se refresca cada ~5 ticks (sobre 60 puntos de juego)`;
+    const el = $("lb"); el.innerHTML = "";
+    for (const t of teams) {
+      const row = document.createElement("div"); row.className = "lbrow" + (t.team === "t18" ? " me" : "");
+      row.innerHTML = `<span class="tm mono">${t.team}</span><div class="track"><div style="width:${100 * t.negotiating / 60}%;background:var(--neg)"></div><div style="width:${100 * t.market / 60}%;background:var(--mkt)"></div></div><span class="num mono" style="text-align:right">${fmt(t.score, 2)}</span>`;
+      bindTip(row, `<b>${t.team}</b> · ${fmt(t.score, 2)}<br>Negociar ${fmt(t.negotiating, 2)} · Mercado ${fmt(t.market, 2)}<br>Páginas ${t.pages_complete} · álbum ${t.album_filled}/${t.album_slots} · nivel ${t.level}<br>Tratos ${t.deals} (no puntúan) · suerte ${fmt(t.luck)} (no puntúa)`);
+      el.appendChild(row);
+    }
+    const me = teams.find(t => t.team === "t18"), top = teams[0];
+    const maxN = Math.max(...teams.map(t => t.negotiating)), maxM = Math.max(...teams.map(t => t.market));
+    const at75 = teams.filter(t => Math.abs(t.market - 7.5) < 0.01).length;
+    $("lbkpis").innerHTML = me ? `
+      <div class="kpi"><b class="num">${fmt(maxN - me.negotiating, 2)}</b><span>nos faltan en Negociar para igualar al mejor (${fmt(maxN, 2)})</span></div>
+      <div class="kpi"><b class="num">${fmt(maxM - me.market, 2)}</b><span>nos faltan en Mercado para igualar al mejor (${fmt(maxM, 2)})</span></div>
+      <div class="kpi"><b class="num">${at75}/${teams.length}</b><span>equipos con Mercado = 7,5 exacto (la mitad del banco)</span></div>
+      <div class="kpi"><b class="num">${me.team === top.team ? "1.º" : fmt(top.score - me.score, 2)}</b><span>${me.team === top.team ? "vamos primeros" : "puntos de ronda hasta " + top.team}</span></div>` : "";
+  } catch (e) {
+    $("lbinfo").textContent = "no se pudo leer /api/leaderboard (" + e.message + "); reintento en 60 s";
+  }
+}
+loadLB(); setInterval(loadLB, 60000);
+</script>
+<script src="assets/core.js"></script>
+<script>Core.start("scoring.html");</script>
+</body>
+</html>

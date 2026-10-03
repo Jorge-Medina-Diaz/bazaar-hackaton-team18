@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Duelos · Mesa del Analista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/nav.css">
+</head>
+<body>
+<main class="wrap">
+  <div class="pagehead">
+    <div><span class="eyebrow">Torneo de duelos</span><h1>Duelos</h1></div>
+    <p>Arriba, lo público y en vivo: el progreso de cada sesión, qué escenarios cierran y qué equipos ganan negociación mientras dura. Abajo, nuestros duelos: carga el fichero del operador y el panel saca los puntos fuertes y débiles. Los ficheros se leen solo en tu navegador y no se suben a ningún sitio.</p>
+  </div>
+  <div id="alerts" aria-live="polite"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <section class="panel c7">
+      <header><h2>Progreso de la sesión</h2>
+        <span class="small"><label for="sess">Sesión </label><select id="sess"></select></span></header>
+      <div class="progress" id="prog" aria-hidden="true"></div>
+      <div class="chart" id="pchart"></div>
+      <div class="legend" id="plegend"></div>
+    </section>
+
+    <section class="panel c5">
+      <header><h2>Sesiones</h2><span class="small muted">del feed (<code>duels.scheduled</code>, <code>duel.closed</code>) y del calendario</span></header>
+      <div class="scroll"><table id="sessions"><thead><tr>
+        <th>Sesión</th><th class="num">Duelos</th><th class="num">Cerrados</th><th class="num">Acuerdo</th><th>Reglas</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="panel c6">
+      <header><h2>Quién gana negociación durante la sesión</h2><span class="small muted" id="teaminfo"></span></header>
+      <div id="teams"></div>
+      <p class="small muted">Es un indicador aproximado: Δ de «Negociar» en la clasificación entre la foto anterior al inicio de la sesión y la última. Incluye también los tratos con dealers y entre equipos de esa ventana, y la clasificación se refresca cada pocos minutos.</p>
+    </section>
+
+    <section class="panel c6">
+      <header><h2>Escenarios</h2><span class="small muted">objetos del duelo, de más difíciles (sin acuerdo) a más fáciles</span></header>
+      <div class="scroll tall"><table id="items"><thead></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="panel c12" id="private">
+      <header><h2>Nuestros duelos: puntos fuertes y débiles</h2><span class="small muted" id="pinfo">sin datos cargados</span></header>
+      <div class="drop" id="drop">
+        <strong>Arrastra aquí <code>duelos.json</code> o <code>logs/run/journal.jsonl</code>, o elige el fichero</strong>
+        <input type="file" id="file" accept=".json,.jsonl,.txt,application/json" multiple>
+        <span class="small muted">El operador lo genera en su máquina, con el cliente de solo lectura del arnés:</span>
+        <pre id="cmd">python3 -c "import json;from agent.client import client;c=client('read');print(json.dumps({'live':c._get('/api/duels'),'done':c._get('/api/duels',{'done':'true'})}))" &gt; duelos.json</pre>
+        <span class="seg"><button type="button" id="copycmd">Copiar comando</button><button type="button" id="clear">Borrar datos cargados</button></span>
+      </div>
+    </section>
+
+    <div class="c12" id="pout" hidden>
+      <div class="grid">
+        <div class="c12"><div class="kpis" id="pkpis"></div></div>
+        <section class="panel c6">
+          <header><h2>Hallazgos</h2><span class="small muted">reglas automáticas sobre nuestros duelos</span></header>
+          <ul class="findings" id="findings"></ul>
+        </section>
+        <section class="panel c6">
+          <header><h2>Por papel y por sesión</h2></header>
+          <div class="scroll"><table id="byrole"><thead><tr>
+            <th>Grupo</th><th class="num">Duelos</th><th class="num">Acuerdo</th><th class="num">Resultado</th><th class="num">Medio</th><th class="num">Rondas</th><th class="num">Pérd. decay</th><th class="num">Escapados</th>
+          </tr></thead><tbody></tbody></table></div>
+          <h3>Resultado por duelo (acuerdos)</h3>
+          <div class="chart" id="rchart"></div>
+          <div class="legend" id="rlegend"></div>
+        </section>
+        <section class="panel c12">
+          <header><h2>Duelo a duelo</h2>
+            <span class="form" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+              <label>Sesión<select id="fsess"><option value="">todas</option></select></label>
+              <label>Papel<select id="frole"><option value="">los dos</option><option value="buyer">comprador</option><option value="seller">vendedor</option></select></label>
+              <label>Estado<select id="fstat"><option value="">todos</option><option value="deal">acuerdo</option><option value="no_deal">sin acuerdo</option><option value="missed">escapados</option><option value="live">en curso</option></select></label>
+            </span></header>
+          <div class="scroll tall"><table id="duels"><thead></thead><tbody></tbody></table></div>
+        </section>
+        <section class="panel c6" id="jpanel" hidden>
+          <header><h2>Diario del operador: la Gate y los duelos</h2><span class="small muted">intents de duelo, rechazos por código</span></header>
+          <div class="scroll"><table id="jcodes"><thead><tr><th>Fila</th><th>Tipo</th><th>Código</th><th class="num">Veces</th></tr></thead><tbody></tbody></table></div>
+        </section>
+        <section class="panel c6" id="jpanel2" hidden>
+          <header><h2>Puntos de duelo medidos</h2><span class="small muted">filas <code>measure</code> del calibrador (Δ duel_points)</span></header>
+          <div class="chart" id="jchart"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="foot">Fórmula medida (U-01, U-02): resultado = |precio − límite| × (1 − decay)^rondas, con rondas = min(mensajes nuestros, mensajes del rival). Callar no cuesta decay. «Escapado» = duelo sin acuerdo en el que el rival llegó a ofrecer un precio dentro de nuestro límite.</footer>
+
+<script src="assets/core.js"></script>
+<script>
+"use strict";
+const {$, $$, esc, fmt, pct, hhmm, median, US} = Core;
+const PKEY = "t18-duels-private";
+
+// ---------------------------------------------------------------- público
+function sessions() {
+  const S = {};
+  Core.feedOf("duels.scheduled").forEach(e => { const p = e.payload || {};
+    S[p.session] = Object.assign(S[p.session] || {}, {session: p.session, name: Core.fixText(p.name), duels: p.duels, rounds: p.rounds, ticks: p.duel_ticks, decay: p.decay, start: e.tick, issues: p.issues}); });
+  Core.feedOf("duel.closed").forEach(e => { const p = e.payload || {}, s = S[p.session] || (S[p.session] = {session: p.session});
+    (s.closed || (s.closed = [])).push({tick: e.tick, status: p.status, item: p.item, duel: p.duel}); });
+  Object.values(S).forEach(s => {
+    s.closed = s.closed || [];
+    s.deals = s.closed.filter(c => c.status === "deal").length;
+    s.nodeal = s.closed.length - s.deals;
+    if (s.start == null && s.closed.length) s.start = Math.min(...s.closed.map(c => c.tick)) - (s.ticks || 16);
+    if (!s.name) s.name = "Sesión " + s.session;
+  });
+  return Object.values(S).sort((a, b) => a.session - b.session);
+}
+const curSession = list => { const sel = Core.setting("dsess", ""); return list.find(s => String(s.session) === sel) || list[list.length - 1]; };
+
+function renderKpis(list) {
+  const s = curSession(list), nx = Core.upcoming(e => e.action === "duels")[0];
+  const w = nx && Core.wallOf(nx.at_hours);
+  const tiles = [];
+  if (s) {
+    const done = s.closed.length, rate = done ? s.deals / done : null;
+    const last20 = Core.state.clock ? s.closed.filter(c => c.tick > Core.state.clock.tick - 20).length : null;
+    tiles.push([s.name, s.duels ? `${done} / ${s.duels}` : done, s.duels ? `cerrados (${pct(done / s.duels)})` : "duelos cerrados", true]);
+    tiles.push(["Acuerdo", pct(rate), `${s.deals} acuerdos · ${s.nodeal} sin acuerdo`]);
+    tiles.push(["Ritmo", last20 == null ? "—" : last20, "duelos cerrados en los últimos 20 ticks"]);
+    tiles.push(["Reglas", s.ticks ? `${s.ticks} ticks` : "—", s.decay != null ? `decay ${s.decay} · ${s.rounds || 1} vuelta(s)` : ""]);
+  } else tiles.push(["Sesión", "—", "aún no hay duelos en lo grabado", true]);
+  if (nx) tiles.push(["Próxima sesión", w ? Core.cd(w - Date.now()) : "—", `${Core.fixText(nx.params && nx.params.name)} · ${w ? w.toLocaleString("es-ES", {weekday: "short", hour: "2-digit", minute: "2-digit"}) : ""}`]);
+  $("#kpis").innerHTML = tiles.map(([k, v, s2, hl]) => `<div class="kpi ${hl ? "hl" : ""}"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s2 || "")}</span></div>`).join("");
+}
+function renderSessions(list) {
+  const sel = $("#sess"), cur = curSession(list);
+  const opts = list.map(s => `<option value="${s.session}" ${cur && s.session === cur.session ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+  if (sel.innerHTML !== opts) sel.innerHTML = opts;
+  const rows = list.map(s => `<tr class="${cur && s.session === cur.session ? "watch" : ""}"><td>${esc(s.name)}</td><td class="num">${s.duels ?? "—"}</td><td class="num">${s.closed.length}</td>
+    <td class="num">${s.closed.length ? pct(s.deals / s.closed.length) : "—"}</td><td class="small">${s.ticks ? s.ticks + " ticks · decay " + s.decay : ""}${s.issues ? " · " + esc(s.issues.join("+")) : ""}</td></tr>`);
+  Core.upcoming(e => e.action === "duels").forEach(e => { const p = e.params || {}, w = Core.wallOf(e.at_hours);
+    rows.push(`<tr><td>${esc(Core.fixText(p.name))} <span class="pill info">${w ? Core.hhmm(w) : "próxima"}</span></td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+      <td class="small">${p.duel_ticks} ticks · decay ${p.decay} · ${p.max_concurrent} a la vez${p.issues ? " · " + esc(p.issues.join("+")) : ""}</td></tr>`); });
+  $("#sessions tbody").innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">sin sesiones todavía</td></tr>';
+}
+function renderProgress(list) {
+  const s = curSession(list);
+  if (!s || !s.closed.length) { $("#pchart").innerHTML = '<div class="empty">aún no se ha cerrado ningún duelo de esta sesión en lo grabado. Deja la página abierta durante la sesión.</div>'; $("#prog").innerHTML = ""; $("#plegend").innerHTML = ""; return; }
+  const c = [...s.closed].sort((a, b) => a.tick - b.tick); let d = 0, n = 0;
+  const deals = [], nod = [];
+  c.forEach(x => { if (x.status === "deal") d++; else n++; deals.push([x.tick, d]); nod.push([x.tick, n]); });
+  const series = [{name: "acuerdos", pts: deals, color: "var(--ok)", bold: true}, {name: "sin acuerdo", pts: nod, color: "var(--bad)"}];
+  $("#pchart").innerHTML = Core.lineChart(series, {xfmt: v => "t" + fmt(v, 0), yfmt: v => fmt(v, 0), y0: 0, label: "duelos cerrados por tick"});
+  $("#plegend").innerHTML = Core.legend(series);
+  const tot = s.duels || c.length;
+  $("#prog").innerHTML = `<span style="width:${d / tot * 100}%;background:var(--ok)"></span><span style="width:${n / tot * 100}%;background:var(--bad)"></span>`;
+}
+function renderItems(list) {
+  const s = curSession(list); const by = {};
+  (s ? s.closed : []).forEach(c => { const r = by[c.item] || (by[c.item] = {item: c.item, deals: 0, nodeal: 0}); c.status === "deal" ? r.deals++ : r.nodeal++; });
+  const rows = Object.values(by).map(r => Object.assign(r, {n: r.deals + r.nodeal, rate: r.deals / (r.deals + r.nodeal)}));
+  Core.sortable($("#items"), rows, [{key: "item", label: "Objeto", sort: 1}, {key: "n", label: "Cerrados", num: 1, sort: 1}, {key: "deals", label: "Acuerdo", num: 1, sort: 1}, {key: "nodeal", label: "Sin", num: 1, sort: 1}, {key: "rate", label: "% acuerdo", num: 1, sort: 1}],
+    r => `<tr class="${r.rate < 0.4 ? "miss" : ""}"><td class="wrap">${esc(r.item)}</td><td class="num">${r.n}</td><td class="num">${r.deals}</td><td class="num">${r.nodeal}</td><td class="num">${pct(r.rate)}</td></tr>`, "rate", 1);
+}
+function renderTeams(list) {
+  const s = curSession(list), H = Core.D.hist, lb = Core.state.lb;
+  if (!s || s.start == null || !lb || H.length < 1) { $("#teams").innerHTML = '<div class="empty">hace falta una foto de la clasificación de antes del inicio de la sesión (deja la página abierta).</div>'; $("#teaminfo").textContent = ""; return; }
+  let base = null; H.forEach(h => { if (h.tick <= s.start) base = h; });
+  if (!base) { $("#teams").innerHTML = `<div class="empty">no hay foto de la clasificación anterior al tick ${s.start}: la sesión empezó antes de abrir el panel.</div>`; return; }
+  const endTick = s.duels && s.closed.length >= s.duels ? Math.max(...s.closed.map(c => c.tick)) + 2 : Infinity;
+  let end = H[H.length - 1]; H.forEach(h => { if (h.tick <= endTick) end = h; });
+  const rows = Object.keys(end.teams).filter(t => base.teams[t]).map(t => ({label: t, v: end.teams[t].neg - base.teams[t].neg, color: t === US ? "var(--foil)" : undefined}))
+    .sort((a, b) => b.v - a.v);
+  $("#teams").innerHTML = Core.hbars(rows, {fmt: v => (v > 0 ? "+" : "") + fmt(v)});
+  $("#teaminfo").textContent = `foto t${base.tick} → t${end.tick}`;
+}
+
+// ---------------------------------------------------------------- privado
+let P = null;          // {duels: [...], journal: [...]}
+try { P = JSON.parse(localStorage.getItem(PKEY) || "null"); } catch (e) {}
+
+function parseFiles(texts) {
+  const out = {duels: P ? P.duels : [], journal: P ? P.journal : []};
+  const byId = {}; out.duels.forEach(d => byId[d.duel] = d);
+  texts.forEach(({name, text}) => {
+    const t = text.trim(); if (!t) return;
+    let obj = null;
+    try { obj = JSON.parse(t); } catch (e) {}
+    if (obj) {
+      const pick = o => Array.isArray(o) ? o : o && Array.isArray(o.duels) ? o.duels : [];
+      const list = Array.isArray(obj) || obj.duels ? pick(obj) : [...pick(obj.done), ...pick(obj.live)];
+      list.forEach(d => { if (d && d.duel != null) { const old = byId[d.duel]; if (!old || d.status !== "live" || old.status === "live") byId[d.duel] = d; } });
+      return;
+    }
+    const rows = t.split(/\r?\n/).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+    const duelish = rows.filter(r => r.duel != null && r.your_limit != null);
+    duelish.forEach(d => byId[d.duel] = d);
+    out.journal = out.journal.concat(rows.filter(r => r.kind && (String(r.intent_kind || "").startsWith("duel") || r.tactic === "duels" || r.kind === "measure" || r.kind === "result")).map(r => {
+      const k = {kind: r.kind, intent_kind: r.intent_kind, tactic: r.tactic, code: r.code ?? r.guards ?? null, status: r.status, id: r.id, tick: r.tick, ts: r.ts};
+      if (r.kind === "measure") { k.meas = r.meas; k.kinds = r.kinds; }
+      if (r.kind === "intent") { k.args = r.args; k.reason = r.reason; }
+      return k;
+    }));
+  });
+  out.duels = Object.values(byId);
+  return out;
+}
+
+function analyse(d) {
+  const s = d.role === "seller" ? 1 : -1, L = d.your_limit;
+  const msgs = d.messages || [];
+  const ours = msgs.filter(m => m.from === "you" && m.price != null), riv = msgs.filter(m => m.from !== "you" && m.price != null);
+  const sur = p => s * (p - L);
+  const deal = d.status === "deal";
+  const surplus = deal && d.price != null ? sur(d.price) : null;
+  const rivalBest = riv.length ? Math.max(...riv.map(m => sur(m.price))) : null;
+  const firstO = ours[0] && ours[0].price, lastO = ours.length ? ours[ours.length - 1].price : (d.your_offer || {}).price;
+  const firstR = riv[0] && riv[0].price, lastR = riv.length ? riv[riv.length - 1].price : (d.rival_offer || {}).price;
+  let by = null;
+  if (deal) { const yo = (d.your_offer || {}).price, ro = (d.rival_offer || {}).price;
+    by = d.price === ro && d.price !== yo ? "nosotros" : d.price === yo && d.price !== ro ? "rival" : "?"; }
+  const conc = firstO != null && lastO != null && firstO !== L ? Math.abs(lastO - firstO) / Math.abs(firstO - L) : null;
+  return {duel: d.duel, session: d.session, role: d.role, item: d.item, L, status: d.status, price: d.price, days: d.days, w: d.your_days_weight,
+    rounds: d.rounds ?? Math.min(ours.length, riv.length), decay: d.decay_per_round, nO: ours.length, nR: riv.length,
+    firstO, lastO, firstR, lastR, result: d.result, surplus, loss: surplus != null && d.result != null ? surplus - d.result : null,
+    rivalBest, missed: !deal && d.status !== "live" && rivalBest != null && rivalBest >= 1, silent: riv.length === 0, by, conc,
+    anchor: firstO != null ? firstO / L : null, gapEnd: !deal && lastO != null && lastR != null ? Math.abs(lastO - lastR) : null};
+}
+
+function group(rows, label) {
+  const done = rows.filter(r => r.status !== "live"), deals = done.filter(r => r.status === "deal");
+  const gross = deals.reduce((a, r) => a + (r.surplus || 0), 0), res = deals.reduce((a, r) => a + (r.result || 0), 0);
+  return {label, n: rows.length, done: done.length, deals: deals.length, rate: done.length ? deals.length / done.length : null, res, avg: deals.length ? res / deals.length : null,
+    rounds: deals.length ? deals.reduce((a, r) => a + (r.rounds || 0), 0) / deals.length : null, lossPct: gross > 0 ? (gross - res) / gross : null,
+    missed: rows.filter(r => r.missed).length, missedP: rows.filter(r => r.missed).reduce((a, r) => a + r.rivalBest, 0)};
+}
+
+function findings(A, G) {
+  const F = [], all = G.all, B = G.buyer, S = G.seller;
+  if (!all.done) return [["info", "Aún no hay duelos cerrados en el fichero."]];
+  const pub = sessions(); const pubRate = (() => { const ss = pub.filter(s => A.some(r => r.session === s.session)); const c = ss.reduce((a, s) => a + s.closed.length, 0); return c ? ss.reduce((a, s) => a + s.deals, 0) / c : null; })();
+  if (pubRate != null && all.rate != null) {
+    const diff = all.rate - pubRate;
+    F.push([diff >= 0.05 ? "good" : diff <= -0.05 ? "bad" : "info", `Cerramos el ${pct(all.rate)} de nuestros duelos frente al ${pct(pubRate)} de todo el torneo en las mismas sesiones (${diff >= 0 ? "+" : ""}${fmt(diff * 100, 0)} puntos).`]);
+  } else F.push(["info", `Cerramos ${all.deals} de ${all.done} duelos (${pct(all.rate)}).`]);
+  if (all.missed) F.push(["bad", `${all.missed} duelos sin acuerdo en los que el rival llegó a ofrecer dentro de nuestro límite: dejamos escapar ${fmt(all.missedP, 1)} P de excedente bruto. Revisar la regla de aceptación (aceptar solo en el tick en que habla el rival, deadline − 1).`]);
+  else F.push(["good", "Ningún acuerdo escapado: siempre que el rival ofreció dentro de nuestro límite, cerramos."]);
+  if (all.lossPct != null) F.push([all.lossPct > 0.12 ? "bad" : all.lossPct < 0.06 ? "good" : "info", `El decay se llevó el ${pct(all.lossPct, 1)} del excedente de los acuerdos (${fmt(all.rounds, 1)} rondas de media). ${all.lossPct > 0.12 ? "Demasiados intercambios: con decay alto conviene anclar y callar (callar no cuesta)." : "Pocas rondas: buena disciplina."}`]);
+  if (B.deals && S.deals) {
+    const hi = B.avg >= S.avg ? ["comprador", B, "vendedor", S] : ["vendedor", S, "comprador", B];
+    const ratio = hi[3].avg ? hi[1].avg / hi[3].avg : null;
+    F.push([ratio && ratio > 1.3 ? "bad" : "info", `Como ${hi[0]} sacamos ${fmt(hi[1].avg, 1)} por acuerdo y como ${hi[2]} ${fmt(hi[3].avg, 1)}${ratio ? ` (×${fmt(ratio, 2)})` : ""}. ${ratio && ratio > 1.3 ? `El lado ${hi[2]} es el punto débil: revisar su ancla y su curva.` : "Los dos lados están equilibrados."}`]);
+  }
+  ["buyer", "seller"].forEach(r => { const g = G[r]; if (g.done >= 3 && g.rate != null && g.rate < 0.5) F.push(["bad", `Como ${r === "buyer" ? "comprador" : "vendedor"} solo cerramos el ${pct(g.rate)}.`]); });
+  const deals = A.filter(r => r.status === "deal"), byUs = deals.filter(r => r.by === "nosotros"), byThem = deals.filter(r => r.by === "rival");
+  if (deals.length >= 4) {
+    const avg = xs => xs.length ? xs.reduce((a, r) => a + (r.result || 0), 0) / xs.length : null;
+    F.push(["info", `En ${byThem.length} acuerdos el rival aceptó nuestra oferta (media ${fmt(avg(byThem), 1)}) y en ${byUs.length} aceptamos la suya (media ${fmt(avg(byUs), 1)}).${avg(byThem) != null && avg(byUs) != null && avg(byThem) > avg(byUs) * 1.2 ? " Rinde más que acepten la nuestra: paciencia antes de aceptar." : ""}`]);
+  }
+  const silent = A.filter(r => r.status !== "deal" && r.status !== "live" && r.silent).length;
+  if (silent) F.push(["info", `${silent} duelos sin acuerdo con el rival mudo (equipos sin bot): no dependen de nosotros.`]);
+  const conc = deals.map(r => r.conc).filter(v => v != null);
+  if (conc.length >= 4) { const m = median(conc); F.push([m > 0.8 ? "bad" : m < 0.5 ? "good" : "info", `Mediana de concesión: recorremos el ${pct(m)} del camino entre nuestra primera oferta y el límite antes de cerrar.${m > 0.8 ? " Cedemos casi todo: el ancla está demasiado lejos o la curva es demasiado rápida." : ""}`]); }
+  const anch = A.map(r => r.anchor).filter(v => v != null);
+  if (anch.length >= 4) F.push(["info", `Ancla mediana: el ${pct(median(A.filter(r => r.role === "buyer").map(r => r.anchor).filter(Boolean)))} del límite como comprador y el ${pct(median(A.filter(r => r.role === "seller").map(r => r.anchor).filter(Boolean)))} como vendedor.`]);
+  const two = A.filter(r => r.w != null);
+  if (two.length) F.push(["info", `Duelos con días: ${two.length}. Peso por día leído: ${[...new Set(two.map(r => r.w))].slice(0, 6).join(", ")}. Días pactados: ${deals.filter(r => r.w != null).map(r => r.days).join(", ") || "—"}.`]);
+  const neg = deals.filter(r => r.result != null && r.result <= 0);
+  if (neg.length) F.push(["bad", `${neg.length} acuerdos con resultado ≤ 0: pausar los duelos y revisar (INV-12).`]);
+  return F;
+}
+
+function renderPrivate() {
+  const has = P && (P.duels.length || P.journal.length);
+  $("#pout").hidden = !has;
+  $("#pinfo").textContent = has ? `${P.duels.length} duelos · ${P.journal.length} filas de diario` : "sin datos cargados";
+  if (!has) return;
+  const A = P.duels.map(analyse).sort((a, b) => b.duel - a.duel);
+  const G = {all: group(A, "todos"), buyer: group(A.filter(r => r.role === "buyer"), "comprador"), seller: group(A.filter(r => r.role === "seller"), "vendedor")};
+  const sess = [...new Set(A.map(r => r.session))].sort((a, b) => a - b);
+  $("#pkpis").innerHTML = [["Duelos", A.length, `${G.all.done} cerrados · ${A.length - G.all.done} en curso`],
+    ["Acuerdo", pct(G.all.rate), `${G.all.deals} acuerdos`], ["Resultado total", fmt(G.all.res, 1), `media ${fmt(G.all.avg, 1)} por acuerdo`],
+    ["Pérdida por decay", pct(G.all.lossPct, 1), `${fmt(G.all.rounds, 1)} rondas de media`], ["Escapados", G.all.missed, `${fmt(G.all.missedP, 1)} P que el rival llegó a ofrecer`]]
+    .map(([k, v, s], i) => `<div class="kpi ${i === 2 ? "hl" : ""}"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s)}</span></div>`).join("");
+  $("#findings").innerHTML = findings(A, G).map(([k, m]) => `<li class="${k}"><span class="tag">${k === "good" ? "FUERTE" : k === "bad" ? "DÉBIL" : "DATO"}</span><p>${esc(m)}</p></li>`).join("");
+  const groups = [G.buyer, G.seller, ...sess.map(s => group(A.filter(r => r.session === s), "sesión " + s)), G.all];
+  $("#byrole tbody").innerHTML = groups.map(g => `<tr class="${g.label === "todos" ? "us" : ""}"><td>${esc(g.label)}</td><td class="num">${g.n}</td><td class="num">${pct(g.rate)}</td><td class="num">${fmt(g.res, 1)}</td>
+    <td class="num">${fmt(g.avg, 1)}</td><td class="num">${fmt(g.rounds, 1)}</td><td class="num">${pct(g.lossPct, 1)}</td><td class="num ${g.missed ? "down" : ""}">${g.missed}</td></tr>`).join("");
+  const deals = A.filter(r => r.status === "deal" && r.result != null).sort((a, b) => a.duel - b.duel);
+  const series = [{name: "comprador", pts: deals.filter(r => r.role === "buyer").map(r => [r.duel, r.result]), color: "var(--s1)"},
+                  {name: "vendedor", pts: deals.filter(r => r.role === "seller").map(r => [r.duel, r.result]), color: "var(--s2)"}];
+  $("#rchart").innerHTML = Core.lineChart(series, {xfmt: v => "duelo " + fmt(v, 0), y0: 0, label: "resultado por duelo"});
+  $("#rlegend").innerHTML = Core.legend(series);
+
+  const fs = $("#fsess"), want = `<option value="">todas</option>` + sess.map(s => `<option value="${s}">sesión ${s}</option>`).join("");
+  if (fs.innerHTML !== want) { fs.innerHTML = want; fs.value = Core.setting("fsess", ""); }
+  const f1 = Core.setting("fsess", ""), f2 = Core.setting("frole", ""), f3 = Core.setting("fstat", "");
+  const rows = A.filter(r => (!f1 || String(r.session) === f1) && (!f2 || r.role === f2) && (!f3 || (f3 === "missed" ? r.missed : r.status === f3)));
+  const st = r => r.status === "deal" ? '<span class="pill ok">acuerdo</span>' : r.status === "live" ? '<span class="pill info">en curso</span>' : r.missed ? '<span class="pill bad">escapado</span>' : r.silent ? '<span class="pill">rival mudo</span>' : '<span class="pill warn">sin acuerdo</span>';
+  Core.sortable($("#duels"), rows, [
+    {key: "duel", label: "Duelo", num: 1, sort: 1}, {key: "session", label: "Ses.", num: 1, sort: 1}, {key: "role", label: "Papel", sort: 1}, {key: "item", label: "Objeto", sort: 1},
+    {key: "L", label: "Límite", num: 1, sort: 1}, {key: "firstO", label: "1.ª nuestra", num: 1}, {key: "firstR", label: "1.ª rival", num: 1}, {key: "price", label: "Precio", num: 1, sort: 1},
+    {key: "days", label: "Días", num: 1}, {key: "nO", label: "Msj n/r", num: 1, sort: 1}, {key: "rounds", label: "Rondas", num: 1, sort: 1}, {key: "surplus", label: "Excedente", num: 1, sort: 1},
+    {key: "result", label: "Resultado", num: 1, sort: 1}, {key: "by", label: "Aceptó", sort: 1}, {key: "status", label: "Estado", sort: 1}],
+    r => `<tr class="${r.missed ? "miss" : ""}"><td class="num">${r.duel}</td><td class="num">${r.session}</td><td>${r.role === "buyer" ? "comprador" : "vendedor"}</td><td class="wrap">${esc(r.item)}</td>
+      <td class="num">${r.L}</td><td class="num">${r.firstO ?? "—"}</td><td class="num">${r.firstR ?? "—"}</td><td class="num"><b>${r.price ?? (r.missed ? "rival " + (r.L + (r.role === "seller" ? 1 : -1) * r.rivalBest) : "—")}</b></td>
+      <td class="num">${r.days ?? "—"}</td><td class="num">${r.nO}/${r.nR}</td><td class="num">${r.rounds ?? "—"}</td><td class="num">${fmt(r.surplus, 0)}</td><td class="num">${fmt(r.result, 1)}</td>
+      <td>${r.by ?? ""}</td><td>${st(r)}</td></tr>`, "duel", -1);
+
+  const J = P.journal || [];
+  $("#jpanel").hidden = $("#jpanel2").hidden = !J.length;
+  if (J.length) {
+    const cnt = {};
+    J.filter(r => String(r.intent_kind || "").startsWith("duel") || r.tactic === "duels").forEach(r => { const k = [r.kind, r.intent_kind || "", r.code || r.status || ""].join("|"); cnt[k] = (cnt[k] || 0) + 1; });
+    $("#jcodes tbody").innerHTML = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k, n]) => { const [a, b, c] = k.split("|");
+      return `<tr class="${/G5|refused/.test(a + c) ? "miss" : ""}"><td>${esc(a)}</td><td>${esc(b)}</td><td class="mono">${esc(c)}</td><td class="num">${n}</td></tr>`; }).join("") || '<tr><td colspan="4" class="empty">sin filas de duelo</td></tr>';
+    let acc = 0; const pts = J.filter(r => r.kind === "measure" && r.meas && r.meas.duel).sort((a, b) => (a.tick || 0) - (b.tick || 0)).map(r => [r.tick, acc += r.meas.duel]);
+    $("#jchart").innerHTML = Core.lineChart([{name: "duel_points", pts, color: "var(--s3)", bold: true}], {xfmt: v => "t" + fmt(v, 0), yfmt: v => fmt(v, 2), empty: "el diario no trae medidas de puntos de duelo", label: "puntos de duelo acumulados"});
+  }
+}
+
+async function loadFiles(files) {
+  const texts = await Promise.all([...files].map(f => f.text().then(text => ({name: f.name, text}))));
+  P = parseFiles(texts);
+  try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) { Core.alerts([["warn", "Los datos son demasiado grandes para guardarlos en el navegador: se verán hasta recargar."]]); }
+  renderPrivate();
+}
+const drop = $("#drop");
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); loadFiles(e.dataTransfer.files); });
+$("#file").addEventListener("change", e => loadFiles(e.target.files));
+$("#clear").onclick = () => { P = null; try { localStorage.removeItem(PKEY); } catch (e) {} renderPrivate(); };
+$("#copycmd").onclick = () => { const t = $("#cmd").textContent; navigator.clipboard.writeText(t).then(() => $("#copycmd").textContent = "Copiado", () => { const r = document.createRange(); r.selectNodeContents($("#cmd")); getSelection().removeAllRanges(); getSelection().addRange(r); }); };
+
+Core.bind("#sess", "dsess", "change");
+["fsess", "frole", "fstat"].forEach(k => Core.bind("#" + k, k, "change"));
+function renderAlerts(list) {
+  const out = [], s = curSession(list);
+  if (s && s.closed.length >= 10 && s.deals / s.closed.length < 0.4) out.push(["info", `${s.name}: solo el ${pct(s.deals / s.closed.length)} de los duelos cierran con acuerdo en todo el torneo.`]);
+  if (P) { const m = P.duels.map(analyse).filter(r => r.missed).length; if (m) out.push(["bad", `${m} duelos nuestros escapados: el rival ofreció dentro del límite y no cerramos.`]); }
+  Core.alerts(out);
+}
+Core.on(() => { const list = sessions(); renderKpis(list); renderSessions(list); renderProgress(list); renderItems(list); renderTeams(list); renderPrivate(); renderAlerts(list); });
+Core.onSecond(() => renderKpis(sessions()));
+Core.start("duelos.html");
+</script>
+</body>
+</html>

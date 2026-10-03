@@ -6,605 +6,265 @@
 <title>Mesa del Analista · t18</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/nav.css">
 <style>
-/* Panel del analista: solo lecturas públicas (CORS *), sin clave. Rejilla de paneles; tablas con scroll propio. */
-:root{
-  --paper:#eef1f6; --sheet:#ffffff; --ink:#14213d; --muted:#5b6478; --rule:#d8dde6; --chip:#e7ebf3;
-  --foil:#f2b705; --cobalt:#2443b8; --ok:#1f7a4d; --warn:#a35a00; --bad:#b3261e;
-  --s1:#2443b8; --s2:#c2410c; --s3:#0f766e; --s4:#7c3aed; --s5:#a16207; --s6:#be185d;
-  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
-  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
-  color-scheme:light;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#0e1420; --sheet:#161e2f; --ink:#e6eaf3; --muted:#9aa4ba; --rule:#2a3550; --chip:#222c44;
-  --foil:#f5c637; --cobalt:#8ea5ff; --ok:#5cc792; --warn:#f0a64a; --bad:#ff8a80;
-  --s1:#8ea5ff; --s2:#fb923c; --s3:#2dd4bf; --s4:#c4b5fd; --s5:#facc15; --s6:#f9a8d4; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --paper:#0e1420; --sheet:#161e2f; --ink:#e6eaf3; --muted:#9aa4ba; --rule:#2a3550; --chip:#222c44;
-  --foil:#f5c637; --cobalt:#8ea5ff; --ok:#5cc792; --warn:#f0a64a; --bad:#ff8a80;
-  --s1:#8ea5ff; --s2:#fb923c; --s3:#2dd4bf; --s4:#c4b5fd; --s5:#facc15; --s6:#f9a8d4; color-scheme:dark}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--paper);color:var(--ink);font:14px/1.5 var(--f-body);padding-inline:16px;padding-block:16px 48px}
-.wrap{max-width:1280px;margin:0 auto;display:grid;gap:16px}
-h1,h2{font-family:var(--f-display);margin:0;line-height:1.15;text-wrap:balance}
-h1{font-size:clamp(22px,3.4vw,30px);font-weight:800}
-h2{font-size:17px;font-weight:800}
-code,.mono{font-family:var(--f-mono);font-size:.92em}
-code{background:var(--chip);padding:.05em .35em;border-radius:4px}
-.muted{color:var(--muted)}
-.small{font-size:12.5px}
-.eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-
-/* barra superior */
-.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;
-  position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);padding-block:8px;border-bottom:2px solid var(--ink)}
-.brand{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.badge{font:600 12px/1 var(--f-mono);background:var(--foil);color:#2a1f00;padding:6px 8px;border-radius:4px}
-.clock{display:flex;gap:16px;flex-wrap:wrap;font:500 13px/1.2 var(--f-mono);font-variant-numeric:tabular-nums}
-.clock b{font-size:16px;font-family:var(--f-display)}
-.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-button,select,input{font:inherit;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:5px 9px}
-button{cursor:pointer;font-weight:600}
-button:hover{border-color:var(--cobalt)}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--cobalt);outline-offset:1px}
-input[type=number]{width:5.5em}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);display:inline-block}
-.dot.live{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
-.dot.err{background:var(--bad)}
-
-/* alertas */
-#alerts{display:grid;gap:8px}
-.alert{border-left:4px solid var(--bad);background:var(--sheet);padding:9px 12px;border-radius:0 6px 6px 0;display:flex;gap:10px;justify-content:space-between;align-items:baseline;flex-wrap:wrap}
-.alert.warn{border-left-color:var(--warn)} .alert.info{border-left-color:var(--cobalt)}
-.alert .when{font:12px var(--f-mono);color:var(--muted)}
-
-/* rejilla */
-.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
-.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
-.panel>header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
-.c12{grid-column:span 12}.c8{grid-column:span 8}.c7{grid-column:span 7}.c6{grid-column:span 6}.c5{grid-column:span 5}.c4{grid-column:span 4}
-@media (max-width:1000px){.c8,.c7,.c6,.c5,.c4{grid-column:span 12}}
-
-.scroll{overflow-x:auto;min-width:0}
-table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
-th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule);vertical-align:middle;white-space:nowrap}
-th{font:600 11px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-td.num,th.num{text-align:right}
-td.wrap{white-space:normal}
-tr.us td{background:color-mix(in srgb,var(--foil) 18%,transparent)}
-tr.watch td{background:color-mix(in srgb,var(--cobalt) 10%,transparent)}
-tr.hit td{background:color-mix(in srgb,var(--ok) 16%,transparent)}
-.up{color:var(--ok)} .down{color:var(--bad)}
-.pill{display:inline-block;font:600 11px/1 var(--f-mono);padding:4px 7px;border-radius:999px;background:var(--chip);white-space:nowrap}
-.pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)} .pill.info{color:var(--cobalt)}
-.empty{color:var(--muted);font-style:italic;padding:8px 0}
-
-/* cuentas atrás */
 .events{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
 .ev{border:1px solid var(--rule);border-radius:6px;padding:10px;display:grid;gap:4px;min-width:0}
 .ev.key{border-color:var(--foil);background:color-mix(in srgb,var(--foil) 8%,transparent)}
 .ev .cd{font:600 18px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
 .ev .nm{font-weight:600;white-space:normal}
 .ev .wl{font:12px var(--f-mono);color:var(--muted)}
-
-/* gráfico */
-.chart svg{width:100%;height:auto;display:block}
-.chart text{fill:var(--muted);font:11px var(--f-mono)}
-.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px}
-.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px}
-
-/* herramientas de decisión */
-.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.form label{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
-.form label input,.form label select{width:100%;color:var(--ink)}
-.verdict{border-radius:6px;padding:12px;background:var(--chip);display:grid;gap:6px}
-.verdict .big{font:800 20px/1.2 var(--f-display)}
-pre{margin:0;background:var(--chip);border-radius:6px;padding:10px;overflow-x:auto;font:12.5px/1.5 var(--f-mono)}
-.bar{display:flex;height:30px;border-radius:4px;overflow:hidden;background:var(--chip);position:relative}
-.bar span{display:grid;place-items:center;font:500 11px/1 var(--f-mono);color:#fff;white-space:nowrap;overflow:hidden;min-width:0}
-.bar .cashline{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--ok)}
-.tabs{display:flex;gap:6px;flex-wrap:wrap}
-.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-footer{font-size:12.5px;color:var(--muted)}
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
-
-<div class="top">
-  <div class="brand">
-    <span class="badge">PERSONA 2 · SIN CLAVE</span>
-    <h1>Mesa del Analista</h1>
+<main class="wrap">
+  <div class="pagehead">
+    <div><span class="eyebrow">Persona 2 · sin clave</span><h1>Mesa</h1></div>
+    <p>Resumen en vivo para las decisiones del analista: el calendario, la clasificación, los mercados, El Rastro, nuestros tratos, <code>days_sign</code> para Duelos II y la caja para CHA.</p>
+    <div class="seg"><button id="export" type="button">Exportar para jurado</button><a href="jurado.html" style="align-self:center">Demo del jurado</a></div>
   </div>
-  <div class="clock" id="clock"><span class="muted">conectando…</span></div>
-  <div class="ctrl">
-    <span class="dot" id="dot" title="estado de la conexión"></span>
-    <span class="small muted" id="fresh">—</span>
-    <button id="pause" type="button">Pausar</button>
-    <button id="now" type="button">Actualizar</button>
-    <button id="export" type="button">Exportar para jurado</button>
-    <a href="jurado.html">Demo del jurado</a>
-    <select id="theme" aria-label="Tema"><option value="">Tema: sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select>
-  </div>
-</div>
+  <div id="export-status" class="small muted" role="status"></div>
+  <div id="alerts" aria-live="polite"></div>
 
-<div id="alerts" aria-live="polite"></div>
-<div id="export-status" class="small muted" role="status"></div>
+  <div class="grid">
+    <section class="panel c12">
+      <header><h2>Lo que viene</h2><span class="small muted">calendario público · hora de pared estimada (1 h de juego = 1 h)</span></header>
+      <div class="events" id="events"><div class="empty">cargando calendario…</div></div>
+    </section>
 
-<div class="grid">
+    <section class="panel c7">
+      <header><h2>Clasificación</h2>
+        <span class="small"><label for="watch">Rival </label><select id="watch"></select> <span class="muted" id="lbsnap"></span></span></header>
+      <div class="scroll"><table id="lb"><thead><tr>
+        <th class="num">#</th><th>Equipo</th><th class="num">Total</th><th class="num">Δ 1 h</th><th class="num">Negociar</th><th class="num">Mercado</th><th class="num">Tratos</th><th class="num">Págs</th><th>Tendencia</th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
 
-  <section class="panel c12">
-    <header><h2>Lo que viene</h2><span class="small muted">calendario público · hora de pared estimada (1 h de juego = 1 h)</span></header>
-    <div class="events" id="events"><div class="empty">cargando calendario…</div></div>
-  </section>
-
-  <section class="panel c7">
-    <header>
-      <h2>Clasificación</h2>
-      <span class="ctrl small">
-        <label for="watch">Rival</label>
-        <select id="watch"></select>
-        <span class="muted" id="lbsnap"></span>
-      </span>
-    </header>
-    <div class="scroll"><table id="lb"><thead><tr>
-      <th class="num">#</th><th>Equipo</th><th class="num">Total</th><th class="num">Δ 1 h</th><th class="num">Negociar</th><th class="num">Mercado</th><th class="num">Tratos</th><th class="num">Págs</th><th>Tendencia</th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <section class="panel c5">
-    <header><h2>Evolución</h2><span class="small muted" id="chartinfo">guardado en este navegador</span></header>
-    <div class="tabs" id="metric">
-      <button type="button" data-m="score" aria-pressed="true">Total</button>
-      <button type="button" data-m="neg" aria-pressed="false">Negociar</button>
-      <button type="button" data-m="market" aria-pressed="false">Mercado</button>
-    </div>
-    <div class="chart" id="chart"><div class="empty">hacen falta dos fotos de la clasificación</div></div>
-    <div class="legend" id="legend"></div>
-  </section>
-
-  <section class="panel c6">
-    <header><h2>Mercados de equipo</h2><span class="small">alerta si alguno pasa de <input id="vthr" type="number" min="0" step="0.5" value="3" aria-label="umbral de tratos por hora"> tratos/h</span></header>
-    <div class="scroll"><table id="venues"><thead><tr>
-      <th>Mercado</th><th>Dueño</th><th>Tipo</th><th class="num">Com.</th><th class="num">Tratos</th><th class="num">Volumen</th><th class="num">Ritmo</th><th></th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <section class="panel c6">
-    <header>
-      <h2>El Rastro</h2>
-      <div class="tabs" id="rtab">
-        <button type="button" data-t="bids" aria-pressed="true">Pujas (compran)</button>
-        <button type="button" data-t="asks" aria-pressed="false">Ventas</button>
+    <section class="panel c5">
+      <header><h2>Evolución</h2><span class="small muted" id="chartinfo"></span></header>
+      <div class="seg" id="metric">
+        <button type="button" data-m="score">Total</button><button type="button" data-m="neg">Negociar</button><button type="button" data-m="market">Mercado</button>
       </div>
-    </header>
-    <div class="form">
-      <label>Puja mínima (P)<input id="minbid" type="number" min="0" value="30"></label>
-      <label>Barrio<select id="rset"><option value="">todos</option><option>CHA</option><option>RET</option><option>SAL</option><option>LAT</option><option>LAV</option><option>MAL</option></select></label>
-      <label style="grid-column:span 2">Sobrantes nuestros (del status del operador)<input id="have" placeholder="LAT-01, LAT-05, RET-03"></label>
-    </div>
-    <div class="scroll"><table id="rastro"><thead></thead><tbody></tbody></table></div>
-  </section>
+      <div class="chart" id="chart"></div>
+      <div class="legend" id="legend"></div>
+    </section>
 
-  <section class="panel c7">
-    <header><h2>Nuestros tratos</h2><span class="small muted">settlements de t18 · tope solo para una carta de dealer · plan del repo, no configuración en vivo</span></header>
-    <div class="scroll"><table id="ours"><thead><tr>
-      <th>Tick</th><th>Contra</th><th>Carta</th><th>Rareza</th><th class="num">Precio</th><th class="num">Tope</th><th>Sentido</th><th></th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
+    <section class="panel c6">
+      <header><h2>Mercados de equipo</h2><span class="small">alerta si alguno pasa de <input id="vthr" type="number" min="0" step="0.5" value="3" aria-label="umbral de tratos por hora"> tratos/h · <a href="mercado.html">todo el mercado</a></span></header>
+      <div class="scroll"><table id="venues"><thead><tr>
+        <th>Mercado</th><th>Dueño</th><th>Tipo</th><th class="num">Tratos</th><th class="num">Volumen</th><th class="num">Ritmo</th><th></th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
 
-  <section class="panel c5">
-    <header><h2>Pujas de cierre de rivales</h2><span class="small muted">pujas por RET o CHA en el feed (oportunidad J13 si ganancia ≥ 15)</span></header>
-    <div class="scroll"><table id="j13"><thead><tr>
-      <th>Tick</th><th>Quién</th><th>Carta</th><th class="num">Puja</th><th>Estado</th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
+    <section class="panel c6">
+      <header><h2>Pujas grandes en El Rastro</h2><span class="small muted">compran cartas</span></header>
+      <div class="form">
+        <label>Puja mínima (P)<input id="minbid" type="number" min="0" value="30"></label>
+        <label style="grid-column:span 2">Sobrantes nuestros (del status del operador)<input id="have" placeholder="LAT-01, LAT-05, RET-03"></label>
+      </div>
+      <div class="scroll"><table id="bids"><thead><tr><th>Oferta</th><th>Quién</th><th>Pide</th><th class="num">Paga</th><th class="num">Caduca</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
 
-  <section class="panel c6">
-    <header><h2>Duelos II · <code>days_sign</code></h2><span class="small muted">rellenar con el primer duelo de dos asuntos</span></header>
-    <div class="form">
-      <label>Qué dice <code>days_meaning</code>
-        <select id="dmean">
-          <option value="">sin leer / vacío</option>
-          <option value="more">más días valen más</option>
-          <option value="less">más días cuestan</option>
-          <option value="role">cambia con el papel</option>
-          <option value="ambig">ambiguo</option>
-        </select></label>
-      <label>|your_days_weight|<input id="dw" type="number" min="0" step="0.1" value="1"></label>
-      <label>Excedente típico |L − ancla| (P)<input id="dsur" type="number" min="1" value="20"></label>
-      <label>¿Gate con signo (propuesta A)?
-        <select id="dgate"><option value="no">no aplicada</option><option value="yes">aplicada</option></select></label>
-    </div>
-    <div class="verdict" id="dverdict"></div>
-  </section>
+    <section class="panel c7">
+      <header><h2>Nuestros tratos</h2><span class="small muted">settlements de t18 · tope solo para una carta de dealer · plan del repo, no configuración en vivo</span></header>
+      <div class="scroll tall"><table id="ours"><thead><tr>
+        <th>Tick</th><th>Contra</th><th>Carta</th><th>Rareza</th><th class="num">Precio</th><th class="num">Tope</th><th>Sentido</th><th></th>
+      </tr></thead><tbody></tbody></table></div>
+    </section>
 
-  <section class="panel c6">
-    <header><h2>Caja para CHA</h2><span class="small muted">costes de RET de hoy, editables</span></header>
-    <div class="form">
-      <label>Caja hoy (P)<input id="cash" type="number" value="116"></label>
-      <label>Subvención domingo<input id="grant" type="number" value="150"></label>
-      <label>Ventas LAT y J13 hoy<input id="extra" type="number" value="0"></label>
-      <label>Raras (2 ×)<input id="pr" type="number" value="86"></label>
-      <label>Infrecuentes (3 ×)<input id="pu" type="number" value="22"></label>
-      <label>Comunes (4 ×)<input id="pc" type="number" value="9.5" step="0.5"></label>
-      <label>Cierre con equipo<select id="pk"><option value="49">49 (como RET)</option><option value="72" selected>72 (plan CHA)</option><option value="102">102 (final)</option></select></label>
-      <label>Reserva del Gate<input id="res" type="number" value="10"></label>
-    </div>
-    <div id="cashbar"></div>
-  </section>
+    <section class="panel c5">
+      <header><h2>Pujas de cierre de rivales</h2><span class="small muted">por RET o CHA (J13 si la ganancia es ≥ 15)</span></header>
+      <div class="scroll tall"><table id="j13"><thead><tr><th>Tick</th><th>Quién</th><th>Carta</th><th class="num">Puja</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+    </section>
 
-</div>
+    <section class="panel c6">
+      <header><h2>Duelos II · <code>days_sign</code></h2><span class="small muted">con el primer duelo de dos asuntos · <a href="duelos.html">análisis de duelos</a></span></header>
+      <div class="form">
+        <label>Qué dice days_meaning
+          <select id="dmean"><option value="">sin leer / vacío</option><option value="more">más días valen más</option><option value="less">más días cuestan</option><option value="role">cambia con el papel</option><option value="ambig">ambiguo</option></select></label>
+        <label>|your_days_weight|<input id="dw" type="number" min="0" step="0.1" value="1"></label>
+        <label>Excedente típico |L − ancla| (P)<input id="dsur" type="number" min="1" value="20"></label>
+        <label>¿Gate con signo (propuesta A)?<select id="dgate"><option value="no">no aplicada</option><option value="yes">aplicada</option></select></label>
+      </div>
+      <div class="verdict" id="dverdict"></div>
+    </section>
 
-<footer>Solo GET públicos a <code>bazaar.causaprima.ai</code>: clock y feed cada 15 s, clasificación, mercados y El Rastro cada 30 s, calendario cada 5 min (≈ 0,2 lecturas/s; el límite es 60/s). Sin clave, sin escrituras, nunca <code>/api/admin</code>. La historia y tus ajustes se guardan solo en este navegador. Detalle: <code>docs/analista.md</code>.</footer>
-</div>
+    <section class="panel c6">
+      <header><h2>Caja para CHA</h2><span class="small muted">costes de RET de hoy, editables</span></header>
+      <div class="form">
+        <label>Caja hoy (P)<input id="cash" type="number" value="116"></label>
+        <label>Subvención domingo<input id="grant" type="number" value="150"></label>
+        <label>Ventas LAT y J13 hoy<input id="extra" type="number" value="0"></label>
+        <label>Raras (2 ×)<input id="pr" type="number" value="86"></label>
+        <label>Infrecuentes (3 ×)<input id="pu" type="number" value="22"></label>
+        <label>Comunes (4 ×)<input id="pc" type="number" value="9.5" step="0.5"></label>
+        <label>Cierre con equipo<select id="pk"><option value="49">49 (como RET)</option><option value="72" selected>72 (plan CHA)</option><option value="102">102 (final)</option></select></label>
+        <label>Reserva del Gate<input id="res" type="number" value="10"></label>
+      </div>
+      <div id="cashbar"></div>
+    </section>
+  </div>
+</main>
+<footer class="foot">Solo GET públicos a <code>bazaar.causaprima.ai</code> (≈ 0,2 lecturas/s; el límite es 60/s). Sin clave, sin escrituras, nunca <code>/api/admin</code>. La historia y tus ajustes se guardan solo en este navegador. Detalle: <code>docs/analista.md</code>.</footer>
 
 <script src="plan-public.js"></script>
 <script src="evidence.js"></script>
+<script src="assets/core.js"></script>
 <script>
 "use strict";
-const API = "https://bazaar.causaprima.ai";
-const US = "t18";
-const LS = "t18-analista-v1";
-// Generated from the same repository plan as the demo; not the operator's runtime state.
-const DEALER_MAX = T18PublicPlan.dealer_max;
-const KEY_EVENTS = /duels|set_release|grant_all|round|day_opens|persona$/;
+const {$, $$, esc, fmt, hhmm, cd, US} = Core;
+const KEY_EVENTS = /duels|set_release|grant_all|round|day_opens|persona_opens/;
+const haveSet = () => new Set(String(Core.setting("have", "")).toUpperCase().split(/[\s,;]+/).filter(Boolean));
+const watchTeam = () => Core.setting("watch", "t12");
 
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const fmt = (n, d = 2) => n == null || isNaN(n) ? "—" : Number(n).toLocaleString("es-ES", {minimumFractionDigits: d, maximumFractionDigits: d});
-const hhmm = d => d.toLocaleTimeString("es-ES", {hour: "2-digit", minute: "2-digit"});
-
-// ---------- estado persistente (solo este navegador) ----------
-let S = {hist: [], venues: [], feed: {}, settings: {}};
-try { const raw = localStorage.getItem(LS); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
-function save() {
-  try {
-    S.hist = S.hist.slice(-400); S.venues = S.venues.slice(-400);
-    const ids = Object.keys(S.feed).map(Number).sort((a, b) => b - a).slice(0, 3000);
-    const keep = {}; ids.forEach(i => keep[i] = S.feed[i]); S.feed = keep;
-    localStorage.setItem(LS, JSON.stringify(S));
-  } catch (e) {}
-}
-const setting = (k, d) => S.settings[k] ?? d;
-function bindSetting(id, k, ev = "input") {
-  const el = $(id); const v = S.settings[k]; if (v != null) el.value = v;
-  el.addEventListener(ev, () => { S.settings[k] = el.value; save(); renderAll(); });
-}
-
-// ---------- red ----------
-let live = {clock: null, schedule: null, lb: null, venues: null, rastro: null}, paused = false, polling = false, lastOk = 0, lastErr = null;
-async function get(path) {
-  const r = await fetch(API + path, {cache: "no-store", credentials: "omit", signal: AbortSignal.timeout(10000)});
-  if (!r.ok) throw new Error(path + " → HTTP " + r.status);
-  return r.json();
-}
-async function poll(what) {
-  if (paused || polling) return;
-  polling = true;
-  try {
-    if (what.includes("clock")) live.clock = await get("/api/clock");
-    if (what.includes("schedule")) live.schedule = await get("/api/schedule");
-    if (what.includes("lb")) { live.lb = await get("/api/leaderboard"); recordLb(); }
-    if (what.includes("venues")) { live.venues = (await get("/api/venues")).venues || []; recordVenues(); }
-    if (what.includes("rastro")) live.rastro = (await get("/api/venues/rastro/offers")).offers || [];
-    if (what.includes("feed")) { const f = await get("/api/feed?limit=500"); (f.events || []).forEach(e => { if (keepEvent(e)) S.feed[e.id] = slim(e); }); }
-    lastOk = Date.now(); lastErr = null; save();
-  } catch (e) { lastErr = String(e.message || e); }
-  finally { polling = false; }
-  renderAll();
-}
-function keepEvent(e) {
-  if (e.type === "settlement") return true;
-  if (e.type === "offer.cancelled") return Number.isInteger(T18Evidence.cancelledId(e));
-  if (e.type === "offer.listed" || e.type === "offer.cancelled") {
-    const o = (e.payload || {}).offer || {}; return isCardBid(o);
-  }
-  return e.type === "venue.announcement";
-}
-function slim(e) { return {id: e.id, tick: e.tick, type: e.type, actor: e.actor, payload: e.payload, seen: Date.now()}; }
-function bidCards(o) { return ((o.want || {}).types || []).filter(t => t.startsWith("card:")).map(t => t.slice(5)); }
-function isCardBid(o) { return ((o.give || {}).cash || 0) > 0 && bidCards(o).length > 0; }
-
-function recordLb() {
-  const lb = live.lb; if (!lb || !lb.teams) return;
-  const tick = lb.snapshot_tick ?? lb.tick;
-  if (S.hist.length && S.hist[S.hist.length - 1].tick === tick) return;
-  const teams = {}; lb.teams.forEach(t => teams[t.team] = {score: t.score, neg: t.negotiating, market: t.market, deals: t.deals, rank: t.rank});
-  S.hist.push({ts: Date.now(), tick, round: lb.round, teams});
-}
-function recordVenues() {
-  const v = {}; live.venues.forEach(x => v[x.venue] = x.trades);
-  const last = S.venues[S.venues.length - 1];
-  if (last && JSON.stringify(last.v) === JSON.stringify(v) && Date.now() - last.ts < 600000) return;
-  S.venues.push({ts: Date.now(), v});
-}
-
-// ---------- alertas ----------
-const fired = new Map();
-function alertsList() {
-  const out = [];
-  const thr = Number(setting("vthr", 3));
-  (live.venues || []).forEach(v => {
-    const r = venueRate(v.venue);
-    if (v.owner !== "world" && r != null && r > thr) out.push(["bad", `Mercado ${v.venue} de ${v.owner} va a ${fmt(r, 1)} tratos/h (umbral ${thr}): replantear abrir mercado propio.`]);
+function ourDeals() {
+  return Core.feedOf("settlement").filter(e => (e.payload.parties || []).includes(US)).reverse().map(e => {
+    const p = e.payload, it = (p.items || [])[0] || {};
+    const other = (p.parties || []).find(x => x !== US) || "—";
+    const side = it.to === US ? "compra" : it.frm === US ? "venta" : "—";
+    return {tick: e.tick, other, ref: (p.items || []).map(i => i.ref || i.kind).join(", "), rarity: it.rarity || "", price: p.price, cap: T18Evidence.dealerCap(p, Core.DEALER_MAX), side};
   });
-  const have = haveSet(), minb = Number(setting("minbid", 30));
-  (live.rastro || []).filter(isCardBid).forEach(o => {
-    const hit = bidCards(o).filter(c => have.has(c));
-    if (hit.length && o.give.cash >= minb) out.push(["warn", `Puja de ${o.give.cash} P por ${hit.join(", ")} (#${o.id}, caduca t${o.expires_tick}): avisar al operador.`]);
-  });
-  ourDeals().forEach(d => {
-    if (d.cap != null && d.side === "compra" && d.price > d.cap) out.push(["bad", `Compramos ${d.ref} a ${d.price} P, por encima del tope ${d.cap} (t${d.tick}): avisar al operador.`]);
-  });
-  const lb = live.lb;
-  if (lb && lb.teams) {
-    const us = lb.teams.find(t => t.team === US), first = lb.teams[0];
-    if (us && us.rank > 1) out.push(["warn", `Hemos bajado al ${us.rank}.º: ${first.team} nos saca ${fmt(first.score - us.score)}.`]);
-  }
-  if (lastErr) out.push(["warn", `Error leyendo la API: ${lastErr}. Se reintenta solo.`]);
-  return out;
-}
-function renderAlerts() {
-  const list = alertsList();
-  list.forEach(([, m]) => { if (!fired.has(m)) fired.set(m, new Date()); });
-  $("#alerts").innerHTML = list.map(([k, m]) => `<div class="alert ${k}"><span>${esc(m)}</span><span class="when">desde ${hhmm(fired.get(m))}</span></div>`).join("");
 }
 
-// ---------- reloj ----------
-function renderClock() {
-  const c = live.clock;
-  if (!c) return;
-  const closes = c.closes ? new Date(c.closes) : null;
-  $("#clock").innerHTML = `<span>tick <b>${c.tick}</b></span><span>t = <b>${fmt(c.t_hours, 2)}</b> h</span>
-    <span>${esc((c.round_name || "").replace(/Â·/g, "·"))}</span><span>tick cada ${c.tick_seconds}s</span>
-    <span>${c.paused ? '<span class="pill bad">PAUSADO</span>' : '<span class="pill ok">' + esc(c.doors || "") + "</span>"}</span>
-    ${closes ? `<span class="muted">cierra ${hhmm(closes)}</span>` : ""}`;
-}
-function renderFresh() {
-  $("#dot").className = "dot " + (lastErr ? "err" : (lastOk && !paused ? "live" : ""));
-  $("#fresh").textContent = paused ? "en pausa" : lastOk ? `hace ${Math.round((Date.now() - lastOk) / 1000)} s` : "—";
-}
-
-// ---------- calendario ----------
-function wallOf(h) {
-  const sc = live.schedule, c = live.clock; if (!sc || !c) return null;
-  const anchors = [[c.t_hours, Date.now()]];
-  (sc.upcoming || []).forEach(e => { if (e.wall && e.action === "day_opens") anchors.push([e.at_hours, Date.parse(e.wall)]); });
-  let best = anchors[0];
-  anchors.forEach(a => { if (a[0] <= h + 1e-9 && a[0] >= best[0]) best = a; });
-  return new Date(best[1] + (h - best[0]) * 3600e3);
-}
-function cd(ms) {
-  if (ms < 0) return "ahora";
-  const m = Math.floor(ms / 60000), h = Math.floor(m / 60);
-  return h ? `${h} h ${String(m % 60).padStart(2, "0")} min` : `${m} min ${String(Math.floor(ms / 1000) % 60).padStart(2, "0")} s`;
-}
 function renderEvents() {
-  const sc = live.schedule, c = live.clock; if (!sc || !c) return;
-  const ev = (sc.upcoming || []).filter(e => e.at_hours >= c.t_hours - 0.02 && e.action !== "day_closes").slice(0, 12);
-  if (!ev.length) { $("#events").innerHTML = '<div class="empty">nada en el calendario</div>'; return; }
+  if (!Core.state.schedule) return;
+  const ev = Core.upcoming(e => e.action !== "day_closes").slice(0, 12);
   $("#events").innerHTML = ev.map(e => {
-    const w = wallOf(e.at_hours); const key = KEY_EVENTS.test(e.action);
-    return `<div class="ev ${key ? "key" : ""}"><span class="eyebrow">${esc(e.action)}</span>
-      <span class="cd">${w ? cd(w - Date.now()) : "—"}</span>
-      <span class="nm">${esc((e.params && e.params.name) || e.note || e.action)}</span>
+    const w = Core.wallOf(e.at_hours);
+    return `<div class="ev ${KEY_EVENTS.test(e.action) ? "key" : ""}"><span class="eyebrow">${esc(e.action)}</span>
+      <span class="cd">${w ? cd(w - Date.now()) : "—"}</span><span class="nm">${esc(Core.fixText((e.params && e.params.name) || e.note || e.action))}</span>
       <span class="wl">t ${fmt(e.at_hours, 2)} · ≈ ${w ? w.toLocaleString("es-ES", {weekday: "short", hour: "2-digit", minute: "2-digit"}) : "—"}</span></div>`;
-  }).join("");
+  }).join("") || '<div class="empty">nada en el calendario</div>';
 }
 
-// ---------- clasificación ----------
-const watchTeam = () => setting("watch", "t12");
-function histAgo(ms) {
-  return T18Evidence.hourBaseline(S.hist, Date.now(), live.lb?.round);
-}
-function spark(team, metric) {
-  const pts = S.hist.slice(-40).map(h => h.teams[team] && h.teams[team][metric]).filter(v => v != null);
+function spark(team) {
+  const pts = Core.D.hist.slice(-40).map(h => h.teams[team] && h.teams[team].score).filter(v => v != null);
   if (pts.length < 2) return "";
   const lo = Math.min(...pts), hi = Math.max(...pts), W = 90, H = 22, span = hi - lo || 1;
   const d = pts.map((v, i) => `${(i / (pts.length - 1) * W).toFixed(1)},${(H - 2 - (v - lo) / span * (H - 4)).toFixed(1)}`).join(" ");
-  const col = pts[pts.length - 1] >= pts[0] ? "var(--ok)" : "var(--bad)";
-  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline fill="none" stroke="${col}" stroke-width="1.6" points="${d}"/></svg>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline fill="none" stroke="${pts[pts.length - 1] >= pts[0] ? "var(--ok)" : "var(--bad)"}" stroke-width="1.6" points="${d}"/></svg>`;
 }
 function renderLb() {
-  const lb = live.lb; if (!lb || !lb.teams) return;
+  const lb = Core.state.lb; if (!lb || !lb.teams) return;
   const sel = $("#watch"), w = watchTeam();
-  if (sel.options.length !== lb.teams.length) {
+  if (sel.options.length !== lb.teams.length - 1) {
     sel.innerHTML = lb.teams.map(t => t.team).sort().filter(t => t !== US).map(t => `<option ${t === w ? "selected" : ""}>${t}</option>`).join("");
   }
-  const ago = histAgo(3600e3);
-  $("#lbsnap").textContent = `foto del tick ${lb.snapshot_tick ?? lb.tick} · próxima ${lb.next_refresh_tick ?? "—"}${ago ? "" : " · Δ 1 h pendiente de historial"}`;
+  const ago = Core.histAgo(3600e3);
+  $("#lbsnap").textContent = `foto del tick ${lb.snapshot_tick ?? lb.tick}${ago ? "" : " · Δ 1 h pendiente de historial"}`;
   $("#lb tbody").innerHTML = lb.teams.map(t => {
-    const p = ago && ago.teams[t.team]; const d = p ? t.score - p.score : null;
-    const cls = t.team === US ? "us" : t.team === w ? "watch" : "";
-    return `<tr class="${cls}"><td class="num">${t.rank}</td><td>${esc(t.team)}${t.team === US ? " · nosotros" : ""}</td>
+    const p = ago && ago.teams[t.team], d = p ? t.score - p.score : null;
+    return `<tr class="${t.team === US ? "us" : t.team === w ? "watch" : ""}"><td class="num">${t.rank}</td><td>${esc(t.team)}${t.team === US ? " · nosotros" : ""}</td>
       <td class="num"><b>${fmt(t.score)}</b></td><td class="num ${d > 0 ? "up" : d < 0 ? "down" : ""}">${d == null ? "—" : (d > 0 ? "+" : "") + fmt(d)}</td>
-      <td class="num">${fmt(t.negotiating)}</td><td class="num">${fmt(t.market)}</td><td class="num">${t.deals}</td><td class="num">${t.pages_complete}</td>
-      <td>${spark(t.team, "score")}</td></tr>`;
+      <td class="num">${fmt(t.negotiating)}</td><td class="num">${fmt(t.market)}</td><td class="num">${t.deals}</td><td class="num">${t.pages_complete}</td><td>${spark(t.team)}</td></tr>`;
   }).join("");
 }
-
-// ---------- gráfico ----------
 function renderChart() {
-  const metric = setting("metric", "score");
-  document.querySelectorAll("#metric button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === metric));
-  const H = S.hist.slice(-120);
-  if (H.length < 2 || !live.lb) return;
-  const lb = live.lb.teams; const w = watchTeam();
-  const teams = [...new Set([US, w, ...lb.slice(0, 4).map(t => t.team)])].slice(0, 6);
-  const W = 560, Ht = 240, L = 40, R = 12, T = 10, B = 26;
-  const vals = H.flatMap(h => teams.map(t => h.teams[t] && h.teams[t][metric])).filter(v => v != null);
-  let lo = Math.min(...vals), hi = Math.max(...vals); if (hi - lo < 1) { hi += .5; lo -= .5; }
-  const t0 = H[0].ts, t1 = H[H.length - 1].ts, x = ts => L + (ts - t0) / ((t1 - t0) || 1) * (W - L - R), y = v => T + (hi - v) / (hi - lo) * (Ht - T - B);
-  let g = "";
-  for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4, yy = y(v);
-    g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--rule)"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end">${fmt(v, 1)}</text>`; }
-  [t0, t1].forEach((ts, i) => g += `<text x="${x(ts)}" y="${Ht - 6}" text-anchor="${i ? "end" : "start"}">${hhmm(new Date(ts))}</text>`);
-  const cols = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
-  teams.forEach((t, i) => {
-    const pts = H.filter(h => h.teams[t]).map(h => `${x(h.ts).toFixed(1)},${y(h.teams[t][metric]).toFixed(1)}`);
-    if (pts.length < 2) return;
-    const last = pts[pts.length - 1].split(",");
-    g += `<polyline fill="none" stroke="${cols[i]}" stroke-width="${t === US ? 3 : 1.8}" points="${pts.join(" ")}"/><circle cx="${last[0]}" cy="${last[1]}" r="3.5" fill="${cols[i]}"/>`;
-  });
-  $("#chart").innerHTML = `<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="Evolución de ${metric}">${g}</svg>`;
-  $("#legend").innerHTML = teams.map((t, i) => `<span><i style="background:${cols[i]}"></i>${t}${t === US ? " (nosotros)" : ""}</span>`).join("");
-  $("#chartinfo").textContent = `${H.length} fotos desde ${hhmm(new Date(t0))} · guardado en este navegador`;
-}
-
-// ---------- mercados ----------
-function venueRate(vid) {
-  if (S.venues.length < 2) return null;
-  const now = S.venues[S.venues.length - 1]; const target = now.ts - 3600e3;
-  let base = S.venues[0]; for (const s of S.venues) { if (s.ts <= target) base = s; }
-  if (base === now || now.ts - base.ts < 120e3) return null;
-  return ((now.v[vid] || 0) - (base.v[vid] || 0)) / ((now.ts - base.ts) / 3600e3);
+  const m = Core.setting("metric", "score");
+  $$("#metric button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
+  const H = Core.D.hist.slice(-200), lb = Core.state.lb;
+  if (!lb) return;
+  const teams = [...new Set([US, watchTeam(), ...lb.teams.slice(0, 4).map(t => t.team)])].slice(0, 6);
+  const series = teams.map(t => ({name: t + (t === US ? " (nosotros)" : ""), bold: t === US, pts: H.filter(h => h.teams[t]).map(h => [h.ts, h.teams[t][m]])}));
+  $("#chart").innerHTML = Core.lineChart(series, {xfmt: hhmm, empty: "hacen falta dos fotos de la clasificación (se refresca cada pocos minutos)", label: "evolución"});
+  $("#legend").innerHTML = Core.legend(series);
+  $("#chartinfo").textContent = H.length ? `${H.length} fotos desde ${hhmm(H[0].ts)}` : "";
 }
 function renderVenues() {
-  const vs = live.venues; if (!vs) return;
-  const thr = Number(setting("vthr", 3));
-  const rows = vs.filter(v => v.owner === "world" || v.trades > 0 || v.owner === US || v.owner === watchTeam())
-    .sort((a, b) => b.trades - a.trades);
-  $("#venues tbody").innerHTML = rows.map(v => {
-    const r = venueRate(v.venue);
-    const st = v.owner === "world" ? '<span class="pill">casa</span>' : r != null && r > thr ? '<span class="pill bad">ALERTA</span>' : v.trades ? '<span class="pill info">activo</span>' : '<span class="pill">sin tratos</span>';
-    const fee = v.fee_bps != null ? (v.fee_bps / 100) + " %" : "—";
-    return `<tr class="${v.owner === US ? "us" : v.owner === watchTeam() ? "watch" : ""}"><td class="wrap">${esc(v.venue)} <span class="muted small">${esc(v.name || "")}</span></td><td>${esc(v.owner)}</td>
-      <td>${esc((v.rules || {}).mechanism || "—")}${v.starter ? " · puesto" : ""}</td><td class="num">${fee}</td><td class="num">${v.trades}</td><td class="num">${v.volume}</td>
-      <td class="num">${r == null ? "—" : fmt(r, 1) + "/h"}</td><td>${st}</td></tr>`;
-  }).join("") || '<tr><td colspan="8" class="empty">ningún mercado con tratos</td></tr>';
+  const vs = Core.state.venues; if (!vs) return;
+  const thr = Number(Core.setting("vthr", 3));
+  $("#venues tbody").innerHTML = vs.filter(v => v.owner === "world" || v.trades > 0 || v.owner === US || v.owner === watchTeam())
+    .sort((a, b) => b.trades - a.trades).map(v => {
+      const r = Core.venueRate(v.venue);
+      const st = v.owner === "world" ? '<span class="pill">casa</span>' : r != null && r > thr ? '<span class="pill bad">ALERTA</span>' : v.trades ? '<span class="pill info">activo</span>' : '<span class="pill">sin tratos</span>';
+      return `<tr class="${v.owner === US ? "us" : v.owner === watchTeam() ? "watch" : ""}"><td class="wrap">${esc(v.venue)} <span class="muted small">${esc(v.name || "")}</span></td><td>${esc(v.owner)}</td>
+        <td>${esc((v.rules || {}).mechanism || "—")}${v.starter ? " · puesto" : ""}</td><td class="num">${v.trades}</td><td class="num">${v.volume}</td>
+        <td class="num">${r == null ? "—" : fmt(r, 1) + "/h"}</td><td>${st}</td></tr>`;
+    }).join("");
 }
-
-// ---------- El Rastro ----------
-const haveSet = () => new Set(String(setting("have", "")).toUpperCase().split(/[\s,;]+/).filter(Boolean));
-function renderRastro() {
-  const offs = live.rastro; if (!offs) return;
-  const tab = setting("rtab", "bids"), minb = Number(setting("minbid", 30)), set = setting("rset", ""), have = haveSet();
-  document.querySelectorAll("#rtab button").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === tab));
-  const inSet = ref => !set || ref.startsWith(set + "-");
-  if (tab === "bids") {
-    $("#rastro thead").innerHTML = `<tr><th>Oferta</th><th>Quién</th><th>Pide</th><th class="num">Paga</th><th class="num">Caduca</th><th></th></tr>`;
-    const rows = offs.filter(isCardBid).filter(o => o.give.cash >= minb && bidCards(o).some(inSet)).sort((a, b) => b.give.cash - a.give.cash);
-    $("#rastro tbody").innerHTML = rows.map(o => {
-      const hit = bidCards(o).some(c => have.has(c));
-      return `<tr class="${hit ? "hit" : ""}"><td class="mono">#${o.id}</td><td class="mono">${esc(o.maker)}</td><td>${esc(bidCards(o).join(", "))}</td>
-        <td class="num"><b>${o.give.cash}</b></td><td class="num">t${o.expires_tick ?? "—"}</td><td>${hit ? '<span class="pill ok">TENEMOS</span>' : ""}</td></tr>`;
-    }).join("") || `<tr><td colspan="6" class="empty">ninguna puja de ${minb} P o más</td></tr>`;
-  } else {
-    $("#rastro thead").innerHTML = `<tr><th>Oferta</th><th>Quién</th><th>Carta</th><th>Rareza</th><th class="num">Pide</th><th class="num">Caduca</th></tr>`;
-    const rows = offs.filter(o => ((o.give || {}).assets || []).length && ((o.want || {}).cash || 0) > 0)
-      .filter(o => o.give.assets.some(a => inSet(a.ref))).sort((a, b) => a.want.cash - b.want.cash).slice(0, 60);
-    $("#rastro tbody").innerHTML = rows.map(o => {
-      const a = o.give.assets;
-      return `<tr><td class="mono">#${o.id}</td><td class="mono">${esc(o.maker)}</td><td>${esc(a.map(x => x.ref).join(", "))}</td><td>${esc(a.map(x => x.rarity).join(", "))}</td>
-        <td class="num"><b>${o.want.cash}</b></td><td class="num">t${o.expires_tick ?? "—"}</td></tr>`;
-    }).join("") || '<tr><td colspan="6" class="empty">ninguna venta con ese filtro</td></tr>';
-  }
-}
-
-// ---------- feed: nuestros tratos y pujas de cierre ----------
-function ourDeals() {
-  return Object.values(S.feed).filter(e => e.type === "settlement" && (e.payload.parties || []).includes(US))
-    .sort((a, b) => b.tick - a.tick || b.id - a.id).map(e => {
-      const p = e.payload, it = (p.items || [])[0] || {};
-      const other = (p.parties || []).find(x => x !== US) || "—";
-      const side = it.to === US ? "compra" : it.frm === US ? "venta" : "—";
-      const cap = T18Evidence.dealerCap(p, DEALER_MAX);
-      return {tick: e.tick, other, ref: (p.items || []).map(i=>i.ref || i.kind).join(", "), rarity: it.rarity || "", price: p.price, cap, side, venue: p.venue || p.persona || ""};
-    });
+function renderBids() {
+  const offs = Core.state.rastro; if (!offs) return;
+  const minb = Number(Core.setting("minbid", 30)), have = haveSet(), who = Core.teamOfPseudo();
+  const rows = offs.filter(Core.isCardBid).filter(o => o.give.cash >= minb).sort((a, b) => b.give.cash - a.give.cash);
+  $("#bids tbody").innerHTML = rows.map(o => {
+    const hit = Core.bidCards(o).some(c => have.has(c));
+    return `<tr class="${hit ? "hit" : ""}"><td class="mono">#${o.id}</td><td class="mono">${esc(who[o.maker] || o.maker)}</td><td>${esc(Core.bidCards(o).join(", "))}</td>
+      <td class="num"><b>${o.give.cash}</b></td><td class="num">t${o.expires_tick ?? "—"}</td><td>${hit ? '<span class="pill ok">TENEMOS</span>' : ""}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">ninguna puja de ${minb} P o más</td></tr>`;
 }
 function renderOurs() {
-  const rows = ourDeals().slice(0, 40);
-  $("#ours tbody").innerHTML = rows.map(d => {
+  $("#ours tbody").innerHTML = ourDeals().slice(0, 60).map(d => {
     const over = d.cap != null && d.side === "compra" && d.price > d.cap;
-    const st = d.cap == null ? "" : over ? '<span class="pill bad">sobre tope</span>' : '<span class="pill ok">dentro</span>';
-    return `<tr><td class="num">${d.tick}</td><td>${esc(d.other)}</td><td>${esc(d.ref)}</td><td>${esc(d.rarity)}</td><td class="num"><b>${d.price}</b></td>
-      <td class="num">${d.cap ?? "—"}</td><td>${d.side}</td><td>${st}</td></tr>`;
-  }).join("") || '<tr><td colspan="8" class="empty">aún no hay tratos nuestros en lo grabado (el feed público guarda ~10 min; deja el panel abierto)</td></tr>';
+    return `<tr class="${over ? "miss" : ""}"><td class="num">${d.tick}</td><td>${esc(d.other)}</td><td>${esc(d.ref)}</td><td>${esc(d.rarity)}</td><td class="num"><b>${d.price}</b></td>
+      <td class="num">${d.cap ?? "—"}</td><td>${d.side}</td><td>${d.cap == null ? "" : over ? '<span class="pill bad">sobre tope</span>' : '<span class="pill ok">dentro</span>'}</td></tr>`;
+  }).join("") || '<tr><td colspan="8" class="empty">aún no hay tratos nuestros en lo grabado (el feed guarda ~10 min; deja el panel abierto)</td></tr>';
 }
 function renderJ13() {
-  const ev = Object.values(S.feed).filter(e => e.type === "offer.listed").map(e => e.payload.offer)
-    .filter(o => o && bidCards(o).some(c => /^(RET|CHA)-/.test(c)) && o.maker !== US);
-  const cancelled = new Set(Object.values(S.feed).filter(e => e.type === "offer.cancelled").map(T18Evidence.cancelledId));
-  const have = haveSet();
-  const rows = ev.sort((a, b) => b.created_tick - a.created_tick).slice(0, 30);
-  $("#j13 tbody").innerHTML = rows.map(o => {
-    const state = T18Evidence.offerState(o, live.rastro || [], cancelled, live.clock?.tick);
-    const st = `<span class="pill ${state === "abierta" ? "ok" : ""}">${state === "abierta" ? "abierta (foto)" : state}</span>`;
-    const hit = bidCards(o).some(c => have.has(c));
-    return `<tr class="${hit ? "hit" : ""}"><td class="num">${o.created_tick}</td><td>${esc(o.maker)}</td><td>${esc(bidCards(o).join(", "))}</td><td class="num"><b>${o.give.cash}</b></td><td>${st}</td></tr>`;
+  const listed = Core.feedOf("offer.listed").map(e => e.payload.offer).filter(o => o && Core.bidCards(o).some(c => /^(RET|CHA)-/.test(c)) && o.maker !== US);
+  const cancelled = new Set(Core.feedOf("offer.cancelled").map(T18Evidence.cancelledId));
+  const have = haveSet(), tick = Core.state.clock && Core.state.clock.tick;
+  $("#j13 tbody").innerHTML = listed.sort((a, b) => b.created_tick - a.created_tick).slice(0, 40).map(o => {
+    const s = T18Evidence.offerState(o, Core.state.rastro || [], cancelled, tick);
+    const st = `<span class="pill ${s === "abierta" ? "ok" : ""}">${s === "abierta" ? "abierta (foto)" : s}</span>`;
+    return `<tr class="${Core.bidCards(o).some(c => have.has(c)) ? "hit" : ""}"><td class="num">${o.created_tick}</td><td>${esc(o.maker)}</td><td>${esc(Core.bidCards(o).join(", "))}</td><td class="num"><b>${o.give.cash}</b></td><td>${st}</td></tr>`;
   }).join("") || '<tr><td colspan="5" class="empty">ninguna puja por RET o CHA en lo grabado</td></tr>';
 }
-
-// ---------- decisión days_sign ----------
 function renderDays() {
-  const mean = setting("dmean", ""), w = Math.abs(Number(setting("dw", 1))), sur = Number(setting("dsur", 20)), gate = setting("dgate", "no");
-  const margin = 1 + 10 * w;
-  let val = "null", why, cls = "warn";
+  const mean = Core.setting("dmean", ""), w = Math.abs(Number(Core.setting("dw", 1))), sur = Number(Core.setting("dsur", 20)), gate = Core.setting("dgate", "no");
+  const margin = 1 + 10 * w; let val = "null", why, ok = false;
   if (!mean) why = "Falta leer days_meaning. J10: la táctica no envía nada con precio hasta tenerlo.";
   else if (mean === "ambig") why = "Significado ambiguo: el peor caso (null) es lo seguro.";
   else if (mean === "role") why = "El signo depende del papel: un valor global fallaría en la mitad de los duelos. Se deja null y se pide el cambio por papel {\"buyer\": …, \"seller\": …}.";
   else if (gate === "no" && 10 * w > sur / 2) why = `Sin la propuesta A, la Gate exige ${fmt(margin, 1)} P en nuestro mejor día, más de la mitad del excedente típico (${sur} P). Fijar el signo solo añadiría rechazos G50.limit.`;
-  else {
-    val = mean === "more" ? "1" : "-1"; cls = "ok";
+  else { val = mean === "more" ? "1" : "-1"; ok = true;
     why = gate === "yes" ? "Gate con signo: la táctica envía nuestro mejor día y el margen en ese día baja a 1 P."
-      : `Signo propuesto, pero sin la propuesta A la Gate sigue exigiendo ${fmt(margin, 1)} P en nuestro mejor día. Revisar los G50.limit con el operador antes de aplicar cambios.`;
-  }
+      : `Signo propuesto, pero sin la propuesta A la Gate sigue exigiendo ${fmt(margin, 1)} P en nuestro mejor día. Revisar los G50.limit con el operador antes de aplicar cambios.`; }
   $("#dverdict").innerHTML = `<span class="eyebrow">Propuesta para config/plan.json</span>
-    <span class="big">days_sign = ${val} <span class="pill ${cls}">${cls === "ok" ? "fijar" : "dejar null"}</span></span>
-    <span>${esc(why)}</span>
-    <span class="small muted">Margen de la Gate sin signo: 1 + |w|·max(d, 10 − d), hasta ${fmt(margin, 1)} P. Es una propuesta manual; ante rechazos en cadena o anomalías, avisar al operador y seguir su protocolo de pausa.</span>
-    <pre>"days_sign": ${val}</pre>`;
+    <span class="big">days_sign = ${val} <span class="pill ${ok ? "ok" : "warn"}">${ok ? "fijar" : "dejar null"}</span></span><span>${esc(why)}</span>
+    <span class="small muted">Margen de la Gate sin signo: 1 + |w|·max(d, 10 − d), hasta ${fmt(margin, 1)} P. Es una propuesta manual; ante rechazos en cadena o anomalías, avisar al operador y seguir su protocolo de pausa.</span><pre>"days_sign": ${val}</pre>`;
 }
-
-// ---------- caja CHA ----------
 function renderCash() {
-  const n = k => Number(setting(k, $("#" + k).value)) || 0;
+  const n = k => Number(Core.setting(k, $("#" + k).value)) || 0;
   const cash = n("cash") + n("grant") + n("extra");
   const seg = [["raras", 2 * n("pr"), "var(--s1)"], ["infr.", 3 * n("pu"), "var(--s3)"], ["com.", 4 * n("pc"), "var(--s4)"], ["cierre", n("pk"), "var(--s2)"], ["reserva", n("res"), "var(--muted)"]];
   const need = seg.reduce((s, x) => s + x[1], 0), scale = Math.max(need, cash) * 1.05, gap = need - cash;
-  $("#cashbar").innerHTML = `<div class="bar" role="img" aria-label="Coste ${need} frente a caja ${cash}">
-      ${seg.map(([l, v, c]) => `<span style="width:${v / scale * 100}%;background:${c}">${l} ${fmt(v, 0)}</span>`).join("")}
+  $("#cashbar").innerHTML = `<div class="bar" role="img" aria-label="Coste ${need} frente a caja ${cash}">${seg.map(([l, v, c]) => `<span style="width:${v / scale * 100}%;background:${c}">${l} ${fmt(v, 0)}</span>`).join("")}
       <span class="cashline" style="left:${Math.min(cash / scale * 100, 99.5)}%" title="caja ${cash}"></span></div>
     <div class="verdict"><span class="big ${gap > 0 ? "down" : "up"}">${gap > 0 ? `Faltan ${fmt(gap, 0)} P` : `Sobran ${fmt(-gap, 0)} P`}</span>
-    <span>Necesario ${fmt(need, 0)} P (con reserva) · caja prevista ${fmt(cash, 0)} P. La línea verde marca la caja. ${gap > 0 ? "Sin cambios en la configuración: el orden rara → infrecuente → común compra primero lo escaso y el cierre puja min(72, caja libre)." : "Lo que sobre el domingo a las 15:00 vale 0: gastarlo en compras con ganancia."}</span></div>`;
+    <span>Necesario ${fmt(need, 0)} P (con reserva) · caja prevista ${fmt(cash, 0)} P (línea verde). ${gap > 0 ? "Sin cambios en la configuración: el orden rara → infrecuente → común compra primero lo escaso y el cierre puja min(72, caja libre)." : "Lo que sobre el domingo a las 15:00 vale 0: gastarlo en compras con ganancia."}</span></div>`;
+}
+function renderAlerts() {
+  const out = [], thr = Number(Core.setting("vthr", 3)), have = haveSet(), minb = Number(Core.setting("minbid", 30));
+  (Core.state.venues || []).forEach(v => { const r = Core.venueRate(v.venue);
+    if (v.owner !== "world" && r != null && r > thr) out.push(["bad", `Mercado ${v.venue} de ${v.owner} va a ${fmt(r, 1)} tratos/h (umbral ${thr}): replantear abrir mercado propio.`]); });
+  (Core.state.rastro || []).filter(Core.isCardBid).forEach(o => { const hit = Core.bidCards(o).filter(c => have.has(c));
+    if (hit.length && o.give.cash >= minb) out.push(["warn", `Puja de ${o.give.cash} P por ${hit.join(", ")} (#${o.id}, caduca t${o.expires_tick}): avisar al operador.`]); });
+  ourDeals().forEach(d => { if (d.cap != null && d.side === "compra" && d.price > d.cap) out.push(["bad", `Compramos ${d.ref} a ${d.price} P, por encima del tope ${d.cap} (t${d.tick}): avisar al operador.`]); });
+  const lb = Core.state.lb;
+  if (lb && lb.teams) { const us = lb.teams.find(t => t.team === US), first = lb.teams[0], second = lb.teams[1];
+    if (us && us.rank > 1) out.push(["warn", `Hemos bajado al ${us.rank}.º: ${first.team} nos saca ${fmt(first.score - us.score)}.`]);
+    else if (us && second && us.score - second.score < 1) out.push(["info", `${second.team} está a ${fmt(us.score - second.score)} de nosotros.`]); }
+  Core.alerts(out);
 }
 
-// ---------- montaje ----------
-function renderAll() {
-  renderFresh(); renderClock(); renderEvents(); renderLb(); renderChart(); renderVenues(); renderRastro(); renderOurs(); renderJ13(); renderDays(); renderCash(); renderAlerts();
-}
-["vthr", "minbid", "have", "dw", "dsur", "cash", "grant", "extra", "pr", "pu", "pc", "res"].forEach(k => bindSetting("#" + k, k));
-["rset", "dmean", "dgate", "pk", "watch"].forEach(k => bindSetting("#" + k, k, "change"));
-document.querySelectorAll("#metric button").forEach(b => b.onclick = () => { S.settings.metric = b.dataset.m; save(); renderChart(); });
-document.querySelectorAll("#rtab button").forEach(b => b.onclick = () => { S.settings.rtab = b.dataset.t; save(); renderRastro(); });
-$("#pause").onclick = () => { paused = !paused; $("#pause").textContent = paused ? "Reanudar" : "Pausar"; if (!paused) poll(["clock", "lb", "venues", "rastro", "feed"]); renderFresh(); };
-$("#now").onclick = () => { const p = paused; paused = false; poll(["clock", "schedule", "lb", "venues", "rastro", "feed"]).then(() => paused = p); };
+["vthr", "minbid", "have", "dw", "dsur", "cash", "grant", "extra", "pr", "pu", "pc", "res"].forEach(k => Core.bind("#" + k, k));
+["dmean", "dgate", "pk", "watch"].forEach(k => Core.bind("#" + k, k, "change"));
+$$("#metric button").forEach(b => b.onclick = () => Core.set("metric", b.dataset.m));
 $("#export").onclick = async () => {
   const button = $("#export"); button.disabled = true;
   try {
-    const data = T18Evidence.exportPublic(live, S, await get("/api/catalog"), new Date().toISOString());
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:"application/json"}));
+    const data = T18Evidence.exportPublic(Core.state, Core.D, await Core.get("/api/catalog"), new Date().toISOString());
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type: "application/json"}));
     const a = document.createElement("a"); a.href = url; a.download = "analista-publico.json"; a.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     $("#export-status").textContent = `Exportados ${data.feed.events.length} eventos públicos observados. Sin caja, sobrantes ni ajustes. Generar demo: python3 -m jury.report --analyst-export analista-publico.json`;
   } catch (e) { $("#export-status").textContent = "No se pudo exportar: " + String(e.message || e); }
   finally { button.disabled = false; }
 };
-const th = $("#theme"); th.value = setting("theme", "");
-const applyTheme = () => { th.value ? document.documentElement.setAttribute("data-theme", th.value) : document.documentElement.removeAttribute("data-theme"); };
-th.onchange = () => { S.settings.theme = th.value; save(); applyTheme(); }; applyTheme();
-
-renderAll();
-poll(["clock", "schedule", "lb", "venues", "rastro", "feed"]);
-setInterval(() => poll(["clock", "feed"]), 15000);
-setInterval(() => poll(["lb", "venues", "rastro"]), 30000);
-setInterval(() => poll(["schedule"]), 300000);
-setInterval(() => { renderFresh(); renderEvents(); }, 1000);
+Core.on(() => { renderEvents(); renderLb(); renderChart(); renderVenues(); renderBids(); renderOurs(); renderJ13(); renderDays(); renderCash(); renderAlerts(); });
+Core.onSecond(renderEvents);
+Core.start("index.html");
 </script>
 </body>
 </html>

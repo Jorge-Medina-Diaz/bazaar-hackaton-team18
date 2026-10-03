@@ -1,0 +1,50 @@
+/* Mesa del Analista · cabecera común (también la usa scoring.html, que trae su propio CSS). */
+:root{--bar:#14213d; --bar-ink:#e9edf6; --bar-muted:#9aa6c2; --bar-chip:#22315a; --bar-foil:#f2b705;
+  --nav-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --nav-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --nav-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bar:#0a0f1a; --bar-ink:#e6eaf3; --bar-muted:#8e9ab5; --bar-chip:#1c2740; --bar-foil:#f5c637}}
+:root[data-theme="dark"]{--bar:#0a0f1a; --bar-ink:#e6eaf3; --bar-muted:#8e9ab5; --bar-chip:#1c2740; --bar-foil:#f5c637}
+/* ---------- cabecera de navegación ---------- */
+.nav{position:sticky;top:0;z-index:20;background:var(--bar);color:var(--bar-ink);
+  padding-top:env(safe-area-inset-top,0px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.nav-in{max-width:1320px;margin:0 auto;padding-inline:16px;display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:8px 20px;min-height:58px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;white-space:nowrap}
+.brand .mark{font:800 13px/1 var(--nav-mono);background:var(--bar-foil);color:#2a1f00;padding:7px 8px;border-radius:5px;letter-spacing:.04em}
+.brand .nm{font:800 17px/1.1 var(--nav-display)}
+.brand .nm small{display:block;font:500 10.5px/1.2 var(--nav-mono);color:var(--bar-muted);letter-spacing:.1em;text-transform:uppercase}
+.nav .tabs-nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;align-self:stretch}
+.tabs-nav::-webkit-scrollbar{display:none}
+.nav .tabs-nav a{background:none;border-radius:0;border-top:0;border-left:0;border-right:0;font:inherit;display:grid;align-content:center;gap:1px;padding:8px 14px;color:var(--bar-muted);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap}
+.nav .tabs-nav a b{font:600 14.5px/1.1 var(--nav-body);color:var(--bar-ink)}
+.nav .tabs-nav a span{font:11px/1.2 var(--nav-mono)}
+.nav .tabs-nav a:hover{background:var(--bar-chip)}
+.nav .tabs-nav a[aria-current="page"]{border-bottom-color:var(--bar-foil)}
+.nav .tabs-nav a[aria-current="page"] b{color:var(--bar-foil)}
+.nav .tabs-nav a:focus-visible{outline:2px solid var(--bar-foil);outline-offset:-2px}
+.nav-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:baseline;gap:6px;background:var(--bar-chip);border-radius:6px;padding:5px 9px;font:500 12px/1.2 var(--nav-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip b{font:700 14px/1 var(--nav-display);color:var(--bar-ink)}
+.chip .k{color:var(--bar-muted)}
+.chip.next{background:color-mix(in srgb,var(--bar-foil) 22%,var(--bar-chip))}
+.nav button,.nav select{font:600 12px/1 var(--nav-body);color:var(--bar-ink);background:var(--bar-chip);border:1px solid transparent;border-radius:6px;padding:7px 10px;cursor:pointer}
+.nav button:hover,.nav select:hover{border-color:var(--bar-foil)}
+.nav button:focus-visible,.nav select:focus-visible{outline:2px solid var(--bar-foil);outline-offset:1px}
+.live{display:inline-flex;align-items:center;gap:6px;font:12px var(--nav-mono);color:var(--bar-muted);white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--bar-muted);display:inline-block}
+.dot.on{background:#3ddc84;box-shadow:0 0 0 3px rgba(61,220,132,.25)}
+.dot.err{background:#ff6b5e}
+@media (max-width:1600px){.nav .tabs-nav a span{display:none}.nav .tabs-nav a{padding:8px 12px}}
+@media (max-width:1500px){.nav-right .chip.opt{display:none}}
+@media (max-width:1100px){
+  .nav-in{grid-template-columns:1fr auto;padding-block:6px}
+  .tabs-nav{grid-column:1 / -1;grid-row:2}
+  .nav-right .chip.opt{display:none}
+}
+@media (max-width:560px){
+  .brand .nm small{display:none}
+  .nav-in{grid-template-columns:minmax(0,1fr);gap:6px}
+  .nav-right{justify-content:flex-start;min-width:0}
+  .nav-right .chip:not(.next),#nv-theme{display:none}
+  .chip.next{min-width:0;max-width:100%}
+  .chip.next .k{max-width:8.5rem;overflow:hidden;text-overflow:ellipsis}
+}
+
