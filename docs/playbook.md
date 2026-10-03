@@ -72,6 +72,8 @@ Con SAL en 9/10, `value?card=SAL-10` pasó de 77 a **149,9** = 77 + 25 % × pág
 - **Hoy no hay nada rentable que comprar** (lo mejor: LAT-06 a 22 con valor 22,5 → −2,5 tras la comisión).
 
 ## Mapa de affinity de los rivales (deducido de sus compras; actualizar)
+> 🆕 **Fuente viva: `python3 affinity.py`** (D-011): probabilidad por equipo y barrio, con intervalo de confianza. `--set SAL` ordena quién valora más un barrio; `--card SAL-10 --price 80` dice a quién venderle y a quién comprarle a ese precio. Las tablas de abajo son la lectura a ojo de los ticks 0–111 y sirven como contraste.
+
 | Equipo | Compra a otros equipos o a la Abuela | Affinity alta probable | Vende | Baja probable |
 |---|---|---|---|---|
 | t13 | SAL (×4 a la Abuela), MAL a 6 a equipos, MAL-08 a 26 | SAL, MAL | LAT-09 (rara) a 65 | LAT |

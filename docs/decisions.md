@@ -8,6 +8,13 @@ Entradas cortas y fechadas: qué decidimos, por qué, y qué haría cambiarlo. L
 3. ~~**Espejo de duelos**~~ → revisado en D-010: cada pareja es el mismo equipo (misma plantilla de texto con alias distinto); 5 equipos consistentes con el espejo y 2 que cruzan su límite en ambos sentidos.
 4. **Mercado:** ¿abrimos el mercado (fianza de 250 + 20 P) antes del próximo Market Test o seguimos con el puesto gratuito? Con `starter_broker.py` sacamos lo mismo que el puesto (la mitad de los puntos). La ventaja real es cobrar poca comisión para atraer el comercio entre equipos (`market` = 0 para todos; solo t06 tiene mercado, al 0,5 %).
 
+## D-011 · sáb 3 oct · Multiplicadores de los rivales: estimación bayesiana, no tablas a ojo
+`agent/affinity.py` + `affinity.py`. Por equipo, las 720 permutaciones de {0,5…1,6} con prior uniforme; cada trade entre equipos, compra/venta a un vendedor, puja/oferta publicada y salto de `negotiating` en el leaderboard es una verosimilitud suave del multiplicador del barrio de la carta (mezclas para repetidos y bonus de página, suelo EPS para jugadas irracionales). Sustituye al "mapa de affinity" a ojo del playbook.
+- Para decidir: `--card X --price P` da P(el equipo valora X ≥ P). Vender solo a quien sale COMPRADOR al nivel de confianza fijado (80 % por defecto); comprar a quien sale VENDEDOR. Las cifras de la oferta siguen saliendo de nuestro valor (D-002, D-007); esto solo elige contraparte y ancla.
+- Calibración: en simulación el intervalo del 80 % contiene el valor real el 92–97 % de las veces (conservador) y nombra bien el ×1,6 en 6–9 de 12 equipos. Sobre nosotros (t18, a ciegas) acierta 5/6 barrios al 80 %; falla SAL porque nuestras compras de SAL son anteriores al tick 76 y no están grabadas.
+- La evolución de la puntuación solo cuenta para los intervalos grabados: `python3 affinity.py --watch 60` siempre en marcha (2 GET públicos por minuto).
+**Revisar si** `--calibrate` deja de contener nuestra affinity real en su intervalo del 80 %, o si los organizadores confirman que los multiplicadores no son una permutación.
+
 ## D-010 · vie 2 oct · Duelos v2: anclar alto, hablar poco, que el rival cruce
 Detalle en [duels-strategy.md](duels-strategy.md). De la práctica (24 duelos, transcripciones completas):
 - `rounds` = mín(mensajes nuestros, del rival): contra un rival callado ceder a pasitos es gratis; contra uno que concede solo, callarse es gratis.
