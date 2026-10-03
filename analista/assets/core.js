@@ -14,12 +14,14 @@ const Core = (() => {
     {href: "equipo.html", file: "equipo.html", name: "Equipo", sub: "cartas, caja, top 3"},
     {href: "duelos.html", file: "duelos.html", name: "Duelos", sub: "sesiones y rendimiento"},
     {href: "mercado.html", file: "mercado.html", name: "Mercado", sub: "libros, precios, venues"},
+    {href: "rivales.html", file: "rivales.html", name: "Rivales", sub: "qué hacen y cómo responder"},
     {href: "barrios.html", file: "barrios.html", name: "Barrios", sub: "multiplicadores rivales"},
     {href: "scoring.html", file: "scoring.html", name: "Scoring", sub: "qué pesa cada punto"},
     {href: "jurado.html", file: "jurado.html", name: "Jurado", sub: "demo para jueces"},
   ];
   const KEEP = new Set(["settlement", "offer.listed", "offer.cancelled", "duel.closed", "duels.scheduled",
-    "venue.announcement", "venue.opened", "venue.closed", "venue.fee_changed", "schedule.fired", "bench.started"]);
+    "venue.announcement", "venue.opened", "venue.closed", "venue.fee_changed", "schedule.fired", "bench.started",
+    "thread.opened", "level.unlocked", "taller.crafted", "venue.closing", "news.posted", "gift.given", "badge.awarded", "pack.opened"]);
   // Topes de dealers: plan-public.js (generado desde config/plan.json del repo por jury.report), con copia de respaldo.
   // Son los límites del repo, no la configuración que el operador tenga cargada. Multiplicadores: docs/knowledge.md.
   const DEALER_MAX = (globalThis.T18PublicPlan && globalThis.T18PublicPlan.dealer_max) || {"RET-01":11,"RET-02":11,"RET-03":11,"RET-04":11,"RET-05":11,"RET-06":25,"RET-07":25,"RET-08":31,"RET-09":90,"RET-10":90,
@@ -98,7 +100,10 @@ const Core = (() => {
     if (!r.ok) throw new Error(path + " → HTTP " + r.status);
     return r.json();
   }
-  function slim(e) { return {id: e.id, tick: e.tick, t: e.t, type: e.type, actor: e.actor, payload: e.payload, seen: Date.now()}; }
+  function slim(e) {                         // thread.opened es frecuente: se guarda sin el tema
+    const p = e.type === "thread.opened" ? {team: (e.payload || {}).team, with: (e.payload || {}).with, kind: (e.payload || {}).kind} : e.payload;
+    return {id: e.id, tick: e.tick, t: e.t, type: e.type, actor: e.actor, payload: p, seen: Date.now()};
+  }
   function recordLb() {
     const lb = state.lb; if (!lb || !lb.teams) return;
     const tick = lb.snapshot_tick ?? lb.tick;

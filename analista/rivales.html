@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rivales · Mesa del Analista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/nav.css">
+<style>
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+tr.us td{background:color-mix(in srgb,var(--foil) 10%,transparent);font-weight:600}
+tr.pick td{background:color-mix(in srgb,var(--cobalt) 10%,transparent)}
+#matrix tbody tr{cursor:pointer}
+.gap{display:grid;grid-template-columns:3.4rem 1fr 1fr 4.2rem;gap:8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums}
+.gap .h{font:500 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.gap .track{height:14px;background:var(--chip);border-radius:3px;position:relative;overflow:hidden}
+.gap .fill{position:absolute;top:0;bottom:0;border-radius:3px}
+.gap .zero{position:absolute;top:-2px;bottom:-2px;left:50%;width:1px;background:var(--muted)}
+.play{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.play li{overflow-wrap:anywhere;min-width:0;border:1px solid var(--rule);border-left:5px solid var(--cobalt);border-radius:0 8px 8px 0;padding:12px 14px;display:grid;gap:6px;background:var(--sheet)}
+.play li.p1{border-left-color:var(--bad)} .play li.p2{border-left-color:var(--warn)} .play li.p3{border-left-color:var(--ok)}
+.play li .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
+.play li .t b{font:800 16px/1.25 var(--f-display)}
+.play li .ev{font-size:12.5px;color:var(--muted)}
+.play li .do{font-size:13.5px}
+.play li .do code{font-size:12px}
+.detail{display:grid;gap:10px}
+.detail h3{margin:0}
+.flow td.cell{text-align:center;font-variant-numeric:tabular-nums}
+.ann{display:grid;gap:6px}
+.ann div{font-size:12.5px;padding:7px 10px;background:var(--chip);border-radius:6px}
+.ann div.mention{outline:2px solid var(--warn)}
+.ann small{font:11px var(--f-mono);color:var(--muted);margin-right:6px}
+.seg button{font-size:12.5px}
+@media (max-width:900px){.c7,.c5,.c8,.c4,.c6{grid-column:span 12}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="pagehead">
+    <div><span class="eyebrow">Competencia en vivo</span><h1>Rivales</h1></div>
+    <p>Por qué suben los demás y qué hacemos nosotros. Cruza la clasificación pública (negociación + mercado, sobre 60), los mercados de equipo, los tratos con dealers y los desbloqueos de nivel del feed. Las recomendaciones son propuestas para el operador: el panel no escribe en el juego.</p>
+  </div>
+  <div id="alerts" aria-live="polite"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <section class="panel c12">
+      <header><h2>Plan de respuesta</h2><span class="small muted">se recalcula con cada lectura · prioridad 1 = hacer ya</span></header>
+      <ol class="play" id="play"></ol>
+    </section>
+
+    <section class="panel c7">
+      <header><h2>De dónde sale la ventaja de cada rival</h2><span class="small muted">diferencia con t18 · negociación y mercado (puntos de clasificación)</span></header>
+      <div id="gaps"></div>
+      <p class="small muted">Barra a la derecha: el rival nos saca puntos en ese componente. A la izquierda: le sacamos nosotros. El mercado parte de 7,5 (el puesto automático gratuito, sin tratos).</p>
+    </section>
+    <section class="panel c5">
+      <header><h2>Evolución</h2>
+        <span class="seg" id="evseg"><button type="button" data-k="score">Total</button><button type="button" data-k="neg">Negociación</button><button type="button" data-k="market">Mercado</button></span></header>
+      <div class="chart" id="evchart"></div>
+      <div class="legend" id="evlegend"></div>
+      <p class="small muted">Top 5 actual y t18 (en grueso). Historia guardada en este navegador mientras la Mesa está abierta, misma ronda.</p>
+    </section>
+
+    <section class="panel c12">
+      <header><h2>Matriz de rivales</h2><span class="small muted">haz clic en una fila para ver su estrategia · cabeceras ordenables</span></header>
+      <div class="scroll"><table id="matrix"><thead></thead><tbody></tbody></table></div>
+      <p class="small muted">Tratos con dealers e hilos: feed grabado desde el viernes (tick <span id="seedfrom">—</span>) más lo que esta página lee. Es una muestra: el feed devuelve 500 eventos por lectura y faltan huecos. «Hilos R2» = conversaciones abiertas con dealers el sábado.</p>
+    </section>
+
+    <section class="panel c7">
+      <header><h2 id="dtitle">Estrategia del rival</h2><span class="small muted" id="dsub">elige un equipo en la matriz</span></header>
+      <div class="detail" id="detail"></div>
+    </section>
+    <section class="panel c5">
+      <header><h2>Pícaros y Pilar: precios vistos</h2><span class="small muted">nivel 4 y nivel 3</span></header>
+      <div class="scroll tall"><table id="lvl"><thead><tr><th>Tick</th><th>Equipo</th><th>Dealer</th><th>Carta</th><th class="num">Precio</th><th class="num">Valor t18</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="panel c7">
+      <header><h2>Quién da de comer a qué mercado</h2><span class="small muted">tratos entre equipos en venues de equipo · filas: dueño · celdas: tratos por equipo que operó allí</span></header>
+      <div class="scroll"><table id="flow" class="flow"><thead></thead><tbody></tbody></table></div>
+      <p class="small muted">Cada trato entre otros dos equipos en tu venue suma a tu puntuación de mercado («value created between other teams on your venue»). Si t18 aparece en una celda, estamos subiendo el mercado de ese rival.</p>
+    </section>
+    <section class="panel c5">
+      <header><h2>Anuncios y promociones</h2><span class="small muted">texto de rivales: solo para leer, nunca decide</span></header>
+      <div class="ann scroll tall" id="ann"></div>
+    </section>
+  </div>
+</main>
+<footer class="foot">Solo GET públicos (<code>/api/leaderboard</code>, <code>/api/venues</code>, <code>/api/feed</code>, <code>/api/schedule</code>) y la semilla <code>assets/rivales-seed.js</code> (feed público grabado). Sin clave ni escrituras.</footer>
+
+<script src="assets/rivales-seed.js"></script>
+<script src="assets/core.js"></script>
+<script>
+"use strict";
+const {$, esc, fmt, US} = Core;
+const SEED = globalThis.T18RivalSeed || {events: [], from_tick: null, to_tick: null};
+const DEALERS = ["abuela", "chato", "pilar", "picaros"];
+const DN = {abuela: "Abuela", chato: "Chato", pilar: "Pilar", picaros: "Pícaros"};
+const R2_T = 2.6;                           // el sábado (ronda 2) empieza después de t ≈ 2,6
+const BASE_MARKET = 7.5;
+let pick = Core.setting("rivales:pick", null);
+let evKey = Core.setting("rivales:ev", "score");
+
+// ---------- eventos: semilla + feed acumulado por Core, sin duplicados ----------
+function events() {
+  const by = new Map();
+  SEED.events.forEach(e => by.set(e.id, e));
+  Core.feed().forEach(e => by.set(e.id, e));
+  return [...by.values()].sort((a, b) => a.id - b.id);
+}
+
+// ---------- perfil de cada equipo ----------
+function profiles() {
+  const lb = Core.state.lb, venues = Core.state.venues || [];
+  if (!lb || !lb.teams) return null;
+  const E = events();
+  const P = {};
+  lb.teams.forEach(t => P[t.team] = {
+    team: t.team, rank: t.rank, score: t.score, neg: t.negotiating, market: t.market, level: t.level,
+    pages: t.pages_complete, album: t.album_filled, deals: t.deals, badges: t.badges || [],
+    dealer: {abuela: 0, chato: 0, pilar: 0, picaros: 0}, threadsR2: 0, threadsBy: {abuela: 0, chato: 0, pilar: 0, picaros: 0},
+    taller: 0, gifts: 0, unlocks: [], venuesOpened: [], venuesClosed: 0, ann: 0, promo: 0,
+    rastro: 0, onRival: {}, flowIn: {}, picBuys: [], pilarSales: [], venue: null,
+  });
+  const ownerOf = {};
+  venues.forEach(v => { ownerOf[v.venue] = v.owner; if (P[v.owner] && v.status === "open" && (!P[v.owner].venue || !v.starter)) P[v.owner].venue = v; });
+  E.forEach(e => { if (e.type === "venue.opened") ownerOf[e.payload.venue] = e.payload.owner; });
+  E.forEach(e => {
+    const p = e.payload || {};
+    if (e.type === "settlement") {
+      const teams = (p.parties || []).filter(x => P[x]);
+      if (p.persona) {
+        teams.forEach(t => { if (p.persona in P[t].dealer) P[t].dealer[p.persona]++; });
+        const card = (p.items || []).find(i => i.kind === "card") || {};
+        const row = {tick: e.tick, team: teams[0], dealer: p.persona, ref: card.ref, rarity: card.rarity, price: p.price, frm: card.frm};
+        if (p.persona === "picaros" && teams[0]) P[teams[0]].picBuys.push(row);
+        if (p.persona === "pilar" && teams[0]) P[teams[0]].pilarSales.push(row);
+      } else if (p.venue === "rastro") teams.forEach(t => P[t].rastro++);
+      else if (p.venue) {
+        const own = ownerOf[p.venue];
+        teams.forEach(t => {
+          if (own && P[own] && own !== t) {
+            P[own].flowIn[t] = (P[own].flowIn[t] || 0) + 1;
+            P[t].onRival[own] = (P[t].onRival[own] || 0) + 1;
+          }
+        });
+      }
+    } else if (e.type === "thread.opened" && P[p.team] && (e.t == null || e.t >= R2_T)) {
+      P[p.team].threadsR2++; if (p.with in P[p.team].threadsBy) P[p.team].threadsBy[p.with]++;
+    } else if (e.type === "level.unlocked" && P[p.team]) P[p.team].unlocks.push({tick: e.tick, level: p.level, persona: p.persona, why: p.why});
+    else if (e.type === "taller.crafted" && P[p.team]) P[p.team].taller++;
+    else if (e.type === "gift.given" && P[p.team]) P[p.team].gifts++;
+    else if (e.type === "venue.opened" && P[p.owner]) P[p.owner].venuesOpened.push({tick: e.tick, venue: p.venue, mech: (p.rules || {}).mechanism, name: p.name});
+    else if (e.type === "venue.closed" && !p.replaced && P[ownerOf[p.venue]]) P[ownerOf[p.venue]].venuesClosed++;
+    else if (e.type === "venue.announcement" && P[ownerOf[p.venue]]) {
+      const o = P[ownerOf[p.venue]]; o.ann++;
+      if (/cashback|free|gratis|promo|regalo|pays? .* back/i.test(p.text || "")) o.promo++;
+    }
+  });
+  const h1 = Core.histAgo(3600e3);
+  Object.values(P).forEach(o => {
+    o.d1h = h1 && h1.teams[o.team] ? o.score - h1.teams[o.team].score : null;
+    o.mExtra = o.market - BASE_MARKET;
+    o.flowInN = Object.values(o.flowIn).reduce((a, b) => a + b, 0);
+    o.tags = tags(o);
+  });
+  return P;
+}
+
+function tags(o) {
+  const t = [];
+  if (o.level >= 4) t.push(["ok", "nivel 4"]);
+  if (o.picBuys.length) t.push(["ok", `Pícaros ×${o.picBuys.length}`]);
+  if (o.dealer.pilar >= 3) t.push(["info", `vende a Pilar ×${o.dealer.pilar}`]);
+  if (o.mExtra > 0.2) t.push(["ok", `mercado +${fmt(o.mExtra, 1)}`]);
+  if (o.mExtra < -0.2) t.push(["bad", `mercado ${fmt(o.mExtra, 1)}`]);
+  if (o.venue && !o.venue.starter) t.push(["info", (o.venue.rules || {}).mechanism === "board" ? "venue con bróker" : "venue propio auto"]);
+  if (o.promo) t.push(["warn", "promos/cashback"]);
+  if (o.venuesClosed) t.push(["warn", `cierra venues ×${o.venuesClosed}`]);
+  if (o.threadsR2 >= 40) t.push(["info", "volumen con dealers"]);
+  if (o.taller) t.push(["info", `taller ×${o.taller}`]);
+  if (o.rastro >= 12) t.push(["info", "El Rastro"]);
+  if (o.deals && o.neg / o.deals > 0.8) t.push(["ok", "pocos tratos, buenos"]);
+  return t;
+}
+const pills = ts => `<span class="pills">${ts.map(([c, x]) => `<span class="pill ${c}">${esc(x)}</span>`).join("")}</span>`;
+
+// ---------- calendario ----------
+function nextEvent(re) { return Core.upcoming(e => re.test(e.action) || re.test(e.note || ""))[0] || null; }
+function when(e) {
+  if (!e) return "—";
+  const w = Core.wallOf(e.at_hours);
+  return w ? `${Core.hhmm(w)} (en ${Core.cd(w - Date.now())})` : `t ${fmt(e.at_hours, 2)}`;
+}
+
+// ---------- plan de respuesta ----------
+function playbook(P) {
+  const me = P[US]; if (!me) return [];
+  const all = Object.values(P), top = all.filter(o => o.team !== US).sort((a, b) => b.score - a.score);
+  const leader = top[0], out = [];
+  const lvl4 = all.filter(o => o.level >= 4 && o.team !== US);
+  const picEv = nextEvent(/persona_opens/);
+  const picAll = Core.upcoming(e => e.action === "persona_opens" && (e.params || {}).persona === "picaros")[0] || null;
+  const picRows = all.flatMap(o => o.picBuys).filter(r => r.frm === "picaros" && r.rarity === "rare");
+  const picMed = Core.median(picRows.map(r => r.price));
+
+  if (me.level < 4) {
+    const top5 = top.slice(0, 5), top4 = top5.filter(o => o.level >= 4);
+    out.push({p: 1, title: "Cerrar el hueco de nivel 4 (Los Pícaros)",
+      ev: `${lvl4.length} equipos ya están en nivel 4 (${lvl4.map(o => o.team).join(", ")}), ${top4.length} de los 5 primeros: ${top4.map(o => `${o.team} neg ${fmt(o.neg)}`).join(", ")} (t18: ${fmt(me.neg)}). La escalera cuenta los 3 mejores tratos de cada nivel, un hueco vale 0 y los niveles altos pesan más: hoy nuestro nivel 4 vale 0. Se desbloquea con 2–3 tratos con Pilar (llevamos ${me.dealer.pilar}) o cuando Pícaros abra para todos.`,
+      do: `Pícaros abre para todos ${picAll ? when(picAll) : "(ver calendario)"}. Vende raras ${picMed != null ? `a una mediana de <b>${fmt(picMed, 0)} P</b> (${picRows.length} ventas vistas)` : "a ~63 P de lista"} frente a 86 P de El Chato, y compra comunes e infrecuentes. Objetivo: <b>3 tratos con ganancia</b> a nuestros valores. Hoy, raras de SAL (valor 77) o RET (91) solo si nos faltan; mañana <b>CHA rara vale 112</b>: comprarlas a Pícaros en vez de a El Chato ahorra ~25 P por carta y llena el nivel 4. Requiere código: plantilla <code>picaros_buy</code> en <code>agent/talk.py</code> + perfil <code>"CHA:rare": {"dealer": "picaros", ...}</code> con <code>fallback_dealer: "chato"</code> en <code>config/plan.json</code>, con test. Ojo: son «tricksters» (sus plazos son falsos); decidir solo por la estructura de la oferta, como siempre.`});
+  }
+
+  const mkt = all.filter(o => o.team !== US && o.mExtra > 0.2).sort((a, b) => b.mExtra - a.mExtra);
+  if (me.mExtra <= 0.2 && mkt.length) {
+    const broken = all.filter(o => o.mExtra < -0.2);
+    out.push({p: 2, title: "Mercado: no regalar puntos a sus venues",
+      ev: `${mkt.length} rivales suman puntos de mercado sobre la base de 7,5: ${mkt.slice(0, 5).map(o => `${o.team} +${fmt(o.mExtra, 1)}`).join(", ")}. Basta un trato ajeno en su venue: t14 tiene el puesto gratuito con 1 trato y ya sube. Nosotros: ${fmt(me.market)} (puesto v18, ${me.venue ? me.venue.trades : 0} tratos). ${broken.length ? `Abrir un venue «board» sin bróker resta: ${broken.map(o => `${o.team} ${fmt(o.market)}`).join(", ")}.` : ""}`,
+      do: `Nuestra Gate no puede abrir venues ni anunciar (D4), así que el mercado se defiende negando flujo: comprar en un venue de un rival del top ${5} solo con ganancia ≥ 10 P (ya es la regla D2, <code>RIVAL_VENUE_MIN_GAIN</code>); no subir a 0 % a su venue lo que se puede vender a un dealer o en El Rastro. ${me.onRivalN ? `<b>Ya hemos operado en venues rivales ${me.onRivalN} veces</b> (${Object.entries(me.onRival).map(([k, v]) => `${k}×${v}`).join(", ")}).` : "No vemos tratos nuestros en venues rivales: mantenerlo."} No abrir venue propio sin bróker probado.`});
+  }
+
+  const pilarEv = Core.upcoming(e => e.action === "persona_patch" && /Salamanca/i.test(e.note || ""))[0];
+  const pilarEnd = Core.upcoming(e => e.action === "persona_patch" && /breaks/i.test(e.note || ""))[0];
+  const pilarAll = all.flatMap(o => o.pilarSales).filter(r => r.frm !== "pilar");
+  const pilarOurs = me.pilarSales.filter(r => r.frm === US);
+  const lossOurs = pilarOurs.filter(r => Core.value(r.ref, r.rarity) != null && r.price < Core.value(r.ref, r.rarity));
+  if (pilarEv || pilarEnd) {
+    out.push({p: 2, title: "Fiebre de Salamanca: Pilar paga un 25 % sobre libro",
+      ev: `${pilarAll.length} ventas a Pilar vistas; SAL/RET infrecuentes a ${fmt(Core.median(pilarAll.filter(r => /^(SAL|RET)/.test(r.ref || "") && r.rarity === "uncommon").map(r => r.price)), 0)} P de mediana. ${lossOurs.length ? `<b>Nuestra venta</b> ${lossOurs.map(r => `${r.ref} a ${r.price} (valor ${fmt(Core.value(r.ref, r.rarity), 1)})`).join(", ")} fue por debajo de nuestro valor: con dealers las pérdidas sí restan (P-04).` : ""}`,
+      do: `Ventana ${pilarEv ? when(pilarEv) : "en curso"} → ${pilarEnd ? when(pilarEnd) : "—"}. Solo SAL que nos sobre (SAL y RET están protegidas por G13) y siempre ≥ valor + 1 (G30–G32). Cada venta con ganancia rellena un hueco del nivel 3 y nos acerca al nivel 4.`});
+  }
+
+  const bench = nextEvent(/^bench$/);
+  if (bench) out.push({p: 3, title: "Market Test: qué esperar",
+    ev: `Cada venue recibe el mismo libro sintético; el puesto automático gratuito saca la mitad de los puntos y la media del top 3 los saca enteros. Los que suben con bróker propio (board): ${all.filter(o => o.venue && !o.venue.starter && (o.venue.rules || {}).mechanism === "board" && o.mExtra > 0).map(o => o.team).join(", ") || "—"}.`,
+    do: `Próxima sesión ${when(bench)}. Con el puesto v18 (auto) aseguramos el suelo; no cerrar ni cambiar nada. Si alguien de código tiene un bróker probado contra <code>sim/</code>, es la única vía para pasar de 7,5.`});
+
+  const duel = nextEvent(/^duels$/);
+  if (duel) out.push({p: 2, title: `${(duel.params || {}).name || "Duelos"}: el pastel crece con los días`,
+    ev: `«${esc(duel.note || "")}». Los duelos son parte de los 30 de negociación y todos los equipos juegan los mismos escenarios: es donde se puede recuperar terreno frente a ${leader ? leader.team : "el líder"} sin gastar caja.`,
+    do: `Empieza ${when(duel)}. Decidir <code>days_sign</code> con la calculadora de la Mesa en el primer duelo (docs/analista.md §1) y no pausar por rechazos G50 sueltos.`});
+
+  const promo = all.filter(o => o.promo && o.team !== US);
+  if (promo.length) out.push({p: 3, title: "Promociones y cashback de rivales",
+    ev: `${promo.map(o => `${o.team} (${o.promo} anuncios)`).join(", ")} pagan o regalan por operar en su venue. ${promo.filter(o => o.venuesClosed).map(o => `${o.team} ha cerrado ${o.venuesClosed} venues y su mercado está en ${fmt(o.market)}`).join("; ")}.`,
+    do: `Ignorar: los regalos no puntúan para nadie y cerrar un venue tras una buena sesión no conserva nada. Solo aceptar si el trato en sí es ganancia ≥ 10 P (regla D2).`});
+
+  const mention = annList().filter(a => a.mention);
+  if (mention.length) out.push({p: 2, title: "Nos están usando de cebo",
+    ev: `${mention.length} anuncios nos nombran: ${mention.slice(-2).map(a => `${a.owner || a.venue}: «${esc(a.text.slice(0, 110))}…»`).join(" · ")}`,
+    do: `Saben qué cartas buscamos. Si compramos esas cartas en su venue les damos mercado: buscar antes el mismo precio en El Rastro o con la Abuela; en su venue solo con ganancia ≥ 10 P.`});
+
+  if (leader) {
+    const gapNeg = leader.neg - me.neg, gapMkt = leader.market - me.market;
+    out.push({p: 3, title: `Cuánto falta para el 1.º (${leader.team})`,
+      ev: `${leader.team} ${fmt(leader.score)} frente a ${fmt(me.score)}: ${fmt(leader.score - me.score)} puntos, de los que ${fmt(gapNeg)} son negociación y ${fmt(gapMkt)} mercado.`,
+      do: gapNeg > gapMkt ? "La distancia está sobre todo en negociación: nivel 4 + duelos es lo que más mueve." : "La distancia está sobre todo en mercado: negar flujo a su venue y priorizar negociación donde podemos actuar."});
+  }
+  return out.sort((a, b) => a.p - b.p);
+}
+
+// ---------- anuncios ----------
+function annList() {
+  const own = {}; (Core.state.venues || []).forEach(v => own[v.venue] = v.owner);
+  return events().filter(e => e.type === "venue.announcement").map(e => {
+    const text = Core.fixText((e.payload || {}).text || "");
+    return {tick: e.tick, venue: e.payload.venue, owner: own[e.payload.venue], text, mention: own[e.payload.venue] !== US && /\b(t18|team 18|teams? [\d ,and]*18)\b/i.test(text)};
+  });
+}
+
+// ---------- render ----------
+function render() {
+  const P = profiles();
+  $("#seedfrom").textContent = SEED.from_tick ?? "—";
+  if (!P) { $("#kpis").innerHTML = '<div class="empty">cargando clasificación…</div>'; return; }
+  const me = P[US], all = Object.values(P);
+  me.onRivalN = Object.values(me.onRival).reduce((a, b) => a + b, 0);
+  const leader = all.filter(o => o.team !== US).sort((a, b) => b.score - a.score)[0];
+  const lvl4 = all.filter(o => o.level >= 4).length;
+  const fast = all.filter(o => o.d1h != null && o.team !== US).sort((a, b) => b.d1h - a.d1h)[0];
+  const mBest = all.slice().sort((a, b) => b.market - a.market)[0];
+
+  $("#kpis").innerHTML = [
+    ["Nuestra posición", `${me.rank}.º`, `${fmt(me.score)} · neg ${fmt(me.neg)} · mercado ${fmt(me.market)}`, true],
+    ["Distancia al 1.º", leader && leader.score > me.score ? fmt(leader.score - me.score) : "líderes", leader ? `${leader.team} ${fmt(leader.score)}` : ""],
+    ["Nivel de dealers", `${me.level} / 4`, `${lvl4} equipos en nivel 4`],
+    ["Mercado", fmt(me.market), `máximo ${mBest.team} ${fmt(mBest.market)} · base 7,5`],
+    ["Sube más rápido", fast ? fast.team : "—", fast ? `${fast.d1h >= 0 ? "+" : ""}${fmt(fast.d1h)} en 1 h` : "hace falta 1 h de historia"],
+  ].map(([k, v, s, hl]) => `<div class="kpi ${hl ? "hl" : ""}"><span class="eyebrow">${esc(k)}</span><span class="v">${esc(v)}</span><span class="s">${esc(s)}</span></div>`).join("");
+
+  const al = [];
+  if (me.level < 4) al.push(["warn", `Seguimos en nivel ${me.level}: ${lvl4} equipos ya puntúan en el nivel 4 (Pícaros).`]);
+  if (me.rank > 3) al.push(["warn", `Fuera del podio: ${me.rank}.º con ${fmt(me.score)}.`]);
+  const close = all.filter(o => o.team !== US && o.score < me.score && me.score - o.score < 0.5);
+  if (close.length) al.push(["info", `A menos de 0,5 por detrás: ${close.map(o => `${o.team} ${fmt(o.score)}`).join(", ")}.`]);
+  const ment = annList().filter(a => a.mention);
+  if (ment.length) al.push(["info", `${ment.length} anuncios de venues rivales mencionan a t18.`]);
+  Core.alerts(al);
+
+  $("#play").innerHTML = playbook(P).map(x => `<li class="p${x.p}"><div class="t"><b>${esc(x.title)}</b><span class="pill">prioridad ${x.p}</span></div><div class="ev">${x.ev}</div><div class="do">→ ${x.do}</div></li>`).join("") || '<li class="empty">sin datos</li>';
+
+  // brecha por componente
+  const rivals = all.filter(o => o.team !== US).sort((a, b) => b.score - a.score).slice(0, 10);
+  const m = Math.max(1e-9, ...rivals.flatMap(o => [Math.abs(o.neg - me.neg), Math.abs(o.market - me.market)]));
+  const half = (v, col) => { const w = Math.abs(v) / m * 50; return `<span class="track"><span class="fill" style="left:${v < 0 ? 50 - w : 50}%;width:${w}%;background:${v < 0 ? "var(--ok)" : col}"></span><span class="zero"></span></span>`; };
+  $("#gaps").innerHTML = `<div class="gap"><span class="h">equipo</span><span class="h">negociación</span><span class="h">mercado</span><span class="h" style="text-align:right">total</span></div>` +
+    rivals.map(o => `<div class="gap"><span><b>${esc(o.team)}</b></span>${half(o.neg - me.neg, "var(--s1)")}${half(o.market - me.market, "var(--s2)")}<span class="num" style="text-align:right">${o.score >= me.score ? "+" : ""}${fmt(o.score - me.score)}</span></div>`).join("");
+
+  // evolución
+  $("#evseg").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === evKey));
+  const round = Core.state.lb.round, H = Core.D.hist.filter(h => h.round === round);
+  const show = [...rivals.slice(0, 5).map(o => o.team), US];
+  const series = show.map((t, i) => ({name: t, bold: t === US, color: t === US ? "var(--foil)" : Core.COLORS[i % 6],
+    pts: H.filter(h => h.teams[t]).map(h => [h.ts, h.teams[t][evKey]])}));
+  $("#evchart").innerHTML = Core.lineChart(series, {xfmt: v => Core.hhmm(v), label: "evolución por equipo", empty: "deja la Mesa abierta: guarda una foto cada 30 s"});
+  $("#evlegend").innerHTML = Core.legend(series);
+
+  // matriz
+  const rows = all.map(o => ({...o, pil: o.dealer.pilar, pic: o.dealer.picaros, ab: o.dealer.abuela, ch: o.dealer.chato,
+    vtr: o.venue ? o.venue.trades : 0, threat: o.team === US ? null : +(o.score - me.score + (o.d1h || 0)).toFixed(2)}));
+  Core.sortable($("#matrix"), rows, [
+    {key: "rank", label: "#", sort: 1, num: 1}, {key: "team", label: "Equipo", sort: 1},
+    {key: "score", label: "Total", sort: 1, num: 1}, {key: "d1h", label: "Δ 1 h", sort: 1, num: 1},
+    {key: "neg", label: "Neg.", sort: 1, num: 1}, {key: "market", label: "Merc.", sort: 1, num: 1},
+    {key: "level", label: "Nivel", sort: 1, num: 1}, {key: "pages", label: "Págs.", sort: 1, num: 1},
+    {key: "ab", label: "Abuela", sort: 1, num: 1}, {key: "ch", label: "Chato", sort: 1, num: 1},
+    {key: "pil", label: "Pilar", sort: 1, num: 1}, {key: "pic", label: "Pícaros", sort: 1, num: 1},
+    {key: "threadsR2", label: "Hilos R2", sort: 1, num: 1}, {key: "vtr", label: "Tratos venue", sort: 1, num: 1},
+    {key: "threat", label: "Amenaza", sort: 1, num: 1}, {key: "tags", label: "Patrones"},
+  ], o => `<tr data-team="${esc(o.team)}" class="${o.team === US ? "us" : ""} ${o.team === pick ? "pick" : ""}">
+      <td class="num">${o.rank}</td><td><b>${esc(o.team)}</b></td><td class="num">${fmt(o.score)}</td>
+      <td class="num ${o.d1h > 0 ? "up" : o.d1h < 0 ? "down" : ""}">${o.d1h == null ? "—" : (o.d1h > 0 ? "+" : "") + fmt(o.d1h)}</td>
+      <td class="num">${fmt(o.neg)}</td><td class="num">${fmt(o.market)}</td><td class="num">${o.level}</td><td class="num">${o.pages}</td>
+      <td class="num">${o.ab}</td><td class="num">${o.ch}</td><td class="num">${o.pil}</td><td class="num">${o.pic}</td>
+      <td class="num">${o.threadsR2}</td><td class="num">${o.vtr}</td><td class="num">${o.threat == null ? "—" : fmt(o.threat)}</td><td>${pills(o.tags)}</td></tr>`, "rank", 1);
+  $("#matrix tbody").querySelectorAll("tr[data-team]").forEach(tr => tr.onclick = () => { pick = tr.dataset.team; Core.set("rivales:pick", pick); });
+
+  renderDetail(P);
+
+  // Pícaros y Pilar
+  const lv = all.flatMap(o => [...o.picBuys, ...o.pilarSales]).sort((a, b) => b.tick - a.tick);
+  $("#lvl tbody").innerHTML = lv.map(r => { const v = Core.value(r.ref, r.rarity), buy = r.frm === r.dealer;
+    return `<tr class="${r.team === US ? "us" : ""}"><td class="num">${r.tick}</td><td>${esc(r.team)}</td><td>${esc(DN[r.dealer])} <span class="muted small">${buy ? "vende" : "compra"}</span></td><td>${esc(r.ref)} <span class="muted small">${esc(r.rarity || "")}</span></td><td class="num">${r.price}</td><td class="num ${v == null ? "" : (buy ? v > r.price : r.price > v) ? "up" : "down"}">${v == null ? "—" : fmt(v, 1)}</td></tr>`; }).join("") || '<tr><td colspan="6" class="empty">sin tratos vistos</td></tr>';
+
+  // flujo entre venues
+  const owners = all.filter(o => o.flowInN).sort((a, b) => b.flowInN - a.flowInN);
+  const cols = [...new Set(owners.flatMap(o => Object.keys(o.flowIn)))].sort();
+  $("#flow thead").innerHTML = `<tr><th>Dueño</th><th class="num">Merc.</th>${cols.map(c => `<th class="num ${c === US ? "down" : ""}">${esc(c)}</th>`).join("")}<th class="num">Total</th></tr>`;
+  $("#flow tbody").innerHTML = owners.map(o => `<tr><td><b>${esc(o.team)}</b></td><td class="num">${fmt(o.market)}</td>${cols.map(c => { const n = o.flowIn[c] || 0;
+    return `<td class="cell" style="${n ? `background:color-mix(in srgb,${c === US ? "var(--bad)" : "var(--s1)"} ${Math.min(70, 15 + n * 12)}%,transparent)` : ""}">${n || ""}</td>`; }).join("")}<td class="num">${o.flowInN}</td></tr>`).join("") || `<tr><td class="empty">sin tratos en venues de equipo</td></tr>`;
+
+  // anuncios
+  $("#ann").innerHTML = annList().slice(-40).reverse().map(a => `<div class="${a.mention ? "mention" : ""}"><small>t${a.tick} · ${esc(a.venue)}${a.owner ? " · " + esc(a.owner) : ""}</small>${esc(a.text)}</div>`).join("") || '<div class="empty">sin anuncios</div>';
+}
+
+function renderDetail(P) {
+  const o = P[pick], me = P[US];
+  if (!o) { $("#detail").innerHTML = '<div class="empty">Haz clic en un equipo de la matriz.</div>'; $("#dtitle").textContent = "Estrategia del rival"; $("#dsub").textContent = "elige un equipo en la matriz"; return; }
+  $("#dtitle").textContent = `${o.team} · ${o.rank}.º · ${fmt(o.score)}`;
+  $("#dsub").textContent = `neg ${fmt(o.neg)} · mercado ${fmt(o.market)} · nivel ${o.level} · ${o.pages} páginas`;
+  const how = [], counter = [];
+  if (o.level >= 4) { how.push(`Llegó a nivel 4 (${o.unlocks.filter(u => u.level === 4).map(u => `tick ${u.tick}, ${esc(u.why)}`).join("; ") || "visto en la clasificación"}).`);
+    if (o.team !== US && me.level < 4) counter.push("Igualar el nivel 4: 3 tratos con ganancia con Pícaros en cuanto abran para todos."); }
+  if (o.picBuys.length) how.push(`Compra raras a Pícaros: ${o.picBuys.map(r => `${r.ref} a ${r.price}`).join(", ")}.`);
+  if (o.dealer.pilar) how.push(`${o.dealer.pilar} tratos con Pilar (precio mediano ${fmt(Core.median(o.pilarSales.map(r => r.price)), 0)}).`);
+  const v = o.venue;
+  if (v) { how.push(`Venue ${esc(v.venue)} «${esc(Core.fixText(v.name))}»: ${v.starter ? "puesto gratuito" : (v.rules || {}).mechanism}, comisión ${v.fee_bps / 100} %, ${v.trades} tratos, volumen ${v.volume} P.`);
+    if (o.mExtra > 0.2) counter.push(`Su mercado sube por tratos ajenos en ${esc(v.venue)}: no operar allí salvo ganancia ≥ 10 P.`);
+    if (o.mExtra < -0.2) how.push(`Su mercado está por debajo de la base (${fmt(o.market)}): venue con bróker que no rinde en el Market Test.`); }
+  if (o.flowInN) how.push(`Le operan en su venue: ${Object.entries(o.flowIn).map(([k, n]) => `${k}×${n}`).join(", ")}.`);
+  if (Object.keys(o.onRival).length) how.push(`Opera en venues ajenos: ${Object.entries(o.onRival).map(([k, n]) => `${k}×${n}`).join(", ")}.`);
+  if (o.venuesOpened.length) how.push(`Venues abiertos: ${o.venuesOpened.map(x => `${x.venue} (${x.mech}, t${x.tick})`).join(", ")}${o.venuesClosed ? `; ${o.venuesClosed} cerrados por él` : ""}.`);
+  if (o.promo) { how.push(`${o.promo} anuncios con promociones o cashback (${o.ann} anuncios en total).`); counter.push("No perseguir sus promociones: los regalos no puntúan."); }
+  how.push(`Con dealers: Abuela ${o.dealer.abuela}, Chato ${o.dealer.chato}; ${o.threadsR2} hilos abiertos el sábado (Abuela ${o.threadsBy.abuela}, Chato ${o.threadsBy.chato}, Pilar ${o.threadsBy.pilar}, Pícaros ${o.threadsBy.picaros}). El Rastro: ${o.rastro} tratos. Taller: ${o.taller}.`);
+  if (o.deals) how.push(`${o.deals} tratos en total: ${fmt(o.neg / o.deals, 2)} de negociación por trato (t18: ${fmt(me.neg / Math.max(1, me.deals), 2)}).`);
+  if (o.team !== US) {
+    const dn = o.neg - me.neg, dm = o.market - me.market;
+    counter.push(dn > dm ? `Nos saca ${fmt(dn)} en negociación: la respuesta es nivel 4 + duelos, no el mercado.` : `Nos saca ${fmt(dm)} en mercado: negarle flujo y ganarle en negociación.`);
+  }
+  $("#detail").innerHTML = `${pills(o.tags)}<h3>Qué hace</h3><ul class="small">${how.map(x => `<li>${x}</li>`).join("")}</ul>${counter.length ? `<h3>Cómo responder</h3><ul class="small">${counter.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}`;
+}
+
+$("#evseg").onclick = e => { const b = e.target.closest("button"); if (b) { evKey = b.dataset.k; Core.set("rivales:ev", evKey); } };
+Core.on(render);
+Core.start("rivales.html");
+</script>
+</body>
+</html>
