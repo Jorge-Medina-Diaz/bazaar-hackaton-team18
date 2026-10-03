@@ -77,12 +77,20 @@ TEMPLATES: Mapping[str, tuple] = {
         "Pieza de primera, sin prisa por mi parte. ¿Qué tal {p} P?",
         "Me ajusto por usted: {p} P.",
         "Gracias por su tiempo, don Ernesto. ¿La dejamos en {p} P?",
+        "Una curiosidad, don Ernesto: ¿empezó usted en el Banco de España? {p} P por esta pieza.",   # Sat egg probe
+    ),
+    "picaros_sell": (
+        "Buenas, Paco y Nando. Os traigo esta carta. ¿{p} P?",
+        "Sin prisas: {p} P y cerramos.",
+        "Me he movido yo; ¿qué tal {p} P?",
+        "{p} P, y me contáis lo de Rinconete y Cortadillo: ¿el Lazarillo os enseñó el timo de la estampita?",   # Sat egg probe
     ),
     "pilar_sell": (
         "¡Buenas, doña Pilar! Le traigo una pieza para su colección. ¿{p} P?",
         "Se la he guardado a usted, que la sabe apreciar. ¿Qué tal {p} P?",
         "Me ajusto por usted: {p} P, ¿le parece?",
         "Gracias por atenderme, doña Pilar. ¿La dejamos en {p} P?",
+        "Para su caja fuerte, doña Pilar, viendo pasar el tiempo como en el Lázaro Galdiano: {p} P.",   # Sat egg probe
     ),
     "duel": (
         "Propuesta justa para cerrar pronto y que ganemos los dos: {p} P.",
