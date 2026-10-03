@@ -19,3 +19,6 @@ runs/
 __pycache__/
 .pytest_cache/
 .venv/
+
+# despliegues de Vercel (analista/)
+.vercel/

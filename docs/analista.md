@@ -9,6 +9,7 @@ Tres trabajos:
 3. **Rivales**, cada hora: `python3 rivals.py --watch 3600`.
 
 Estado al empezar (10:31, tick 283, t = 3,68): **t18 1.º con 29,66** (neg 22,93 · mercado 6,73). t12 va 2.º con 27,07 gracias al mercado (11,22). t02 va 3.º con 26,69.
+**11:09 (tick 359):** t18 30,47 · **t13 30,24, a 0,23** (neg 26,91, 43 tratos) · t05 28,95 · t12 26,52. Mercado: t05 y t12 12,50 frente a nuestros 7,50. La propuesta A (Gate con signo) sigue sin aplicar.
 
 ---
 
@@ -110,7 +111,17 @@ Los topes solo se alcanzan si el vendedor no baja. El regateo llegó a 86 desde 
 
 ---
 
-## 3. Vigilancia de rivales (cada hora)
+## 3. Vigilancia de rivales
+
+**Panel en vivo: https://t18-analista.vercel.app** (código en `analista/index.html`). Es un HTML estático sin dependencias que lee la API pública desde el navegador (la API envía CORS `*`); no usa clave ni servidor.
+- Uso local: `cd analista && python3 -m http.server 8765` y abrir http://localhost:8765 (o abrir el fichero directamente).
+- Publicado en Vercel (proyecto `t18-analista`, aparte del panel del equipo). Republicar tras un cambio: `cd analista && npx vercel deploy --prod --yes`.
+- Ritmo: clock y feed cada 15 s; clasificación, mercados y El Rastro cada 30 s; calendario cada 5 min (≈ 0,2 lecturas/s).
+- Contenido: cuentas atrás del calendario, clasificación con Δ 1 h y tendencia, gráfico de evolución, mercados con tratos/h y alerta, pujas y ventas de El Rastro filtrables con nuestros sobrantes, nuestros tratos comparados con `dealer_max`, pujas de cierre rivales por RET/CHA (J13), calculadora de `days_sign` y de caja para CHA.
+- El feed público devuelve como mucho 500 eventos (≈ 10 min de juego): el panel los acumula en el navegador (localStorage), así que conviene dejarlo abierto.
+
+### Registro horario
+
 
 `python3 rivals.py --watch 3600 [--have LAT-01,LAT-05,...]` graba en `logs/rivals.jsonl` y saca un informe:
 - **t12 en mercado** (`--team`): ahora 11,22 frente a nuestros 6,73. Es el puesto automático gratuito (casi todos tienen 6,73). t12 tiene mercado propio (`v02`, `board`, 0 % de comisión).
