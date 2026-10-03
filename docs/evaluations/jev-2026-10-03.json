@@ -1,0 +1,351 @@
+{
+  "date": "2026-10-03",
+  "model": "typesafe/jev-1.13-20260917",
+  "real_game_operations": 0,
+  "repeats_per_case": 3,
+  "distinct_pattern_cases": 3,
+  "real_model_requests": 18,
+  "total_noul_evaluations": 90,
+  "declared_total_cost_usd": 0.001343286,
+  "reranking": {
+    "completed": true,
+    "evaluated_questions": 27,
+    "mean_recall_at_3": 0.8888888888888888,
+    "mean_baseline_recall_at_3": 0.8888888888888888,
+    "known_successful_cost_usd": 0.000751716
+  },
+  "patterns": {
+    "completed": true,
+    "evaluated_questions": 63,
+    "correct_at_05": 63,
+    "incorrect_at_05": 0,
+    "mean_brier": 0.0054,
+    "median_request_ms": 286.041,
+    "successful_cost_usd": 0.00059157,
+    "per_case": {
+      "thread-68": {
+        "completed_repeats": 3,
+        "score_ranges": {
+          "concession_observed": [
+            0.95,
+            0.95
+          ],
+          "stall_observed": [
+            0.08,
+            0.09
+          ],
+          "verbal_agreement": [
+            0.05,
+            0.05
+          ],
+          "linked_settlement": [
+            0.05,
+            0.05
+          ],
+          "politeness_causal_proof": [
+            0.04,
+            0.05
+          ],
+          "larger_jump_proven": [
+            0.03,
+            0.03
+          ],
+          "current_cash_known": [
+            0.03,
+            0.03
+          ]
+        },
+        "consistent_binary_decisions": true
+      },
+      "note-chato188": {
+        "completed_repeats": 3,
+        "score_ranges": {
+          "concession_observed": [
+            0.81,
+            0.83
+          ],
+          "stall_observed": [
+            0.84,
+            0.88
+          ],
+          "verbal_agreement": [
+            0.04,
+            0.05
+          ],
+          "linked_settlement": [
+            0.05,
+            0.05
+          ],
+          "politeness_causal_proof": [
+            0.04,
+            0.04
+          ],
+          "larger_jump_proven": [
+            0.04,
+            0.04
+          ],
+          "current_cash_known": [
+            0.03,
+            0.03
+          ]
+        },
+        "consistent_binary_decisions": true
+      },
+      "thread-64": {
+        "completed_repeats": 3,
+        "score_ranges": {
+          "concession_observed": [
+            0.96,
+            0.96
+          ],
+          "stall_observed": [
+            0.09,
+            0.1
+          ],
+          "verbal_agreement": [
+            0.95,
+            0.95
+          ],
+          "linked_settlement": [
+            0.11,
+            0.14
+          ],
+          "politeness_causal_proof": [
+            0.05,
+            0.05
+          ],
+          "larger_jump_proven": [
+            0.03,
+            0.03
+          ],
+          "current_cash_known": [
+            0.03,
+            0.03
+          ]
+        },
+        "consistent_binary_decisions": true
+      }
+    }
+  },
+  "pattern_observations": [
+    {
+      "case_id": "thread-68",
+      "repetition": 1,
+      "scores": {
+        "concession_observed": 0.95,
+        "stall_observed": 0.08,
+        "verbal_agreement": 0.05,
+        "linked_settlement": 0.05,
+        "politeness_causal_proof": 0.04,
+        "larger_jump_proven": 0.03,
+        "current_cash_known": 0.03
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": false,
+        "verbal_agreement": false,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 415.41
+    },
+    {
+      "case_id": "note-chato188",
+      "repetition": 1,
+      "scores": {
+        "politeness_causal_proof": 0.04,
+        "larger_jump_proven": 0.04,
+        "current_cash_known": 0.03,
+        "concession_observed": 0.82,
+        "stall_observed": 0.85,
+        "verbal_agreement": 0.04,
+        "linked_settlement": 0.05
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": true,
+        "verbal_agreement": false,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 246.921
+    },
+    {
+      "case_id": "thread-64",
+      "repetition": 1,
+      "scores": {
+        "verbal_agreement": 0.95,
+        "linked_settlement": 0.12,
+        "politeness_causal_proof": 0.05,
+        "larger_jump_proven": 0.03,
+        "current_cash_known": 0.03,
+        "concession_observed": 0.96,
+        "stall_observed": 0.1
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": false,
+        "verbal_agreement": true,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 359.31
+    },
+    {
+      "case_id": "thread-68",
+      "repetition": 2,
+      "scores": {
+        "verbal_agreement": 0.05,
+        "linked_settlement": 0.05,
+        "politeness_causal_proof": 0.05,
+        "larger_jump_proven": 0.03,
+        "current_cash_known": 0.03,
+        "concession_observed": 0.95,
+        "stall_observed": 0.09
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": false,
+        "verbal_agreement": false,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 345.609
+    },
+    {
+      "case_id": "note-chato188",
+      "repetition": 2,
+      "scores": {
+        "concession_observed": 0.83,
+        "stall_observed": 0.84,
+        "verbal_agreement": 0.05,
+        "linked_settlement": 0.05,
+        "politeness_causal_proof": 0.04,
+        "larger_jump_proven": 0.04,
+        "current_cash_known": 0.03
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": true,
+        "verbal_agreement": false,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 249.119
+    },
+    {
+      "case_id": "thread-64",
+      "repetition": 2,
+      "scores": {
+        "concession_observed": 0.96,
+        "stall_observed": 0.09,
+        "verbal_agreement": 0.95,
+        "linked_settlement": 0.11,
+        "politeness_causal_proof": 0.05,
+        "larger_jump_proven": 0.03,
+        "current_cash_known": 0.03
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": false,
+        "verbal_agreement": true,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 271.263
+    },
+    {
+      "case_id": "thread-68",
+      "repetition": 3,
+      "scores": {
+        "concession_observed": 0.95,
+        "stall_observed": 0.08,
+        "verbal_agreement": 0.05,
+        "linked_settlement": 0.05,
+        "politeness_causal_proof": 0.05,
+        "larger_jump_proven": 0.03,
+        "current_cash_known": 0.03
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": false,
+        "verbal_agreement": false,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 286.041
+    },
+    {
+      "case_id": "note-chato188",
+      "repetition": 3,
+      "scores": {
+        "concession_observed": 0.81,
+        "stall_observed": 0.88,
+        "verbal_agreement": 0.04,
+        "linked_settlement": 0.05,
+        "politeness_causal_proof": 0.04,
+        "larger_jump_proven": 0.04,
+        "current_cash_known": 0.03
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": true,
+        "verbal_agreement": false,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 299.754
+    },
+    {
+      "case_id": "thread-64",
+      "repetition": 3,
+      "scores": {
+        "concession_observed": 0.96,
+        "stall_observed": 0.1,
+        "verbal_agreement": 0.95,
+        "linked_settlement": 0.14,
+        "politeness_causal_proof": 0.05,
+        "larger_jump_proven": 0.03,
+        "current_cash_known": 0.03
+      },
+      "expected": {
+        "concession_observed": true,
+        "stall_observed": false,
+        "verbal_agreement": true,
+        "linked_settlement": false,
+        "politeness_causal_proof": false,
+        "larger_jump_proven": false,
+        "current_cash_known": false
+      },
+      "elapsed_ms": 271.072
+    }
+  ],
+  "limitations": [
+    "development cases, not held-out",
+    "repetitions are not independent cases",
+    "Chato is documentary evidence, not raw logs",
+    "no model training",
+    "no demonstrated reranking recall improvement",
+    "no live negotiation"
+  ],
+  "local_report_sha256": {
+    "jev-repeated-live.json": "49a85de4bbc929f9a7618ffba9374056779d2e853adc80ce0fe9801673b0f2ed",
+    "jev-patterns-live.json": "99a33ca4ea32648cb78bfdb58ad9b5e46b592cfb5b1630b86d2af78fcc55ff5c"
+  }
+}

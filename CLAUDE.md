@@ -14,6 +14,16 @@ python3 bazaar.py stop "motivo" [--flatten]    kill switch (o crear un fichero S
 ```
 Tests: `python3 -m unittest discover -s tests -t .` (Python 3.9+, stdlib). Panel alojado: `node --test website/worker.test.mjs`.
 
+## Evaluación y observabilidad integradas
+
+`harness/` y `run_harness.py` son experimentos offline con selectores históricos
+puros; no sustituyen las tácticas v2. `run_rag_eval.py`, `run_jev_eval.py` y
+`run_jev_patterns.py` son evaluaciones independientes. JEV no entra en el World,
+decide límites ni arma tácticas. `agent/trace.py` y `run_traces.py` leen el diario
+v2 sin modificarlo; `run_traces_tunnel.py` comparte el visor con contraseña.
+Ver `docs/integration-handoff.md` y `docs/traces.md`. No importar scripts de
+`archive/` para ejecutar estas herramientas.
+
 ## Qué es cada fichero
 ```
 bazaar.py              CLI: el único punto de entrada

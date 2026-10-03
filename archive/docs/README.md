@@ -8,6 +8,11 @@
 
 | Documento | Para qué |
 |---|---|
+| [harness.md](../../docs/harness.md) | Evaluación offline: ganancia, seguridad, consumo, comparación de candidatos y límites |
+| [rag-evaluation.md](../../docs/rag-evaluation.md) | Recuperación de evidencia: comparación de métodos e historial local de Abuela/Chato |
+| [jev-security.md](../../docs/jev-security.md) | Cliente JEV acotado, validación, credenciales y límites de seguridad |
+| [jev-real-testing.md](../../docs/jev-real-testing.md) | Prueba real, repeticiones, patrones de dealers y límites de datos de rivales |
+| [integration-handoff.md](../../docs/integration-handoff.md) | Instrucciones para integrar la rama en main y resumen para el equipo |
 | [scoring.md](scoring.md) | Cómo se puntúa, penalizaciones y prioridades |
 | [api.md](api.md) | Todo lo verificado de la API (rutas, formas, errores) |
 | [playbook.md](playbook.md) | Conocimiento confirmado por vendedor y mecánica |

@@ -101,3 +101,14 @@ This repository also holds the trading harness of team 18. **Start with [docs/LE
 - Superseded scripts and notes are in [archive/](archive/README.md); none of them can run.
 
 Tests: `python3 -m unittest discover -s tests -t .` (the panel website: `node --test website/worker.test.mjs`).
+
+## Evaluation and shared traces
+
+Offline evaluation remains separate from the live Gate:
+
+- [Integration guide](docs/integration-handoff.md): merged architecture and operator steps.
+- [Offline harness](docs/harness.md) and [RAG evaluation](docs/rag-evaluation.md).
+- [JEV measured results](docs/jev-real-testing.md) and [security controls](docs/jev-security.md).
+- [Shared trace viewer](docs/traces.md): read-only, including the harness-v2 journal.
+
+`python3 run_harness.py` compares frozen Friday selectors on synthetic cases, not live v2 tactics. `python3 run_jev_patterns.py` validates the historical plan without network. Neither command arms tactics.
