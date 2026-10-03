@@ -451,6 +451,15 @@ class TestInFlightThreadOffers(GateCase):
         self.assertEqual(b3.cash_free, 200 - 10 - 133)           # the last offer vanished: may be accepted
 
 
+    def test_cooloff_without_until_blocks_to_next_game_hour_at_live_tick_rate(self):
+        # t_hours 4.5, 30 s ticks = 120 per game hour: the rest of the hour is 60 ticks (was 30 with the constant 60)
+        w = self.start(world())
+        self.transport.reply = lambda m, p, b: tr.Response("refused", 409, "cooloff", {"error": "cooloff"})
+        out = self.gate.execute(open_thread("RET-01", 20), w)
+        self.assertEqual((out.status, out.code), ("refused", "cooloff"))
+        self.assertEqual(self.gate.book.dealer_block.get("abuela"), TICK + 60)
+
+
 class TestBudgetsAndBook(GateCase):
     def test_100_accepts_one_send(self):
         offers = [offer(5000 + i, ref="LAT-09", price=5) for i in range(100)]

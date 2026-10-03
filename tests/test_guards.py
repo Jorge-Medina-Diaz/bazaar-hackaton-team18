@@ -764,3 +764,20 @@ class ThreadOfferCountedOnce(unittest.TestCase):
         self.assertEqual(base.book.cash_free - c.book.cash_free, 70)
         from agent.tactics import hygiene
         self.assertEqual(hygiene.bid_watch(c.world, c.book, c.valuer, c.cfg, PLAN), [])
+
+
+class TicksPerHour(unittest.TestCase):
+    """Live Sat ticks are 30 s (120 per game hour), Sun 15 s (240): never the Friday constant 60."""
+
+    def test_derived_from_tick_seconds(self):
+        from types import SimpleNamespace as NS
+        cfg = guards.Cfg()
+        self.assertEqual([guards.ticks_per_hour(NS(tick_seconds=s), cfg) for s in (60.0, 30.0, 15.0)], [60, 120, 240])
+        self.assertEqual(guards.ticks_per_hour(NS(tick_seconds=None), cfg), cfg.TICKS_PER_GAME_HOUR)
+        self.assertEqual(guards.ticks_per_hour(NS(tick_seconds=0), cfg), cfg.TICKS_PER_GAME_HOUR)
+        # grant 0.04 h ahead, lookahead 3 ticks: 3/120 = 0.025 h (Sat) -> not soon; 3/60 = 0.05 h (Fri) -> soon
+        sched = {"upcoming": [{"action": "grant", "at_hours": 10.04, "params": {"packs": ["sobre"]}}]}
+        sat = NS(tick_seconds=30.0, t_hours=10.0, schedule=sched)
+        fri = NS(tick_seconds=60.0, t_hours=10.0, schedule=sched)
+        self.assertFalse(guards._grant_soon(sat, 3, cfg))
+        self.assertTrue(guards._grant_soon(fri, 3, cfg))
