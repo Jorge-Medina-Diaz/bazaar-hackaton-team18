@@ -68,6 +68,10 @@ def load_plan(path: Path) -> PlanCfg:
     for k in ("page_sets", "protect_sets"):
         if not all(type(s) is str and s for s in cfg[k]):
             raise ValueError(f"plan.{k}: list of set ids")
+    for e in cfg.get("extra_needs", []):
+        if not (isinstance(e, dict) and type(e.get("ref")) is str and type(e.get("max_price")) is int
+                and e["max_price"] >= 1 and e["ref"] in (cfg.get("profiles") or {})):
+            raise ValueError("plan.extra_needs: [{ref, max_price}] with a profile for ref")
     if not all(type(x) is int and x >= 0 for x in cfg["startup_cancels"]):
         raise ValueError("plan.startup_cancels: list of offer ids")
     if not all(type(k) is str and _num(v) for k, v in cfg["baseline_bands"].items()):
@@ -321,6 +325,21 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
     freeze_at = c_cfg.get("freeze_at", 8)
     no_dealers = past_day_end(world, plan_cfg)
     needs: list = []
+
+    # extra_needs: a card outside the pages bought from the dealer of its ref profile (Sat: SAL-11 epic from the
+    # Pícaros, resold to Pilar in the Salamanca fever). Cap = min(max_price, floor(value - 1)); never if held.
+    for e in plan_cfg.get("extra_needs") or ():
+        try:
+            ref = e["ref"]
+            dealer = ((plan_cfg.get("profiles") or {}).get(ref) or {}).get("dealer")
+            if no_dealers or held[ref] >= 1 or dealer not in DEALERS:
+                continue                            # (an open thread keeps its Need, as the page Needs do)
+            dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
+            cap = min(int(e["max_price"]), math.floor(dv - 1))
+            if cap >= 1:
+                needs.append(Need(set=ref.split("-", 1)[0], ref=ref, source=dealer, max_price=cap, closer=False))
+        except Exception:
+            continue                                # fail closed: no Need
 
     for set_id in plan_cfg.get("page_sets") or ():
         if set_id not in (world.released_sets or ()):

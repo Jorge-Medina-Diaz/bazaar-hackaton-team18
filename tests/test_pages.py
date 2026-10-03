@@ -168,6 +168,20 @@ class PlanTest(unittest.TestCase):
         needs, _ = pages.plan(w, valuer_for(w), cfg, {})
         self.assertEqual([n.max_price for n in needs if n.closer], [102])   # floor(122 - 20)
 
+    def test_extra_need_from_profile_dealer(self):
+        # Sat: a non-page card (here RET-09 stands in for the SAL-11 epic) bought from its profile dealer, capped
+        cfg = copy.deepcopy(self.cfg)
+        cfg["profiles"]["RET-09"] = {"dealer": "picaros", "anchor": 30, "step": 3, "limit": 160, "fallback_after": 20}
+        cfg["page_sets"] = []
+        cfg["extra_needs"] = [{"ref": "RET-09", "max_price": 40}]
+        w = make_world()
+        needs, _ = pages.plan(w, valuer_for(w), cfg, {})
+        self.assertEqual([(n.ref, n.source, n.max_price, n.closer) for n in needs], [("RET-09", "picaros", 40, False)])
+        held = make_world(add_refs=["RET-09"])
+        self.assertEqual(pages.plan(held, valuer_for(held), cfg, {})[0], [])          # held -> no Need
+        late = make_world(t_hours=17.95, today="sat")
+        self.assertEqual(pages.plan(late, valuer_for(late), cfg, {})[0], [])         # day end -> no dealer Need
+
     def test_day_end_drops_dealer_needs(self):
         w = make_world(t_hours=17.95, today="sat")
         needs, _ = pages.plan(w, valuer_for(w), self.cfg, {})
