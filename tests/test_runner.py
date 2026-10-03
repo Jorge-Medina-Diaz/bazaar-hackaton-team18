@@ -109,6 +109,9 @@ class TestChoose(unittest.TestCase):
         self.assertEqual([it.kind for it in out[:3]], ["cancel"] * 3)
         w = make_world(limits=Limits(1, 1, 6, 30, 5))         # min(6, 5 - 2) = 3
         self.assertEqual(len(runner.choose(its, w, Cfg())), 3)
+        for lim, n in ((2, 1), (3, 1), (1, 1), (0, 0)):         # small limits keep one slot (was 0 at 2)
+            self.assertEqual(len(runner.choose(its, make_world(limits=Limits(1, 1, 6, 30, lim)), Cfg())), n, lim)
+        self.assertEqual(len(runner.choose([open_thread()], make_world(limits=Limits(1, 1, 1, 30, 12)), Cfg())), 1)
 
     def test_open_offer_room(self):
         mine = tuple({"id": i, "maker": TEAM, "status": "open"} for i in range(25))
@@ -376,7 +379,8 @@ class E2E(unittest.TestCase):
                                                                  "ts": time.time() - 3600}), encoding="utf-8")
         self.green(stages=("core",))
         rc = self.run_("live", armed=(), ticks=2,
-                       manual=[{"cmd": "do", "kind": "cancel", "args": {"offer_id": oid, "ref": None}, "why": "t"}])
+                       manual=[{"cmd": "do", "kind": "cancel", "args": {"offer_id": oid, "ref": None}, "why": "t",
+                                "live": True}])
         self.assertEqual(rc, 0)
         rows = self.rows()
         sent = [r for r in rows if r["kind"] == "intent"]
@@ -385,6 +389,20 @@ class E2E(unittest.TestCase):
         self.assertTrue(any(r["kind"] == "cmd" and r.get("applied") is False for r in rows))
         self.assertEqual(json.loads(self.paths.armed.read_text(encoding="utf-8")), [])
         self.assertEqual(list(self.paths.inbox.glob("*.json")), [])
+
+    def test_manual_do_without_live_is_only_would_in_a_live_run(self):
+        # the order did not say live (no --live): a live runner must not send it, even with core green / manual armed
+        oid = self._own_bid()
+        self.green(stages=("core",))
+        self.paths.inbox.mkdir(parents=True, exist_ok=True)
+        (self.paths.inbox / "5-do.json").write_text(json.dumps({"cmd": "do", "kind": "cancel", "why": "t",
+                                                                "args": {"offer_id": oid, "ref": None}, "live": False,
+                                                                "ts": time.time() + 3600}), encoding="utf-8")
+        self.assertEqual(self.run_("live", armed=("manual",), ticks=2), 0)
+        rows = self.rows()
+        self.assertEqual(self.writes(), [])
+        self.assertEqual([r for r in rows if r["kind"] == "intent"], [])
+        self.assertTrue(any(r["kind"] == "would" and r["tactic"] == "manual" for r in rows))
 
     def test_flatten_cancels_bids_then_stops(self):
         oid = self._own_bid()
@@ -396,6 +414,19 @@ class E2E(unittest.TestCase):
         self.assertTrue(any(p.name.upper().startswith("STOP") for p in self.paths.root.iterdir()))
         sent = [r for r in self.rows() if r["kind"] == "intent"]
         self.assertEqual([(r["intent_kind"], r["args"]["offer_id"]) for r in sent], [("cancel", oid)])
+
+    def test_flatten_keeps_going_past_one_tick_budget(self):
+        # one tick cancels at most min(6, listings - 2); STOP used to come after that first tick with bids left
+        oids = [self._own_bid() for _ in range(8)]
+        self.green(stages=("core",))
+        self.paths.inbox.mkdir(parents=True, exist_ok=True)
+        (self.paths.inbox / "9-flatten.json").write_text(json.dumps({"cmd": "flatten", "why": "test",
+                                                                     "ts": time.time() + 3600}), encoding="utf-8")
+        self.assertEqual(self.run_("live", armed=(), ticks=10), 2)
+        sent = [r for r in self.rows() if r["kind"] == "intent"]
+        self.assertEqual(sorted(r["args"]["offer_id"] for r in sent), sorted(oids))
+        self.assertGreater(len({r["tick"] for r in sent}), 1)
+        self.assertEqual([o for o in self.g.offers.values() if o["maker"] == TEAM and o["status"] == "open"], [])
 
     def test_inbox_pause_applied(self):
         self.paths.inbox.mkdir(parents=True, exist_ok=True)

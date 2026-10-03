@@ -373,8 +373,8 @@ class ProposeUnitTest(Base):
         self.assertTrue(all(D._variant("chato_buy", k) < n - 1 for k in range(20)))
 
     def test_trick_offer_countered_never_accepted(self):
-        # Pícaros trick: the dealer's only live offer gives another card (RET-07) at a low "final" price
-        t = self._haggled(15, final=True)
+        # Pícaros trick: the dealer's only live offer gives another card (RET-07) at a low price
+        t = self._haggled(15)
         trick = t["messages"][-1]["offer"]
         trick["give"]["types"] = ["card:RET-07"]
         t["standing_offers"] = [trick]
@@ -383,6 +383,30 @@ class ProposeUnitTest(Base):
         # no room left above our last price -> close, still no accept
         its = self._step(t, [need("RET-06", "abuela")], make_book(thread_limit={7: 18}, thread_by_dealer={"abuela": 7}))
         self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_trick_marked_final_closes_never_counters(self):
+        # live Sat: countering a Pícaros trick with final:true made them walk (final_offer_refused, a walk burnt)
+        t = self._haggled(15, final=True)
+        t["messages"][-1]["offer"]["give"]["types"] = ["card:RET-07"]
+        its = self._step(t, [need("RET-06", "abuela")])
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_own_shape_final_expiring_now_is_not_a_trick(self):
+        # a correct final for RET-06 expiring this tick is not executable and must never be countered (G31.final)
+        t = self._haggled(23, final=True)
+        t["messages"][-1]["offer"]["expires_tick"] = 10                    # world tick 10: dead by tick 11
+        self.assertEqual(self._step(t, [need("RET-06", "abuela")]), [])     # dealer spoke at 9: wait
+        # the dealer spoke last with nothing executable: closed after STALL_TICKS (one conversation per dealer)
+        its = self._step(t, [need("RET-06", "abuela")], tick=9 + D.STALL_TICKS)
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_text_only_dealer_message_does_not_block_forever(self):
+        t = self._haggled(23)
+        t["messages"][-1]["offer"] = None
+        t["standing_offers"] = []
+        self.assertEqual(self._step(t, [need("RET-06", "abuela")]), [])
+        its = self._step(t, [need("RET-06", "abuela")], tick=12)
+        self.assertEqual([(i.kind, i.reason) for i in its], [("close_thread", "dealer spoke last with no executable offer")])
 
     def test_final_above_limit_closes(self):
         its = self._step(self._haggled(24, final=True),
@@ -487,6 +511,15 @@ class OpenTest(Base):
         its = D.propose(w, make_book(thread_limit={7: 31}), FakeValuer(VALUES), Cfg(), PLAN,
                         [need("RET-08", "chato")], D.DealerState.rebuild(w, None))
         self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_fallback_after_still_accepts_within_limit(self):
+        o = dealer_offer(1, "chato", "RET-08", 30, 24, final=True)              # final 30 <= limit 31
+        t = {"id": 7, "with": "chato", "topic": {"buy": {"card": "RET-08"}}, "status": "open", "created_tick": 15,
+             "messages": [{"id": 1, "tick": 24, "sender": "chato", "offer": o}], "standing_offers": [o]}
+        w = make_world(tick=25, threads={7: t})
+        its = D.propose(w, make_book(thread_limit={7: 31}), FakeValuer(VALUES), Cfg(), PLAN,
+                        [need("RET-08", "chato")], D.DealerState.rebuild(w, None))
+        self.assertEqual([(i.kind, i.args.get("price")) for i in its], [("accept", 30)])
 
 
 class ProbeTest(Base):

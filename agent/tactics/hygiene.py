@@ -11,8 +11,8 @@ NOTES (M9, night build)
   the generic unprotected-sale check (G19, INV-06) when a Book is given, so any new unprotected listing is caught.
 - Unprotected sales: free(ref) = held - listed - pending_out; while free < keep, cancel the ref's live sale/swap
   offer that expires first, recalculating (+1 per cancel). Own swaps (D1) hand over an asset, so they count as sales.
-- Bids: own bids are in Book.projected, so dv_add is computed with that bid's own copy removed (and the same for a buy
-  thread with a standing price). Inherited bids (id in plan_cfg.baseline_bands or Book.bid_band from the baseline)
+- Bids: own bids are in Book.projected, so dv_add is computed with that bid's own copy removed. A buy thread with a
+  standing price is valued as the copy after held (_counts_for_thread: never a 2nd copy of a ref we hold 0 of). Inherited bids (id in plan_cfg.baseline_bands or Book.bid_band from the baseline)
   only use their band (2503/2504 -> 0) and are not treated as closer bids, per strategy (keep until t205).
   Harness closer bid = bid_band >= 20, frozen closer ref, or closes_page(counts, ref) (valuer error -> closer).
   With valuation unavailable the value checks on bids/swaps are skipped (they only cancel); buy threads with a
@@ -38,7 +38,8 @@ from agent.contracts import Intent, Prediction, make_intent
 
 TACTIC = "hygiene"
 LIVE_OFFER = frozenset({"open", "queued"})
-TERMINAL_THREAD = frozenset({"deal", "closed", "expired", "cancelled", "canceled", "settled", "rejected", "done"})
+TERMINAL_THREAD = frozenset({"deal", "closed", "expired", "cancelled", "canceled", "settled", "rejected", "done",
+                             "walked"})        # live Sat: a dealer walk-out is status "walked" (G33 refused each tick)
 DEFAULT_BAND = 2.0
 CLOSER_BAND = 20.0
 GRANT_ACTIONS = frozenset({"grant", "grant_all", "grant_team"})
@@ -166,6 +167,17 @@ def _counts_without(book, ref: str) -> dict:
     c = {k: v for k, v in _m(book.projected).items()}
     held = int(_m(book.held).get(ref, 0) or 0)
     c[ref] = max(int(c.get(ref, 0) or 0) - 1, held)
+    return c
+
+
+def _counts_for_thread(book, ref: str) -> dict:
+    """Book.projected with `ref` at held: our open buy thread stands for the next copy after the ones we hold.
+    G15 allows one buy path per ref, so anything projected above held for `ref` is this thread. Removing only one
+    copy (_counts_without) valued it as a 2nd copy whenever `ref` was projected twice (live t191: the thread offer
+    also counted from my_offers, RET-09 91 -> 22.8; still possible with two open threads for one ref) and G19
+    closed every dealer thread."""
+    c = {k: v for k, v in _m(book.projected).items()}
+    c[ref] = int(_m(book.held).get(ref, 0) or 0)
     return c
 
 
@@ -395,7 +407,8 @@ def swap_watch(world, book, valuer, cfg, plan_cfg) -> list:
         if v["side"] != "swap" or not v["ref"] or not v["want_ref"]:
             continue
         try:
-            gain = _dv_add(world, book, valuer, v["want_ref"], _m(book.projected))
+            # build_book already counts this swap's wanted copy in projected: value it as if not yet received
+            gain = _dv_add(world, book, valuer, v["want_ref"], _counts_without(book, v["want_ref"]))
             lose = max(float(valuer.delta_remove(book.held, v["ref"], book.packs)), _your_value(world, v["ref"]))
             g = gain - lose
         except Exception:
@@ -437,7 +450,7 @@ def thread_watch(world, book, valuer, cfg, plan_cfg) -> list:
                 out.append(_close(tid, ref, "fail closed: standing buy price with no valuation", P_THREAD_VALUE))
                 continue
             try:
-                dv = _dv_add(world, book, valuer, ref, _counts_without(book, ref))
+                dv = _dv_add(world, book, valuer, ref, _counts_for_thread(book, ref))
             except Exception:
                 out.append(_close(tid, ref, "fail closed: valuation error on a standing buy price", P_THREAD_VALUE))
                 continue

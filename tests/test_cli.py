@@ -114,7 +114,22 @@ class TestOrders(Base):
         names = self.inbox()
         self.assertEqual(len(names), 1)
         self.assertTrue(names[0].endswith("-do.json"))
+        self.assertIs(json.loads((self.paths.inbox / names[0]).read_text(encoding="utf-8"))["live"], False)
         self.assertFalse(self.paths.journal.exists())
+
+    def test_do_without_live_refused_next_to_a_live_runner(self):
+        # a dry `do` used to reach a live runner as a real order; now it is refused, and --live says so in the order
+        with NoNetwork(), mock.patch.object(sys, "argv", ["bazaar.py", "run", "--live"]), writer_lock(self.paths):
+            rc, out = cli("--root", str(self.root), "do", "cancel", "--args", '{"offer_id": 5, "ref": null}',
+                          "--why", "x")
+            self.assertEqual(rc, 1, out)
+            self.assertIn("--live", out)
+            self.assertEqual(self.inbox(), [])
+            rc, out = cli("--root", str(self.root), "do", "cancel", "--args", '{"offer_id": 5, "ref": null}',
+                          "--why", "x", "--live")
+            self.assertEqual(rc, 0, out)
+        order = json.loads(next(self.paths.inbox.glob("*.json")).read_text(encoding="utf-8"))
+        self.assertIs(order["live"], True)
 
     def test_stop_flatten_with_runner_leaves_order(self):
         with writer_lock(self.paths):

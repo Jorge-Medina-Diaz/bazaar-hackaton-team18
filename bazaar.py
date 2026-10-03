@@ -18,6 +18,8 @@ NOTES (M16, night build)
   (temp file + os.replace) and the runner applies and journals them. Orders are only written while a runner holds the
   writer lock (probe: try to take the lock; busy = alive); otherwise `arm`/`pause` refuse (exit 1) because a later run
   ignores stale orders anyway. `stop --flatten` with no runner alive writes STOP at once and says flatten did not run.
+- `do` orders carry "live": a.live and the runner sends one for real only if it says live. `do` without --live is
+  refused while a live runner holds the lock (mode read from the lock's argv; unreadable counts as live).
 - `--root DIR` (first argument) relocates Paths for tests; production never passes it. Default Paths.at() is anchored
   on the package location, so `stop` from any folder writes <repo>/STOP.
 - selftest: one unittest subprocess per stage (env: BAZAAR_TEST=1, BAZAAR_NO_DOTENV=1, no key/url), green = exit 0
@@ -80,6 +82,18 @@ def runner_alive(paths: Paths) -> bool:
             return False
     except RuntimeError:
         return True
+
+
+def runner_mode(paths: Paths) -> Optional[str]:
+    """"live" / "dry" from the argv the lock holder wrote in state/writer.lock; None if it cannot be read."""
+    try:
+        txt = Path(paths.lock).read_text(encoding="utf-8", errors="replace").split("\x00")[0].strip()
+        argv = json.loads(txt).get("argv")
+    except Exception:                                                    # noqa: BLE001
+        return None
+    if not isinstance(argv, list):
+        return None
+    return "live" if "--live" in argv else "dry"
 
 
 def write_order(paths: Paths, cmd: str, **fields: Any) -> Path:
@@ -299,10 +313,16 @@ def cmd_do(paths: Paths, a) -> int:
     except Exception as e:                                               # noqa: BLE001
         _out(f"do: refused: {e}")
         return 1
-    order = {"kind": a.kind, "args": args, "why": a.why}
+    order = {"kind": a.kind, "args": args, "why": a.why, "live": bool(a.live)}
     if runner_alive(paths):
+        # the runner sends a `do` for real only if the order says live; a dry `do` next to a live runner is refused
+        # here so nobody believes a rehearsal is safe (or a real order was rehearsed). Unknown runner mode = live.
+        if not a.live and runner_mode(paths) != "dry":
+            _out("do: refused: the runner is live; repeat with --live to send it for real (a dry `do` needs a dry "
+                 "runner or no runner)")
+            return 1
         p = write_order(paths, "do", **order)
-        _out(f"do: order left for the runner ({p.name})")
+        _out(f"do: order left for the runner ({p.name}, {'live' if a.live else 'dry: would only'})")
         return 0
     plan = Path(a.plan) if a.plan else REPO / "config" / "plan.json"
     return runner.run("live" if a.live else "dry", [], paths=paths, plan_path=plan, max_ticks=1,

@@ -17,7 +17,9 @@ NOTES (M2, night build)
   to journal.corrupt, the journal is truncated to the last valid line and a "truncated" row is written with
   prev = hash of the last valid line. If the broken bytes look like an intent, its id (if readable) and the
   domains readable from its args are recorded and stay pending / frozen until a "reconciled" row with that id
-  (or with truncated=<seq of the truncated row>) resolves them. Any earlier broken line -> JournalError.
+  (or with truncated=<seq of the truncated row>) resolves them; the Gate writes `reconciled truncated=<seq>
+  landed=False` at its first reconcile (a torn intent was never sent, see below). Any earlier broken line ->
+  JournalError.
   Known gap: a crash between the truncation and the "truncated" row loses that pending marker (the bytes are
   still in journal.corrupt). A writer intent row is fsynced before the send, so a torn intent was never sent.
 - Intent rows: the intent's own kind cannot be passed as kind= (it is write()'s first parameter), so the Gate

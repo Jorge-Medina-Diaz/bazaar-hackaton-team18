@@ -16,8 +16,11 @@ Policy (decide):
   is inside our limit but did not speak this tick (accept in the late window once it answers).
 - Accept only if rival_offer.tick == tick (it already spent its message of the tick, U-10), tick <= deadline-1, the
   surplus holds with the days worst case, and the offer is good (>= our next step), firm (repeated) or late.
-- Two issues (J10): nothing until your_days_weight is a number and days_meaning is present. days_sign (plan_cfg) known:
-  we send our best days and value the rival's days as W(d) - max W. Unknown: surplus >= 1 + 10*|w| on every price.
+- Two issues (J10): nothing until your_days_weight is a number (or the plan fallback). The days margin is the Gate's
+  (talk._days_penalty) on every price we send or accept: when the SERVER's sign is known (days_meaning -> sensor
+  days_sign) the loss vs our best days, |w| * |best - d|; otherwise the worst case (talk.days_worst_case,
+  |w| * max(d, 10 - d)). A plan days_sign only picks the days we send (best days when known, else 5, which
+  minimises the worst case).
 - E8: on the first duel whose rival speaks, stay silent 2 ticks after its first message (accepts still allowed).
 - E16: two rival messages in one tick, or a settled price different from the one read -> duel accepts paused.
 - Accept budget: at most world.limits.accepts duel_accept intents per tick, nearest deadline first.
@@ -133,13 +136,14 @@ class DuelView:
     decay: float = 0.0
     two_issue: bool = False
     days_weight: Optional[float] = None
-    days_meaning_known: bool = False
     days_sign_srv: Optional[int] = None      # talk.days_sign_of(duel): the server's own days_meaning
     ours: tuple = ()               # ((tick, price, days, index), ...) our messages, server order
     rivals: tuple = ()             # same for the rival
     rival_offer: Optional[tuple] = None   # (price, days, tick, id)
     mine: Optional[int] = None     # our standing price (last message, else your_offer)
-    rounds: int = 0
+    mine_days: Optional[int] = None    # days of that standing offer
+    limit_raw: float = 0.0         # your_limit as the server sent it (predictions use it, as the Gate's G07)
+    rounds: int = 0                # server duel["rounds"] (as the Gate's G07), else min(ours, rivals)
     rival_spoke_now: bool = False
     rival_double: bool = False     # E16: two rival messages in one tick
     fingerprint: str = ""
@@ -166,7 +170,10 @@ def view(duel: Mapping, tick: int) -> DuelView:
     if duel.get("status") != "live":
         return bad("status")
     role = duel.get("role")
-    limit = _int(duel.get("your_limit"))
+    limit_raw = _num(duel.get("your_limit"))
+    limit = None
+    if limit_raw is not None:            # a float limit is read inside it: floor for a buyer, ceil for a seller
+        limit = int(math.floor(limit_raw)) if role == "buyer" else int(math.ceil(limit_raw))
     deadline = _int(duel.get("deadline_tick"))
     decay = _num(duel.get("decay_per_round"))
     if role not in ("buyer", "seller") or limit is None or limit < 1 or deadline is None:
@@ -201,6 +208,10 @@ def view(duel: Mapping, tick: int) -> DuelView:
         rival_offer = (ro["price"], rd, ro["tick"], ro.get("id"))
     yo = duel.get("your_offer")
     mine = ours[-1][1] if ours else (_int(yo.get("price")) if isinstance(yo, Mapping) else None)
+    mine_days = ours[-1][2] if ours else (yo.get("days") if isinstance(yo, Mapping) else None)
+    rounds = _int(duel.get("rounds"))
+    if rounds is None or rounds < 0:
+        rounds = min(len(ours), len(rivals))
     T = _default_T(decay)
     first = min([m[0] for m in ours + rivals], default=deadline - T)
     start = min(deadline - T, first)
@@ -213,9 +224,10 @@ def view(duel: Mapping, tick: int) -> DuelView:
     return DuelView(
         duel_id=did, ok=True, why="", role=role, limit=limit, s=1 if role == "seller" else -1, tick=tick,
         deadline=deadline, start=start, T=deadline - start, decay=decay, two_issue=two, days_weight=w,
-        days_meaning_known=duel.get("days_meaning") not in (None, ""), days_sign_srv=_srv_sign(duel),
+        days_sign_srv=_srv_sign(duel),
         ours=tuple(ours), rivals=tuple(rivals),
-        rival_offer=rival_offer, mine=mine, rounds=min(len(ours), len(rivals)), rival_spoke_now=spoke_now,
+        rival_offer=rival_offer, mine=mine, mine_days=mine_days, limit_raw=limit_raw, rounds=rounds,
+        rival_spoke_now=spoke_now,
         rival_double=any(c > 1 for c in per_tick.values()), fingerprint=duel_fingerprint(duel))
 
 
@@ -226,18 +238,23 @@ def _days_model(v: DuelView, P: Mapping):
     if not v.two_issue:
         return True, None, (lambda d: 0.0)
     w = v.days_weight
-    if w is None:                        # days_meaning never reaches the World (free text): weight is enough
+    if w is None:                        # days_meaning stays out of the World (free text); only its sign enters
         w = P.get("days_weight_fallback")    # ponytail: plan duels.days_weight_fallback, used only when the server sends null
     if type(w) not in (int, float) or isinstance(w, bool):
         return False, None, None
-    sign = v.days_sign_srv if v.days_sign_srv in (1, -1) else P.get("days_sign")   # server meaning first
+    sign_srv = v.days_sign_srv if v.days_sign_srv in (1, -1) else None
+    sign = sign_srv if sign_srv is not None else P.get("days_sign")
+    # one formula with the Gate (talk._days_penalty, G50/G51): loss vs our best days when the SERVER's sign is
+    # known (days_meaning -> sensor days_sign); otherwise the worst case |w| * max(d, 10 - d), whatever the plan's
+    # days_sign (it only picks the days we send).
+    from agent.talk import days_worst_case
     aw = abs(w)
     if sign not in (1, -1):
-        return True, None, (lambda d: aw * max(d, DAYS_MAX - d))   # worst case vs any rival days, as talk G50/G51
+        return True, None, (lambda d: days_worst_case(w, d))
     best = DAYS_MAX if sign > 0 else 0
-    W = lambda d: sign * aw * d                                 # noqa: E731
-    top = W(best)
-    return True, best, (lambda d: top - W(d))
+    if sign_srv is None:
+        return True, best, (lambda d: days_worst_case(w, d))
+    return True, best, (lambda d: aw * abs(best - d))
 
 
 def surplus(v: DuelView, p: int) -> int:
@@ -283,8 +300,8 @@ def _final_guard(v: DuelView, P: Mapping, act: tuple) -> tuple:
         ro = v.rival_offer                     # audit Sat: never offer worse than the rival's standing offer
         if ro is not None and type(ro[0]) is int and v.s * (price - ro[0]) < 0:
             price = ro[0]                      # (G50.worse_than_rival refused it every tick: opening anchor case)
-            if v.mine == price and (not v.two_issue or (v.ours and v.ours[-1][2] == days)):
-                return wait                    # G50.repeat
+        if v.mine == price and (not v.two_issue or v.mine_days == days):
+            return wait                        # G50.repeat: never resend our own standing offer (late provoke)
         if surplus(v, price) < _need(v, P, extra, days):
             return wait
         if v.mine is not None and v.s * (price - v.mine) > 0:            # monotone: never retract a concession
@@ -448,7 +465,7 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
                 exp = "E8"
             act, price, days = decide(v, p)
             if act == "accept":
-                pred = _predict(v.limit, price, v.decay, v.rounds, v.role)
+                pred = _predict(v.limit_raw, price, v.decay, v.rounds, v.role)
                 it = make_intent("duel_accept", "duels", {"duel_id": v.duel_id, "fingerprint": v.fingerprint},
                                  f"duel {v.duel_id} {v.role} L={v.limit}: rival {price} spoke at t{tick}",
                                  f"deal at {price}, surplus {surplus(v, price)}, rounds {v.rounds}", pred,
@@ -456,7 +473,7 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
                 accepts.append((v.deadline, -surplus(v, price), v.duel_id, it, price, days))
             elif act == "say":
                 tpl = "duel_days" if v.two_issue else "duel"
-                pred = _predict(v.limit, price, v.decay, v.rounds + 1, v.role)
+                pred = _predict(v.limit_raw, price, v.decay, v.rounds + 1, v.role)
                 says.append(make_intent(
                     "duel_say", "duels",
                     {"duel_id": v.duel_id, "price": price, "days": days, "template": tpl,

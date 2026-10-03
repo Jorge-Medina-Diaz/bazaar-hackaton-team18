@@ -10,8 +10,10 @@ NOTES (M4b, night build)
   cfg with getattr(cfg, "GRANT_LOOKAHEAD_TICKS", 3) / getattr(cfg, "DAYS_SIGN", None). Lead: either add them
   to guards.Cfg or have guards copy them from plan_cfg.
 - Two-issue duels (price + days): W(d) is modelled as your_days_weight * d (unknown in reality, U-13). The
-  conservative bound (surplus >= 1 + |w| * max(d, 10 - d)) is applied ALWAYS, also when days_sign is known.
-  With your_days_weight null (as in the practice) every two-issue price is refused (G50.days_unknown).
+  worst-case bound (surplus >= 1 + |w| * max(d, 10 - d)) applies unless the server's days_meaning gives the
+  sign (World days_sign, see days_sign_of): then the loss vs our best days, |w| * |best - d| (best 0 for -1,
+  10 for +1), the same rule as agent.tactics.duels._days_model. With your_days_weight null and no plan
+  fallback every two-issue price is refused (G50.days_unknown).
 - duel_accept needs guards.duel_fingerprint (M4a). If agent.guards cannot be imported, G51 refuses
   ("G51.no_fingerprint"). A dealer accept does not compare guards.fingerprint (G32 does not ask for it); it
   matches offer id, maker, recipient, status, expiry, exact shape (offer_safety) and price.
@@ -476,6 +478,9 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
         try:
             from agent.guards import _thread_standing
             reserved = max([_thread_standing(t) or 0] + [int(x) for x in book.thread_prices.get(tid, ()) or ()])
+            tlim = (getattr(book, "thread_limit", None) or {}).get(tid)
+            if type(tlim) is int:                # build_book reserves min(limit, max(...)): add back exactly that
+                reserved = min(tlim, reserved)
         except Exception:  # noqa: BLE001 - unknown: no add-back (fail closed)
             reserved = 0
         _need(p <= book.cash_free + reserved, "G16.cash", f"{p} > {book.cash_free} + {reserved}")
@@ -540,6 +545,14 @@ def days_sign_of(duel: Mapping) -> Optional[int]:
     return None
 
 
+DUEL_DAYS_MAX = 10
+
+
+def days_worst_case(w: float, days: int) -> float:
+    """THE days penalty (shared by G50/G51 and agent.tactics.duels): max_d |W(d) - W(days)|, W(d) = w * d."""
+    return abs(float(w)) * max(days, DUEL_DAYS_MAX - days)
+
+
 def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
     """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d.
     A null weight uses cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback); none -> refuse."""
@@ -551,8 +564,8 @@ def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
     if sign == -1:
         return abs(float(w)) * days              # loss vs our best (0 days); same rule as duels._days_model
     if sign == 1:
-        return abs(float(w)) * (10 - days)       # loss vs our best (10 days)
-    return abs(float(w)) * max(days, 10 - days)
+        return abs(float(w)) * (DUEL_DAYS_MAX - days)   # loss vs our best (10 days)
+    return days_worst_case(w, days)
 
 
 def _g50_say(a, world, cfg, counters) -> None:
