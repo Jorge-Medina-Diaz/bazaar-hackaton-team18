@@ -155,7 +155,7 @@ def ticks_per_hour(world: Any, cfg: Any = None) -> int:
 
 
 SERVER_BLOCK_REASONS = frozenset({"cooloff", "sold_out", "persona_budget"})   # closed_reason set by the server
-SERVER_BLOCK_DAY = frozenset({"persona_budget"})                               # without until_tick: rest of the day
+SERVER_BLOCK_DAY: frozenset = frozenset()   # RULES: dealer budgets are per hour ("this hour") -> persona_budget blocks one game hour
 
 
 def server_block(t: Any, world: Any, plan_cfg: Any, tph: int) -> Optional[int]:

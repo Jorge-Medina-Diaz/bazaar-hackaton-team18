@@ -784,15 +784,13 @@ class ServerClosedDealerThreads(unittest.TestCase):
                3: self.th(3, "chato", "sold_out", 150), 4: self.th(4, "abuela", "sold_out", 50),
                5: self.th(5, "abuela", "final_offer_refused", 199)}
         b = Ctx(threads=ths, plan=self.PLAN).book                 # tick 200, t 5.0, 30 s ticks (120 per hour)
-        self.assertEqual(dict(b.dealer_block), {"pilar": 201, "picaros": 260, "chato": 270})
+        self.assertEqual(dict(b.dealer_block), {"pilar": 310, "picaros": 260, "chato": 270})   # budget: 1 game hour
 
-    def test_persona_budget_lasts_until_the_next_day(self):
-        # Sunday t14.0, tick 200: day start 13.28 -> tick 200 - ceil(0.72 * 120) = 113
-        ths = {1: self.th(1, "pilar", "persona_budget", 150), 2: self.th(2, "chato", "persona_budget", 100)}
-        b = Ctx(threads=ths, plan=self.PLAN, t_hours=14.0).book
-        self.assertEqual(dict(b.dealer_block), {"pilar": 201})
-        b = Ctx(threads=ths, plan=PLAN).book                       # no day_end_hours: fail closed, both blocked
-        self.assertEqual(dict(b.dealer_block), {"pilar": 201, "chato": 201})
+    def test_persona_budget_blocks_one_game_hour(self):
+        # RULES: dealer budgets are per hour -> blocked until last tick + 120 (30 s ticks), then free again
+        ths = {1: self.th(1, "pilar", "persona_budget", 150), 2: self.th(2, "chato", "persona_budget", 60)}
+        b = Ctx(threads=ths, plan=self.PLAN, t_hours=14.0).book    # tick 200
+        self.assertEqual(dict(b.dealer_block), {"pilar": 270})
 
 
 class TicksPerHour(unittest.TestCase):
