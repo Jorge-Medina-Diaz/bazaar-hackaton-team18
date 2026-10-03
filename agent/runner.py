@@ -446,7 +446,11 @@ class Runner:
 
     # ------------------------------------------------------------ valuer
     def build_valuer(self, world: World) -> Any:
-        key = (id(world.catalog), json.dumps(_plain(_g(world.me, "affinity", {})), sort_keys=True),
+        # Keyed by catalog CONTENT, not id(): the Sensor re-freezes the catalog each tick and CPython reuses the
+        # ids of freed objects, so an id key could keep a Valuer with stale released sets / minted counts
+        # (Sunday: CHA flips released:true while the runner keeps going).
+        cat = hashlib.sha256(json.dumps(_plain(world.catalog), sort_keys=True, default=str).encode()).hexdigest()
+        key = (cat, json.dumps(_plain(_g(world.me, "affinity", {})), sort_keys=True),
                tuple(sorted(world.released_sets or ())))
         if key == self._valuer_key and self.valuer is not None:
             return self.valuer
