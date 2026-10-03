@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-03T20:59:40",
+ "updated": "2026-10-03T21:04:43",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 34,
@@ -171,6 +171,14 @@
     65,
     65,
     65,
+    67,
+    67,
+    67,
+    67,
+    67,
+    67,
+    67,
+    67,
     69,
     69,
     69,
@@ -250,13 +258,13 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 50,
+    "2-3": 51,
     "1": 15,
     "4+": 31
    },
    "final_min": 4,
-   "final_med": 5.0,
-   "perdona_max": 5,
+   "final_med": 5,
+   "perdona_max": 3,
    "mejora_max": 17
   },
   "pilar|venta|resto·rare": {
@@ -284,7 +292,7 @@
    "mejora_max": 9
   },
   "picaros|venta|resto·common": {
-   "hilos": 85,
+   "hilos": 87,
    "cierres": [
     4,
     4,
@@ -319,17 +327,17 @@
     "4+": 0.0
    },
    "n_sube": {
-    "2-3": 99,
+    "2-3": 105,
     "1": 74,
-    "4+": 4
+    "4+": 5
    },
    "final_min": 3,
-   "final_med": 4,
+   "final_med": 4.0,
    "perdona_max": 1,
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 89,
+   "hilos": 93,
    "cierres": [
     48,
     48,
@@ -422,6 +430,9 @@
     60,
     60,
     61,
+    61,
+    61,
+    61,
     62,
     62,
     62,
@@ -474,7 +485,7 @@
    "mejora_max": 3
   },
   "picaros|venta|resto·None": {
-   "hilos": 6,
+   "hilos": 5,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -484,8 +495,9 @@
    "mejora_max": 0
   },
   "picaros|compra|resto·epic": {
-   "hilos": 14,
+   "hilos": 23,
    "cierres": [
+    128,
     128,
     128,
     128,
@@ -506,19 +518,19 @@
     167
    ],
    "p_sube": {
-    "4+": 0.93,
+    "4+": 0.96,
     "1": 1.0,
     "2-3": 1.0
    },
    "n_sube": {
-    "4+": 14,
+    "4+": 23,
     "1": 4,
     "2-3": 4
    },
    "final_min": 3,
    "final_med": 3.0,
    "perdona_max": 48,
-   "mejora_max": 47
+   "mejora_max": 51
   },
   "pilar|venta|resto·common": {
    "hilos": 1,
@@ -552,7 +564,7 @@
    "mejora_max": 25
   },
   "picaros|compra|resto·None": {
-   "hilos": 2,
+   "hilos": 4,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
