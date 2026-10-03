@@ -318,6 +318,16 @@ class TestLive(GateCase):
         self.assertEqual(self.gate.execute(bid("LAT-10", 5), w).status, "would")
         self.assertEqual(self.transport.sent, [])
 
+    def test_live_would_does_not_use_the_budgets(self):
+        # night audit: a paused tactic's "would" took 4 of 6 listing slots every tick (Sat: 1965 rastro rows)
+        w = self.start(world())
+        self.armed = frozenset({"rastro"})
+        self.paused.add("rastro")
+        cash0 = self.gate.book.cash_free
+        self.assertEqual(self.gate.execute(bid("LAT-09", 5), w).status, "would")
+        self.assertEqual(self.gate.counters.listings, 0)
+        self.assertEqual(self.gate.book.cash_free, cash0)
+
     def test_stop_file_refuses(self):
         w = self.start(world())
         open(os.path.join(self.root, "STOP.txt"), "w").close()

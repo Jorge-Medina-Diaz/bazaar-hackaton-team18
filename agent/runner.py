@@ -689,6 +689,7 @@ class Runner:
             flat = self.flatten_intents(world)
             intents = [it for it in intents if it.tactic == "manual"] + flat
 
+        intents, shadow = self.split_would(intents)
         drops: list = []
         chosen = choose(intents, world, self.cfg, drops)
         self.journal_drops(world, drops)
@@ -706,6 +707,8 @@ class Runner:
                 raise Fatal(f"flatten: {why}")
         if self.flatten is None and (held or world.duels):     # no late duel accepts while flattening
             outs += self.late_window(world, held, outs)
+        if shadow:
+            outs += self.execute(choose(shadow, world, self.cfg), world)   # "would" rows only (Gate step 7)
 
         self.tick_row(world, outs)
         self.prev = world
@@ -715,6 +718,19 @@ class Runner:
         if world.tick % SNAP_EVERY == 0:
             self.snap(world)
         return True
+
+    def split_would(self, intents: list) -> tuple:
+        """Live: (intents that may act, intents of paused / unarmed tactics). The second only journal "would" and run
+        after everything else, so they never take the accept slot or the listing budget (Sat: a paused rastro took
+        4 of 6 listing slots every tick). Dry: everything is a "would" anyway -> (intents, [])."""
+        if self.mode != "live":
+            return list(intents), []
+        armed = self.armed_now()
+        act, shadow = [], []
+        for it in intents:
+            ok = it.tactic == "manual" or (it.tactic in armed and not self.paused(it.tactic))
+            (act if ok else shadow).append(it)
+        return act, shadow
 
     def journal_drops(self, world: World, drops: list) -> None:
         """A manual order left out by choose() gets its own 'dropped' row (operators must see why it did nothing);

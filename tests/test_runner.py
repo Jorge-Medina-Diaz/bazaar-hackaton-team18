@@ -314,6 +314,24 @@ class TestRequestBudget(unittest.TestCase):
         self.assertEqual((lim.rate, lim.burst, lim.reserve), (3.5, 8, 2))
 
 
+class TestPausedTacticsOutOfBudgets(unittest.TestCase):
+    def test_paused_accept_does_not_take_the_duel_accept_slot(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.mode = "live"
+        r.armed = {"dealers", "duels", "rastro"}
+        r.calibrator.pause("dealers", "test")
+        early = accept(7, prio=5)                                   # dealers' standing accept, earlier deadline
+        early = make_intent("accept", "dealers", dict(early.args), "r", "e", NONE_P, priority=5)
+        da = duel_accept(5)
+        act, shadow = r.split_would([early, da, listing(1, "rastro")])
+        self.assertEqual([it.kind for it in act], ["duel_accept", "list_offer"])
+        self.assertEqual([it.tactic for it in shadow], ["dealers"])
+        chosen = runner.choose(act, make_world(), Cfg())
+        self.assertIn("duel_accept", [it.kind for it in chosen])
+        r.mode = "dry"
+        self.assertEqual(r.split_would([early, da]), ([early, da], []))
+
+
 class TestLiveDayTimes(unittest.TestCase):
     """Night audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
 

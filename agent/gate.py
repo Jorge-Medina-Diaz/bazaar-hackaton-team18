@@ -860,7 +860,8 @@ class Gate:
             self._seen[iid] = "would"
             self._j("would", id=iid, tactic=intent.tactic, intent_kind=k, code=why, detail="",
                     prediction=_pred_dict(intent.prediction), request=[method, path, sha], tick=world.tick)
-            self._after(intent, world, out, doms)
+            if self.mode != "live":        # dry run: book what it would use; live: a paused tactic's "would" must
+                self._after(intent, world, out, doms)   # not eat the armed tactics' slots, cash or assets
             return out
         # 8. deadline
         if self.clock.now() > world.tick_deadline and k not in NO_DEADLINE_KINDS:
