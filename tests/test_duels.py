@@ -325,6 +325,21 @@ class TestTwoIssues(unittest.TestCase):
     def two(self, **kw):
         return duel(issues=("price", "days"), **kw)
 
+    def test_ultimatum_two_ticks_before_deadline(self):
+        # Sun Duels III: 11097 seller L79 ended at 87 with no deal; two ticks before the deadline a rival still outside
+        # our limit gets our closest allowed price (seller L+1 at 10 days, buyer L-1 at 0 days), never past the limit
+        s = self.two(role="seller", L=79, w=3.0, meaning="each delivery day adds this much cash to your side",
+                     msgs=[msg("you", 104, 120, 10), msg("R", 105, 60, 10), msg("you", 112, 87, 10),
+                           msg("R", 113, 70, 10)],
+                     rival_offer={"price": 70, "days": 10, "tick": 113, "id": 3})
+        self.assertEqual(D.decide(D.view(s, 114), {}), ("say", 80, 10))
+        b = self.two(L=168, w=2.0, meaning="each delivery day costs you this much cash",
+                     msgs=[msg("you", 104, 100, 0), msg("R", 105, 200, 0), msg("you", 112, 158, 0),
+                           msg("R", 113, 185, 0)],
+                     rival_offer={"price": 185, "days": 0, "tick": 113, "id": 4})
+        self.assertEqual(D.decide(D.view(b, 114), {}), ("say", 167, 0))
+        self.assertNotEqual(D.decide(D.view(b, 110), {})[1], 167)            # not before deadline - 2
+
     def test_unreadable_days_no_message(self):
         self.assertEqual(D.decide(D.view(self.two(w=None, meaning="x"), 100), {})[0], "wait")
         # days_meaning is free text the Sensor never passes: the weight alone makes the duel playable
