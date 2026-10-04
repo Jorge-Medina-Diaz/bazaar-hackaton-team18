@@ -82,19 +82,25 @@ TEMPLATES: Mapping[str, tuple] = {
         "Me muevo yo: {p} P por esa misma carta.",
         "Trato limpio y rápido: {p} P.",
     ),
-    # Voss (docs/duelos-iii-voss.md): auditoría de acusaciones, preguntas orientadas al «no» y calibradas,
-    # y nunca «justa» a la defensiva. Cada mensaje lleva su cifra: hablar más cuesta rondas (U-02).
+    # Voss (docs/duelos-iii-voss.md, .claude/skills/never-split-the-difference): una variante por FASE de la
+    # negociación, en el orden de PHASE_VARIANT (agent/tactics/duels.py): open, move, how, final, close, ghost.
+    # Auditoría de acusaciones, preguntas orientadas al «no» y calibradas, y nunca «justa» a la defensiva. Cada
+    # mensaje lleva su cifra: hablar más cuesta rondas (U-02). El texto nunca decide la cifra.
     "duel": (
-        "Sé que vas a pensar que abro fuerte. ¿Sería una locura cerrar en {p} P?",
-        "Parece que aún estamos lejos. ¿Cómo podemos acercarnos? Me muevo a {p} P.",
-        "Yo ya me he movido. ¿Cómo se supone que hago más? Propongo {p} P.",
-        "Esto ya me cuesta: {p} P. ¿Te parece mal cerrar así?",
+        "Sé que vas a pensar que abro fuerte. ¿Sería una locura cerrar en {p} P?",          # 0 open  (ch3/ch4)
+        "Parece que aún estamos lejos. ¿Cómo podemos acercarnos? Me muevo a {p} P.",        # 1 move  (ch3/ch7)
+        "¿Cómo se supone que hago eso? Lo más que puedo ahora: {p} P.",                     # 2 how   (ch7/ch8)
+        "Esto ya me cuesta: {p} P. ¿Te parece mal cerrar así?",                             # 3 final (ch9)
+        "¿Sería mala idea cerrarlo ya en {p} P?",                                           # 4 close (ch4)
+        "¿Has dejado de lado este trato? Sigo aquí: {p} P.",                                # 5 ghost (ch4)
     ),
     "duel_days": (
         "Sé que vas a pensar que abro fuerte. ¿Sería una locura cerrar en {p} P y {d} días?",
-        "Parece que aún estamos lejos. ¿Cómo podemos acercarnos? Me muevo a {p} P con {d} días.",
-        "Yo ya me he movido. ¿Cómo se supone que hago más? Propongo {p} P y {d} días.",
+        "Parece que aún estamos lejos. ¿Cómo podemos acercarnos? Me muevo a {p} P y {d} días.",
+        "¿Cómo se supone que hago eso? Lo más que puedo ahora: {p} P y {d} días.",
         "Esto ya me cuesta: {p} P y {d} días. ¿Te parece mal cerrar así?",
+        "¿Sería mala idea cerrarlo ya en {p} P y {d} días?",
+        "¿Has dejado de lado este trato? Sigo aquí: {p} P y {d} días.",
     ),
 }
 

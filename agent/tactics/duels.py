@@ -33,6 +33,23 @@ NOTES (M12, night build) / open issues
   provided for the runner/calibrator to call; it is not wired here.
 - The late-window second pass (re-read mid-tick, then accept) is the runner's job (M15): calling propose again with the
   fresh world gives the accept, since decide sees rival_offer.tick == tick.
+
+NOTES (Voss, "Never Split the Difference"; .claude/skills/never-split-the-difference) - param-gated, plan.json "duels"
+- V1 voss_text (on): decide_ex names the PHASE of every say and propose picks TEMPLATES variant PHASE_VARIANT[phase]
+  instead of len(ours) % n: open = accusation audit + no-oriented question (ch3/ch4), move = label + calibrated
+  question (ch3/ch7), how = "How am I supposed to do that?" against an extreme or unmoved rival (ch7/ch8), final =
+  last Ackerman number (ch9), close = no-oriented close (ch4), ghost = "Have you given up on...?" (ch4). Text only.
+- V2 precise (off): a say price that is a multiple of 5 moves 1 P toward our side when it stays a strict concession
+  and passes _final_guard (ch6 odd numbers, ch9 Ackerman step 5). Accepts are never touched.
+- V3 ackerman (off): once the rival spoke, concessions follow ack_target * (0, 20/35, 30/35, 1) of the way anchor ->
+  Lm (anchor = 65 % of the target, raises to 85/95/100 %, ch9); the next step is the first one our standing price has
+  not reached (= the number of full concessions made after rival answers), then HOLD: silence is free (U-02) until
+  the deadline-final offer and the late provoke / accept rules, unchanged.
+- V4 punch (off): when the rival did not move toward us since its previous offer, or its first offer is extreme
+  (buyer: >= L*(1+punch_x), seller: <= L/(1+punch_x)), we do not reward it with a full step (ch9 taking a punch, ch8
+  make them bid against themselves): punch_mode "min" concedes 1 P (phase how), "wait" stays silent.
+- All four keep INV-12: every say still goes through _final_guard (limit + days margin, monotone, one per tick,
+  nothing after deadline-1) and the Gate (G50/G60).
 """
 from __future__ import annotations
 
@@ -61,7 +78,19 @@ DEFAULTS: Mapping[str, Any] = {
     "days_sign": None,     # +1: more days is better for us; -1: fewer; None: unknown (worst case)
     "accept_paused": False,
     "e8_hold_until": None,
+    # Voss (module NOTES). Operator toggles from plan.json "duels"; only voss_text is on by default (text only).
+    "voss_text": True,     # V1: template variant by negotiation phase (PHASE_VARIANT) instead of len(ours) % n
+    "precise": False,      # V2: no multiples of 5 on say prices (1 P toward our side when still a concession)
+    "ackerman": False,     # V3: Ackerman steps after the rival spoke, then hold
+    "ack_target": 0.8,     # V3: target = this fraction of the way anchor -> Lm (anchor 0.6L -> target ~0.92L)
+    "punch": False,        # V4: no full step for an unmoved / extreme rival
+    "punch_mode": "min",   # V4: "min" = concede 1 P, "wait" = stay silent this tick
+    "punch_x": 0.5,        # V4 (and phase how): rival first offer extreme if beyond L*(1+x) / L/(1+x)
 }
+
+# V1: phase of a say -> index in TEMPLATES["duel"] / TEMPLATES["duel_days"] (agent/talk.py keeps the same order)
+PHASE_VARIANT: Mapping[str, int] = {"open": 0, "move": 1, "how": 2, "final": 3, "close": 4, "ghost": 5}
+ACK_STEPS = (0.0, 20 / 35, 30 / 35, 1.0)   # Ackerman 65/85/95/100 % of the target, from the anchor (ch9)
 
 
 # ------------------------------------------------------------------------------------------ helpers
@@ -230,14 +259,41 @@ def surplus(v: DuelView, p: int) -> int:
 
 def decide(v: DuelView, params: Optional[Mapping] = None) -> tuple:
     """("say"|"accept"|"wait", price, days). Final guard: anything outside the limits becomes a wait."""
+    return decide_ex(v, params)[0]
+
+
+def decide_ex(v: DuelView, params: Optional[Mapping] = None) -> tuple:
+    """-> ((kind, price, days), phase). phase: a PHASE_VARIANT key for a say, "accept" for an accept, None for a wait.
+    The action is the one decide returns; the phase only picks the text (V1)."""
+    wait = (("wait", None, None), None)
     P = dict(DEFAULTS, **(params or {}))
     try:
         if v.ok and P["T"]:
             v = _with_T(v, int(P["T"]))
-        act = _decide(v, P)
+        act, phase = _decide(v, P)
+        if P["precise"]:
+            act = _precise(v, P, act)
+        act = _final_guard(v, P, act)
     except Exception:
-        return ("wait", None, None)
-    return _final_guard(v, P, act)
+        return wait
+    if act[0] == "say":
+        return act, (phase if phase in PHASE_VARIANT else "move")
+    if act[0] == "accept":
+        return act, "accept"
+    return wait
+
+
+def _precise(v: DuelView, P: Mapping, act: tuple) -> tuple:
+    """V2 (ch6, ch9): a say price that is a multiple of 5 moves 1 P toward our side, only if the result is still a
+    strict concession (or the opening) and passes _final_guard unchanged. Anything else: the act as it was."""
+    kind, price, days = act
+    if kind != "say" or type(price) is not int or price % 5:
+        return act
+    q = price + v.s                                                     # buyer -1, seller +1
+    if v.mine is not None and v.s * (q - v.mine) >= 0:
+        return act
+    alt = ("say", q, days)
+    return alt if _final_guard(v, P, alt) == alt else act
 
 
 def _need(v: DuelView, P: Mapping, extra, d) -> float:
@@ -289,8 +345,34 @@ def _clamp(v: DuelView, p: float, need: float) -> int:
     return max(p, v.limit + math.ceil(need))
 
 
+def _rival_stuck(v: DuelView, P: Mapping) -> bool:
+    """The rival did not move toward us since its previous offer, or its only offer is an extreme anchor."""
+    if not v.rivals:
+        return False
+    r = v.rivals[-1][1]
+    if len(v.rivals) >= 2:
+        return v.s * (r - v.rivals[-2][1]) <= 0
+    x = float(P["punch_x"])
+    return r >= v.limit * (1 + x) if v.s < 0 else r <= v.limit / (1 + x)
+
+
+def _ackerman(v: DuelView, P: Mapping, anchor: int, Lm: float, need: float, mine: int) -> Optional[int]:
+    """V3: the first Ackerman step our standing price has not reached yet (rounded toward our side), None = hold.
+    A step within 1 P of `mine` counts as reached: V2 may have shifted it 1 P toward our side (85 -> 84), and
+    re-offering the unshifted step would burn a round on a 1 P move."""
+    buyer = v.s < 0
+    target = min(1.0, max(0.0, float(P["ack_target"])))
+    for f in ACK_STEPS[1:]:
+        raw = anchor + target * f * (Lm - anchor)
+        p = _clamp(v, math.floor(raw + 1e-9) if buyer else math.ceil(raw - 1e-9), need)
+        if (p > mine + 1) if buyer else (p < mine - 1):
+            return p
+    return None
+
+
 def _decide(v: DuelView, P: Mapping) -> tuple:
-    wait = ("wait", None, None)
+    """-> ((kind, price, days), phase); _final_guard still checks the action."""
+    wait = (("wait", None, None), None)
     if not v.ok or v.tick > v.deadline - 1:
         return wait
     readable, our_days, extra = _days_model(v, P)
@@ -326,14 +408,14 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
         opening = mine is None and surplus(v, r) >= surplus(v, anchor)
         elapsed = (v.tick - v.start) >= P["close_frac"] * total
         if good or firm or late or opening or elapsed:
-            return ("accept", r, rd)
+            return ("accept", r, rd), "accept"
 
     if spoke_this_tick:
         return wait
 
     # 2. opening
     if mine is None:
-        return ("say", anchor, say_days)
+        return ("say", anchor, say_days), "open"
 
     # 3. rival never spoke: slow ascent (free: rounds stay 0)
     if not v.rivals:
@@ -348,7 +430,7 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
             frac = (1 - P["slow_keep"]) + P["slow_keep"] * (v.tick - tail_start) / max(1, P["slow_tail"])
         p = _clamp(v, anchor + (Lm - anchor) * min(1.0, frac), need_say)
         p = max(p, mine) if buyer else min(p, mine)
-        return ("say", p, say_days) if p != mine else wait
+        return (("say", p, say_days), "ghost") if p != mine else wait
 
     # 4. E8: silence after the first answer of the first rival that speaks
     hold = P.get("e8_hold_until")
@@ -359,21 +441,34 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
 
     # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise
     if late and ok_r and not v.rival_spoke_now:
-        p = r if (r >= mine if buyer else r <= mine) else mine
-        return ("say", _clamp(v, p, need_say), say_days)
+        p = _clamp(v, r if (r >= mine if buyer else r <= mine) else mine, need_say)
+        if p == mine:                       # repeating our price is G50.repeat / worse_than_rival at the Gate
+            return wait
+        return ("say", p, say_days), "close"
     last_our_tick = v.ours[-1][0] if v.ours else -1
     if v.tick >= v.deadline - P["final"] and not ok_r and last_our_tick < v.deadline - P["final"]:
         p = _clamp(v, mine + P["final_frac"] * (Lm - mine), need_say)
         p = max(p, mine) if buyer else min(p, mine)
-        return ("say", p, say_days) if p != mine else wait
+        return (("say", p, say_days), "final") if p != mine else wait
 
     # 6. v0 corrected: concede one step only when the rival answered our last message (K-06)
     if rival_after_ours:
-        p = nxt
+        stuck = _rival_stuck(v, P)
+        phase = "how" if stuck else "move"                              # V1 text: ch7/ch8 vs ch3/ch7
+        if P["punch"] and stuck:                                        # V4: take the punch (ch9), no full step
+            if P["punch_mode"] == "wait":
+                return wait
+            p = _clamp(v, mine + 1 if buyer else mine - 1, need_say)
+        elif P["ackerman"]:                                             # V3: Ackerman step, then hold (ch9)
+            p = _ackerman(v, P, anchor, Lm, need_say, mine)
+            if p is None:
+                return wait
+        else:
+            p = nxt
         if ok_r:                                                         # never offer more than the rival asks
             p = min(p, r) if buyer else max(p, r)
             p = max(p, mine) if buyer else min(p, mine)
-        return ("say", p, say_days) if p != mine else wait
+        return (("say", p, say_days), phase) if p != mine else wait
     return wait
 
 
@@ -423,7 +518,7 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
             if e8 and e8.get("duel") == v.duel_id:
                 p["e8_hold_until"] = e8["until"]
                 exp = "E8"
-            act, price, days = decide(v, p)
+            (act, price, days), phase = decide_ex(v, p)
             if act == "accept":
                 pred = _predict(v.limit, price, v.decay, v.rounds, v.role)
                 it = make_intent("duel_accept", "duels", {"duel_id": v.duel_id, "fingerprint": v.fingerprint},
@@ -433,11 +528,14 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
                 accepts.append((v.deadline, -surplus(v, price), v.duel_id, it, price, days))
             elif act == "say":
                 tpl = "duel_days" if v.two_issue else "duel"
+                n = _template_variants(tpl)
+                var = PHASE_VARIANT.get(phase) if P["voss_text"] else None
+                var = var if type(var) is int and var < n else len(v.ours) % n
                 pred = _predict(v.limit, price, v.decay, v.rounds + 1, v.role)
                 says.append(make_intent(
                     "duel_say", "duels",
                     {"duel_id": v.duel_id, "price": price, "days": days, "template": tpl,
-                     "variant": len(v.ours) % _template_variants(tpl)},
+                     "variant": var},
                     f"duel {v.duel_id} {v.role} L={v.limit}: offer {price}" + (f" d{days}" if days is not None else ""),
                     f"if accepted: surplus {surplus(v, price)}", pred,
                     priority=500 - (v.deadline - tick), experiment=exp))
