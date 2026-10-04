@@ -230,6 +230,7 @@ class _Ctx:
         self.page_sets = frozenset(self.plan.get("page_sets") or ())
         self.day_over = self._day_over()
         self.buy_any = self.plan.get("endgame_buy_any") is True and self.day_over
+        self.closer_reserve = 0          # J4: cash a standing closer bid still needs for its endgame raise (J6 buy-any)
         # hand_sales: single copies kept for Jorge's manual dealer sales (ladder slots, egg carriers) until the
         # dealer day ends; J5, sales into bids and swaps never hand them over before that
         self.hand_only = frozenset() if self.day_over else _plan_refs(self.plan, ("hand_sales",))
@@ -558,6 +559,8 @@ def _j4_closer(cx: _Ctx, offers: list) -> None:
             if target > own[1] and cx.cash_free + own[1] >= target:
                 _cancel(cx, own[0], ref, "closer", f"J4: raise {own[1]} -> {target} (competition)", 90)
                 rec["pending"] = {"what": "raise", "price": target, "tick": cx.w.tick}
+            else:                            # night review P3: buy-any must not spend the endgame raise's cash
+                cx.closer_reserve += max(0, min(int(math.floor(dv - cx.compete_minus)), cap) - int(own[1]))
             cx.claimed.add(ref)
             continue
         if cx.counts(cx.b.paths, ref) or ref in cx.claimed or ref in cx.own_swaps:
@@ -595,7 +598,7 @@ def _j6_buys(cx: _Ctx, offers: list) -> None:
         pred = _pred_team(cx.dv_add(ref), p["price"], "buy", True, vn)
         ok = (_buy_ok(cx, vn["id"], ref, p["price"], pred.neg_lo) if need is not None
               else _any_ok(cx, vn["id"], ref, pred.neg_lo))
-        if not ok or -pred.cash > cx.cash_free:
+        if not ok or -pred.cash > cx.cash_free - (cx.closer_reserve if need is None else 0):
             continue
         cands.append((pred.neg_hi, o, vn, pred, p))
     for _, o, vn, pred, p in sorted(cands, key=lambda c: -c[0]):
@@ -608,7 +611,8 @@ def _j6_buys(cx: _Ctx, offers: list) -> None:
             st[ref] = {"offer": o["id"], "tick": cx.w.tick}
             cx.claimed.add(ref)
             continue
-        if not cx.can_acquire(ref) or -pred.cash > cx.cash_free:
+        reserve = cx.closer_reserve if cx.needs.get(ref) is None else 0
+        if not cx.can_acquire(ref) or -pred.cash > cx.cash_free - reserve:
             continue
         _accept(cx, o, vn, "buy", ref, p["price"], None, False, "rastro",
                 f"J6: buy gain {pred.neg_lo:.1f} after fee", pred, 60)

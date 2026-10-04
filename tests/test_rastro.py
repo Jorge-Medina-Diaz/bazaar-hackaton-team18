@@ -539,6 +539,17 @@ class BuyAnyTests(unittest.TestCase):
     def test_not_below_min_gain(self):
         self.assertEqual(self.accepts(self.go(11.2, offers=[sale(43, "SAL-04", 37)])), [])
 
+    def test_keeps_the_closer_raise_cash(self):
+        # night review P3: closer bid 49 standing after the dealer day end, before the endgame. Its endgame raise
+        # needs floor(99.1 - 20) - 49 = 30 more; with cash_free 40 a 20 P buy-any would leave 20 and block the raise
+        val = dict(add=dict(self.VAL_ANY["add"]), rm=self.VAL_ANY["rm"])
+        def go(cash):
+            w = world(t_hours=11.2, board=[sale(41, "SAL-04", 20)], my_offers=[own_bid(50, CLOSER, 49)])
+            return rastro.propose(w, book(cash_free=cash, own_bids={CLOSER: 49}), FakeValuer(**val), None,
+                                  self.PLAN_ANY, [CLOSER_NEED], {})
+        self.assertEqual(self.accepts(go(40)), [])
+        self.assertEqual(self.accepts(go(60)), [("SAL-04", 20)])                 # 60 - 30 = 30 >= 20
+
 
 class HandSalesTests(unittest.TestCase):
     """plan.hand_sales (Sunday sim: J5 listed the ladder / egg carriers MAL-0x, LAV-0x at 9 P at 09:00): no J5
