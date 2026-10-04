@@ -49,7 +49,8 @@ WINDOW_TICKS = 3
 TOL = 0.11
 LOSS_STOP = -1.0                 # harness settlement with measured Δneg <= this -> STOP (proxy for G12/20/21/32)
 UNATTRIBUTED_LOSS = -1.0         # Δneg <= this with no settlement -> pause buys
-DAILY_SURPRISE_STOP = -5.0
+DAILY_SURPRISE_STOP = -60.0      # Sun 09:32: a closer fill that GAINED +23 (predicted +50) hit -5 and stopped the bot;
+                                 # real losses are LOSS_STOP's job, this only catches a badly wrong model
 SOFT_WINDOW, SOFT_MAX = 5, 2
 NEG_CAP_MIN_HI, NEG_CAP_VALUE = 55.0, 50.0
 

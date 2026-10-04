@@ -248,11 +248,11 @@ class TestHarnessSettlements(Base):
 
     def test_daily_negative_surprise_stop(self):
         for i in range(3):
-            self.harness_list(f"i{i}", 3000 + i, lo=3.0)
+            self.harness_list(f"i{i}", 3000 + i, lo=30.0)
         c = self.cal(verdict_fn=lambda p, n, l: "pass")   # verdicts aside, surprises accumulate
         neg = 74.5
         for i in range(3):
-            self._settle(c, 200 + 10 * i, 3000 + i, neg, neg + 1.0)   # surprise -2 each
+            self._settle(c, 200 + 10 * i, 3000 + i, neg, neg + 1.0)   # surprise -29 each (-87 < -60)
             neg += 1.0
         self.assertTrue(any(r.startswith("calib:daily_negative_surprise") for r in c.stop_reasons()))
 
