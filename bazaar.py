@@ -23,10 +23,11 @@ Design notes
 - `--root DIR` (first argument) relocates Paths for tests; production never passes it. Default Paths.at() is anchored
   on the package location, so `stop` from any folder writes <repo>/STOP.
 - selftest: one unittest subprocess per stage (env: BAZAAR_TEST=1, BAZAAR_NO_DOTENV=1, no key/url), green = exit 0
-  and at least STAGE_MIN tests ran (0 tests -> red). Test files that do not exist yet (M17) are listed as missing but
-  do not turn the stage red; tests/test_bots.py is not in any stage (known failures, informational). If logs/run or
+  and at least STAGE_MIN tests ran (0 tests -> red). A listed test file that is missing is reported but does not
+  turn the stage red. Tests outside the stage lists (test_bots, test_agent_core, the analysis tools...) run in the
+  full suite (CI), not in selftest. If logs/run or
   state/ (except selftest.json and writer.lock) change during the selftest, every stage is red.
-- replay-friday runs tests/test_replay_friday.py when it exists (M17); otherwise exits 1 ("not built").
+- replay-friday runs tests/test_replay_friday.py (the Friday replay against the fake server).
 - Exit codes: 0 ok, 1 refused / usage / red, 2 STOP from run, 3 writer lock busy (run).
 """
 from __future__ import annotations
@@ -284,7 +285,7 @@ def cmd_clockcheck(base_url: Optional[str] = None, http: Optional[Callable] = No
 
 
 def scenario_hint(clock: dict, stalls_h: Optional[float]) -> str:
-    """Sunday clock scenario (docs/DOMINGO.md): C = resume at 13.37 + Sunday events re-anchored (stalls ~18.37),
+    """Sunday clock scenario (docs/history/plan-domingo.md): C = resume at 13.37 + Sunday events re-anchored (stalls ~18.37),
     B = clock jumped to 16.65, A = resume and nothing moved (round 2, stalls 21.65). Doors closed -> no guess."""
     t, rnd = clock.get("t_hours"), clock.get("round")
     if clock.get("doors") != "open" or type(t) not in (int, float):

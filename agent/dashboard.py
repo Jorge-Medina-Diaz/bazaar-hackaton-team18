@@ -1,7 +1,7 @@
 """Dashboard data: one snapshot of us (/api/me) plus everything public about the other teams.
 
 snapshot(b, state) only does GETs (me, clock, catalog, leaderboard, feed, El Rastro board, /api/me/value): no writes,
-no admin routes. New feed events are appended to logs/feed.jsonl (same format as scout.py --save), so what we know
+no admin routes. New feed events are appended to logs/feed.jsonl (same format as affinity.py / afinidad_propia.py read), so what we know
 about rivals grows past the feed's 500-event window.
 
 Rivals' cash and holdings are private (/api/cards/{id} shows their owner as "a team"). intel() works only from

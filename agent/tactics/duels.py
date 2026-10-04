@@ -395,7 +395,7 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
     rival_after_ours = not v.ours or v.rivals[-1][3] > v.ours[-1][3]
 
     # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise.
-    # Two issues with other days (night review E2E-2: ours 97/d0, a silent rival's 94/d5 worth +6 to us): no price
+    # Two issues with other days (pre-Sunday review E2E-2: ours 97/d0, a silent rival's 94/d5 worth +6 to us): no price
     # of ours is both monotone and not worse than the rival's, so we send the rival its own standing pair back
     # (inside the limit with its days by ok_r; G50 allows that echo) and accept when it answers.
     if late and ok_r and not v.rival_spoke_now:
@@ -424,7 +424,7 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
 def accept_slot_wanted(world, params: Optional[Mapping] = None) -> bool:
     """True when a live duel is within acc_late ticks of its deadline (and before deadline - 1 has passed) and the
     rival's standing offer is inside our limit with its days margin: the late window may need this tick's single
-    accept slot (night review D2: an early dealer / team accept took it and the duel ended without a deal)."""
+    accept slot (pre-Sunday review D2: an early dealer / team accept took it and the duel ended without a deal)."""
     P = dict(DEFAULTS, **(params or {}))
     for d in getattr(world, "duels", None) or ():
         try:
@@ -503,7 +503,7 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
     for dl, _, did, it, price, days, *_rest in accepts[:budget]:
         rec[did] = {"tick": tick, "price": price, "days": days}
         out.append(it)
-    # night review D3: an accept beyond the budget (same-deadline batches, 1 accept per tick) gets the rival's own
+    # pre-Sunday review D3: an accept beyond the budget (same-deadline batches, 1 accept per tick) gets the rival's own
     # pair back as a say instead of nothing: the rival accepting our offer uses none of our accept budget
     for _dl, _s, did, _it, price, days, v, p, exp in accepts[budget:]:
         try:

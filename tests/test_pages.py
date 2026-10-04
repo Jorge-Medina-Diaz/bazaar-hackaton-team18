@@ -158,7 +158,7 @@ class PlanTest(unittest.TestCase):
         self.assertEqual({n.max_price for n in cha if n.ref in ("CHA-09", "CHA-10")}, {100})
 
     def test_cha_rare_need_cap_allows_the_chato_fallback(self):
-        # night audit: CHA:rare Pícaros (<= 60) falls back to El Chato (limit 90); the Need cap must let it open
+        # pre-Sunday audit: CHA:rare Pícaros (<= 60) falls back to El Chato (limit 90); the Need cap must let it open
         cfg = copy.deepcopy(self.cfg)
         cfg["page_sets"] = ["CHA"]
         cfg["profiles"]["CHA:rare"] = {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24}
@@ -303,7 +303,7 @@ def _sun(t, close, stalls=None, *, doors="open", paused=False, today="sun", upco
 
 
 class LiveDayEndTest(unittest.TestCase):
-    """Night audit (Sun 4 Oct): day end / endgame follow the live schedule, not plan hours (sun 19.283 / 18.783)."""
+    """Pre-Sunday audit (Sun 4 Oct): day end / endgame follow the live schedule, not plan hours (sun 19.283 / 18.783)."""
     PLAN = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}}}
 
     def eff(self, w, seen=None):
@@ -399,7 +399,7 @@ def _stalls(at):
 
 
 class WallCloseTest(unittest.TestCase):
-    """Strategy M2 (night audit): day end / endgame from clock.closes (wall) and the live schedule, in the three
+    """Strategy M2 (pre-Sunday audit): day end / endgame from clock.closes (wall) and the live schedule, in the three
     Sunday clock scenarios. Expected: dealer day end 13:55 (C, B) or 14:55 (A), endgame 14:25 in all three."""
     PLAN = {"day_end_hours": {"sun": 19.283}, "day_end_min_before_close": 5,
             "closer": {"endgame_hours": {"sun": 18.783, "N": 18.783, "*": 18.783}, "endgame_min_before_close": 35}}
@@ -457,7 +457,7 @@ class WallCloseTest(unittest.TestCase):
         self.assertFalse(pages.endgame(w, pc))
 
     def test_stale_closed_door_saturday_entry_with_a_past_wall_is_skipped(self):
-        # night review S2: scenario A on Sunday 09:00 with clock.today still 'sat'; the closed-door entry
+        # pre-Sunday review S2: scenario A on Sunday 09:00 with clock.today still 'sat'; the closed-door entry
         # 'day_closes sat' at 16.65 (wall Sat 23:00) lingers ahead of t. It used to be taken as today's close
         # (endgame 16.067 = 11:44, dealer day end 12:12); its wall has passed, so the Sunday close 19.367 wins.
         up = _stalls(21.65) + [
@@ -508,7 +508,7 @@ class WallCloseTest(unittest.TestCase):
 
 
 class SundayPlanTest(unittest.TestCase):
-    """The live config/plan.json for Sunday 4 Oct (strategy of the night audit): loads, and its keys do what the
+    """The live config/plan.json for Sunday 4 Oct (strategy of the pre-Sunday audit): loads, and its keys do what the
     plan notes say."""
 
     def setUp(self):
@@ -528,7 +528,7 @@ class SundayPlanTest(unittest.TestCase):
         self.assertEqual(c["page_sets"], ["RET", "LAT", "CHA"])
         self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 225, "RET-11": 150, "CHA-12": 470})
         self.assertEqual(set(c["hand_sales"]), {"MAL-01", "MAL-02", "MAL-04", "MAL-05", "LAV-02", "LAV-03", "LAV-05",
-                                                "LAT-06", "LAT-02"})   # night review P2: LAT-06 #1105 is the proven
+                                                "LAT-06", "LAT-02"})   # pre-Sunday review P2: LAT-06 #1105 is the proven
                                                                        # Pilar / Chato carrier; J5 listed it at 18
 
     def test_cha_rare_need_cap_reaches_the_chato_fallback(self):
@@ -549,7 +549,7 @@ class SundayPlanTest(unittest.TestCase):
         self.assertTrue(all(n.max_price <= {"CHA-11": 225, "RET-11": 150}[n.ref] for n in needs))
 
     def test_extra_needs_wait_for_round_3(self):
-        # night review P6/E2E-3: scenario A, Sunday 09:00 is still round 2 (L4 slots 3/3): no RET-11 Pícaros buy
+        # pre-Sunday review P6/E2E-3: scenario A, Sunday 09:00 is still round 2 (L4 slots 3/3): no RET-11 Pícaros buy
         import dataclasses
         cfg = dict(self.cfg, page_sets=[])
         r2 = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5, today="sun")
@@ -570,7 +570,7 @@ class SundayPlanTest(unittest.TestCase):
             os.unlink(fh.name)
 
     def test_page_needs_come_before_extra_needs(self):
-        # night review P1: dealers.propose opens one thread per dealer in Need order; CHA-11/RET-11 (Pícaros) used to
+        # pre-Sunday review P1: dealers.propose opens one thread per dealer in Need order; CHA-11/RET-11 (Pícaros) used to
         # come first and take the Pícaros slot from the CHA rares the page (and its +50 closer) needs
         import dataclasses
         w = dataclasses.replace(make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5,

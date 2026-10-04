@@ -2,8 +2,9 @@
 
 Design notes
 - The scan is AST-based, so docstrings and comments that *mention* a forbidden name do not count; only code does.
-- LEGACY modules (pre-harness, archived by M18) are allowed to keep their old SDK use, but no harness module may
-  import them (checked on the static import graph). agent/dashboard.py and agent/client.py are panels/read-only.
+- LEGACY lists the Friday modules (now in docs/history/legacy-code/, guarded by SystemExit). They must never come
+  back into agent/: no harness module may import those names (checked on the static import graph).
+- agent/dashboard.py and agent/client.py are read-only (the dashboard and client("read")).
 - INV-13: the literal "text" is allowed in agent/gate.py only inside the REQUEST_FOR body builders (_req_*), which
   must put the "text" key in say/duel_say bodies (by design). The Gate never reads a text field.
 """

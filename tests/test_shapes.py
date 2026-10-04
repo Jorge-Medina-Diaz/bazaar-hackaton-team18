@@ -9,7 +9,7 @@ from pathlib import Path
 
 from agent import guards
 from agent.offer_safety import executable_offer, offer_ok
-from tests.test_guards import HARVEST, Ctx, accept_args, load
+from tests.test_guards import Ctx, accept_args, load
 
 FIX = Path(__file__).resolve().parent / "fixtures" / "twisted_offers.json"
 TWISTED = json.loads(FIX.read_text(encoding="utf-8"))

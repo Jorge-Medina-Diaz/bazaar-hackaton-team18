@@ -306,7 +306,7 @@ class SwapTests(unittest.TestCase):
                 self.assertFalse([i for i in out if i.args.get("give_asset") == 1 or i.args.get("asset_id") == 1])
 
     def test_swap_by_asset_id_respects_hand_sales_epics_and_resale(self):
-        # night review P7: a swap naming one of our asset ids skipped hand_sales, the epic no-spare rule and not_spare
+        # pre-Sunday review P7: a swap naming one of our asset ids skipped hand_sales, the epic no-spare rule and not_spare
         import copy, dataclasses
         o = swap(7, "LAT-09", want_asset=1)
         plan = dict(PLAN, hand_sales=["MAL-04"], day_end_hours={"default": 11.0})
@@ -521,7 +521,7 @@ if __name__ == "__main__":
 
 
 class BuyAnyTests(unittest.TestCase):
-    """M9 (night audit): after the dealer day end or in the endgame, J6 also buys a first copy outside the page
+    """M9 (pre-Sunday audit): after the dealer day end or in the endgame, J6 also buys a first copy outside the page
     sets below our value (cash held at the 15:00 freeze scores 0); never a 2nd copy, never a page-set ref."""
     PLAN_ANY = dict(PLAN, endgame_buy_any=True, page_sets=["RET"], day_end_hours={"default": 11.0})
     VAL_ANY = dict(add=dict(VAL["add"], **{"SAL-04": 40.0}), rm=VAL["rm"])
@@ -559,7 +559,7 @@ class BuyAnyTests(unittest.TestCase):
         self.assertEqual(self.accepts(self.go(11.2, offers=[sale(43, "SAL-04", 37)])), [])
 
     def test_keeps_the_closer_raise_cash(self):
-        # night review P3: closer bid 49 standing after the dealer day end, before the endgame. Its endgame raise
+        # pre-Sunday review P3: closer bid 49 standing after the dealer day end, before the endgame. Its endgame raise
         # needs floor(99.1 - 20) - 49 = 30 more; with cash_free 40 a 20 P buy-any would leave 20 and block the raise
         val = dict(add=dict(self.VAL_ANY["add"]), rm=self.VAL_ANY["rm"])
         def go(cash):

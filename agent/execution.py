@@ -7,8 +7,8 @@ RuntimeError immediately (the runner turns it into exit code 3).
 On Windows the region locked is one byte far past the JSON text (offset LOCK_OFFSET), so other processes can
 still read the PID; with fcntl the whole file is flock'ed.
 
-team_writer(team) is kept for the old code (agent/haggle.py, agent/information.py, tests/test_agent_core.py):
-it is now a wrapper of writer_lock(Paths.at()), so the old per-name %TEMP% locks are gone (S-M11).
+team_writer(team) is a compatibility wrapper of writer_lock(Paths.at()) (tested in tests/test_agent_core.py), so the
+Friday per-name %TEMP% locks are gone (S-M11).
 """
 from __future__ import annotations
 

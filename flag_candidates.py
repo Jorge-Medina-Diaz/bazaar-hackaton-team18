@@ -5,7 +5,8 @@ de los Pícaros en NUESTRO hilo cuya oferta estructurada da otra carta que la de
 la carta del tema (por su ref o por una palabra de >= 5 letras del nombre del hilo, `item`; con los hilos del
 sábado da justo 8663, 9460 y 9859 y ninguna de las seis de nivel B). El texto ajeno solo se busca, nunca se imprime.
 Imprime id del mensaje, hilo, tick, carta del tema y carta dada. Jorge envía como mucho 3, con su OK, con
-scratchpad/flag_one.py (excepción manual: `flag` no es un KIND de la Gate).
+un POST /api/flags manual fuera del repo (excepción manual: `flag` no es un KIND de la Gate), apuntado en
+docs/history/handoffs/HANDOFF-domingo.md.
 
     python3 flag_candidates.py
 """
@@ -81,9 +82,12 @@ def main() -> int:
         print("no Level-A candidates")
     for mid, tid, tick, ref, given in cands:
         print(f"message {mid}  thread {tid}  tick {tick}  topic {ref}  offer gives {','.join(given)}")
-    print("send at most 3, each with Jorge's OK: python3 <scratchpad>/flag_one.py <message_id> \"<motivo>\"")
+    print("send at most 3, each with Jorge's OK: a manual POST /api/flags outside the repo (flag_one.py <message_id> \"<motivo>\"), logged in docs/history/handoffs/HANDOFF-domingo.md")
     return 0
 
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print(__doc__)
+        sys.exit(0)
     sys.exit(main())

@@ -8,7 +8,7 @@ Three layers keep every non-GET request inside the Gate:
   2. An audit hook (installed when this module is imported) rejects any urllib request that is not a GET unless
      send() is sending exactly that request. Under BAZAAR_TEST=1 it also rejects any host / socket that is not
      loopback (INV-21).
-  3. The AST test of M17 (forbidden names outside transport.py / gate.py).
+  3. The AST test in tests/test_architecture.py (forbidden names outside transport.py / gate.py).
 
 Responses are classified fail-closed: ok (2xx + JSON object), deferred (429 wait_for_tick / rate_limited),
 refused (4xx with the game's {error, message} body). Everything else (3xx, 2xx not JSON or truncated, 4xx without

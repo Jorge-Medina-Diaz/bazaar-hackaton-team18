@@ -1,4 +1,4 @@
-"""Manual helper scripts at the repo root (night audit, Sun 4 Oct): their decision functions are pure and tested here.
+"""Manual helper scripts at the repo root (pre-Sunday audit, Sun 4 Oct): their decision functions are pure and tested here.
 ladder_sell / egg_carrier write only through `bazaar.py do --live` (the Gate); flag_candidates and
 announce_candidates are read-only. No network here."""
 from __future__ import annotations
@@ -66,7 +66,7 @@ class LadderSellTest(unittest.TestCase):
         self.assertEqual([o["id"] for o in L.dealer_bids(t, "pilar", 1063, 100)], [1])
 
     def test_next_ask_waits_for_ours_to_land_and_the_dealer_to_answer(self):
-        # night review S3: after `do say 260` the thread still shows only Pilar's bid (~17 s order latency):
+        # pre-Sunday review S3: after `do say 260` the thread still shows only Pilar's bid (~17 s order latency):
         # not our turn yet; then ours lands (last sender t18): not yet; then Pilar answers: our turn
         bid = {"sender": "pilar", "offer": _offer(1)}
         t = {"messages": [bid]}

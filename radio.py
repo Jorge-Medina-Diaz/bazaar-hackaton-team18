@@ -39,7 +39,7 @@ URL = os.environ.get("BAZAAR_URL", "https://bazaar.causaprima.ai").rstrip("/")
 LOG_DIR = os.environ.get("BAZAAR_LOGS", "logs")
 LEVELS = ("BAJA", "MEDIA", "ALTA")
 
-# Nuestra situación (docs/knowledge.md, docs/operador-cartas-fuertes.md). Cambia poco; se pasa a mano si cambia.
+# Nuestra situación (docs/knowledge.md). Cambia poco; se pasa a mano si cambia.
 MULT = {"CHA": 1.6, "RET": 1.3, "SAL": 1.1, "LAT": 0.9, "LAV": 0.7, "MAL": 0.5}
 ROLE = {"CHA": "objetivo del domingo (×1,6)", "RET": "página completa (×1,3): proteger", "SAL":
         "página completa (×1,1): proteger", "LAT": "abandonada (×0,9): vender", "LAV": "valor bajo (×0,7): vender",
@@ -158,7 +158,7 @@ def classify(item, names=None, have=None):
                     "El ejecutor no vende a dealers: `bazaar.py do` primero en seco.")
     if has["rarity_top"]:
         score += 1
-        why.append("épicas/legendarias o sobre de oro (no se persiguen: ver docs/operador-cartas-fuertes.md)")
+        why.append("épicas/legendarias o sobre de oro (no se persiguen)")
     if has["scarce"]:
         score += 1
         why.append("escasez o cierre")

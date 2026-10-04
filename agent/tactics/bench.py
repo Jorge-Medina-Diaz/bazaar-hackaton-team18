@@ -11,17 +11,15 @@ Hard properties (acceptance "0 writes; key never on disk"):
 - The key only lives in the header dict built inside `read_book` for the duration of the call. Every recorded line is
   passed through `redact` with the key as a secret and is then scanned: if the key (or a bk_/tk- pattern) is still in
   the serialized line, nothing is written and `SecretLeak` is raised (fail closed).
-- `plan_greedy` is a copy of starter_broker.bench_plan (archived by M18), made tolerant of malformed offers: an offer
+- `plan_greedy` is a copy of starter_broker.bench_plan (docs/history/legacy-code/starter_broker.py), made tolerant of malformed offers: an offer
   whose shape is not understood is skipped, never guessed.
 
 Design notes and known limitations
-- Wiring: M1's GuardedTransport forbids broker routes (INV-01, `broker()` raises) and GET_ALLOWLIST has no
-  /api/broker/book, so there is no GET-only reader with the X-Broker-Key header yet. Until M1 (or the runner) supplies
-  one, nobody can call `read_book` against the server: L1 is inert, which is the fail-closed state.
-- The journal (M2) is not used: the recording goes to its own file (suggested: Paths.run_dir / "bench.jsonl"), which
-  never feeds the World. Book strings (pseudonyms) are recorded as data, not shown to tactics.
-- Not done: public_plan (own venue public offers; we have no venue, D4), a Recorder loop/thread (the runner decides
-  when to poll), analysis of the recording after the session.
+- Wiring: the runner's GuardedTransport refuses broker routes (INV-01) and GET_ALLOWLIST has no /api/broker/book,
+  so this recorder runs out of process: bench_rec.py injects a GET-only reader with the stall's broker key.
+- The journal is not used: the recording goes to its own file (logs/bench_book.jsonl), which never feeds the World.
+  Book strings (pseudonyms) are recorded as data, not shown to tactics.
+- Not a runner tactic (it is not in contracts.TACTICS): it proposes no Intents.
 """
 from __future__ import annotations
 

@@ -471,20 +471,8 @@ def parse_clock(d: Any) -> Mapping:
     return freeze(_p_clock(d)[0])
 
 
-def parse_me(d: Any) -> Mapping:
-    return freeze(_p_me(d)[0])
-
-
 def parse_offer(d: Any) -> Mapping:
     return freeze(_p_offer(d)[0])
-
-
-def parse_thread(d: Any) -> Mapping:
-    return freeze(_p_thread(d)[0])
-
-
-def parse_duel(d: Any) -> Mapping:
-    return freeze(_p_duel(d)[0])
 
 
 def clock_reading(clock: Optional[Mapping], schedule: Optional[Mapping]) -> str:

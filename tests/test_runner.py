@@ -261,7 +261,7 @@ class TestLateWindow(unittest.TestCase):
         self.assertEqual(r.late_read_s, 0.8)
 
     def test_duel_near_its_deadline_keeps_the_accept_slot(self):
-        # night review D2: a dealer / team accept early in the tick used the single accept slot, so a duel accept
+        # pre-Sunday review D2: a dealer / team accept early in the tick used the single accept slot, so a duel accept
         # that appeared mid-tick at deadline-1 was dropped and the duel ended without a deal
         def live_duel(deadline, rival):
             return {"duel": 5, "status": "live", "role": "buyer", "your_limit": 100, "deadline_tick": deadline,
@@ -337,7 +337,7 @@ class TestLateWindow(unittest.TestCase):
 
 class TestRequestBudget(unittest.TestCase):
     def test_runner_plus_panels_stay_under_the_key_limit(self):
-        # RULES: 5 requests per second per key, bursts of 20; the runner was at 2.5/s (night audit: 15 s ticks)
+        # RULES: 5 requests per second per key, bursts of 20; the runner was at 2.5/s (pre-Sunday audit: 15 s ticks)
         from agent import client
         self.assertGreater(runner.RUNNER_RATE, 2.5)
         self.assertLessEqual(runner.RUNNER_RATE + client.PANEL_RATE, 5.0)
@@ -376,7 +376,7 @@ class TestDaysSignAlarm(unittest.TestCase):
         self.assertEqual([x["duel"] for x in alarms], [1])
 
     def test_alarm_when_days_meaning_contradicts_the_role(self):
-        # night review D1/S1: a read sign against the role (sensor: days_sign -1 + days_sign_conflict) alarms once
+        # pre-Sunday review D1/S1: a read sign against the role (sensor: days_sign -1 + days_sign_conflict) alarms once
         r, _ = bare_runner(make_world(), FakeClock())
         ds = ({"duel": 4, "issues": ("price", "days"), "days_sign": -1, "days_sign_conflict": True, "role": "buyer"},
               {"duel": 5, "issues": ("price", "days"), "days_sign": -1, "role": "buyer"})
@@ -388,7 +388,7 @@ class TestDaysSignAlarm(unittest.TestCase):
 
 
 class TestLiveDayTimes(unittest.TestCase):
-    """Night audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
+    """Pre-Sunday audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
 
     def sun(self, t, close, paused=False):
         return make_world(t_hours=t, clock=MappingProxyType({"paused": paused, "doors": "open", "today": "sun"}),
@@ -414,7 +414,7 @@ class TestLiveDayTimes(unittest.TestCase):
         self.assertAlmostEqual(rows[-1]["endgame"], round(22.2 - 35 / 60, 3), places=3)
 
     def test_first_day_times_row_even_when_it_equals_the_plan(self):
-        # night review E2E-5: scenario A derives 19.284 / 18.784, within a minute of the plan's 19.283 / 18.783, so
+        # pre-Sunday review E2E-5: scenario A derives 19.284 / 18.784, within a minute of the plan's 19.283 / 18.783, so
         # no 'param day_times' row was written and the 09:05 runbook check found nothing
         r, _ = bare_runner(make_world(), FakeClock())
         r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 22.65 - 5 / 60},
@@ -440,7 +440,7 @@ class TestLiveDayTimes(unittest.TestCase):
         self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["*"], 19.367 - 35 / 60, places=3)
 
     def test_stalls_latch_survives_a_cold_restart(self):
-        # night review E2E-1/S4: scenario C, the stalls close at 18.367 (14:00) fires and leaves 'upcoming'; a fresh
+        # pre-Sunday review E2E-1/S4: scenario C, the stalls close at 18.367 (14:00) fires and leaves 'upcoming'; a fresh
         # process at 14:05 used to derive the 14:55 day end again. state/day_times.json keeps the latch for today.
         from datetime import datetime
         wall = lambda h, m: datetime.fromisoformat(f"2026-10-04T{h:02d}:{m:02d}:00+02:00").timestamp()   # noqa: E731

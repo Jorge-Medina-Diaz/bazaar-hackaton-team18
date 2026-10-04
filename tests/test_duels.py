@@ -8,10 +8,9 @@ import copy
 import json
 import random
 import unittest
-from types import MappingProxyType
 
 from tests import HARVEST
-from agent.contracts import FRIDAY, Limits, World
+from agent.contracts import Limits, World
 from agent.tactics import duels as D
 
 ROLES = ("buyer", "seller")
@@ -361,7 +360,7 @@ class TestTwoIssues(unittest.TestCase):
         self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": "?"}, 5), 10.0)
 
     def test_reworded_meaning_against_the_role_is_worst_case(self):
-        # night review D1/S1: buyer L100 w6 with 'adds ... the price you pay' (parsed +1) used to give penalty 0:
+        # pre-Sunday review D1/S1: buyer L100 w6 with 'adds ... the price you pay' (parsed +1) used to give penalty 0:
         # accept 95@10 (true value 5 - 60 = -55) and say day 10 (Saturday's bug). The conflict now gives -1.
         m = "each delivery day adds this much to the price you pay"
         ro = {"price": 95, "days": 10, "tick": 114, "id": 3}
@@ -376,7 +375,7 @@ class TestTwoIssues(unittest.TestCase):
     P3 = {"anchor": 0.62, "slow_cap": 0.85, "acc_late": 2, "e8_ticks": 0, "days_weight_fallback": 1.0}   # plan duels
 
     def test_silent_rival_with_other_days_gets_its_own_pair_back(self):
-        # night review E2E-2 (sim drive3, duels 901/905): buyer L125 w5 (sign -1), ours 97/d0, the rival offers
+        # pre-Sunday review E2E-2 (sim drive3, duels 901/905): buyer L125 w5 (sign -1), ours 97/d0, the rival offers
         # 94/d5 (+6 for us) and goes silent. We used to wait to the deadline (no deal). Now by deadline-2 we send
         # (94, 5) back, the Gate passes it, and when the rival answers with it we accept.
         from agent import talk
@@ -404,7 +403,7 @@ class TestTwoIssues(unittest.TestCase):
         self.assertEqual(D.decide(D.view(d, got[0] + 1), self.P3), ("accept", 94, 5))
 
     def test_unknown_text_falls_back_by_role(self):
-        # night audit: an unrecognised days_meaning no longer means "day 5 + worst case" (0/7 deals in Duels II):
+        # pre-Sunday audit: an unrecognised days_meaning no longer means "day 5 + worst case" (0/7 deals in Duels II):
         # the sign comes from the role (buyer -1, seller +1), the same in tactic and Gate (talk.days_sign_of)
         d = self.two(L=100, w=3.0, meaning="delivery days", msgs=[msg("you", 100, 60, 0)])
         for t in range(101, 116):
@@ -451,7 +450,7 @@ class TestTwoIssues(unittest.TestCase):
         self.assertEqual(D.decide(D.view(d, 114), {})[0], "accept")          # 25 >= 1 + 20
 
     def test_seller_days_credit_replays(self):
-        # Duels II misses (night audit, recon/duels_done.json): seller 6173 L60 w6.35 rival 89 P at 0 days on
+        # Duels II misses (pre-Sunday audit, recon/duels_done.json): seller 6173 L60 w6.35 rival 89 P at 0 days on
         # deadline-1 was worth 29 but needed 1 + 63.5; buyer 5730 L117 rival 89/0 (surplus 28) needed 53.3.
         ro = {"price": 89, "days": 0, "tick": 115, "id": 3}
         d = self.two(role="seller", L=60, w=6.35, meaning="each delivery day adds this much cash to your side",
@@ -517,7 +516,7 @@ class TestPropose(unittest.TestCase):
         acc = [i for i in out if i.kind == "duel_accept"]
         self.assertEqual([i.args["duel_id"] for i in acc], [2])
         self.assertEqual(acc[0].args["fingerprint"], D.view(ds[1], 115).fingerprint)
-        # night review D3: the accept beyond the budget (duel 3) gets the rival's price back as a say (it uses no
+        # pre-Sunday review D3: the accept beyond the budget (duel 3) gets the rival's price back as a say (it uses no
         # accept); duel 1 is held by E8 and says nothing
         self.assertEqual(sorted((i.args["duel_id"], i.args["price"]) for i in out if i.kind == "duel_say"),
                          [(3, 70)])
@@ -596,10 +595,7 @@ class TestPropose(unittest.TestCase):
 
 class TestCrossModule(unittest.TestCase):
     def test_fingerprint_matches_guards(self):
-        try:
-            from agent.guards import duel_fingerprint
-        except Exception:                                   # M4a absent: local copy is used
-            self.skipTest("agent.guards not importable")
+        from agent.guards import duel_fingerprint
         d = duel(did=11, msgs=[msg("you", 100, 60), msg("R", 101, 130)],
                  rival_offer={"price": 130, "days": None, "tick": 101, "id": 2})
         self.assertEqual(D._local_duel_fingerprint(d), duel_fingerprint(d))
@@ -677,7 +673,7 @@ class TestGateConsistency(unittest.TestCase):
         self.assertNotEqual(D.decide(D.view(d, 114), {"days_sign": 1})[0], "accept")    # 15 < 1 + 20
 
     def test_server_sign_margin_is_the_gates(self):
-        # merge night-build: with the SERVER's sign (days_meaning, or the sensor's days_sign) tactic and Gate both
+        # merged build: with the SERVER's sign (days_meaning, or the sensor's days_sign) tactic and Gate both
         # charge the loss vs our best days, not the worst case; the plan sign alone keeps the worst case
         from agent.talk import _days_penalty
         cost = "each delivery day costs you this much cash"

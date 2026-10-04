@@ -559,7 +559,7 @@ def _j4_closer(cx: _Ctx, offers: list) -> None:
             if target > own[1] and cx.cash_free + own[1] >= target:
                 _cancel(cx, own[0], ref, "closer", f"J4: raise {own[1]} -> {target} (competition)", 90)
                 rec["pending"] = {"what": "raise", "price": target, "tick": cx.w.tick}
-            else:                            # night review P3: buy-any must not spend the endgame raise's cash
+            else:                            # pre-Sunday review P3: buy-any must not spend the endgame raise's cash
                 cx.closer_reserve += max(0, min(int(math.floor(dv - cx.compete_minus)), cap) - int(own[1]))
             cx.claimed.add(ref)
             continue
@@ -717,7 +717,7 @@ def _swaps_accept(cx: _Ctx, offers: list) -> None:
             aid = cx.spare_asset(rout)
             if aid is None:
                 continue
-        # night review P7: a swap gives only what _spares would (never a hand_sales ref before the day end, an epic /
+        # pre-Sunday review P7: a swap gives only what _spares would (never a hand_sales ref before the day end, an epic /
         # legendary, or a card bought for dealer resale), also when the rival names one of our asset ids
         if rout in cx.hand_only or rout in cx.not_spare or (cx.idx.get(rout) or {}).get("rarity") not in SPARE_RARITIES:
             continue

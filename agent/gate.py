@@ -24,7 +24,7 @@ Design notes
   ("accept_venue", "accept_dealer"); guards.Counters is frozen, so the Gate replaces it; Book.packs holds pack
   TYPES (ints are mapped through me.assets); `fresh` for a team accept is {"tick": re-read clock tick,
   "offer": re-read offer}; for a dealer accept the thread, for duel_accept the duel (agent.talk shapes).
-- Architecture test conflict to resolve in M17: REQUEST_FOR (spec'd in gate.py) must put the literal "text"
+- Architecture test conflict (resolved: tests/test_architecture.py allows it inside the _req_* builders): REQUEST_FOR (spec'd in gate.py) must put the literal "text"
   key in the say/duel_say bodies, while INV-13's AST rule bans the literal "text" in gate.py. The Gate never
   READS a text field; the AST rule should allow it inside REQUEST_FOR.
 - list_offer: the Gate converts args.expires_ticks (game ticks) to server units with contracts.expiry_units
@@ -59,13 +59,12 @@ import importlib
 import json
 import math
 import os
-from contextlib import contextmanager
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Optional
 
-from agent.contracts import (BUY_TACTICS, RASTRO, RIVAL_TOP_N, RIVAL_VENUE_MIN_GAIN, TEAM, Intent, Outcome,
-                             Paths, Prediction, Verdict, World, domains_of, expiry_units, intent_id)
+from agent.contracts import (RASTRO, RIVAL_TOP_N, RIVAL_VENUE_MIN_GAIN, TEAM, Intent, Outcome, Paths, Prediction,
+                             Verdict, World, domains_of, expiry_units, intent_id)
 from agent.redact import redact
 
 try:                                                    # M1; missing -> nothing is ever sent

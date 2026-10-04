@@ -319,7 +319,7 @@ class TestLive(GateCase):
         self.assertEqual(self.transport.sent, [])
 
     def test_live_would_does_not_use_the_budgets(self):
-        # night audit: a paused tactic's "would" took 4 of 6 listing slots every tick (Sat: 1965 rastro rows)
+        # pre-Sunday audit: a paused tactic's "would" took 4 of 6 listing slots every tick (Sat: 1965 rastro rows)
         w = self.start(world())
         self.armed = frozenset({"rastro"})
         self.paused.add("rastro")

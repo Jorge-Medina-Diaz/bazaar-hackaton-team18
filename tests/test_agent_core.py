@@ -1,6 +1,6 @@
 """Kept-module cases of the old core suite (agent/offer_safety.py, agent/execution.py).
 
-NOTES (M18): the original file is archived at archive/tests/test_agent_core.py (git history kept). Its Scorer
+NOTES (M18): the original file is archived at docs/history/legacy-code/tests/test_agent_core.py (git history kept). Its Scorer
 (agent/scorer.py) and haggle (agent/haggle.py) cases tested archived code and went with it; the cases below test
 modules that stay in the harness, so they stay here until their owners (M4a test_guards, M5 test_gate) absorb them.
 """

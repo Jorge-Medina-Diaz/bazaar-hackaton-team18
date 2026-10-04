@@ -866,7 +866,7 @@ class RefusalBlocksFromTheJournal(unittest.TestCase):
 
 
 class AcceptedUnsettledCountedOnce(unittest.TestCase):
-    """Night audit: the server settles an accept at T+1 (settles_at_tick); from then on the World shows the card and
+    """Pre-Sunday audit: the server settles an accept at T+1 (settles_at_tick); from then on the World shows the card and
     the cash, so the pending row must not add price / projected / paths again (Sat ticks 212-213: cash_free < 0)."""
 
     def test_after_settlement_tick_counted_once(self):

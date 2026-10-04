@@ -1,9 +1,9 @@
-"""A Sunday 4 Oct in the simulator (night audit): FakeGame with Sunday's clock (closes 15:00), the live schedule of one
+"""A Sunday 4 Oct in the simulator (pre-Sunday audit): FakeGame with Sunday's clock (closes 15:00), the live schedule of one
 clock scenario, schedule events that fire (CHA release, round 3, grant, duel waves with days, stalls closing), the
 Pícaros as a third dealer bot, and a run clock that also gives the wall time (runner.wall). Never the real server:
 loopback transport with the test key.
 
-Scenarios (docs/DOMINGO.md): C = resume at 13.367 and Sunday events re-anchored by -3.283 (stalls 14:00 = t18.367);
+Scenarios (docs/history/plan-domingo.md): C = resume at 13.367 and Sunday events re-anchored by -3.283 (stalls 14:00 = t18.367);
 A = resume at 13.367, nothing moved (CHA 12:17, stalls 21.65 never reached); B = clock jumped to 16.65.
 
     python3 -m sim.sunday C [ticks] [fixtures_dir]     # a dry rehearsal of the day in LIVE mode against the sim
@@ -16,7 +16,6 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from sim import world as SW
 from sim.bots import AbuelaBot, ChatoBot, DuelRival, TeamBot

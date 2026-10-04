@@ -32,7 +32,7 @@ def _load_env(path: "str | os.PathLike" = REPO_ENV) -> None:
                     os.environ.setdefault(k, v.strip().strip('"'))
 
 
-PANEL_RATE = 1.0          # read-only panels share the team key with the runner (agent.runner.RUNNER_RATE): <= 5/s
+PANEL_RATE = 1.0          # per process: each read-only tool or the dashboard gets 1 req/s; with the runner (RUNNER_RATE) keep the key <= 5/s
 
 
 def client(mode: str = "read") -> GuardedTransport:

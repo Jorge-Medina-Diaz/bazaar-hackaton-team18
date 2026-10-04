@@ -5,7 +5,7 @@ venta de la carta X a `ask` del equipo A y una puja por X a `bid` del equipo B, 
 cruzan (bid >= ask) o se quedan cerca (bid >= ask - max(2 P, 20 %); el sábado ninguna pareja abierta llegó a cruzarse). El dueño de cada oferta sale del feed público (offer.listed trae el equipo; los tableros
 solo traen un seudónimo). Las cifras las pone el código; el texto solo las cita.
 Imprime cada pareja (ids, precios, tableros) y un borrador en español. Jorge aprueba el texto y lo manda con
-scratchpad/announce_stall.py (excepción manual, uno cada ~10 min con go / no-go a las 11:00, plan-domingo §5.3). Nosotros nunca operamos en v18.
+un POST /api/broker/announce manual fuera del repo (excepción manual, uno cada ~10 min; docs/history/plan-domingo.md §5.3). Nosotros nunca operamos en v18.
 
     python3 announce_candidates.py            # las 5 mejores parejas
     python3 announce_candidates.py 10
@@ -137,4 +137,7 @@ def main(argv) -> int:
 
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print(__doc__)
+        sys.exit(0)
     sys.exit(main(sys.argv[1:]))

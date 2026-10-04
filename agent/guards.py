@@ -45,8 +45,7 @@ from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any, Mapping, Optional
 
-from agent.contracts import (ARGS, KINDS, RASTRO, TALK_KINDS, TEAM, Book, Intent, Outcome, Verdict,
-                             domains_of, make_intent)
+from agent.contracts import KINDS, RASTRO, TALK_KINDS, TEAM, Book, Intent, Outcome, Verdict, domains_of, make_intent
 from agent.offer_safety import offer_ok
 from agent.valuation import fee as _fee
 

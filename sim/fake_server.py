@@ -11,14 +11,9 @@ from __future__ import annotations
 
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Callable, Optional, Tuple
+from typing import Callable, Tuple
 
 ADMIN_PREFIX = "/api/admin"
-
-
-def loopback(game) -> Callable:
-    """The transport callable for GuardedTransport(http=...): (method, url, data, headers, timeout) -> (status, bytes)."""
-    return game.http
 
 
 def serve(game, port: int = 0, faults=None) -> Tuple[str, Callable[[], None]]:

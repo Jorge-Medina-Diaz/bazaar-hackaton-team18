@@ -19,6 +19,8 @@ Every likelihood is floored by EPS (irrational or arbitrage moves happen), so on
 estimate(events, snapshots) -> {team: Posterior}. A Posterior answers what negotiation code needs: marginals per set,
 expected multiplier, P(card worth >= price to that team), a credible set at any confidence level.
 """
+from __future__ import annotations
+
 import collections, itertools, math, statistics  # noqa: E401
 
 MULTS = (0.5, 0.7, 0.9, 1.1, 1.3, 1.6)
@@ -240,21 +242,3 @@ def estimate(events: list, snapshots: list | None = None, rarity_of: dict | None
     return out
 
 
-def buyers(post: dict, st: str, book: float, price: float, conf: float = 0.7, exclude=()) -> list:
-    """Teams that value a first copy of (set, book) at >= price with probability >= conf, best first."""
-    rows = [(t, p.p_worth(st, book, price)) for t, p in post.items() if t not in exclude]
-    return sorted([r for r in rows if r[1] >= conf], key=lambda r: -r[1])
-
-
-def sellers(post: dict, st: str, book: float, price: float, conf: float = 0.7, exclude=()) -> list:
-    """Teams that value their (first) copy below price with probability >= conf: likely to sell at that price."""
-    rows = [(t, 1 - p.p_worth(st, book, price)) for t, p in post.items() if t not in exclude]
-    return sorted([r for r in rows if r[1] >= conf], key=lambda r: -r[1])
-
-
-def load(log_dir: str = "logs", known: dict | None = None) -> dict:
-    """estimate() from what is already recorded (logs/feed.jsonl, logs/leaderboard.jsonl): no network, for agents."""
-    import json, os  # noqa: E401
-    rows = lambda f: [json.loads(x) for x in open(f, encoding="utf-8")] if os.path.exists(f) else []  # noqa: E731
-    return estimate(rows(os.path.join(log_dir, "feed.jsonl")), rows(os.path.join(log_dir, "leaderboard.jsonl")),
-                    known=known)

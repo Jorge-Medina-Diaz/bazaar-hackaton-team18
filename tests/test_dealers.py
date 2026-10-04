@@ -10,7 +10,6 @@ import random
 import sys
 import types
 import unittest
-from types import MappingProxyType
 from unittest import mock
 
 from agent.contracts import FRIDAY, TEAM, Book, Need, Prediction, World
@@ -508,7 +507,7 @@ class OpenTest(Base):
         self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("abuela", 25)])
 
     def test_cha_rare_picaros_then_chato_at_90(self):
-        # night audit: each thread keeps its own profile limit; the Need (cap 90) lets the Chato fallback open
+        # pre-Sunday audit: each thread keeps its own profile limit; the Need (cap 90) lets the Chato fallback open
         cat = {"sets": [{"id": "CHA", "cards": [{"id": "CHA-09", "rarity": "rare"}]}]}
         plan = {"profiles": {
             "CHA:rare": {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24,
@@ -529,7 +528,7 @@ class OpenTest(Base):
         self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("chato", 90)])
 
     def test_extra_need_leaves_the_closer_endgame_cash(self):
-        # night review: CHA-11 <= 170 / RET-11 <= 150 could leave less than the CHA closer needs (72 at 9/10,
+        # pre-Sunday review: CHA-11 <= 170 / RET-11 <= 150 could leave less than the CHA closer needs (72 at 9/10,
         # 102 at the endgame raise). Closer Need 72 + (50 - 20) = 102 reserved; a standing closer bid is already
         # out of cash_free, so only its raise is kept
         import dataclasses
@@ -634,10 +633,7 @@ class RealPlanTest(Base):
 
     def setUp(self):
         super().setUp()
-        try:
-            self.plan = _real_plan()
-        except Exception as e:                                      # pragma: no cover
-            self.skipTest(f"config/plan.json unreadable: {e}")
+        self.plan = _real_plan()                                    # the shipped plan must load: no skip
 
     def _open(self, needs, world=None):
         w = world or make_world()
@@ -752,10 +748,7 @@ class SimBotsTest(Base):
 
     def setUp(self):
         super().setUp()
-        try:
-            import sim.bots as B
-        except Exception as e:                                      # pragma: no cover
-            self.skipTest(f"sim/bots.py not importable: {e}")
+        import sim.bots as B
         self.B = B
 
     def _check(self, sim, limit):

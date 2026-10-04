@@ -4,7 +4,6 @@ from __future__ import annotations
 import ast
 import collections
 import json
-import math
 import unittest
 from pathlib import Path
 

@@ -38,8 +38,6 @@ from agent.contracts import Intent, Prediction, make_intent
 
 TACTIC = "hygiene"
 LIVE_OFFER = frozenset({"open", "queued"})
-TERMINAL_THREAD = frozenset({"deal", "closed", "expired", "cancelled", "canceled", "settled", "rejected", "done",
-                             "walked"})        # live Sat: a dealer walk-out is status "walked" (G33 refused each tick)
 DEFAULT_BAND = 2.0
 CLOSER_BAND = 20.0
 GRANT_ACTIONS = frozenset({"grant", "grant_all", "grant_team"})

@@ -27,7 +27,7 @@ import re
 import urllib.parse
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 TEAM = "t18"
 DEALERS = ("abuela", "chato")
@@ -286,12 +286,6 @@ class FakeGame:
             self.mint_pack(p, tid, why="starting grant")
         self.ledger.setdefault(tid, [])
         return t
-
-    def key_for(self, team: str) -> str:
-        for k, v in self.keys.items():
-            if v == team:
-                return k
-        raise KeyError(team)
 
     def _add_venue(self, vid: str, name: str, *, owner: str, fee_bps: int, fee_per_card: int, house: bool = False,
                    mechanism: str = "board", status: str = "open") -> dict:

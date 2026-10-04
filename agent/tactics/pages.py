@@ -262,7 +262,7 @@ def today(world) -> str:
     return "default"
 
 
-# Day end / endgame from the server's live schedule and the wall clock (night audit, Sun 4 Oct). While the clock runs
+# Day end / endgame from the server's live schedule and the wall clock (pre-Sunday audit, Sun 4 Oct). While the clock runs
 # the server re-projects the wall-anchored "day_closes" entry onto game hours every read (Sat snaps 170-1435:
 # day_closes sun = t + wall hours to 15:00), so the triggers follow a late start, a clock jump (16.65 at 09:00) or a
 # pause. clock.closes (wall) is the second source of the same close: t + (closes - now) / 3600 (1 game hour per wall
@@ -297,7 +297,7 @@ def live_times(world, now: Optional[float] = None) -> tuple:
     """-> (close_h, stalls_h) from the live schedule; None for what is not there.
     close_h: the earliest day_closes for today still ahead of t (else the next one, if clock.today is stale), capped
     by an end_round still ahead; a day_closes already behind t is a fired entry that lingers (Sat 09:29: "fri 4.0"
-    still listed) and is ignored, and so is one whose own wall time is not after `now` (night review S2: the
+    still listed) and is ignored, and so is one whose own wall time is not after `now` (pre-Sunday review S2: the
     closed-door 'day_closes sat' at 16.65 / wall Sat 23:00 must not end Sunday under scenario A if clock.today still
     reads 'sat'). stalls_h: earliest hour at which >= STALLS_MIN_PERSONAS persona entries say enabled: false (kept
     even when behind t: the stalls are then closed)."""
@@ -407,7 +407,7 @@ def profile_for(plan_cfg, ref: str, card: Mapping) -> Optional[Mapping]:
 def need_limit(plan_cfg, ref: str, card: Mapping) -> Optional[int]:
     """Need cap from the profiles: the first profile's limit, raised to its fallback profile's limit (the next
     profile with another dealer, the fallback_dealer if set; same choice as dealers._pick_open_profile) when the
-    first has a fallback. Each thread stays capped by its own profile's limit. Night audit: CHA rares from the
+    first has a fallback. Each thread stays capped by its own profile's limit. Pre-Sunday audit: CHA rares from the
     Pícaros (<= 60) fall back to El Chato (finals 86-93): a 60 Need cap kept the Chato thread from ever opening."""
     first = profile_for(plan_cfg, ref, card)
     if not first:
@@ -483,8 +483,8 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
 
     # extra_needs: a card outside the pages bought from the dealer of its ref profile (Sat: SAL-11 epic from the
     # Pícaros, resold to Pilar in the Salamanca fever). Cap = min(max_price, floor(value - 1)); never if held.
-    # min_round: not before that round (night review P6/E2E-3: under scenario A RET-11 was bought at 09:00 in
-    # round 2, where the L4 slots are already 3/3). They go AFTER the page Needs (night review P1: dealers.propose
+    # min_round: not before that round (pre-Sunday review P6/E2E-3: under scenario A RET-11 was bought at 09:00 in
+    # round 2, where the L4 slots are already 3/3). They go AFTER the page Needs (pre-Sunday review P1: dealers.propose
     # opens one thread per dealer in Need order, and CHA-11/RET-11 took the Pícaros slot before the CHA rares).
     extras: list = []
     rnd = world.round if type(world.round) is int else 0

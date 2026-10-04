@@ -740,7 +740,7 @@ class Runner:
         return True
 
     def keep_duel_slot(self, world: World, chosen: list, drops: list) -> list:
-        """Night review D2: with the accept budget shared, a tactic's early team / dealer accept that would use the
+        """Pre-Sunday review D2: with the accept budget shared, a tactic's early team / dealer accept that would use the
         last slot is held back (R04.duel_slot) while an armed duels tactic may need it in the late window
         (duels.accept_slot_wanted). Dealer and team offers stay to the next tick; a manual order or a closer accept
         (the page's +50, a rival may take the card) is never held."""
@@ -810,7 +810,7 @@ class Runner:
         return Path(self.paths.state) / "day_times.json"
 
     def _load_day_times(self) -> dict:
-        """The effective_plan memory a previous process of today left (night review E2E-1/S4: the stalls close at
+        """The effective_plan memory a previous process of today left (pre-Sunday review E2E-1/S4: the stalls close at
         14:00 leaves 'upcoming' once fired, so a cold restart after it brought back a 14:55 dealer day end and a
         stream of refused open_threads). Older than DAY_TIMES_MAX_AGE_S (another day) or unreadable -> {}."""
         raw = _read_json(self._day_times_path(), {})
@@ -853,7 +853,7 @@ class Runner:
         old, new = hours(self.plan_now), hours(pc)
         self.plan_now = pc
         moved = any((a is None) != (b is None) or (a is not None and abs(a - b) > 1 / 60) for a, b in zip(old, new))
-        if moved or not self._times_logged:           # night review E2E-5: always the first one of each process
+        if moved or not self._times_logged:           # pre-Sunday review E2E-5: always the first one of each process
             self._times_logged = True
             seen = self._sched_seen.get(day) or {}
             self.j("param", name="day_times", game_day=day, day_end=new[0], endgame=new[1], close=seen.get("close"),

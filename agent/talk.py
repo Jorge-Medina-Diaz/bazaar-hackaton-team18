@@ -39,7 +39,7 @@ from agent.contracts import TEAM, Verdict
 OK = Verdict(True, "ok")
 
 # --------------------------------------------------------------------------------------------- texts
-# Sources: agent/dealers.py (lines rotated per dealer) and docs/negotiation-design.md (short, calm,
+# Sources: the Friday haggler and docs/history/legacy-code/docs/negotiation-design.md (short, calm,
 # reciprocity, no acceptance phrases). Only {p} (price) and {d} (days) are substituted; nothing else.
 TEMPLATES: Mapping[str, tuple] = {
     "abuela_buy": (
@@ -124,7 +124,7 @@ TEMPLATES: Mapping[str, tuple] = {
 
 # Easter-egg probe lines sit LAST in these templates (EGG_LINES = how many trailing lines) and are sent only by hand
 # (do say ... variant=<index>); automatic rotation (dealers._variant) must skip them. Eggs never score (prestige).
-# Sunday (night audit): abuela_buy[7]/abuela_sell[5] Castizo, abuela_buy[8]/abuela_sell[6] cocido, chato_buy[5]/
+# Sunday (pre-Sunday audit): abuela_buy[7]/abuela_sell[5] Castizo, abuela_buy[8]/abuela_sell[6] cocido, chato_buy[5]/
 # chato_sell[3] calamares, banco_sell[5] Casa Prima (only on evidence). Never send "oro de Moscú" (LAT-13 is t02's).
 EGG_LINES: Mapping[str, int] = {"chato_buy": 2, "chato_sell": 1, "abuela_buy": 2, "abuela_sell": 3, "pilar_sell": 1,
                                 "banco_sell": 2, "picaros_sell": 1}
@@ -555,7 +555,7 @@ _DAYS_PLUS = frozenset({"add", "adds", "adding", "earn", "earns", "earning", "ga
 def sign_from_meaning(m: Any) -> Optional[int]:
     """Server duel field days_meaning -> -1 (each day costs us), +1 (each day adds to our side), None.
     Duels II phrases: buyer "each delivery day costs you this much cash", seller "each delivery day adds this much
-    cash to your side". Night audit: any wording that names a delivery day plus exactly one of the two families
+    cash to your side". Pre-Sunday audit: any wording that names a delivery day plus exactly one of the two families
     (cost/lose... vs add/earn/gain...) is read; both or neither -> None. Shared by the sensor and the Gate."""
     if not isinstance(m, str):
         return None
@@ -573,7 +573,7 @@ ROLE_DAYS_SIGN = {"buyer": -1, "seller": 1}   # Duels II: 34/34 buyers "costs yo
 
 
 def checked_sign(sign: Optional[int], role: Any) -> Optional[int]:
-    """A read sign cross-checked with the role's (night review D1/S1): agree -> it; disagree -> -1 (each day costs
+    """A read sign cross-checked with the role's (pre-Sunday review D1/S1): agree -> it; disagree -> -1 (each day costs
     us: |w|*d and day 0, safe whichever sign is true: a reworded 'adds ... you pay' must not zero a buyer's days
     penalty); unread -> the role's. No role -> the read sign as is."""
     role_sign = ROLE_DAYS_SIGN.get(role)
@@ -595,9 +595,6 @@ def days_sign_of(duel: Mapping) -> Optional[int]:
     if sign not in (1, -1):
         sign = sign_from_meaning(duel.get("days_meaning"))
     return checked_sign(sign, duel.get("role"))
-
-
-DUEL_DAYS_MAX = 10
 
 
 def days_worst_case(w: float, days: int) -> float:
@@ -643,7 +640,7 @@ def _g50_say(a, world, cfg, counters) -> None:
         if isinstance(m, Mapping) and m.get("from") == "you" and m.get("price") is not None:
             ours.append((m.get("price"), m.get("days")))
     rival = d.get("rival_offer")
-    # two issues: sending the rival its own standing (price, days) back is not a retraction (night review E2E-2:
+    # two issues: sending the rival its own standing (price, days) back is not a retraction (pre-Sunday review E2E-2:
     # ours 97/d0 vs a silent rival's 94/d5, no monotone price was also not worse than the rival's); the limit with
     # the days penalty above still holds
     echo = two and isinstance(rival, Mapping) and rival.get("price") == p and rival.get("days") == days

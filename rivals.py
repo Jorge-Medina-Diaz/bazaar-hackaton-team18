@@ -2,7 +2,7 @@
 
 Solo lecturas públicas (GET /api/leaderboard, /api/venues, /api/venues/rastro/offers) por public_get, con
 allowlist y límite de ritmo: no escribe nada en el juego. Cada foto se graba en logs/rivals.jsonl y se compara con la anterior:
-  - t12 (o --watch-team): su puntuación de mercado y cuánto ha cambiado;
+  - t12 (o --team): su puntuación de mercado y cuánto ha cambiado;
   - mercados de equipo con tratos: tratos por hora desde la foto anterior; ALERTA si alguno pasa de 3/h
     (umbral para replantear abrir mercado propio);
   - pujas en El Rastro (dar caja, pedir carta) de al menos --min-bid P, marcando las de cartas que tenemos

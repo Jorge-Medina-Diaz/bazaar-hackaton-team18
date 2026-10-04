@@ -32,7 +32,7 @@ Design notes and known limitations
   open_thread intents by their args shape (dealer, side, ref, asset_ids, limit). book.thread_limit wins when present.
 - day_end_hours is not read here (its keys are not fixed); hygiene closes threads at day end, we only may open late.
 - Grant lookahead (G30.grant_soon) is left to the Gate; this module does not read the schedule.
-- Template for dealers other than abuela/chato/picaros (PROBE of level 3+): "chato_buy".
+- Templates by dealer: abuela_buy, chato_buy, picaros_buy, banco_buy; any other dealer falls back to "chato_buy".
 - Pícaros trick (live, Sat): their counter often gives another card at the asked price. Such an offer is never
   executable (offer_safety), so on a turn whose only dealer offer is a trick we counter with our next step and ignore
   its price; a trick marked final closes the thread (countering it made them walk: final_offer_refused). A correct
@@ -320,7 +320,7 @@ def _extra_refs(plan_cfg) -> frozenset:
 
 
 def closer_reserve(world, book, plan_cfg, needs) -> int:
-    """Cash an extra_need thread must leave for the page closer's team bid (night review: CHA-11 <= 170 and
+    """Cash an extra_need thread must leave for the page closer's team bid (pre-Sunday review: CHA-11 <= 170 and
     RET-11 <= 150 could spend what the +50 closer bid needs at 9/10 and at the endgame raise).
 
     Per closer Need: its endgame price (max_price now, plus default_minus - compete_minus before the endgame)

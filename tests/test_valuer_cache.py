@@ -1,5 +1,5 @@
 """runner.Runner.build_valuer follows the catalog CONTENT (Sunday CHA release mid-run), not the catalog object's
-id() (taken from integrate/main-into-harness-v2, tests/test_pack_policy.py::ValuerFollowsCatalog)."""
+id(): Python can reuse the id of a freed catalog, and the CHA release changes the catalog mid-run."""
 from __future__ import annotations
 
 import copy

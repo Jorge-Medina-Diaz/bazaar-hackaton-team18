@@ -445,7 +445,7 @@ if __name__ == "__main__":
 
 
 class HiddenCardTest(unittest.TestCase):
-    """Sim fidelity (night audit): a hidden card is worth 0, like the live value?card for LAT-13 (prestige only).
+    """Sim fidelity (pre-Sunday audit): a hidden card is worth 0, like the live value?card for LAT-13 (prestige only).
     Without it a full-Sunday sim run failed the Valuer self_check (405 vs 0) and froze dealers and rastro."""
 
     def test_hidden_card_is_worth_zero(self):
@@ -458,7 +458,7 @@ class HiddenCardTest(unittest.TestCase):
 
 
 class MasterBonusTest(unittest.TestCase):
-    """Sim fidelity (night audit): the master bonus the live server pays (Valuer V-13, SAL-12 593.45 with SAL-11
+    """Sim fidelity (pre-Sunday audit): the master bonus the live server pays (Valuer V-13, SAL-12 593.45 with SAL-11
     held); without it the Sunday sim failed self_check after the RET-11 / CHA-11 buys and froze the tactics."""
 
     def test_model_matches_the_valuer(self):

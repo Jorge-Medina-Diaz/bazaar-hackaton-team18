@@ -100,11 +100,6 @@ def _pred_dict(p: Any) -> dict:
     return {"neg_lo": 0.0, "neg_hi": 0.0, "ladder": ">=0", "cash": 0, "duel": None, "model": "missing"}
 
 
-def _as_prediction(d: Mapping) -> Prediction:
-    return Prediction(float(d["neg_lo"]), float(d["neg_hi"]), d["ladder"], int(d["cash"]), d.get("duel"),
-                      str(d.get("model") or ""))
-
-
 def fallback_verdict(pred: Prediction, measured_neg: float, ladder_delta: float) -> str:
     """Same contract as valuation.verdict (M3): pass | soft_fail | hard_fail | surprise_up. Conservative."""
     if ladder_delta < -1e-6:

@@ -68,7 +68,6 @@ class JournalError(Exception):
 GENESIS = "0" * 64
 MODES = frozenset({"live", "dry", "test"})
 RESOLUTION_KINDS = frozenset({"result", "unknown", "reconciled", "refused", "would", "deferred"})
-_HEADER = ("seq", "ts", "tick", "day", "mode", "kind", "prev")
 _KIND_RE = re.compile(r"[a-z][a-z0-9_]{0,31}")
 _TORN_KIND_RE = re.compile(rb'"kind"\s*:\s*"intent"')
 _TORN_ID_RE = re.compile(rb'"id"\s*:\s*"([0-9A-Za-z_-]{1,64})"')

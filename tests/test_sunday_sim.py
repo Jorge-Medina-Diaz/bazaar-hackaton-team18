@@ -1,4 +1,4 @@
-"""Sunday 4 Oct in the simulator (night audit): the real runner, Gate and tactics with config/plan.json, LIVE against
+"""Sunday 4 Oct in the simulator (pre-Sunday audit): the real runner, Gate and tactics with config/plan.json, LIVE against
 sim.sunday (loopback, test key), from 13:30 to 14:10 wall: the derived dealer day end (13:55 in C and B), the stall
 close latched after its entries leave the schedule, the Grand Final duels with days, and no new dealer thread after
 the day end."""

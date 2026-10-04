@@ -264,12 +264,3 @@ class TestRunAndSelftest(Base):
         self.assertTrue(bazaar.scenario_hint(dict(clock, round=2), 21.65).startswith("A"))
         self.assertIn("doors not open", bazaar.scenario_hint(dict(clock, doors="closed"), None))
 
-    def test_replay_not_built_is_red(self):
-        if (REPO / "tests" / "test_replay_friday.py").exists():
-            self.skipTest("replay built")
-        with redirect_stdout(io.StringIO()):
-            self.assertEqual(cli("--root", str(self.root), "replay-friday")[0], 1)
-
-
-if __name__ == "__main__":
-    unittest.main()
