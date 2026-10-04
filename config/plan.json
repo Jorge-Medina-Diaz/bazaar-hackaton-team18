@@ -34,11 +34,11 @@
   "dealer_needs": ["SAL-11", "RET-11"],
   "protect_except": ["SAL-11"],
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
-             "endgame_hours": {"sun": 21.0}},
+             "endgame_hours": {"sun": 17.7}},
   "resupply_min": 15,
   "dup_min_price": {"RET": 30, "CHA": 30},
   "days_sign": null,
   "duels": {"precise": true, "punch": true, "punch_mode": "wait"},
-  "day_end_hours": {"sat": 16.5667, "sun": 21.5667},
+  "day_end_hours": {"sat": 16.5667, "sun": 18.2837},
   "grant_lookahead_ticks": 3
 }
