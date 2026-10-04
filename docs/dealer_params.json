@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-04T11:39:31",
+ "updated": "2026-10-04T11:44:34",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 41,
@@ -809,7 +809,7 @@
    "mejora_max": 27
   },
   "picaros|compra|resto·None": {
-   "hilos": 15,
+   "hilos": 16,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},

@@ -1,10 +1,10 @@
 # Afinador · parámetros aprendidos por dealer (solo sus hilos)
 
-Actualizado 11:39:31.
+Actualizado 11:44:34.
 
 | dealer · lado · grupo | hilos | cierres | P(mejora tras nuestra concesión: 1 / 2-3 / 4+) | 1.er final en su respuesta | perdona hasta | se movió hasta |
 |---|---|---|---|---|---|---|
-| picaros · compra · resto·None | 15 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
+| picaros · compra · resto·None | 16 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
 | picaros · compra · resto·epic | 85 | [128, 128, 128, 128, 128, 130, 130, 130, 134, 137] | 1.0 (n=7) / 1.0 (n=15) / 0.97 (n=64) | mín 1 · med 3 | 48 | 57 |
 | picaros · compra · resto·legendary | 1 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
 | picaros · compra · resto·rare | 186 | [46, 46, 48, 48, 48, 48, 48, 48, 48, 48] | 1.0 (n=59) / 0.96 (n=57) / 1.0 (n=59) | mín 1 · med 3.0 | 17 | 25 |
