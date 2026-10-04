@@ -229,7 +229,8 @@ class _Ctx:
         self.not_spare = _plan_refs(self.plan, ("extra_needs", "resale"))   # bought for dealers: never El Rastro
         self.page_sets = frozenset(self.plan.get("page_sets") or ())
         self.day_over = self._day_over()
-        self.buy_any = self.plan.get("endgame_buy_any") is True and self.day_over
+        # Sun ~10:00 (Jorge): cash is worth 0 at the freeze and every page is complete, so buy-any runs all day
+        self.buy_any = self.plan.get("endgame_buy_any") is True
         self.closer_reserve = 0          # J4: cash a standing closer bid still needs for its endgame raise (J6 buy-any)
         # hand_sales: single copies kept for Jorge's manual dealer sales (ladder slots, egg carriers) until the
         # dealer day ends; J5, sales into bids and swaps never hand them over before that
