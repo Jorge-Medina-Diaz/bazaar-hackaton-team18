@@ -373,6 +373,36 @@ class TestTwoIssues(unittest.TestCase):
         s = self.two(role="seller", L=60, w=2.0, meaning="each delivery day reduces the cash you receive")
         self.assertEqual(D.decide(D.view(s, 100), {})[2], 0)
 
+    P3 = {"anchor": 0.62, "slow_cap": 0.85, "acc_late": 2, "e8_ticks": 0, "days_weight_fallback": 1.0}   # plan duels
+
+    def test_silent_rival_with_other_days_gets_its_own_pair_back(self):
+        # night review E2E-2 (sim drive3, duels 901/905): buyer L125 w5 (sign -1), ours 97/d0, the rival offers
+        # 94/d5 (+6 for us) and goes silent. We used to wait to the deadline (no deal). Now by deadline-2 we send
+        # (94, 5) back, the Gate passes it, and when the rival answers with it we accept.
+        from agent import talk
+        cost = "each delivery day costs you this much cash"
+        dl = 116
+        ro = {"price": 94, "days": 5, "tick": 105, "id": 3}
+        d = self.two(L=125, w=5.0, meaning=cost, msgs=[msg("you", 104, 97, 0), msg("R", 105, 94, 5)],
+                     rival_offer=ro)
+        d.update(deadline_tick=dl, decay_per_round=0.10)
+        got = None
+        for t in range(106, dl):
+            kind, p, days = D.decide(D.view(d, t), self.P3)
+            if kind == "say":
+                got = (t, p, days)
+                break
+        self.assertIsNotNone(got)
+        self.assertLessEqual(got[0], dl - 2)
+        self.assertEqual(got[1:], (94, 5))
+        self.assertGreaterEqual(125 - 94, 1 + talk._days_penalty(d, 5))           # the Gate's margin: 31 >= 26
+        d["messages"].append(msg("you", got[0], 94, 5))
+        d["your_offer"] = {"price": 94, "days": 5, "tick": got[0], "id": 9}
+        self.assertEqual(D.decide(D.view(d, got[0] + 1), self.P3)[0], "wait")          # no second echo
+        d["messages"].append(msg("R", got[0] + 1, 94, 5))
+        d["rival_offer"] = {"price": 94, "days": 5, "tick": got[0] + 1, "id": 4}
+        self.assertEqual(D.decide(D.view(d, got[0] + 1), self.P3), ("accept", 94, 5))
+
     def test_unknown_text_falls_back_by_role(self):
         # night audit: an unrecognised days_meaning no longer means "day 5 + worst case" (0/7 deals in Duels II):
         # the sign comes from the role (buyer -1, seller +1), the same in tactic and Gate (talk.days_sign_of)

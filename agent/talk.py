@@ -636,13 +636,17 @@ def _g50_say(a, world, cfg, counters) -> None:
     for m in d.get("messages") or ():
         if isinstance(m, Mapping) and m.get("from") == "you" and m.get("price") is not None:
             ours.append((m.get("price"), m.get("days")))
+    rival = d.get("rival_offer")
+    # two issues: sending the rival its own standing (price, days) back is not a retraction (night review E2E-2:
+    # ours 97/d0 vs a silent rival's 94/d5, no monotone price was also not worse than the rival's); the limit with
+    # the days penalty above still holds
+    echo = two and isinstance(rival, Mapping) and rival.get("price") == p and rival.get("days") == days
     for lp, ld in ours:
         _need(_num(lp), "G50.shape")
-        _need(s * (lp - p) >= 0, "G50.monotone", f"ours={lp} p={p}")
+        _need(echo or s * (lp - p) >= 0, "G50.monotone", f"ours={lp} p={p}")
     if isinstance(mine, Mapping) and mine.get("price") is not None:
         same_days = (not two) or mine.get("days") == days
         _need(not (mine.get("price") == p and same_days), "G50.repeat")
-    rival = d.get("rival_offer")
     if isinstance(rival, Mapping) and _num(rival.get("price")):
         _need(s * (p - rival["price"]) >= 0, "G50.worse_than_rival", str(rival["price"]))
     _text_ok("duel_days" if two else "duel", a, p, days if two else None)

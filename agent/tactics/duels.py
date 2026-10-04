@@ -298,7 +298,8 @@ def _final_guard(v: DuelView, P: Mapping, act: tuple) -> tuple:
             return wait                        # G50.repeat: never resend our own standing offer (late provoke)
         if surplus(v, price) < _need(v, P, extra, days):
             return wait
-        if v.mine is not None and v.s * (price - v.mine) > 0:            # monotone: never retract a concession
+        echo = v.two_issue and ro is not None and (price, days) == (ro[0], ro[1])   # the rival's own pair (G50)
+        if v.mine is not None and v.s * (price - v.mine) > 0 and not echo:   # monotone: never retract a concession
             return wait
         return ("say", price, days)
     if kind == "accept":
@@ -393,8 +394,13 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
 
     rival_after_ours = not v.ours or v.rivals[-1][3] > v.ours[-1][3]
 
-    # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise
+    # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise.
+    # Two issues with other days (night review E2E-2: ours 97/d0, a silent rival's 94/d5 worth +6 to us): no price
+    # of ours is both monotone and not worse than the rival's, so we send the rival its own standing pair back
+    # (inside the limit with its days by ok_r; G50 allows that echo) and accept when it answers.
     if late and ok_r and not v.rival_spoke_now:
+        if v.two_issue and rd is not None and rd != say_days and (r, rd) != (mine, mine_days):
+            return ("say", r, rd)
         p = _clamp(v, r if (r >= mine if buyer else r <= mine) else mine, need_say)
         return ("say", p, say_days) if p != mine else wait          # never resend our own price (G50.repeat)
     last_our_tick = v.ours[-1][0] if v.ours else -1

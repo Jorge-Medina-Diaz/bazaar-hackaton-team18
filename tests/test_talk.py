@@ -477,6 +477,22 @@ class G50DuelSay(unittest.TestCase):
         self.assertEqual(run(dsay(60), w=world(duels=(d,))).code, "G50.worse_than_rival")
         self.assertTrue(run(dsay(66), w=world(duels=(d,))).ok)
 
+    def test_two_issue_echo_of_the_rival_pair_is_not_a_retraction(self):
+        # night review E2E-2: buyer L125 w5, ours 97/d0, rival 94/d5 (+6 for us): sending (94, 5) back is allowed;
+        # any other lower price stays G50.monotone, and the days margin still applies
+        mine = {"id": 1, "price": 97, "tick": TICK - 3, "days": 0}
+        d = duel(role="buyer", limit=125, issues=("price", "days"), w=5.0, mine=mine,
+                 rival={"id": 9, "price": 94, "tick": TICK - 2, "days": 5})
+        self.assertTrue(run(dsay(94, 5), w=world(duels=(d,))).ok)
+        self.assertEqual(run(dsay(94, 4), w=world(duels=(d,))).code, "G50.monotone")
+        self.assertEqual(run(dsay(95, 0), w=world(duels=(d,))).code, "G50.monotone")
+        d1 = duel(role="buyer", limit=125, mine={"id": 1, "price": 97, "tick": TICK - 3, "days": None},
+                  rival={"id": 9, "price": 94, "tick": TICK - 2, "days": None})
+        self.assertEqual(run(dsay(94), w=world(duels=(d1,))).code, "G50.monotone")      # one issue: unchanged
+        tight = dict(d, rival={"id": 9, "price": 110, "tick": TICK - 2, "days": 5})   # 15 < 1 + 25
+        tight["your_offer"] = {"id": 1, "price": 112, "tick": TICK - 3, "days": 0}
+        self.assertEqual(run(dsay(110, 5), w=world(duels=(tight,))).code, "G50.limit")
+
     def test_not_live_or_missing(self):
         self.assertEqual(run(dsay(70), w=world(duels=(duel(status="done"),))).code, "G50.not_live")
         self.assertEqual(run(dsay(70), w=world()).code, "G50.no_duel")
