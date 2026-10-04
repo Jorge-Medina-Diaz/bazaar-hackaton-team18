@@ -329,6 +329,9 @@ def _p_duel(d: Any) -> tuple:
     _need(isinstance(d.get("issues", []), list), "duel.issues: list")
     _need(isinstance(d.get("messages", []), list), "duel.messages: list")
     out = _project(d, "duel")
+    # Keep only presence of the server's explanation, never its text (two-issue duels need it to play).
+    meaning = d.get("days_meaning")
+    out["days_meaning_known"] = isinstance(meaning, str) and bool(meaning.strip())
     out["your_offer"] = _duel_offer(d.get("your_offer"), "duel.your_offer")
     out["rival_offer"] = _duel_offer(d.get("rival_offer"), "duel.rival_offer")
     msgs = []

@@ -229,7 +229,8 @@ def view(duel: Mapping, tick: int) -> DuelView:
     return DuelView(
         duel_id=did, ok=True, why="", role=role, limit=limit, s=1 if role == "seller" else -1, tick=tick,
         deadline=deadline, start=start, T=deadline - start, decay=decay, two_issue=two, days_weight=w,
-        days_meaning_known=duel.get("days_meaning") not in (None, ""), ours=tuple(ours), rivals=tuple(rivals),
+        days_meaning_known=(duel.get("days_meaning_known") is True
+                            or duel.get("days_meaning") not in (None, "")), ours=tuple(ours), rivals=tuple(rivals),
         rival_offer=rival_offer, mine=mine, rounds=min(len(ours), len(rivals)), rival_spoke_now=spoke_now,
         rival_double=any(c > 1 for c in per_tick.values()), fingerprint=duel_fingerprint(duel))
 
