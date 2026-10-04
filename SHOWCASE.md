@@ -229,10 +229,11 @@ Saturday closed 2nd. The night was spent on an orchestrated audit of the harness
 | 12:28 | **El Taller:** three spare commons worth about 2 P each became an uncommon (LAT-06), sold to Doña Pilar at 16, filling her third ladder slot |
 | 12:53 | v28 closed after the last Market Test, bond refunded. Our matchmaking announcements drew 12 listings from t01 and t04 and **one trade between two other teams** (t01 → t13, LAV-04 at 6, tick 2144). Organic, but small |
 | 13:00–13:15 | Before the Grand Final, four independent reviewers attacked the deployed code, the Duels III data, the tick timing and the operations; 110k random duel states went through the real Gate with 0 refusals. Three changes shipped: an ultimatum two ticks before a duel's deadline, silent-rival sellers go to L+1 at the end (5 of 12 had ended with no deal), and 15 s ticks read only clock, account, offers and duels (32 of 33 late refusals came from the full snapshot overrunning) |
-
-| 14:00–14:50 | **The Grand Final** (34 duels each, 15 s ticks): **24 of 34 deals (71 %)**, the field 68 %, result 320.1; duel points 22.63 → 27.97. Lower than Duels III: the reduced read did not remove lateness, and 81 accepts or offers still missed the 15 s tick (`G03.late`) |
+| 14:00–14:50 | **The Grand Final** (34 duels each, 15 s ticks): **24 of 34 deals (71 %)**, the field 68 %, result 320.1; duel points 22.63 → 27.97. Lower than Duels III: server ticks arrived unevenly (3.7 to 28 s apart), and 79 duel messages and 2 accepts missed their tick (`G03.late`). The Gate refused them rather than act on stale data |
 
 **Final standings** (public leaderboard after the 15:00 close, [data/leaderboard-final.json](data/leaderboard-final.json)): **5th, 32.27** (negotiating 23.27, market 9.00). 1st t05 37.73, 2nd t10 35.76, 3rd t12 34.51, 4th t03 34.19. We were 4th of 18 in negotiation and 15th of 18 in market: the gap was market-making, as the self-critique below explains.
+
+What we would keep: the single write path, the predicted-against-measured journal, the knowledge base of measured rules and the adversarial audits. What we would do earlier: market-making from Friday evening, with a cadence and a go/no-go metric.
 
 ---
 
