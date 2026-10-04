@@ -319,7 +319,7 @@ We worked as a horizontal team of three: decisions were discussed together, and 
 
 | Who | Role |
 |---|---|
-| **Jorge** | Centralised the technical side and the operations: architecture of the harness, the Gate, the live runs and the learning approach (the predicted-against-measured journal and calibrator, and the loop that turned every surprise in the traces into a numbered fact, a tested change and a redeploy). The one person with the key; ran every manual action, each with an explicit OK and a log line |
+| **Jorge** | Centralised the technical side and the operations: architecture of the harness, the Gate, the live runs and the learning patterns (the predicted-against-measured journal and calibrator, and the loop that turned every surprise in the traces into a numbered fact, a tested change and a redeploy). The one person with the key; ran every manual action, each with an explicit OK and a log line |
 | **Rubén** | The negotiation lab and evaluation. Cross-review that found 4 bugs on Friday, Radio Rastro (a news watcher that rates each event for t18), the Pícaros trick detector, and the jury evidence |
 | **Santi** | Analyst. The scoring breakdown, rival tracking, the Bayesian affinity estimator, Doña Pilar's playbook, the Voss-style duel plan and the team logbook |
 
