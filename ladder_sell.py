@@ -1,7 +1,7 @@
 """Venta manual a un dealer con una escalera de precios (máquina A, con el OK de Jorge para cada venta).
 
 Abre un hilo de VENTA con DEALER para una carta (o reutiliza THREAD), pide los precios de ASKS de mayor a menor (uno
-por tick, solo cuando el dealer ha contestado) y acepta la puja del dealer cuando llega a nuestro siguiente precio, o
+cada vez, solo cuando nuestro precio anterior ya está en el hilo y el dealer ha contestado después) y acepta la puja del dealer cuando llega a nuestro siguiente precio, o
 su oferta final cuando es >= FLOOR. Con EGGS manda primero esas variantes (líneas de huevo de pascua de
 talk.EGG_LINES, solo a mano), una por tick, y luego regatea con las variantes normales.
 
@@ -27,6 +27,7 @@ from typing import Any, Mapping, Optional, Sequence
 ROOT = Path(__file__).resolve().parent
 DEALERS = ("abuela", "chato", "picaros", "pilar", "banco")
 MAX_TICKS = 40                 # ~10 min a 15 s/tick
+LAND_TICKS = 4                 # un `do` junto al runner tarda ~17 s; si nuestro precio no aparece en 4 ticks, parar
 POLL_S = 4
 
 
@@ -99,6 +100,19 @@ def decide(bid: int, final: bool, sent: Sequence[int], asks: Sequence[int], floo
     return ("say", nxt)
 
 
+def ours_in(thread: Mapping) -> int:
+    return sum(1 for m in thread.get("messages") or () if isinstance(m, Mapping) and m.get("sender") == "t18")
+
+
+def our_turn(thread: Mapping, base: int, n_sent: int) -> bool:
+    """True when every ask we sent already shows in the thread (ours - base >= n_sent) and the dealer spoke after our
+    last message. Night review S3: a `do` next to the live runner lands ~17 s later, and a 4-tick dealer offer is
+    still there, so 'last sender is not t18' alone let us drop one ask per tick before the dealer saw the previous."""
+    msgs = thread.get("messages") or ()
+    last = msgs[-1] if msgs and isinstance(msgs[-1], Mapping) else {}
+    return ours_in(thread) - base >= n_sent and last.get("sender") != "t18"
+
+
 def variant_for(n_sent: int, eggs: Sequence[int], normal: int) -> int:
     return eggs[n_sent] if n_sent < len(eggs) else (n_sent - len(eggs)) % max(1, normal)
 
@@ -160,7 +174,7 @@ def main(argv: Sequence[str]) -> int:
             return 1
     _log("thread", tid)
     sent: list = []
-    acted, start = None, None
+    acted, start, base, said = None, None, None, None
     while True:
         clk = get("/api/clock")
         tick = clk["tick"]
@@ -174,11 +188,14 @@ def main(argv: Sequence[str]) -> int:
         if t.get("status") != "open":
             _log("thread", t.get("status"), t.get("closed_reason"), "-> done")
             return 0
+        base = ours_in(t) if base is None else base
         hers = dealer_bids(t, dealer, asset, tick)
-        last = (t.get("messages") or [{}])[-1]
-        if acted == tick or last.get("sender") == "t18" or not hers:
+        if said is not None and ours_in(t) - base < len(sent) and tick - said > LAND_TICKS:
+            _log(f"our ask {sent[-1]} is not in the thread after {LAND_TICKS} ticks (refused? see the journal) -> stop")
+            return 1
+        if acted == tick or not our_turn(t, base, len(sent)) or not hers:
             time.sleep(POLL_S)
-            continue                                         # one step per tick, after the dealer's answer
+            continue                                         # one step per dealer answer to our last ask
         o = max(hers, key=lambda x: (x.get("created_tick") or 0, x["id"]))
         bid, final = o["give"]["cash"], o.get("final") is True
         act = decide(bid, final, sent, asks, floor)
@@ -197,7 +214,7 @@ def main(argv: Sequence[str]) -> int:
         _do("say", {"thread_id": tid, "ref": ref, "price": act[1], "template": f"{dealer}_sell", "variant": v},
             f"Jorge: {'huevo' if len(sent) < len(eggs) else 'regateo'} {dealer} v{v}, pedimos {act[1]}")
         sent.append(act[1])
-        acted = tick
+        acted, said = tick, tick
         time.sleep(POLL_S)
 
 

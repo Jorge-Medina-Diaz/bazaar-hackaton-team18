@@ -65,6 +65,20 @@ class LadderSellTest(unittest.TestCase):
                           {"offer": _offer(5, maker="t18")}, {"offer": _offer(6, status="expired")}]}
         self.assertEqual([o["id"] for o in L.dealer_bids(t, "pilar", 1063, 100)], [1])
 
+    def test_next_ask_waits_for_ours_to_land_and_the_dealer_to_answer(self):
+        # night review S3: after `do say 260` the thread still shows only Pilar's bid (~17 s order latency):
+        # not our turn yet; then ours lands (last sender t18): not yet; then Pilar answers: our turn
+        bid = {"sender": "pilar", "offer": _offer(1)}
+        t = {"messages": [bid]}
+        base = L.ours_in(t)
+        self.assertTrue(L.our_turn(t, base, 0))
+        self.assertFalse(L.our_turn(t, base, 1))                                     # our 260 not there yet
+        t["messages"].append({"sender": "t18", "offer": _offer(2, maker="t18")})
+        self.assertFalse(L.our_turn(t, base, 1))                                     # we spoke last
+        t["messages"].append({"sender": "pilar", "offer": _offer(3)})
+        self.assertTrue(L.our_turn(t, base, 1))
+        self.assertFalse(L.our_turn(t, base, 2))
+
     def test_egg_carrier_needs_eggs(self):
         import contextlib, io
         with contextlib.redirect_stdout(io.StringIO()):
