@@ -369,3 +369,32 @@ Afirmaciones de los propios analistas refutadas por su escéptico (no deben cita
   - El feed público solo sirve los últimos 500 eventos. `/api/me/threads` solo devuelve los 50 últimos hilos (el 378, RET-09, ya no sale).
   - `logs/duels.jsonl`, `fills.jsonl`, `rastro.jsonl` y `market.jsonl` son del viernes (scripts archivados), no del sábado. El sábado está en el diario, `feed_all.jsonl`, `bench_book.jsonl` y `eggs.jsonl`.
   - Los análisis de esta noche están en el scratchpad de la sesión (fuera del repo): `ci/allfeed.json` (feed fusionado, 15.339 eventos), `duelaudit/`, `sched_audit/` y `eggplan/`.
+
+## Domingo en vivo (ronda 3, Chamberí) y cierre: medido
+
+Fuentes: el diario completo ([data/journal.jsonl](../data/journal.jsonl), hasta las 14:55, cadena verificada), `/api/duels?done=true`, el feed público ([data/feed_public.jsonl](../data/feed_public.jsonl)) y el leaderboard final ([data/leaderboard-final.json](../data/leaderboard-final.json)).
+
+- **S-34** `[medido · alta]` **El calendario se re-ancló como predijimos (escenario C).** El arnés derivó el fin del día de dealers y el endgame del reloj del servidor; no se tocó ninguna configuración.
+- **S-35** `[medido · alta]` **Chamberí completa en ~12 minutos** (ticks 1484–1513, 09:21–09:33): raras de Los Pícaros (58 y 54), épica CHA-11 a 145, poco comunes de El Chato (31), comunes de la Abuela (9–10) y la última carta (CHA-01) de t13 a 72, en nuestra puja fija.
+- **S-36** `[medido · alta]` **SAL-11 vendida a t13 a 238** (+27 de negociación). La mejor oferta de Pilar fue 165. La Gate rechazó nuestra aceptación a Pilar (`G13.listed`) porque la carta seguía comprometida en otra oferta, y así vimos la puja.
+- **S-37** `[medido · alta]` **El tope de 3 denuncias que puntúan es por ronda.** Tres denuncias de nivel A a Los Pícaros dieron +30 el domingo, además de las +30 del sábado.
+- **S-38** `[medido · alta]` **Calibrador.**
+  - A las 09:31 paró el bot porque una compra ganó +23 cuando se esperaban +50; el umbral de sorpresa negativa diaria era −5. Pasó a −60.
+  - A las 13:13 pasó a −500, porque una cancelación seguida de una recompra se leyó como una sorpresa de −28,7.
+  - Las pérdidas reales siguen parando el bot (`LOSS_STOP`).
+- **S-39** `[medido · alta]` **Duelos.**
+  - **Duels III:** 57/68 con trato (84 %). El resto del campo, 400/544 (73,5 %). Resultado 1.187,6 y ningún trato bajo nuestro límite.
+  - **Gran Final** (14:00–14:50, ticks de 15 s): 24/34 (71 %). El campo entero, 208/306 (68 %). Resultado 320,1. `duel_points` pasó de 22,63 a 27,97.
+  - En la Final, 79 mensajes y 2 aceptaciones llegaron tarde a su tick (`G03.late`). Los ticks llegaron irregulares, con entre 3,7 y 28 s entre uno y otro.
+- **S-40** `[medido · alta]` **El arnés en cifras (sábado 09:21 – domingo 14:55).**
+  - 1.850 escrituras por la Gate: 1.849 ok, 0 rechazadas por el servidor y 1 `unknown`, reconciliada como no aplicada.
+  - 531 rechazos de nuestras guardas: 282 `G33.not_open` (bug arreglado), 143 `G03.late` (81 de ellos en la Final) y el resto por valor, caja y protección.
+  - Las últimas filas (14:55) son el arnés parándose solo por una oferta que no había escrito (`foreign_writer:offer:29450`, INV-16).
+- **S-41** `[medido · alta]` **Mercado del domingo.**
+  - El venue de tablero v28 (abierto a las 10:09) igualó al puesto en el Market Test difícil: `bench_efficiency` 0,967, bench 0,5.
+  - Con los anuncios atrajo 12 ofertas de t01 y t04 y **un** trato orgánico entre otros equipos (t01 → t13, LAV-04 a 6, tick 2144).
+  - t05, con el puesto gratuito, sacó +5,6 de mercado gracias a los tratos entre otros equipos.
+- **S-42** `[medido · alta]` **Resultado final** (leaderboard tras el cierre de las 15:00, tick 2802).
+  - **5.º de 18 con 32,27:** negociación 23,27 (4.º de 18) y mercado 9,00 (15.º de 18).
+  - 1.º t05 37,73, 2.º t10 35,76, 3.º t12 34,51, 4.º t03 34,19.
+  - De los 5,46 puntos que nos separaron del 1.º, **4,08 son mercado**. Autocrítica en [SHOWCASE.md](../SHOWCASE.md).
