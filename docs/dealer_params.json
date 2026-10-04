@@ -1,8 +1,8 @@
 {
- "updated": "2026-10-04T12:55:25",
+ "updated": "2026-10-04T13:00:28",
  "groups": {
   "pilar|venta|fav·uncommon": {
-   "hilos": 41,
+   "hilos": 43,
    "cierres": [
     22,
     22,
@@ -52,14 +52,14 @@
     30
    ],
    "p_sube": {
-    "2-3": 0.74,
+    "2-3": 0.75,
     "1": 0.84,
-    "4+": 0.8
+    "4+": 0.62
    },
    "n_sube": {
-    "2-3": 65,
+    "2-3": 67,
     "1": 37,
-    "4+": 5
+    "4+": 8
    },
    "final_min": 4,
    "final_med": 5,
@@ -189,7 +189,7 @@
    "mejora_max": null
   },
   "pilar|venta|resto·None": {
-   "hilos": 49,
+   "hilos": 50,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -341,7 +341,7 @@
    "mejora_max": 17
   },
   "pilar|venta|resto·rare": {
-   "hilos": 16,
+   "hilos": 18,
    "cierres": [
     50,
     50,
@@ -360,11 +360,11 @@
    },
    "n_sube": {
     "2-3": 16,
-    "4+": 9,
+    "4+": 17,
     "1": 2
    },
    "final_min": 4,
-   "final_med": 5,
+   "final_med": 5.0,
    "perdona_max": 2,
    "mejora_max": 14
   },
@@ -433,7 +433,7 @@
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 218,
+   "hilos": 220,
    "cierres": [
     46,
     46,
@@ -647,6 +647,8 @@
     58,
     58,
     58,
+    58,
+    58,
     59,
     59,
     59,
@@ -708,17 +710,17 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 76,
+    "2-3": 78,
     "1": 85,
     "4+": 66
    },
    "final_min": 1,
-   "final_med": 3,
+   "final_med": 3.0,
    "perdona_max": 17,
    "mejora_max": 26
   },
   "picaros|venta|resto·uncommon": {
-   "hilos": 20,
+   "hilos": 21,
    "cierres": [
     10,
     11,
@@ -729,22 +731,22 @@
     12
    ],
    "p_sube": {
-    "2-3": 0.43,
+    "2-3": 0.4,
     "1": 0.29,
-    "4+": 0.14
+    "4+": 0.12
    },
    "n_sube": {
-    "2-3": 14,
+    "2-3": 15,
     "1": 14,
-    "4+": 7
+    "4+": 8
    },
-   "final_min": 4,
-   "final_med": 4,
+   "final_min": 3,
+   "final_med": 4.0,
    "perdona_max": 1,
    "mejora_max": 3
   },
   "picaros|venta|resto·None": {
-   "hilos": 10,
+   "hilos": 11,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -754,7 +756,7 @@
    "mejora_max": 0
   },
   "picaros|compra|resto·epic": {
-   "hilos": 99,
+   "hilos": 104,
    "cierres": [
     128,
     128,
@@ -834,17 +836,17 @@
     167
    ],
    "p_sube": {
-    "4+": 0.97,
+    "4+": 0.95,
     "1": 1.0,
     "2-3": 1.0
    },
    "n_sube": {
-    "4+": 69,
+    "4+": 76,
     "1": 7,
     "2-3": 31
    },
    "final_min": 1,
-   "final_med": 3.0,
+   "final_med": 3,
    "perdona_max": 48,
    "mejora_max": 57
   },
