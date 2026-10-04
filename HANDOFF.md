@@ -157,3 +157,13 @@ Las sesiones anteriores siguen en archive/docs/HANDOFF.md.
 - Guía de adopción: docs/rag-jev-update.md. Actualizar código del visor/evaluador; recargar solo el visor cuando corresponda. Comprobar con python3 run_traces.py --check --require-executor --logs logs (Python3.10+). No requiere reiniciar el bot por esta actualización aislada.
 - Límites: sin validación sobre diario privado real del operador, caché en memoria por cliente, presupuesto por evaluación; no se demuestra mejora de precisión semántica de JEV. Ninguna llamada de pago ni operación del juego en esta entrega. Datos crudos runs/ y claves excluidos.
 - Próximo paso: publicar sin force y verificar SHA remoto; operador revisa estado del visor y agrega contexto verificado a las ventanas de Pilar/Pícaros.
+
+
+## Mini campo de batalla — entrega para revisión, 2026-10-04
+
+- Rubén autoriza publicar codex/mini-campo-batalla para que Jorge revise y decida la integración en main. Base e0bd6d3; laboratorio añadido, sin cambios en agent/, config/, SDK, memoria, Gate o ejecutor.
+- Simulación paralela compra/venta, nueve modelos rivales y quince combinaciones; selección robusta por grupos, normalizada por límite propio. Semillas independientes y estadísticas por versión; validación no selecciona candidatos. Historiales de fixtures y comparaciones públicas con referencias estrictamente anteriores.
+- Corte programado cumplido a las13:30Madrid:89lotes/3.572.000evaluaciones principales simuladas, sin fallos en lotes contabilizados. Son versiones y escenarios supuestos, no partidas reales independientes ni mejora de puntos. Acumulado conserva plan actual.
+- 27/27 tests pasan; entrega local/zip/parche/manifest verificados. Datos crudos, estado privado y servicios específicos de máquina permanecen fuera del commit.
+- Entradas: mini_campo_batalla.py (lote), battle_watch.py (continuo), schedule_training_cutoff.py (corte), prepare_battle_delivery.py (entrega seleccionada). Guía docs/mini-campo-batalla.md; prompt docs/prompt-integracion-jorge.md; análisis docs/duelos-cierre-2026-10-04.md.
+- Siguiente: Jorge revisa en worktree aislado, conserva avances de Santiago/main, adapta interfaces y repite tests del main vigente. Merge y cualquier activación operativa requieren autorización/protocolo del operador. No adoptar una estrategia por ganancias aisladas ni aplicar una rama antigua sobre Voss.
