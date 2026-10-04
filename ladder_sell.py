@@ -170,7 +170,9 @@ def main(argv: Sequence[str]) -> int:
                 tid = mine[0]["id"]
                 break
         if tid is None:
-            print("thread not opened")
+            print("thread not opened: the Gate's refusal code is in logs/run/journal.jsonl (a 'refused' row, tactic "
+                  "manual, kind open_thread); G30.thread_open = the bot already holds a thread with that dealer "
+                  "(an Abuela CHA buy: pause dealers first, and a manual Abuela sale also pulls the CHA closer bid)")
             return 1
     _log("thread", tid)
     sent: list = []

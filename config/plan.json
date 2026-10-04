@@ -8,7 +8,8 @@
     "hand_sales: copias sueltas reservadas para las ventas a mano a los dealers (escalera L1/L3 y portadoras de huevos: MAL-01 #940, MAL-02 #789, MAL-04 #583, MAL-05 #582, LAV-02 #938, LAV-03 #788, LAV-05 #939, y las segundas copias LAT-06 #1105 (poco común: Pilar pagó 16 por nuestra LAT-06, S-21; El Chato compra poco comunes y raras) y LAT-02 #1103); J5, las ventas a pujas y los intercambios no las tocan hasta el fin del día de dealers (simulación del domingo: J5 las listaba a 9 P a las 09:00).",
     "startup_cancels: los cinco ids ya están cancelados (no-op por G23).",
     "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N son de guards.Cfg (valores D2 de contracts); no se repiten aquí.",
-    "profiles: orden de búsqueda ref, 'SET:rarity', 'rarity'. anchor/step/limit en P; fallback_after en ticks."
+    "profiles: orden de búsqueda ref, 'SET:rarity', 'rarity'. anchor/step/limit en P; fallback_after en ticks.",
+    "days_sign: sin uso. El signo de los días sale de cada duelo (talk.days_sign_of: days_sign del sensor, days_meaning del servidor, papel; un signo leído que contradice al papel da -1). La clave sigue porque PlanCfg (contracts, congelado) la declara y load_plan la exige."
   ],
   "page_sets": ["RET", "LAT", "CHA"],
   "protect_sets": ["SAL", "RET", "CHA", "LAT"],
