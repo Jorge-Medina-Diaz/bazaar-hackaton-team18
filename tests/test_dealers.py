@@ -528,6 +528,39 @@ class OpenTest(Base):
                         D.DealerState.rebuild(w2, None))
         self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("chato", 90)])
 
+    def test_extra_need_leaves_the_closer_endgame_cash(self):
+        # night review: CHA-11 <= 170 / RET-11 <= 150 could leave less than the CHA closer needs (72 at 9/10,
+        # 102 at the endgame raise). Closer Need 72 + (50 - 20) = 102 reserved; a standing closer bid is already
+        # out of cash_free, so only its raise is kept
+        import dataclasses
+        cat = {"sets": [{"id": "CHA", "cards": [{"id": "CHA-11", "rarity": "epic"}, {"id": "CHA-04", "rarity": "common"}]}]}
+        plan = {"profiles": {"CHA-11": {"dealer": "picaros", "anchor": 130, "step": 4, "limit": 170}},
+                "dealer_max": {}, "extra_needs": [{"ref": "CHA-11", "max_price": 170}],
+                "closer": {"default_minus": 50, "compete_minus": 20}}
+        w = dataclasses.replace(make_world(unlocked=("abuela", "chato", "picaros")), catalog=cat)
+        needs = [need("CHA-11", "picaros", max_price=170), need("CHA-04", "team", max_price=72, closer=True)]
+        vals = {"CHA-11": 288.0, "CHA-04": 122.0}
+
+        def limit(cash_free, **kw):
+            its = D.propose(w, make_book(cash_free=cash_free, **kw), FakeValuer(vals), Cfg(), plan, needs,
+                            D.DealerState())
+            return [i.args["limit"] for i in its if i.kind == "open_thread"]
+        self.assertEqual(limit(400), [170])
+        self.assertEqual(limit(250), [148])                                  # 250 - 102
+        self.assertEqual(limit(200), [])                                     # 98 < anchor 130: not opened
+        self.assertEqual(limit(200, own_bids={"CHA-04": 50}, bid_price={50: 72}), [170])   # 200 - 30
+        self.assertEqual(D.closer_reserve(w, make_book(), plan, needs), 102)
+        # at the endgame the closer Need already carries its raised price: no extra raise reserved
+        eg = dict(plan, closer={"default_minus": 50, "compete_minus": 20, "endgame_hours": {"default": 9.0}})
+        self.assertEqual(D.closer_reserve(w, make_book(), eg, [need("CHA-04", "team", max_price=102, closer=True)]),
+                         102)
+        # page cards are not capped by the reserve (they are what makes the closer possible)
+        its = self._open([need("RET-09", "chato"), need("RET-02", "team", max_price=72, closer=True)],
+                         book=make_book(cash_free=100),
+                         plan=dict(PLAN, extra_needs=[{"ref": "CHA-11", "max_price": 170}],
+                                   closer={"default_minus": 50, "compete_minus": 20}))
+        self.assertEqual([i.args["limit"] for i in its], [90])
+
     def test_fallback_after_closes_slow_thread(self):
         o = dealer_offer(1, "chato", "RET-08", 32, 21)
         t = {"id": 7, "with": "chato", "topic": {"buy": {"card": "RET-08"}}, "status": "open", "created_tick": 15,

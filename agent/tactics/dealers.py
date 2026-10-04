@@ -10,6 +10,8 @@ Rules implemented (acceptance of M10):
   a final above the limit closes the thread without accepting. If we cannot raise any more (limit reached) -> close.
 - Limit fixed at opening (min of profile limit, need.max_price, plan dealer_max, floor(dv_add - DEALER_MARGIN),
   cash_free) and it only goes down: every tick limit_t = min(opening limit, floor(dv_add - DEALER_MARGIN), need cap).
+  A plan.extra_needs card (outside the pages) is also capped at cash_free - closer_reserve(): the page closer's
+  team bid at its endgame price keeps its cash.
 - No new threads while > 4 live duels (E-M6; Sunday runs 4 at a time, so ladder threads keep opening), with an unopened pack (G14), with a dealer blocked (cooloff/quota),
   for the frozen closer card or a card that closes RET/CHA (INV-10), or more than one reopen per hour per (dealer, ref).
 - PROBE mode (profile {"probe": true}, for new dealer levels): haggle with prices capped at the safe limit but never
@@ -309,6 +311,40 @@ def _margin(cfg) -> float:
     return float(m) if isinstance(m, (int, float)) and m >= 1.0 else 1.0
 
 
+def _extra_refs(plan_cfg) -> frozenset:
+    out = set()
+    for e in (plan_cfg or {}).get("extra_needs") or ():
+        if isinstance(e, Mapping) and isinstance(e.get("ref"), str):
+            out.add(e["ref"])
+    return frozenset(out)
+
+
+def closer_reserve(world, book, plan_cfg, needs) -> int:
+    """Cash an extra_need thread must leave for the page closer's team bid (night review: CHA-11 <= 170 and
+    RET-11 <= 150 could spend what the +50 closer bid needs at 9/10 and at the endgame raise).
+
+    Per closer Need: its endgame price (max_price now, plus default_minus - compete_minus before the endgame)
+    minus our standing bid on it (already in cash_free). Before the endgame this may over-reserve by up to
+    default_minus - compete_minus when a rival already forced the compete price: conservative on purpose."""
+    c = (plan_cfg or {}).get("closer") or {}
+    dm, cm = c.get("default_minus"), c.get("compete_minus")
+    raise_by = max(0, int(math.ceil(dm - cm))) if all(type(x) in (int, float) for x in (dm, cm)) else 0
+    try:
+        from agent.tactics.pages import endgame
+        if endgame(world, plan_cfg or {}):
+            raise_by = 0
+    except Exception:
+        pass                                        # unknown: keep the raise reserved (fail closed)
+    total = 0
+    for n in needs or ():
+        if not n.closer or type(n.max_price) is not int:
+            continue
+        oid = (book.own_bids or {}).get(n.ref)
+        standing = (book.bid_price or {}).get(oid, 0) if oid is not None else 0
+        total += max(0, n.max_price + raise_by - (standing if type(standing) is int else 0))
+    return total
+
+
 # ------------------------------------------------------------------------------------------ propose
 
 def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
@@ -465,6 +501,8 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
     dealer_max = (plan_cfg or {}).get("dealer_max") or {}
     allow_close = frozenset(getattr(cfg, "ALLOW_DEALER_CLOSE", frozenset({"LAT"})))
     cash_free = book.cash_free
+    extras = _extra_refs(plan_cfg)
+    reserve = closer_reserve(world, book, plan_cfg, needs) if extras else 0
     candidates = [(n.ref, n) for n in needs_by_ref.values()]
     for ref, prof in _probe_targets(plan_cfg, needs_by_ref):
         candidates.append((ref, None))
@@ -498,6 +536,8 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
             caps.append(need.max_price)
         if type(dealer_max.get(ref)) is int:
             caps.append(dealer_max[ref])
+        if ref in extras and type(cash_free) is int:
+            caps.append(cash_free - reserve)       # a card outside the pages never eats the closer's cash
         if any(type(c) is not int for c in caps) or type(profile.get("anchor")) is not int:
             continue
         limit = min(caps)
