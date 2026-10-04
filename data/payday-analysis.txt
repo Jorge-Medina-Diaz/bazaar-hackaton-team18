@@ -73,3 +73,15 @@ Estimate: about -0.5 to -1.1 negotiating points on Saturday's board (central -0.
 (0.5 x Fri + Sat + Sun) / 2.5 and the Saturday board shows (0.5 x Fri + Sat) / 1.5, so a Saturday-board point is worth 0.6 final points:
 about -0.3 to -0.7 final points. No team passed us because of it on Saturday (we went 4th -> 2nd), and the same +400 paid for our
 Chamberi on Sunday, so the net effect on us is smaller than the Saturday figure.
+
+Sunday check (did the grant money buy the teams that passed us more ladder slots today?)
+Public feed, Sunday settlements (215 of 351 visible, 61 %); leaderboard at 14:02, tick 2582 (data/leaderboard-sunday-1402.json).
+team (rank)   net spent today   ladder slots filled today (max 3 per level)   delta negotiating since Sat   delta market since Sat
+t05 (1)       -73 (net seller)   9                                             +1.07                        +5.58
+t10 (2)       +290               7                                             -2.55                        -0.23
+t12 (3)       -287 (net seller)  9                                             -0.51                        +4.19
+t03 (4)       +173               9                                             +2.27                        +2.07
+t18 (5)       +295               12 (the most)                                 -0.35                        +1.50
+Verdict: no. On Sunday the teams that passed us did not out-spend or out-ladder us; they passed us on market points.
+Gap to 1st at 14:02: 4.73 = market 4.08 (13.08 vs 9.00) + negotiating 0.65 (24.06 vs 23.41).
+Visible Sunday trades between other teams on team venues: v10 (t05, a free stall like ours) 3 trades / 3 pairs; ours: v28 1 / 1, v18 0.

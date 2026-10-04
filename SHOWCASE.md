@@ -243,6 +243,48 @@ Saturday closed 2nd. The night was spent on an orchestrated audit of the harness
 | Sun 09:32 | The calibrator stopped the bot on a deal that gained less than predicted | Threshold −5 → −60, with a test; real losses still stop the bot |
 | Weekend | 282 refusals were redundant thread closes (`G33.not_open`) | A walked-out thread counts as closed (`f9b4e2e`) |
 
+## Self-critique: why we did not climb higher
+
+We wanted to learn the game, not just play it, so here is the honest account. At 14:02 on Sunday we were 5th with 32.41. The leader, t05, had 37.14.
+
+**Where the gap is.** Of the 4.73 points, **4.08 are market** (13.08 against our 9.00) and only 0.65 are negotiating. In negotiation we were 3rd ([data/payday-analysis.txt](data/payday-analysis.txt), [data/leaderboard-sunday-1402.json](data/leaderboard-sunday-1402.json)).
+
+**What we got wrong**, by impact on points:
+1. **We underrated organic market-making all weekend.**
+   - It is 7.5 points per round, and on Saturday night our own facts said it was t10's whole edge (S-23).
+   - Our free stall made 0 trades on Saturday. Matchmaking announcements started only on Sunday morning, by hand.
+   - The cause was ours: we froze the contract on Friday without venue or announcement kinds (D4), so market actions lived outside the harness, slow and manual.
+   - We also refused to pair "contenders", which excluded the six most active traders.
+   - On Sunday t05, with the same free stall as ours, drew trades between other teams and gained +5.6 market points.
+2. **Duels II.**
+   - Our fix for the delivery-day sign never reached the tactic, because the sensor drops free text by design and our unit tests bypassed the sensor.
+   - We closed 65 % of duels against the field's 78 %, and dropped 4th → 7th during the session.
+   - With the fix done end to end, Duels III closed 84 %. Lesson: test through the whole pipeline, not module by module.
+3. **The ladder followed pages, not slots.**
+   - After the El Retiro page on Saturday, nothing aimed at empty ladder slots, and we drifted 1st → 8th.
+   - Don Ernesto, the heaviest level, stayed at 0/3 all Saturday.
+   - On Sunday we planned by slot and filled 12, the most of any team at the top.
+4. **Idle cash.**
+   - We kept 531 P unused for the last two hours of Saturday while other teams converted the +400 grant into deals.
+   - On Sunday we still held 437 P at 14:03, after Chamberí was complete. Cash is worth 0 at the freeze, and we were too conservative.
+5. **Too many live redeploys.** On Saturday, 17 stops and redeploys cost 87 ticks, 9 of them during Duels II, and the machine slept for 48 minutes. On Sunday, two more interruptions. Robust code, fragile operations.
+6. **Split effort.**
+   - Our analysts built good tools: a news radio, a trick detector, a rival-multiplier estimator and a duel lab.
+   - They lived on another branch and never fed the bot's decisions.
+   - Several AI sessions operated in parallel, at a coordination cost.
+7. **The unscheduled +400 P grant** cost us about 0.3–0.7 final points. It is real, but it does not explain the result.
+
+**The pattern that connects them.** We optimised what we controlled: the safety of the harness, the negotiation and the evidence. We automated little of what depended on other teams, organic market-making, and that is what decided the podium. 155 commits and 911 tests went into making every write safe; almost nothing went into bringing other teams' trades to our venue.
+
+**What we would do differently next time:**
+- Model each score component's ceiling on day one, and staff the biggest uncaptured one.
+- Make market actions first-class kinds of the Gate, so they are automatic, tested and journaled.
+- Test integration end to end, from the server's shape to the order.
+- Plan the ladder by slot.
+- Treat idle cash as a cost.
+- Deploy only in planned windows.
+- Wire the analysts' tools into decisions, not into side panels.
+
 ## Decisions we would defend
 
 | Question | Our answer | Evidence |
