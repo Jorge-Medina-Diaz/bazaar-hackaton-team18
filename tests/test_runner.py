@@ -260,6 +260,36 @@ class TestLateWindow(unittest.TestCase):
         self.assertLess(gate.calls[0][2], 13.0)                           # sent before the tick deadline
         self.assertEqual(r.late_read_s, 0.8)
 
+    def test_duel_near_its_deadline_keeps_the_accept_slot(self):
+        # night review D2: a dealer / team accept early in the tick used the single accept slot, so a duel accept
+        # that appeared mid-tick at deadline-1 was dropped and the duel ended without a deal
+        def live_duel(deadline, rival):
+            return {"duel": 5, "status": "live", "role": "buyer", "your_limit": 100, "deadline_tick": deadline,
+                    "decay_per_round": 0.1, "issues": ["price"], "rounds": 1, "your_offer": None,
+                    "messages": [{"from": "you", "tick": 95, "price": 60, "days": None},
+                                 {"from": "R", "tick": 96, "price": rival, "days": None}],
+                    "rival_offer": {"price": rival, "tick": 96, "id": 3, "days": None}}
+        self.assertEqual(FRIDAY.accepts, 1)
+        clk = FakeClock(20.0)
+        w = make_world(tick_deadline=28.0, duels=(live_duel(101, 80),))
+        r, gate = bare_runner(w, clk)
+        r.armed = {"duels", "rastro"}
+        drops = []
+        team = accept(7)
+        self.assertEqual([it.kind for it in r.keep_duel_slot(w, [team, cancel(1, "rastro")], drops)], ["cancel"])
+        self.assertEqual([c for _, c in drops], ["R04.duel_slot"])
+        with mock.patch("agent.tactics.duels.propose", return_value=[duel_accept(5)]):
+            outs = r.late_window(w, [], [])
+        self.assertEqual([c[0] for c in gate.calls], ["duel_accept"])
+        self.assertEqual(len(outs), 1)
+        # no hold: rival outside our limit, deadline still far, a manual accept, or duels not armed
+        for ww in (make_world(duels=(live_duel(101, 100),)), make_world(duels=(live_duel(110, 80),))):
+            self.assertEqual(r.keep_duel_slot(ww, [team], []), [team])
+        manual = make_intent("accept", "manual", dict(team.args), "r", "e", NONE_P)
+        self.assertEqual(r.keep_duel_slot(w, [manual], []), [manual])
+        r.armed = {"rastro"}
+        self.assertEqual(r.keep_duel_slot(w, [team], []), [team])
+
     def test_no_late_accept_when_budget_used_or_tick_moved(self):
         clk = FakeClock(20.0)
         w = make_world(tick_deadline=28.0, duels=({"duel": 5, "deadline_tick": 110},))

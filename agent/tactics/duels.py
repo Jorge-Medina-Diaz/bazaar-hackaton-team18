@@ -421,6 +421,25 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
     return wait
 
 
+def accept_slot_wanted(world, params: Optional[Mapping] = None) -> bool:
+    """True when a live duel is within acc_late ticks of its deadline (and before deadline - 1 has passed) and the
+    rival's standing offer is inside our limit with its days margin: the late window may need this tick's single
+    accept slot (night review D2: an early dealer / team accept took it and the duel ended without a deal)."""
+    P = dict(DEFAULTS, **(params or {}))
+    for d in getattr(world, "duels", None) or ():
+        try:
+            v = view(d, world.tick)
+            if not v.ok or v.rival_offer is None or not 0 < v.deadline - v.tick <= max(1, int(P["acc_late"])):
+                continue
+            readable, _, extra, _ = _days_model(v, P)
+            r, rd = v.rival_offer[0], v.rival_offer[1]
+            if readable and not (v.two_issue and rd is None) and surplus(v, r) >= _need(v, P, extra, rd):
+                return True
+        except Exception:                                               # noqa: BLE001 - unknown: no hold
+            continue
+    return False
+
+
 # ------------------------------------------------------------------------------------------ propose
 
 def e16_settled(state: dict, done_duels) -> Optional[str]:

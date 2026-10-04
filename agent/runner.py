@@ -711,6 +711,7 @@ class Runner:
         intents, shadow = self.split_would(intents)
         drops: list = []
         chosen = choose(intents, world, self.cfg, drops)
+        chosen = self.keep_duel_slot(world, chosen, drops)
         self.journal_drops(world, drops)
         early = [it for it in chosen if it.kind != "duel_accept"]
         held = [it for it in chosen if it.kind == "duel_accept"]
@@ -737,6 +738,27 @@ class Runner:
         if world.tick % SNAP_EVERY == 0:
             self.snap(world)
         return True
+
+    def keep_duel_slot(self, world: World, chosen: list, drops: list) -> list:
+        """Night review D2: with the accept budget shared, a tactic's early team / dealer accept that would use the
+        last slot is held back (R04.duel_slot) while an armed duels tactic may need it in the late window
+        (duels.accept_slot_wanted). Dealer and team offers stay to the next tick; a manual order is never held."""
+        if not bool(_cfg(self.cfg, "DUEL_ACCEPT_SHARED", True)) or "duels" not in self.armed_now()                 or self.paused("duels") or any(it.kind == "duel_accept" for it in chosen):
+            return chosen
+        early = [it for it in chosen if it.kind == "accept" and it.tactic != "manual"]
+        manual = sum(1 for it in chosen if it.kind == "accept" and it.tactic == "manual")
+        if not early or manual + len(early) < int(getattr(world.limits, "accepts", 0) or 0):
+            return chosen
+        mod = self._module("duels", "agent.tactics.duels")
+        try:
+            wanted = mod is not None and mod.accept_slot_wanted(world, dict(self.plan_now.get("duels") or {}))
+        except Exception:                                                # noqa: BLE001 - unknown: no hold
+            wanted = False
+        if not wanted:
+            return chosen
+        drops.extend((it, "R04.duel_slot") for it in early)
+        held = {id(it) for it in early}
+        return [it for it in chosen if id(it) not in held]
 
     def split_would(self, intents: list) -> tuple:
         """Live: (intents that may act, intents of paused / unarmed tactics). The second only journal "would" and run
