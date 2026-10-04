@@ -45,7 +45,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
-from agent.contracts import Prediction, make_intent
+from agent.contracts import Intent, Prediction, make_intent
 
 DAYS_MAX = 10
 BETA = 1.6
@@ -490,17 +490,9 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
                                  f"duel {v.duel_id} {v.role} L={v.limit}: rival {price} spoke at t{tick}",
                                  f"deal at {price}, surplus {surplus(v, price)}, rounds {v.rounds}", pred,
                                  priority=1000 - (v.deadline - tick), experiment=exp)
-                accepts.append((v.deadline, -surplus(v, price), v.duel_id, it, price, days))
+                accepts.append((v.deadline, -surplus(v, price), v.duel_id, it, price, days, v, p, exp))
             elif act == "say":
-                tpl = "duel_days" if v.two_issue else "duel"
-                pred = _predict(v.limit_raw, price, v.decay, v.rounds + 1, v.role)
-                says.append(make_intent(
-                    "duel_say", "duels",
-                    {"duel_id": v.duel_id, "price": price, "days": days, "template": tpl,
-                     "variant": len(v.ours) % _template_variants(tpl)},
-                    f"duel {v.duel_id} {v.role} L={v.limit}: offer {price}" + (f" d{days}" if days is not None else ""),
-                    f"if accepted: surplus {surplus(v, price)}", pred,
-                    priority=500 - (v.deadline - tick), experiment=exp))
+                says.append(_say_intent(v, price, days, tick, exp))
         except Exception:
             continue                                                    # fail closed: nothing for this duel
     budget = getattr(getattr(world, "limits", None), "accepts", 0)
@@ -508,13 +500,33 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
     accepts.sort(key=lambda a: (a[0], a[1], a[2]))
     out = []
     rec = state.setdefault("duel_accepts", {})
-    for dl, _, did, it, price, days in accepts[:budget]:
+    for dl, _, did, it, price, days, *_rest in accepts[:budget]:
         rec[did] = {"tick": tick, "price": price, "days": days}
         out.append(it)
+    # night review D3: an accept beyond the budget (same-deadline batches, 1 accept per tick) gets the rival's own
+    # pair back as a say instead of nothing: the rival accepting our offer uses none of our accept budget
+    for _dl, _s, did, _it, price, days, v, p, exp in accepts[budget:]:
+        try:
+            kind, sp, sd = _final_guard(v, p, ("say", price, days))
+            if kind == "say":
+                says.append(_say_intent(v, sp, sd, tick, exp))
+        except Exception:                                               # noqa: BLE001 - fail closed: no say
+            continue
     chosen = {a[2] for a in accepts[:budget]}
-    skipped = {a[2] for a in accepts[budget:]}
-    out.extend(s for s in says if s.args["duel_id"] not in chosen | skipped)
+    out.extend(s for s in says if s.args["duel_id"] not in chosen)
     return out
+
+
+def _say_intent(v: DuelView, price: int, days: Optional[int], tick: int, exp: Optional[str]) -> Intent:
+    tpl = "duel_days" if v.two_issue else "duel"
+    pred = _predict(v.limit_raw, price, v.decay, v.rounds + 1, v.role)
+    return make_intent(
+        "duel_say", "duels",
+        {"duel_id": v.duel_id, "price": price, "days": days, "template": tpl,
+         "variant": len(v.ours) % _template_variants(tpl)},
+        f"duel {v.duel_id} {v.role} L={v.limit}: offer {price}" + (f" d{days}" if days is not None else ""),
+        f"if accepted: surplus {surplus(v, price)}", pred,
+        priority=500 - (v.deadline - tick), experiment=exp)
 
 
 def _with_T(v: DuelView, T: int) -> DuelView:

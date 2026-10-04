@@ -517,13 +517,35 @@ class TestPropose(unittest.TestCase):
         acc = [i for i in out if i.kind == "duel_accept"]
         self.assertEqual([i.args["duel_id"] for i in acc], [2])
         self.assertEqual(acc[0].args["fingerprint"], D.view(ds[1], 115).fingerprint)
-        self.assertFalse(any(i.kind == "duel_say" and i.args["duel_id"] in (1, 3) for i in out))
+        # night review D3: the accept beyond the budget (duel 3) gets the rival's price back as a say (it uses no
+        # accept); duel 1 is held by E8 and says nothing
+        self.assertEqual(sorted((i.args["duel_id"], i.args["price"]) for i in out if i.kind == "duel_say"),
+                         [(3, 70)])
+        self.assertFalse(any(i.kind == "duel_say" and i.args["duel_id"] == 2 for i in out))
         self.assertEqual(st["duel_accepts"][2]["price"], 70)
         self.assertAlmostEqual(acc[0].prediction.duel, 30 * 0.94 ** 1, places=1)
         self.assertEqual(acc[0].prediction.model, "U-01")
         # zero accept budget -> no duel_accept
         out0 = D.propose(make_world(ds, 115, accepts=0), None, {}, {}, {})
         self.assertFalse(any(i.kind == "duel_accept" for i in out0))
+
+    def test_skipped_two_issue_accept_echoes_the_rival_pair(self):
+        # four duels on one deadline (Sunday max_concurrent 4) and one accept per tick: the three skipped ones send
+        # the rival's (price, days) back; each passes the Gate's margin with its days
+        from agent import talk
+        cost = "each delivery day costs you this much cash"
+        ds = []
+        for did in (1, 2, 3, 4):
+            ds.append(dict(duel(did=did, L=100, deadline=118, decay=0.1, issues=("price", "days"), w=2.0,
+                                meaning=cost, msgs=[msg("you", 108, 60, 0), msg("R", 115, 80, 3)],
+                                rival_offer={"price": 80, "days": 3, "tick": 115, "id": did}), rounds=1))
+        out = D.propose(make_world(ds, 115), None, {}, {}, {})
+        self.assertEqual([i.args["duel_id"] for i in out if i.kind == "duel_accept"], [1])
+        says = [i for i in out if i.kind == "duel_say"]
+        self.assertEqual(sorted((i.args["duel_id"], i.args["price"], i.args["days"]) for i in says),
+                         [(2, 80, 3), (3, 80, 3), (4, 80, 3)])
+        for i in says:
+            self.assertGreaterEqual(100 - i.args["price"], 1 + talk._days_penalty(ds[0], i.args["days"]))
 
     def test_duels_down_nothing(self):
         self.assertEqual(D.propose(make_world([duel()], 100, down={"duels"}), None, {}, {}, {}), [])
