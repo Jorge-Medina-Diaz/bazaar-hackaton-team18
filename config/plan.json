@@ -5,6 +5,7 @@
     "Fin del día de dealers y endgame se derivan en cada tick (pages.effective_plan): cierre = el antes de clock.closes (pared: t + (closes - ahora)/3600) y del day_closes / end_round del schedule en vivo; fin de dealers = min(cierre, primer 'persona enabled:false' de >= 3 puestos) - day_end_min_before_close; endgame = cierre - closer.endgame_min_before_close. day_end_hours y closer.endgame_hours son solo el respaldo (schedule legible sin cierre y sin clock.closes).",
     "Compras domingo: CHA comunes de la Abuela (<= 12), CHA-06/07/08 de El Chato (<= 31, Abuela de respaldo), CHA raras de los Pícaros (<= 60) con El Chato de respaldo (<= 90, perfil 'rare'), CHA-11 y RET-11 de los Pícaros (extra_needs, <= 170 / <= 150; solo con CHA publicado). Ventas a Pilar/Banco: solo a mano (load_plan solo admite abuela/chato/picaros).",
     "resupply_min 999 apaga J13 el último día (vender la única copia de una común CHA podía dejar la página por debajo de 9/10). endgame_buy_any: tras el fin de dealers o en el endgame, J6 compra primeras copias fuera de las páginas por debajo de nuestro valor (el efectivo a las 15:00 vale 0).",
+    "hand_sales: copias sueltas reservadas para las ventas a mano a los dealers (escalera L1/L3 y portadoras de huevos: MAL-01 #940, MAL-02 #789, MAL-04 #583, MAL-05 #582, LAV-02 #938, LAV-03 #788, LAV-05 #939); J5, las ventas a pujas y los intercambios no las tocan hasta el fin del día de dealers (simulación del domingo: J5 las listaba a 9 P a las 09:00).",
     "startup_cancels: los cinco ids ya están cancelados (no-op por G23).",
     "RIVAL_VENUE_MIN_GAIN / RIVAL_TOP_N son de guards.Cfg (valores D2 de contracts); no se repiten aquí.",
     "profiles: orden de búsqueda ref, 'SET:rarity', 'rarity'. anchor/step/limit en P; fallback_after en ticks."
@@ -46,5 +47,6 @@
   "day_end_min_before_close": 5,
   "day_end_hours": {"sun": 19.283},
   "endgame_buy_any": true,
+  "hand_sales": ["MAL-01", "MAL-02", "MAL-04", "MAL-05", "LAV-02", "LAV-03", "LAV-05"],
   "grant_lookahead_ticks": 12
 }

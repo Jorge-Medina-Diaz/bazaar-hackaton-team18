@@ -538,3 +538,25 @@ class BuyAnyTests(unittest.TestCase):
 
     def test_not_below_min_gain(self):
         self.assertEqual(self.accepts(self.go(11.2, offers=[sale(43, "SAL-04", 37)])), [])
+
+
+class HandSalesTests(unittest.TestCase):
+    """plan.hand_sales (Sunday sim: J5 listed the ladder / egg carriers MAL-0x, LAV-0x at 9 P at 09:00): no J5
+    listing, no sale into a bid and no swap give of those refs until the dealer day ends."""
+    PLAN_HS = dict(PLAN, hand_sales=["MAL-04"], day_end_hours={"default": 11.0})
+
+    def go(self, t, board=()):
+        return rastro.propose(world(t_hours=t, assets=[card(1, "MAL-04")], board=list(board)), book(held={"MAL-04": 1}),
+                              FakeValuer(**VAL), None, self.PLAN_HS, [], {})
+
+    def gives(self, out):
+        return [(i.kind, i.args.get("ref")) for i in out if i.kind in ("list_offer", "accept")
+                and i.args.get("ref") == "MAL-04"]
+
+    def test_kept_before_the_dealer_day_end(self):
+        self.assertEqual(self.gives(self.go(10.0)), [])
+        self.assertEqual(self.gives(self.go(10.0, board=[bid(5, "MAL-04", 12)])), [])
+
+    def test_released_after_the_dealer_day_end(self):
+        self.assertEqual(self.gives(self.go(11.2)), [("list_offer", "MAL-04")])
+        self.assertEqual(self.gives(self.go(11.2, board=[bid(5, "MAL-04", 12)])), [("accept", "MAL-04")])

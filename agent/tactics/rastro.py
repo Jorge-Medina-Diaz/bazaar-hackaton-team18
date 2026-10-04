@@ -228,7 +228,11 @@ class _Ctx:
         self.dup_min = dict(self.plan.get("dup_min_price") or {})
         self.not_spare = _plan_refs(self.plan, ("extra_needs", "resale"))   # bought for dealers: never El Rastro
         self.page_sets = frozenset(self.plan.get("page_sets") or ())
-        self.buy_any = self._buy_any_on()
+        self.day_over = self._day_over()
+        self.buy_any = self.plan.get("endgame_buy_any") is True and self.day_over
+        # hand_sales: single copies kept for Jorge's manual dealer sales (ladder slots, egg carriers) until the
+        # dealer day ends; J5, sales into bids and swaps never hand them over before that
+        self.hand_only = frozenset() if self.day_over else _plan_refs(self.plan, ("hand_sales",))
         self.venues = self._venues()
         self.own_ids = set(book.own_offer_ids) | {o.get("id") for o in world.my_offers if isinstance(o, Mapping)}
         self.own_makers = {TEAM} | ({world.own_pseudonym} if world.own_pseudonym else set())
@@ -347,8 +351,9 @@ class _Ctx:
         return None
 
     def spare_asset(self, ref: str) -> Optional[int]:
-        """A copy of `ref` we may hand over: never a protected copy (INV-06), never one already listed."""
-        if self.free(ref) - 1 < self.keep(ref):
+        """A copy of `ref` we may hand over: never a protected copy (INV-06), never one already listed, never a
+        plan hand_sales ref before the dealer day ends."""
+        if ref in self.hand_only or self.free(ref) - 1 < self.keep(ref):
             return None
         for a in sorted(((self.w.me or {}).get("assets") or ()),
                         key=lambda a: -(a.get("id") or 0) if isinstance(a, Mapping) else 0):
@@ -391,10 +396,8 @@ class _Ctx:
             return False
         return o.get("id") not in self.own_ids and o.get("maker") not in self.own_makers
 
-    def _buy_any_on(self) -> bool:
-        """M9 endgame buy-any: plan.endgame_buy_any and (dealer day ended or closer endgame). Error -> off."""
-        if self.plan.get("endgame_buy_any") is not True:
-            return False
+    def _day_over(self) -> bool:
+        """Dealer day ended (pages.past_day_end) or closer endgame. Error -> False (buy-any off, hand_sales kept)."""
         try:
             from agent.tactics.pages import past_day_end
             return bool(past_day_end(self.w, self.plan)) or self.endgame()

@@ -105,6 +105,9 @@ def load_plan(path: Path) -> PlanCfg:
                  ("closer.endgame_min_before_close", c.get("endgame_min_before_close"))):
         if v is not None and not (_num(v) and 0 <= v <= 240):
             raise ValueError(f"plan.{k}: minutes 0..240 or absent")
+    hs = cfg.get("hand_sales", [])
+    if not (isinstance(hs, list) and all(type(r) is str and r for r in hs)):
+        raise ValueError("plan.hand_sales: list of refs")
     if type(cfg.get("endgame_buy_any", False)) is not bool:
         raise ValueError("plan.endgame_buy_any: true / false")
     if not _num(cfg["resupply_min"]) or cfg["resupply_min"] < 0:
