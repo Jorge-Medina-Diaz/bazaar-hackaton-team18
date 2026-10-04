@@ -282,12 +282,24 @@ def _live_schedule(world) -> Optional[Sequence]:
     return up
 
 
-def live_times(world) -> tuple:
+def _wall_ts(s: Any) -> Optional[float]:
+    """An entry's 'wall' (ISO with offset, '2026-10-03T23:00:00+02:00') -> epoch seconds; None if absent/unreadable."""
+    if not isinstance(s, str):
+        return None
+    try:
+        return datetime.fromisoformat(s).timestamp()
+    except ValueError:
+        return None
+
+
+def live_times(world, now: Optional[float] = None) -> tuple:
     """-> (close_h, stalls_h) from the live schedule; None for what is not there.
     close_h: the earliest day_closes for today still ahead of t (else the next one, if clock.today is stale), capped
     by an end_round still ahead; a day_closes already behind t is a fired entry that lingers (Sat 09:29: "fri 4.0"
-    still listed) and is ignored. stalls_h: earliest hour at which >= STALLS_MIN_PERSONAS persona entries say
-    enabled: false (kept even when behind t: the stalls are then closed)."""
+    still listed) and is ignored, and so is one whose own wall time is not after `now` (night review S2: the
+    closed-door 'day_closes sat' at 16.65 / wall Sat 23:00 must not end Sunday under scenario A if clock.today still
+    reads 'sat'). stalls_h: earliest hour at which >= STALLS_MIN_PERSONAS persona entries say enabled: false (kept
+    even when behind t: the stalls are then closed)."""
     up = _live_schedule(world)
     if up is None:
         return None, None
@@ -298,6 +310,9 @@ def live_times(world) -> tuple:
             continue
         at, pr = float(e["at_hours"]), e.get("params") if isinstance(e.get("params"), Mapping) else {}
         if e.get("action") == "day_closes" and at > t:
+            wall = _wall_ts(e.get("wall"))
+            if _num(now) and wall is not None and wall <= float(now):
+                continue                                # its wall time has passed: a stale entry, not today's close
             (mine if pr.get("day") == day else nxt).append(at)
         elif e.get("action") == "end_round" and at > t:
             ends.append(at)
@@ -342,7 +357,7 @@ def effective_plan(plan_cfg: Mapping, world, seen: Optional[Mapping] = None, now
     plan hour after a clock jump would close every dealer thread at 11:38)."""
     seen = dict(seen or {})
     day = today(world)
-    close, stalls = live_times(world)
+    close, stalls = live_times(world, now)
     wc = wall_close(world, now)
     if wc is not None:
         close = wc if close is None else min(close, wc)

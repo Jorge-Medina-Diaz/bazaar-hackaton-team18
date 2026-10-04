@@ -456,6 +456,23 @@ class WallCloseTest(unittest.TestCase):
         self.assertFalse(pages.past_day_end(w, pc))
         self.assertFalse(pages.endgame(w, pc))
 
+    def test_stale_closed_door_saturday_entry_with_a_past_wall_is_skipped(self):
+        # night review S2: scenario A on Sunday 09:00 with clock.today still 'sat'; the closed-door entry
+        # 'day_closes sat' at 16.65 (wall Sat 23:00) lingers ahead of t. It used to be taken as today's close
+        # (endgame 16.067 = 11:44, dealer day end 12:12); its wall has passed, so the Sunday close 19.367 wins.
+        up = _stalls(21.65) + [
+            {"at_hours": 16.65, "action": "day_closes", "params": {"day": "sat"}, "wall": "2026-10-03T23:00:00+02:00"},
+            {"at_hours": 19.367, "action": "day_closes", "params": {"day": "sun"}, "wall": "2026-10-04T15:00:00+02:00"}]
+        for closes in ("2026-10-04T15:00:00+02:00", "2026-10-03T23:00:00+02:00"):
+            w = _sunw(13.367, up, closes=closes, today="sat")
+            self.assertEqual(pages.live_times(w, _wall(9))[0], 19.367)
+            pc, _ = self.eff(w, _wall(9))
+            self.assertAlmostEqual(pc["day_end_hours"]["sat"], 19.2837, places=3, msg=closes)
+            self.assertAlmostEqual(pc["closer"]["endgame_hours"]["sat"], 18.7837, places=3, msg=closes)
+            self.assertFalse(pages.endgame(_sunw(16.1, up, closes=closes, today="sat"), pc))
+        # without `now` the entry is still read by hour (old callers keep their behaviour)
+        self.assertEqual(pages.live_times(_sunw(13.367, up, today="sat"))[0], 16.65)
+
     def test_stalls_latch_after_the_event_fires(self):
         _, seen = self.eff(_sunw(18.2, _stalls(18.367)), _wall(13, 50))
         w = _sunw(18.45, ())                                                       # 14:05, entries gone

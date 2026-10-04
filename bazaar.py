@@ -304,7 +304,7 @@ def day_lines(clock: dict, sched: Any, reading: str, now: float) -> list:
         plan = pages.load_plan(REPO / "config" / "plan.json")
         w = SimpleNamespace(clock=clock, schedule=sched if isinstance(sched, dict) else {}, reading=reading,
                             t_hours=clock.get("t_hours"))
-        close, stalls = pages.live_times(w)
+        close, stalls = pages.live_times(w, now)
         wall = pages.wall_close(w, now)
         pc, _ = pages.effective_plan(plan, w, None, now=now)
         day = pages.today(w)
