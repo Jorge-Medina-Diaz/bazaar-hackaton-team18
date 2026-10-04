@@ -305,6 +305,25 @@ class SwapTests(unittest.TestCase):
                           book(held={"SAL-04": 1}, keep={"SAL-04": 1}), needs=())
                 self.assertFalse([i for i in out if i.args.get("give_asset") == 1 or i.args.get("asset_id") == 1])
 
+    def test_swap_by_asset_id_respects_hand_sales_epics_and_resale(self):
+        # night review P7: a swap naming one of our asset ids skipped hand_sales, the epic no-spare rule and not_spare
+        import copy, dataclasses
+        o = swap(7, "LAT-09", want_asset=1)
+        plan = dict(PLAN, hand_sales=["MAL-04"], day_end_hours={"default": 11.0})
+        def acc(w, b, pl=plan, val=None):
+            out = rastro.propose(w, b, FakeValuer(**(val or VAL)), None, pl, [], {})
+            return [i for i in out if i.kind == "accept"]
+        self.assertFalse(acc(world(assets=[card(1, "MAL-04")], board=[o]), book(held={"MAL-04": 1})))
+        self.assertTrue(acc(world(t_hours=11.2, assets=[card(1, "MAL-04")], board=[o]), book(held={"MAL-04": 1})))
+        cat = copy.deepcopy(CATALOG)
+        cat["sets"][2]["cards"].append({"id": "SAL-11", "rarity": "epic", "book": 200})
+        val = dict(add=VAL["add"], rm=dict(VAL["rm"], **{"SAL-11": 10.0}))
+        w = dataclasses.replace(world(assets=[card(1, "SAL-11", "epic")], board=[o]), catalog=cat)
+        self.assertFalse(acc(w, book(held={"SAL-11": 1}), PLAN, val))                   # epic: never a spare
+        w2 = world(assets=[card(1, "MAL-04")], board=[o])
+        self.assertFalse(acc(w2, book(held={"MAL-04": 1}), dict(PLAN, resale=["MAL-04"])))   # bought for resale
+        self.assertTrue(acc(w2, book(held={"MAL-04": 1}), PLAN))
+
     def test_swap_listed_asset_not_handed(self):
         o = swap(7, "LAT-09", want_asset=1)
         out = run(world(assets=[card(1, "MAL-04")], board=[o]),

@@ -717,6 +717,10 @@ def _swaps_accept(cx: _Ctx, offers: list) -> None:
             aid = cx.spare_asset(rout)
             if aid is None:
                 continue
+        # night review P7: a swap gives only what _spares would (never a hand_sales ref before the day end, an epic /
+        # legendary, or a card bought for dealer resale), also when the rival names one of our asset ids
+        if rout in cx.hand_only or rout in cx.not_spare or (cx.idx.get(rout) or {}).get("rarity") not in SPARE_RARITIES:
+            continue
         if rin == rout or cx.round_trip(rin, "buy") or cx.round_trip(rout, "sell"):
             continue
         pred = _pred_swap(cx.dv_add(rin), cx.dv_rm(rout), True, vn)
