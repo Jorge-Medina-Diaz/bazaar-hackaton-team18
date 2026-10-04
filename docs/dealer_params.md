@@ -1,6 +1,6 @@
 # Afinador · parámetros aprendidos por dealer (solo sus hilos)
 
-Actualizado 15:37:24.
+Actualizado 15:42:28.
 
 | dealer · lado · grupo | hilos | cierres | P(mejora tras nuestra concesión: 1 / 2-3 / 4+) | 1.er final en su respuesta | perdona hasta | se movió hasta |
 |---|---|---|---|---|---|---|
