@@ -512,10 +512,12 @@ class SundayPlanTest(unittest.TestCase):
     plan notes say."""
 
     def setUp(self):
-        self.cfg = pages.load_plan(ROOT / "config" / "plan.json")
+        self.full = pages.load_plan(ROOT / "config" / "plan.json")
+        # the CHA/RET extra-need semantics below ignore Sunday's LAV-07 egg carrier (Chato buy thread, cap 16)
+        self.cfg = dict(self.full, extra_needs=[e for e in self.full["extra_needs"] if e["ref"] != "LAV-07"])
 
     def test_sunday_keys(self):
-        c = self.cfg
+        c = self.full
         self.assertNotIn("sat", c["day_end_hours"])               # a stale today='sat' must not close Sunday threads
         self.assertEqual(c["day_end_min_before_close"], 5)
         self.assertEqual(c["closer"]["endgame_min_before_close"], 35)
@@ -524,7 +526,7 @@ class SundayPlanTest(unittest.TestCase):
         self.assertIs(c["endgame_buy_any"], True)
         self.assertIsNone(c["days_sign"])
         self.assertEqual(c["page_sets"], ["RET", "LAT", "CHA"])
-        self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 225, "RET-11": 150})
+        self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 225, "RET-11": 150, "LAV-07": 16})
         self.assertEqual(set(c["hand_sales"]), {"MAL-01", "MAL-02", "MAL-04", "MAL-05", "LAV-02", "LAV-03", "LAV-05",
                                                 "LAT-06", "LAT-02"})   # night review P2: LAT-06 #1105 is the proven
                                                                        # Pilar / Chato carrier; J5 listed it at 18
