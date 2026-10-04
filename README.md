@@ -10,12 +10,29 @@ It is an autonomous agent that collects Madrid cards, haggles with five dealer p
 |---|---|
 | Friday (round 1) | **13th → 2nd** by tick 75 (first complete album page of the game); closed 7th |
 | Saturday (round 2) | **7th → 2nd** (2nd-best negotiation score of the field at the close) |
+| Final (after the 15:00 close) | **5th of 18, 32.27** (negotiating 23.27, 4th of 18; market 9.00, 15th of 18). 1st: t05, 37.73. Our gap to 1st was market-making: see [the self-critique](SHOWCASE.md#self-critique-why-we-did-not-climb-higher) |
 | Sunday (round 3) | 4 album pages complete by 09:35. 1st in negotiation by 10:20. Our own board venue matched 96.7 % of the hard Market Test's possible gains (bench score 0.5, the same as the free stall) |
 | Duels | Duels II (Sat): 44/68 deals, 65 %. After the day-sign fix, **Duels III (Sun): 57/68 deals, 84 % (field 75 %)**, total result 791.6 → 1,187.6, no deal below our limit. Grand Final: 24/34 (71 %, field 68 %) |
 | Writes through the Gate (Sat 09:21 – Sun 14:55) | **1,850: 1,849 accepted by the server, 0 refused, 1 `unknown`** (an exception: its domain froze and it was reconciled as not landed 2 ticks later, as designed). Our own guards refused 531 more before they left the process: 282 were redundant thread closes from a bug fixed in `f9b4e2e`, 143 missed the tick deadline (81 of them in the Grand Final's 15 s ticks), the rest were value, cash and protection checks. Manual writes outside the Gate (flags, venue, broker, announcements) are logged separately |
 | Tests | 912 unit, property, chaos and end-to-end tests (stdlib only, no network, no key) |
 
 ---
+
+## The harness in five stages
+
+Every tick (15–60 s), each action the bot wants to take goes through five stages. Only stage 4 can touch the game.
+
+| # | Stage | What it does | Why it exists |
+|---|---|---|---|
+| 1 | **See** · `agent/world.py` | Reads the game with GETs only and builds an immutable `World` of allowlisted fields. Dealer and rival text is stored apart and never read back | Words cannot trick a number: Los Pícaros hid a different card inside their counter-offers, and the bot never took one |
+| 2 | **Propose** · `agent/tactics/` | Pure tactics (dealers, El Rastro and the page closer, duels, hygiene, the operator inbox) return typed `Intent`s with a reason and a predicted score change | Deciding is separated from acting: a buggy tactic cannot write anything |
+| 3 | **Check** · `agent/gate.py`, `guards.py`, `talk.py` | The Gate re-reads the world in the same tick and runs about thirty guards: cash, value, protected cards, server quotas, tick deadline, a text firewall | A decision is stale within seconds. In doubt, refuse: a missed trade costs less than a bad one |
+| 4 | **Record, then send** · `agent/journal.py`, `transport.py` | Writes the intent to a hash-chained journal with `fsync`, then sends it with a one-use permit bound to `(method, exact path, sha256(body))` | After a crash we know what was in flight and reconcile before writing again. Nothing else in the process can write |
+| 5 | **Measure** · `agent/calibrate.py` | Next tick, compares the predicted and the measured score change; pauses a tactic that drifts and stops the bot on a real loss | Our model of the scorer is checked every tick, not once |
+
+**How it learned: two loops.**
+- *Every tick, automatic:* predict → measure → pause or stop (stage 5). On Sunday at 09:32 it stopped us on a deal that gained +23 against +50 predicted; we fixed the threshold with a test.
+- *Between sessions, team + AI agents:* trace (journal and public feed) → numbered fact with evidence ([docs/knowledge.md](docs/knowledge.md), 160+) → change to `config/plan.json` or code, with a test that fails on the old code → `selftest` green for that exact code hash → redeploy, and the journal measures it again. Example: Duels II offered a neutral 5-day delivery on every message and closed 65 % of duels (other teams 79 %); the delivery-day sign was in server text the sensor drops by design; the sensor now derives `days_sign`; Duels III closed 84 % (other teams 73.5 %). More cases in [docs/journey.md](docs/journey.md).
 
 ## How a tick works
 
