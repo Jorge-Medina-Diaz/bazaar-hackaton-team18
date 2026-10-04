@@ -10,7 +10,7 @@ Team: Jorge, Rubén, Santi (t18)
 | Deals | 1 | 8 (1st and 3rd place each have 11) |
 | Complete album pages | 0 | **1**, the first in the game at that moment |
 
-*Friday story below; Saturday (round 2: 7th → 2nd) is in the [last section](#saturday-round-2-from-7th-to-2nd).*
+*Friday story below (13th → 2nd at tick 75; Friday closed 7th). Saturday (round 2: 7th → 2nd) and Sunday (round 3) are in the [last two sections](#saturday-round-2-from-7th-to-2nd).*
 
 We made fewer deals than the teams around us and still passed them. The change was not about doing more. We measured what the scorer actually pays for, and then we did that.
 
@@ -129,7 +129,7 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 
 **What we measured on Saturday** (and the docs now use):
 - A ladder slot is worth (share of the dealer's range) × level/45.
-- Two-issue duels follow `(s·(p − L) + sign·w·days)·(1 − decay)^rounds`; this matches all 44 deals.
+- Two-issue duels follow `(s·(p − L) + sign·w·days)·(1 − decay)^rounds`; this matches all 44 Duels II deals (95/95 with Duels I, knowledge S-26).
 - The duel part of the score is a mean per duel, so a no-deal pulls it down.
 - Market per round = 22.5 × bench + 7.5 × organic. Our free stall earns half the bench; t10's lead is trades between other teams on its venue.
 - The calendar re-anchors each day at its real opening time.
@@ -141,18 +141,18 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 Saturday closed 2nd. The night was spent on an orchestrated audit of the harness, with the game closed (see [docs/journey.md](docs/journey.md)):
 - 11 parallel audits;
 - an adversarial check of every bug finding;
-- 47 confirmed bugs fixed, each with a regression test;
+- the confirmed bugs fixed, each with a regression test (commits `249808c..9070665`);
 - a full Sunday rehearsed in the simulator under three clock scenarios.
 
 | When | What happened |
 |---|---|
 | 09:15 | The organisers re-anchored the Sunday schedule, as our Saturday data predicted. The harness derived the dealer day end (13:55) and the endgame (14:25) from the live clock, so no config change was needed |
 | 09:20–09:35 | Chamberí (×1.6 for us) completed from three dealer levels in parallel: Abuela for commons, El Chato for uncommons, Los Pícaros for rares and the epic. The closing card came from a team bid. **4 album pages complete** |
-| 09:22 | A team bid 238 for our SAL-11 epic while the dealer offered 157: sold to the team for **+27** |
+| 09:27 | A team bid 238 for our SAL-11 epic (seen 09:22) while the dealer offered 157: sold to the team for **+27** |
 | 09:32 | A live bug caught by our own safety net: the calibrator's daily-surprise threshold stopped the bot on a deal that *gained* less than predicted. We fixed it, added a test, redeployed and logged it |
-| 09:35 | Three more "level A" Pícaros tricks flagged: **+30**. The cap of three scoring flags is per round |
+| 09:30 | Three more "level A" Pícaros tricks flagged: **+30**. The cap of three scoring flags is per round |
 | 10:09 | We opened our own board venue (v28) with a broker. On the hard Market Test it matched **96.7 % of the possible gains** (bench 0.5, the same as the stall, at zero risk) and recorded the full synthetic book for the first time |
 | 10:20 | **1st in negotiation (24.89)**, 3rd overall, 0.88 behind the leader. All the gap was in organic market-making |
-| 11:00, 14:00 | Duels III and the Grand Final, played with the day-sign fix |
+| 11:00 | Duels III, played with the day-sign fix: `duel_points` 0 → 22.63 by 11:45 |
 
 Final standings: see the organisers' leaderboard at the 15:00 freeze.

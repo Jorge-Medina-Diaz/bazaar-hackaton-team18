@@ -8,14 +8,14 @@ This is the English map of the harness. The full build contract, with every sign
 2. **Fail closed.** Unknown, missing or malformed means refuse. The bot never guesses.
 3. **Code decides numbers, text never does.** Foreign text (dealers, rivals, LLMs) never enters the data the tactics read. Our own text is templated and firewalled.
 4. **Measure, then act.** Every write carries a predicted score change, and the calibrator checks it against the measured change.
-5. **Stdlib only, single process, no LLM at runtime.** Python ≥ 3.9, Windows and macOS.
+5. **Stdlib only, single process, no LLM at runtime.** Python ≥ 3.9 on Windows, macOS and Linux (CI).
 
 ## Modules
 
 | Module | Role |
 |---|---|
-| `agent/contracts.py` (M0, frozen) | `World`, `Intent`, `Prediction`, `Paths`, `Secrets`, the argument schema of each write kind (`ARGS`, `KINDS`), the tactic names, `GET_ALLOWLIST` and `WRITE_ROUTES`. Every module codes against this file. |
-| `agent/transport.py` (M1) | `GuardedTransport`: its own urllib opener (no redirects, no write retries). GETs go only to allowlisted routes. A write needs a one-use permit equal to `(method, exact path, sha256(body))`, live mode and no STOP. Installs a `sys.addaudithook` that rejects any other non-GET request. Classifies responses as `ok`, `deferred`, `refused` or `unknown`. |
+| `agent/contracts.py` (M0, frozen) | `World`, `Intent`, `Prediction`, `Paths`, `Secrets`, the argument schema of each write kind (`ARGS`, `KINDS`), the tactic names and `GET_ALLOWLIST`. Every module codes against this file. |
+| `agent/transport.py` (M1) | `GuardedTransport`: its own urllib opener (no redirects, no write retries). GETs go only to allowlisted routes. `WRITE_ROUTES` (one full-match path pattern per write kind). A write needs a one-use permit equal to `(method, exact path, sha256(body))`, live mode and no STOP. Installs a `sys.addaudithook` that rejects any other non-GET request. Classifies responses as `ok`, `deferred`, `refused` or `unknown`. |
 | `agent/client.py` | `client("read")`: the same transport in read-only mode, for panels and operator tools. |
 | `agent/journal.py` (M2) | One append-only, hash-chained JSONL write-ahead log for the whole event, with `fsync` before each send and tail recovery. |
 | `agent/valuation.py` (M3) | The measured value model (copy factors, page bonus, master bonus, affinity), fees and score predictions per kind. |
@@ -26,9 +26,10 @@ This is the English map of the harness. The full build contract, with every sign
 | `agent/world.py` (M7) | The sensor. Prioritised GETs within the rate budget produce an immutable `World` of allowlisted fields. Foreign text goes to `untrusted.jsonl`. |
 | `agent/tactics/pages.py` (M8) | Turns page targets into `Need`s (ref, source, cap), freezes the page-closing card at 8/10, and derives the day end and endgame times from the live clock and schedule. |
 | `agent/tactics/hygiene.py` (M9) | Startup cancels, pack opening, the protected-copy watch (G19) and closing dealer threads at the end of the day. |
-| `agent/tactics/dealers.py` (M10) | Non-blocking haggling with the five dealers, driven by numeric profiles (anchor, step, limit, fallback). |
+| `agent/tactics/dealers.py` (M10) | Non-blocking buying from the dealers in the `config/plan.json` profiles (Abuela, El Chato, Los Pícaros, Don Ernesto), driven by numeric profiles (anchor, step, limit, fallback). Sales to dealers are manual (`ladder_sell.py`, through the Gate). |
 | `agent/tactics/rastro.py` (M11) | The team market: the page closer bid, sales of duplicates, buys below value, swaps, and buy-anything-below-value in the endgame. |
 | `agent/tactics/duels.py` (M12) | Two-issue duels (price and delivery day). The sign of the day weight comes from the server's own wording. Includes a slow ascent against a silent rival, and accepts timed to the tick the rival spoke. |
+| `agent/tactics/bench.py` | Read-only Market Test recorder (greedy plan and book summary); not a runner tactic, driven by `bench_rec.py`. |
 | `agent/calibrate.py` (M13) | Pairs settlements with intents, measures the score components, and pauses or stops on disagreement. |
 | `agent/runner.py` (M15) | The per-tick loop, `choose` (budgets and priorities), the late window for duel accepts, the operator inbox. |
 | `bazaar.py` (M16) | The CLI. Operator commands go through `state/inbox/`, and the CLI never writes the journal. |
@@ -97,4 +98,4 @@ Every refusal is a journal row with its code (`refused`, `G13.listed`, …). [da
 
 - `bazaar.py do <kind> --args '<json>' --why "..." --live`: one manual intent through the same Gate and guards. `ladder_sell.py` and `egg_carrier.py` drive sequences of these.
 - `bazaar.py arm|pause|resume <tactic>`: tactics only act when armed, not paused, and their selftest stage is green for the current `code_hash`.
-- Manual exceptions outside the Gate. The Gate has no write kind for flags or venue announcements, and `contracts.py` was frozen. These few writes were done by hand with the team lead's explicit approval, and each one was logged in [history/handoffs/HANDOFF-domingo.md](history/handoffs/HANDOFF-domingo.md).
+- Manual exceptions outside the Gate. The Gate has no write kind for flags or venue announcements, and `contracts.py` was frozen. These few writes were done by hand with the team lead's explicit approval. Saturday's are in knowledge.md (S-14, S-28) and Sunday's in [history/handoffs/HANDOFF-domingo.md](history/handoffs/HANDOFF-domingo.md), with their outputs in [data/market-test/](../data/market-test/).

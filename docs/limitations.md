@@ -17,9 +17,9 @@ We list what we know is missing or imperfect. The code shipped here is the code 
 - The calibrator re-scans the journal every tick: O(rows), fine for one event.
 
 ## Market
-- **No Gate kind for venue operations.** `contracts.py` was frozen, so opening a venue, running the broker and making announcements were operator actions outside the Gate. Each was approved and logged by hand.
+- **No Gate kind for venue operations.** `contracts.py` was frozen, so opening a venue, running the broker and making announcements were operator actions outside the Gate. Each was approved and logged by hand (docs/history/handoffs/HANDOFF-domingo.md).
 - **Market Test matching mirrors the free stall.** It adds only cross-run pairs. We never showed that a policy can beat the stall, and on Saturday no team did.
 
 ## Not wired
 - `pages.protect_sets` (the Book keeps the protection computed by `guards.build_book`), `Calibrator.recheck`, and the in-runner bench recorder (`bench_rec.py` does it out of process).
-- Online learning is limited to the calibrator (pauses and the confirmed +50 team-deal cap). Dealer price models were tuned offline from the journal and the feed.
+- Online learning is limited to the calibrator: pauses, and a +50 team-deal cap detector that never fired live (the cap is confirmed offline, knowledge S-05). Dealer price models were tuned offline from the journal and the feed.
