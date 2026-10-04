@@ -533,8 +533,8 @@ class BuyAnyTests(unittest.TestCase):
     def accepts(self, out):
         return [(i.args["ref"], i.args["price"]) for i in out if i.kind == "accept"]
 
-    def test_on_before_the_dealer_day_end_too(self):     # Sun: cash is worth 0 at the freeze, buy-any all day
-        self.assertEqual(self.accepts(self.go(10.0)), [("SAL-04", 20)])
+    def test_off_before_the_dealer_day_end(self):
+        self.assertEqual(self.accepts(self.go(10.0)), [])
 
     def test_on_after_the_dealer_day_end(self):
         out = self.go(11.2)
