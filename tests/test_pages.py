@@ -524,7 +524,7 @@ class SundayPlanTest(unittest.TestCase):
         self.assertIs(c["endgame_buy_any"], True)
         self.assertIsNone(c["days_sign"])
         self.assertEqual(c["page_sets"], ["RET", "LAT", "CHA"])
-        self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 170, "RET-11": 150})
+        self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 225, "RET-11": 150})
         self.assertEqual(set(c["hand_sales"]), {"MAL-01", "MAL-02", "MAL-04", "MAL-05", "LAV-02", "LAV-03", "LAV-05",
                                                 "LAT-06", "LAT-02"})   # night review P2: LAT-06 #1105 is the proven
                                                                        # Pilar / Chato carrier; J5 listed it at 18
@@ -544,7 +544,7 @@ class SundayPlanTest(unittest.TestCase):
                                              today="sun"), round=3)
         needs = pages.plan(rel, valuer_for(rel), cfg, {})[0]
         self.assertEqual(sorted((n.ref, n.source) for n in needs), [("CHA-11", "picaros"), ("RET-11", "picaros")])
-        self.assertTrue(all(n.max_price <= {"CHA-11": 170, "RET-11": 150}[n.ref] for n in needs))
+        self.assertTrue(all(n.max_price <= {"CHA-11": 225, "RET-11": 150}[n.ref] for n in needs))
 
     def test_extra_needs_wait_for_round_3(self):
         # night review P6/E2E-3: scenario A, Sunday 09:00 is still round 2 (L4 slots 3/3): no RET-11 Pícaros buy

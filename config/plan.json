@@ -22,7 +22,7 @@
     "CHA-06": 31, "CHA-07": 31, "CHA-08": 31, "CHA-09": 93, "CHA-10": 93,
     "CHA-11": 170, "RET-11": 150
   },
-  "extra_needs": [{"ref": "CHA-11", "max_price": 170, "min_round": 3}, {"ref": "RET-11", "max_price": 150, "min_round": 3}],
+  "extra_needs": [{"ref": "CHA-11", "max_price": 225, "min_round": 3}, {"ref": "RET-11", "max_price": 150, "min_round": 3}],
   "profiles": {
     "RET:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null},
     "RET-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
