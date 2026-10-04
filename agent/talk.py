@@ -82,16 +82,19 @@ TEMPLATES: Mapping[str, tuple] = {
         "Me muevo yo: {p} P por esa misma carta.",
         "Trato limpio y rápido: {p} P.",
     ),
+    # Voss (docs/duelos-iii-voss.md): auditoría de acusaciones, preguntas orientadas al «no» y calibradas,
+    # y nunca «justa» a la defensiva. Cada mensaje lleva su cifra: hablar más cuesta rondas (U-02).
     "duel": (
-        "Propuesta justa para cerrar pronto y que ganemos los dos: {p} P.",
-        "Me muevo para acercarnos: {p} P.",
-        "Yo ya me he movido. ¿Qué puedes hacer tú? Propongo {p} P.",
-        "Cerremos hoy: {p} P.",
+        "Sé que vas a pensar que abro fuerte. ¿Sería una locura cerrar en {p} P?",
+        "Parece que aún estamos lejos. ¿Cómo podemos acercarnos? Me muevo a {p} P.",
+        "Yo ya me he movido. ¿Cómo se supone que hago más? Propongo {p} P.",
+        "Esto ya me cuesta: {p} P. ¿Te parece mal cerrar así?",
     ),
     "duel_days": (
-        "Propuesta justa para cerrar pronto: {p} P y {d} días.",
-        "Me muevo para acercarnos: {p} P con {d} días.",
-        "Yo ya me he movido. Propongo {p} P y {d} días.",
+        "Sé que vas a pensar que abro fuerte. ¿Sería una locura cerrar en {p} P y {d} días?",
+        "Parece que aún estamos lejos. ¿Cómo podemos acercarnos? Me muevo a {p} P con {d} días.",
+        "Yo ya me he movido. ¿Cómo se supone que hago más? Propongo {p} P y {d} días.",
+        "Esto ya me cuesta: {p} P y {d} días. ¿Te parece mal cerrar así?",
     ),
 }
 
