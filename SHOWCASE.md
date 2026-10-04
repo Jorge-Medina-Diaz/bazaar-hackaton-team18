@@ -36,10 +36,21 @@ Each idea comes with what it changed, its evidence, and where it lives.
 - Payoff: Los Pícaros (level 4) swapped the card inside their counter-offers, and the Gate, which compares a fingerprint re-read in the same tick, never took one. Flagging those tricks scored **+60** (three correct flags per round, Saturday and Sunday).
 - Where: [agent/world.py](agent/world.py), [agent/talk.py](agent/talk.py), [picaros.py](picaros.py) and [flag_candidates.py](flag_candidates.py).
 
-**4. Prediction against measurement, in the loop.**
-- Every write carries a predicted score change. The calibrator measures the real one and pauses the tactic when they disagree, or stops the bot.
-- On Sunday it stopped us once, on a deal that *gained* less than predicted. Annoying, but it is the behaviour we asked for. We fixed the threshold with a test and redeployed in minutes.
-- Where: [agent/calibrate.py](agent/calibrate.py), [data/report.txt](data/report.txt).
+**4. Learning in two loops: every surprise became a fact, a tested change and a redeploy.**
+- *Every tick, automatic.* Every write carries a predicted score change; the calibrator measures the real one next tick, pauses the tactic when they disagree and stops the bot on a real loss. On Sunday it stopped us once on a deal that *gained* less than predicted: the behaviour we asked for. We fixed the threshold with a test and redeployed in minutes.
+- *Between sessions, team plus AI agents.* Trace (the journal and the public feed) → a numbered fact with its evidence in [docs/knowledge.md](docs/knowledge.md) (160+, plus the claims we refuted) → a change to `config/plan.json` or the code, with a test that fails on the old code → `selftest` green for that exact code hash → redeploy, and the journal measures it again.
+- What the loop produced, measured:
+
+| Trace | Fact | Change | Result |
+|---|---|---|---|
+| Score before and after each early action (Fri) | Dealer gains score 0; team deals cap at +50 | Dealers only for ladder slots; pages close with teams | 13th → 2nd in 30 ticks |
+| Duels II: a neutral 5 days on every message, 65 % deals | The day sign was in server text the sensor drops by design | The sensor derives `days_sign`; tested end to end | Duels III 84 %, other teams 73.5 % |
+| Los Pícaros' counter-offers | Card swaps inside the offer; 3 scoring flags per round | Fingerprint check in the Gate; a trick finder | Never fooled; +60 from flags |
+| Saturday's real hours against the script | The calendar re-anchors daily | Deadlines read from the wall clock | Sunday as predicted; Chamberí in 12 minutes |
+| Rank 1st → 8th after a page | Nothing aimed at empty ladder slots | Ladder planned by slot | 2nd at Saturday's close |
+| Duels III no-deals (5 of 12 silent sellers) | Ended 5–10 P above the limit | Ultimatum near the deadline, L+1 for sellers | Shipped for the Grand Final |
+
+- Where: [agent/calibrate.py](agent/calibrate.py), [data/report.txt](data/report.txt), [docs/journey.md](docs/journey.md).
 
 **5. Read the clock from the wall, not from the script.**
 - Saturday's data showed the organisers re-anchor each day's events at its real opening. We predicted the Sunday schedule (scenario C) the night before.
@@ -308,7 +319,7 @@ We worked as a horizontal team of three: decisions were discussed together, and 
 
 | Who | Role |
 |---|---|
-| **Jorge** | Centralised the technical side and the operations: architecture of the harness, the Gate and the live runs. The one person with the key; ran every manual action, each with an explicit OK and a log line |
+| **Jorge** | Centralised the technical side and the operations: architecture of the harness, the Gate, the live runs and the learning approach (the predicted-against-measured journal and calibrator, and the loop that turned every surprise in the traces into a numbered fact, a tested change and a redeploy). The one person with the key; ran every manual action, each with an explicit OK and a log line |
 | **Rubén** | The negotiation lab and evaluation. Cross-review that found 4 bugs on Friday, Radio Rastro (a news watcher that rates each event for t18), the Pícaros trick detector, and the jury evidence |
 | **Santi** | Analyst. The scoring breakdown, rival tracking, the Bayesian affinity estimator, Doña Pilar's playbook, the Voss-style duel plan and the team logbook |
 
