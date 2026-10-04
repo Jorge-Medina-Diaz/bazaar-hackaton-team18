@@ -148,7 +148,7 @@ class PlanTest(unittest.TestCase):
     def test_sunday_add_cha_is_enough(self):
         cfg = dict(self.cfg)
         cfg["page_sets"] = ["RET", "CHA"]
-        w = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=19.0, today="sun")
+        w = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=16.0, today="sun")  # before day_end/endgame (real Sunday clock)
         needs, _ = pages.plan(w, valuer_for(w), cfg, {})
         cha = [n for n in needs if n.set == "CHA"]
         self.assertEqual(len([n for n in cha if not n.closer]), 9)
