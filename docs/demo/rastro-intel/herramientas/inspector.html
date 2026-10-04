@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspector t18 · en vivo</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--ink:#e6edf3;--mut:#8b949e;--line:#262c36;--blu:#4f8cff;--grn:#3fb950;--amb:#d29922;--red:#f85149;--pur:#a371f7}
+:root[data-theme="light"]{--bg:#f6f8fa;--card:#fff;--ink:#1f2328;--mut:#656d76;--line:#d8dee4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,system-ui,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+h1{margin:0;font-size:22px;display:flex;align-items:center;gap:10px}
+.live{display:inline-flex;align-items:center;gap:6px;font:800 11px system-ui;letter-spacing:.1em;color:var(--red);background:rgba(248,81,73,.12);padding:4px 10px;border-radius:999px}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:p 1.4s infinite}
+.live.off{color:var(--mut);background:var(--line)}.live.off i{background:var(--mut);animation:none}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(248,81,73,.7)}70%{box-shadow:0 0 0 8px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}
+.mut{color:var(--mut)}a{color:var(--blu)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.k{font:600 11px system-ui;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.big{font:900 34px system-ui;line-height:1.1;margin-top:4px}
+.st{display:inline-block;font:800 12px system-ui;padding:3px 10px;border-radius:999px;margin-top:6px}
+.st.ok{background:rgba(63,185,80,.15);color:var(--grn)}.st.warn{background:rgba(210,153,34,.15);color:var(--amb)}.st.bad{background:rgba(248,81,73,.15);color:var(--red);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.5}}
+.bars{display:flex;align-items:flex-end;gap:3px;height:54px;margin-top:8px}.bars i{flex:1;background:var(--blu);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.th{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}.th:last-child{border-bottom:0}
+.feed{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.feed h2{margin:0;padding:12px 16px;font-size:15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.ev{display:grid;grid-template-columns:78px 28px 1fr;gap:10px;align-items:start;padding:9px 16px;border-bottom:1px solid var(--line);font-size:13px}
+.ev .h{color:var(--mut);font-variant-numeric:tabular-nums}.ev .i{font-size:18px;line-height:1}
+.ev.deal{background:rgba(63,185,80,.08)}.ev.deal .x{color:var(--grn);font-weight:700}
+.ev.us .x{color:var(--blu)}.ev.open .x{font-weight:700}.ev.list .x{color:var(--amb)}.ev.mut .x{color:var(--mut)}
+.ev.new{animation:flash 2.5s ease-out}@keyframes flash{from{background:rgba(79,140,255,.28)}to{background:transparent}}
+.empty{padding:20px;color:var(--mut)}
+</style></head>
+<body><div class="wrap">
+<div class="top"><h1>🔎 Inspector del agente t18 <span id="live" class="live off"><i></i>CONECTANDO</span></h1>
+<div class="mut"><a href="/">← tablero</a> · <span id="clk"></span></div></div>
+<div class="grid">
+ <div class="card"><div class="k">Estado del agente</div><div class="big" id="idle">—</div><div id="state"></div></div>
+ <div class="card"><div class="k">Actividad (acciones por minuto, últimos 30 min)</div><div class="bars" id="bars"></div><div class="mut" id="acts" style="font-size:12px;margin-top:4px"></div></div>
+ <div class="card"><div class="k">Tratos (desde el arranque del inspector)</div><div class="big" id="deals">—</div><div class="mut" id="tick" style="font-size:12px"></div></div>
+ <div class="card"><div class="k">Hilos abiertos ahora</div><div id="open" style="margin-top:6px"></div></div>
+</div>
+<div class="feed"><h2><span>Qué está haciendo, en orden (lo más nuevo arriba)</span><span class="mut" id="n"></span></h2><div id="evs"><div class="empty">Esperando eventos…</div></div></div>
+<p class="mut" style="font-size:12px">Fuente: flujo público en tiempo real del Bazaar (sin clave). Nuestros mensajes no llevan texto en el flujo público: se ve la oferta. «≈» = hora estimada (eventos anteriores al arranque).</p>
+</div>
+<script>
+var seen=new Set(),first=true;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmt(s){if(s==null)return '—';s=Math.round(s);if(s<60)return s+' s';var m=Math.floor(s/60);if(m<60)return m+' min';return Math.floor(m/60)+' h '+(m%60)+' min'}
+async function tick(){
+ try{var r=await fetch('inspector.json?'+Date.now(),{cache:'no-store'});if(!r.ok)return;var d=await r.json();}catch(e){return}
+ var live=document.getElementById('live');var ok=d.connected&&d.stream_age!=null&&d.stream_age<60;
+ live.className='live'+(ok?'':' off');live.lastChild.textContent=ok?'EN VIVO':'SIN CONEXIÓN';
+ document.getElementById('clk').textContent='actualizado '+d.now;
+ document.getElementById('idle').textContent=d.idle==null?'—':'hace '+fmt(d.idle);
+ var st=document.getElementById('state');
+ if(d.idle==null)st.innerHTML='';
+ else if(d.idle<180)st.innerHTML='<span class="st ok">● ACTIVO</span> última acción';
+ else if(d.idle<600)st.innerHTML='<span class="st warn">● LENTO</span> sin acciones nuevas';
+ else st.innerHTML='<span class="st bad">● PARADO</span> más de 10 min sin hacer nada';
+ var mx=Math.max(1,Math.max.apply(null,d.per_min));
+ document.getElementById('bars').innerHTML=d.per_min.map(function(v){return '<i title="'+v+'" style="height:'+(v/mx*100)+'%"></i>'}).join('');
+ var tot=d.per_min.reduce(function(a,b){return a+b},0);document.getElementById('acts').textContent=tot+' acciones en 30 min · '+d.per_min.slice(-10).reduce(function(a,b){return a+b},0)+' en los últimos 10';
+ document.getElementById('deals').textContent=d.deals;
+ document.getElementById('tick').textContent='tick '+(d.tick||'—')+' · h '+(d.t?d.t.toFixed(2):'—');
+ document.getElementById('open').innerHTML=d.open.length?d.open.map(function(t){return '<div class="th"><span>'+t.ic+'</span><b>'+esc(t.with_)+'</b><span class="mut">'+esc(t.what)+' · '+t.n+' mensajes</span></div>'}).join(''):'<div class="mut">Ninguno</div>';
+ document.getElementById('n').textContent=d.events.length+' eventos';
+ document.getElementById('evs').innerHTML=d.events.length?d.events.map(function(e){var nw=!first&&!seen.has(e.id);seen.add(e.id);
+   return '<div class="ev '+e.cls+(nw?' new':'')+'"><span class="h">'+esc(e.hora)+'</span><span class="i">'+e.ic+'</span><span class="x">'+esc(e.txt)+'</span></div>'}).join(''):'<div class="empty">Sin actividad de t18 todavía.</div>';
+ first=false;
+}
+tick();setInterval(tick,2000);
+</script></body></html>
