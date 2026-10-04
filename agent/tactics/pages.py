@@ -71,8 +71,9 @@ def load_plan(path: Path) -> PlanCfg:
             raise ValueError(f"plan.{k}: list of set ids")
     for e in cfg.get("extra_needs", []):
         if not (isinstance(e, dict) and type(e.get("ref")) is str and type(e.get("max_price")) is int
-                and e["max_price"] >= 1 and e["ref"] in (cfg.get("profiles") or {})):
-            raise ValueError("plan.extra_needs: [{ref, max_price}] with a profile for ref")
+                and e["max_price"] >= 1 and e["ref"] in (cfg.get("profiles") or {})
+                and type(e.get("min_round", 0)) is int):
+            raise ValueError("plan.extra_needs: [{ref, max_price, min_round?}] with a profile for ref")
     if not all(type(x) is int and x >= 0 for x in cfg["startup_cancels"]):
         raise ValueError("plan.startup_cancels: list of offer ids")
     if not all(type(k) is str and _num(v) for k, v in cfg["baseline_bands"].items()):
@@ -482,16 +483,21 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
 
     # extra_needs: a card outside the pages bought from the dealer of its ref profile (Sat: SAL-11 epic from the
     # Pícaros, resold to Pilar in the Salamanca fever). Cap = min(max_price, floor(value - 1)); never if held.
+    # min_round: not before that round (night review P6/E2E-3: under scenario A RET-11 was bought at 09:00 in
+    # round 2, where the L4 slots are already 3/3). They go AFTER the page Needs (night review P1: dealers.propose
+    # opens one thread per dealer in Need order, and CHA-11/RET-11 took the Pícaros slot before the CHA rares).
+    extras: list = []
+    rnd = world.round if type(world.round) is int else 0
     for e in plan_cfg.get("extra_needs") or ():
         try:
             ref = e["ref"]
             dealer = ((plan_cfg.get("profiles") or {}).get(ref) or {}).get("dealer")
-            if no_dealers or held[ref] >= 1 or dealer not in DEALERS                     or ref.split("-", 1)[0] not in (world.released_sets or ()):
+            if no_dealers or held[ref] >= 1 or dealer not in DEALERS or rnd < int(e.get("min_round", 0))                     or ref.split("-", 1)[0] not in (world.released_sets or ()):
                 continue                            # unreleased set: the card cannot be bought yet (CHA before 16.65)
             dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
             cap = min(int(e["max_price"]), math.floor(dv - 1))
             if cap >= 1:
-                needs.append(Need(set=ref.split("-", 1)[0], ref=ref, source=dealer, max_price=cap, closer=False))
+                extras.append(Need(set=ref.split("-", 1)[0], ref=ref, source=dealer, max_price=cap, closer=False))
         except Exception:
             continue                                # fail closed: no Need
 
@@ -551,6 +557,7 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
             needs.extend(set_needs)
         except Exception:
             continue                                # fail closed for this set: no Needs
+    needs.extend(extras)
     return needs, new_frozen
 
 

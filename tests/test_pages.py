@@ -534,13 +534,50 @@ class SundayPlanTest(unittest.TestCase):
         self.assertEqual(self.cfg["dealer_max"]["CHA-09"], 93)
 
     def test_extra_needs_only_after_the_cha_release(self):
+        import dataclasses
         cfg = dict(self.cfg, page_sets=[])
-        w = make_world(t_hours=13.5, today="sun")
+        w = dataclasses.replace(make_world(t_hours=13.5, today="sun"), round=3)
         self.assertEqual([(n.ref, n.source) for n in pages.plan(w, valuer_for(w), cfg, {})[0]], [("RET-11", "picaros")])
-        rel = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5, today="sun")
+        rel = dataclasses.replace(make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5,
+                                             today="sun"), round=3)
         needs = pages.plan(rel, valuer_for(rel), cfg, {})[0]
         self.assertEqual(sorted((n.ref, n.source) for n in needs), [("CHA-11", "picaros"), ("RET-11", "picaros")])
         self.assertTrue(all(n.max_price <= {"CHA-11": 170, "RET-11": 150}[n.ref] for n in needs))
+
+    def test_extra_needs_wait_for_round_3(self):
+        # night review P6/E2E-3: scenario A, Sunday 09:00 is still round 2 (L4 slots 3/3): no RET-11 Pícaros buy
+        import dataclasses
+        cfg = dict(self.cfg, page_sets=[])
+        r2 = make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5, today="sun")
+        self.assertEqual(r2.round, 2)
+        self.assertEqual(pages.plan(r2, valuer_for(r2), cfg, {})[0], [])
+        r3 = dataclasses.replace(r2, round=3)
+        self.assertEqual(sorted(n.ref for n in pages.plan(r3, valuer_for(r3), cfg, {})[0]), ["CHA-11", "RET-11"])
+        self.assertEqual({e["ref"]: e.get("min_round") for e in self.cfg["extra_needs"]}, {"CHA-11": 3, "RET-11": 3})
+        import json, tempfile, os
+        raw = json.loads((ROOT / "config" / "plan.json").read_text(encoding="utf-8"))
+        raw["extra_needs"] = [{"ref": "RET-11", "max_price": 150, "min_round": "3"}]
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as fh:
+            json.dump(raw, fh)
+        try:
+            with self.assertRaises(ValueError):
+                pages.load_plan(Path(fh.name))
+        finally:
+            os.unlink(fh.name)
+
+    def test_page_needs_come_before_extra_needs(self):
+        # night review P1: dealers.propose opens one thread per dealer in Need order; CHA-11/RET-11 (Pícaros) used to
+        # come first and take the Pícaros slot from the CHA rares the page (and its +50 closer) needs
+        import dataclasses
+        w = dataclasses.replace(make_world(released=("LAV", "MAL", "LAT", "SAL", "RET", "CHA"), t_hours=13.5,
+                                           today="sun"), round=3)
+        needs = [n for n in pages.plan(w, valuer_for(w), self.cfg, {})[0] if not n.closer]
+        refs = [n.ref for n in needs]
+        self.assertIn("CHA-11", refs)
+        first_extra = min(refs.index(r) for r in ("CHA-11", "RET-11") if r in refs)
+        self.assertTrue(all(n.set in ("RET", "LAT", "CHA") for n in needs[:first_extra]))
+        self.assertGreater(first_extra, 0)
+        self.assertEqual(set(refs[first_extra:]), {"CHA-11", "RET-11"} & set(refs))
 
 
 if __name__ == "__main__":
