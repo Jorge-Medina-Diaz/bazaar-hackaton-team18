@@ -742,12 +742,13 @@ class Runner:
     def keep_duel_slot(self, world: World, chosen: list, drops: list) -> list:
         """Night review D2: with the accept budget shared, a tactic's early team / dealer accept that would use the
         last slot is held back (R04.duel_slot) while an armed duels tactic may need it in the late window
-        (duels.accept_slot_wanted). Dealer and team offers stay to the next tick; a manual order is never held."""
+        (duels.accept_slot_wanted). Dealer and team offers stay to the next tick; a manual order or a closer accept
+        (the page's +50, a rival may take the card) is never held."""
         if not bool(_cfg(self.cfg, "DUEL_ACCEPT_SHARED", True)) or "duels" not in self.armed_now()                 or self.paused("duels") or any(it.kind == "duel_accept" for it in chosen):
             return chosen
-        early = [it for it in chosen if it.kind == "accept" and it.tactic != "manual"]
-        manual = sum(1 for it in chosen if it.kind == "accept" and it.tactic == "manual")
-        if not early or manual + len(early) < int(getattr(world.limits, "accepts", 0) or 0):
+        early = [it for it in chosen if it.kind == "accept" and it.tactic not in ("manual", "closer")]
+        kept = sum(1 for it in chosen if it.kind == "accept" and it.tactic in ("manual", "closer"))
+        if not early or kept + len(early) < int(getattr(world.limits, "accepts", 0) or 0):
             return chosen
         mod = self._module("duels", "agent.tactics.duels")
         try:

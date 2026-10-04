@@ -287,6 +287,8 @@ class TestLateWindow(unittest.TestCase):
             self.assertEqual(r.keep_duel_slot(ww, [team], []), [team])
         manual = make_intent("accept", "manual", dict(team.args), "r", "e", NONE_P)
         self.assertEqual(r.keep_duel_slot(w, [manual], []), [manual])
+        closer = make_intent("accept", "closer", dict(team.args), "r", "e", NONE_P)
+        self.assertEqual(r.keep_duel_slot(w, [closer], []), [closer])
         r.armed = {"rastro"}
         self.assertEqual(r.keep_duel_slot(w, [team], []), [team])
 
