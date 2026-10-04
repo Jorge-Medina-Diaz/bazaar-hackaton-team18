@@ -4,7 +4,7 @@ All bots are deterministic for a given seed and act only through the FakeGame AP
 or the dealer_* / rival_* hooks). Interface: on_tick(game) every tick; dealers and rivals also
 on_message(game, thread_or_duel, msg) when we write to them (msg None = the thread was just opened).
 
-NOTES (M6b, night build)
+Design notes
 - TeamBot "twisted" uses tests/fixtures/twisted_offers.json (M4a) when present, else a built-in list of
   non-canonical shapes the fake server accepts (several assets, cash on both sides, card types plus cash).
 - Abuela gifts (D-15) are modelled as one common card on the first thread opened after the first deal.

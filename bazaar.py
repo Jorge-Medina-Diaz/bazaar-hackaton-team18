@@ -13,7 +13,7 @@
     python3 bazaar.py status                         0 API calls: journal (reader), state files, STOP, lock holder
     python3 bazaar.py replay-friday | report
 
-NOTES (M16, night build)
+Design notes
 - The CLI never writes the journal, armed.json or pauses.json (INV-22): orders go to state/inbox/<ns>-<cmd>.json
   (temp file + os.replace) and the runner applies and journals them. Orders are only written while a runner holds the
   writer lock (probe: try to take the lock; busy = alive); otherwise `arm`/`pause` refuse (exit 1) because a later run

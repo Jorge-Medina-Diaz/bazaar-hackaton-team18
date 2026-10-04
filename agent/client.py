@@ -1,10 +1,10 @@
 """One place to build the team's connection: a guarded transport, READ-ONLY by default (M1, spec §2.2).
 
 client(mode="read") reads BAZAAR_URL / BAZAAR_KEY from the environment, or from the repo's .env unless
-BAZAAR_NO_DOTENV is set. The old scripts and the dashboards that call client() get a transport that can only
+BAZAAR_NO_DOTENV is set. Read-only tools and the dashboard that call client() get a transport that can only
 GET allowlisted routes: any write raises GateViolation (writes belong to the Gate alone).
 
-NOTES (M1): _load_env(path) is kept because collect_info.py and run_broker.py import it.
+_load_env(path) loads the repo's .env (KEY=VALUE lines) into os.environ without overriding variables already set.
 """
 from __future__ import annotations
 

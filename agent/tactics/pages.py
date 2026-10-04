@@ -3,7 +3,7 @@
 Contract: docs/harness-spec.md §2.7 (signatures), §4 (G13, G21, G30, G32 read what this module produces),
 docs/strategy.md J3, J4, J9, J12, J13. Pure: no I/O except load_plan reading config/plan.json.
 
-NOTES (M8, night build)
+Design notes
 - plan(): for each set of plan_cfg.page_sets that is released: every page card we do not hold is a Need. One of them
   is the closer (source "team", closer=True, never bought from a dealer); the others are dealer Needs with the
   profile's dealer and cap = min(profile.limit, dealer_max[ref], floor(dv_add - 1)). The closer is re-chosen each

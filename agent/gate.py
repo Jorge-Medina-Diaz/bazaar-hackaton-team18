@@ -4,7 +4,7 @@ Gate.execute order: STOP -> idempotency -> sources -> fresh re-read -> guards.ch
 -> (dry / unarmed / paused: would) -> tick deadline -> WAL intent (fsync) -> exact one-use permit -> send
 -> WAL result/unknown -> running Book = guards.apply(book, intent, outcome).
 
-NOTES (M5, night build)
+Design notes
 - Dependencies are resolved lazily and are injectable (extra keyword-only args with defaults, so the §2.6
   signature still works): guards=, talk=, valuation=. A missing module FAILS CLOSED: guards missing ->
   every execute is refused "G02.not_built:guards"; talk missing -> say/duel_say refused; valuation missing ->
@@ -32,7 +32,7 @@ NOTES (M5, night build)
 - Fresh re-read (step 4): team accept -> /api/me/offers when the offer is in World.offers_to_us, otherwise
   /api/venues/{args.venue}/offers (late input D2); dealer accept -> /api/threads/{tid}; duel_accept -> /api/duels;
   then /api/clock (tick must equal World.tick). The re-read uses transport._call("GET") (the transport has no
-  priority-GET entry point yet: the reserved limiter token is not used; open issue).
+  priority-GET entry point yet: the reserved limiter token is not used; known limitation).
 - Counters are incremented on ok, unknown AND would (so a dry run respects the same per-tick budgets).
   Messages are recorded in Counters.msgs as "thread:<id>" / "duel:<id>".
 - dealer_block on cooloff/persona_quota: until_tick from the response body when present, else the next game hour
@@ -41,14 +41,14 @@ NOTES (M5, night build)
 - Foreign writer (begin_tick): explained = journal.own_objects(baseline) ∪ baseline ∪ any journal intent row
   whose shape matches (list_offer: give/want signature; open_thread: dealer; say: thread+price; duel_say:
   duel+price). Unexplained cash/asset changes (alarm + pause of buy tactics) and "an accept of ours" are NOT
-  checked tonight (need settlement accounting from the feed / cards): open issue.
+  checked (that needs settlement accounting from the feed / cards): known limitation.
 - reconcile: evidence from the World for list_offer/cancel/open_thread/say/duel_say/close_thread/open_pack;
   duel_accept by the duel's status; a dealer accept by its thread (status "deal", that offer accepted/settled or a
   journal settlement naming the intent -> landed; thread closed/walked or that offer cancelled/expired, or the
   thread still open >= 2 ticks later -> not landed); a team accept only "not landed" when the offer is still open
   >= 2 ticks later, otherwise left frozen and reported {"action": "pause", "tactic": ...} once, after 3 ticks.
   A torn intent row (journal "truncated") is resolved at once: reconciled truncated=<seq> landed=False. accepted_unsettled released at until_tick with
-  landed=False/evidence "timeout" (no /api/cards check tonight: open issue). execute refuses until reconcile ran
+  landed=False/evidence "timeout" (no /api/cards check: known limitation). execute refuses until reconcile ran
   once in this process (INV-15: reconcile before writing).
 """
 from __future__ import annotations

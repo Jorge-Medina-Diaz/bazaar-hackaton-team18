@@ -4,7 +4,7 @@ Calibrator(journal, paths).on_tick(prev, world) pairs settlements with their int
 (never `score`, P-14), excludes round changes, writes `measure` / `round_reset` / `pause` / `alarm` rows,
 keeps persistent pauses in state/pauses.json and collects STOP reasons for the runner.
 
-NOTES (M13, night build)
+Design notes
 - verdict() comes from agent.valuation (M3). If M3 cannot be imported, a local conservative fallback with the
   same signature is used (pass | soft_fail | hard_fail | surprise_up); a `verdict_fn=` kwarg lets tests and the
   runner inject one. Swaps (D1) need nothing special here: their prediction is a Prediction like any other.
@@ -22,9 +22,9 @@ NOTES (M13, night build)
   verdict, no pause (measure row with verdict "excluded").
 - D1 swaps / D2 rival venues: a swap offer settles as an asset-only change (`moved` covers assets); an
   `accept` on another venue is measured like any accept (its prediction already nets that venue's fee).
-- Not done tonight: E4 ladder table is only reported (by dealer) from measure rows; learning rows other than
+- Known limitations: E4 ladder table is only reported (by dealer) from measure rows; learning rows other than
   NEG_CAP_CONFIRMED (E5); journal is re-scanned from the start every tick (fine for one event, O(rows)).
-- Contract gap (report to lead): §6 says the `intent` row carries {id, tactic, kind, ...} but the journal
+- Contract note: §6 says the `intent` row carries {id, tactic, kind, ...} but the journal
   envelope already uses `kind` = "intent". intent_kind() reads intent_kind / ikind / it_kind, else infers the
   kind from the args key set (distinct per ARGS schema). list_offer -> offer id is read from the `result`
   response (offer_id | id | offer.id) or `reconciled.evidence`; else matched by shape (ref, price, created_tick).

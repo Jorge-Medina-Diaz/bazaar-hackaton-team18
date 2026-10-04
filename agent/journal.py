@@ -2,7 +2,7 @@
 
 Also keeps the old helpers: LOG_DIR and log(stream, **row) (used by the dashboard and the old scripts).
 
-NOTES (M2, night build)
+Design notes
 - Row: {seq, ts, tick?, day, mode, kind, prev, **redact(fields)}; prev = sha256 hex of the previous line's bytes
   (without the newline); the first row has prev = GENESIS ("0" * 64). fsync on every kind in FSYNC.
 - Extra keyword arguments beyond §2.3 (all with defaults): lock_path (default <root>/state/writer.lock, where
@@ -33,7 +33,7 @@ NOTES (M2, night build)
   nested {"offer"|"thread"|"message": {"id"}}). Any row may also carry an explicit
   own = {"offers": [...], "dealer_threads": [...], "thread_msgs": [...], "duel_msgs": [[did, tick, price]],
   "accepts": [...]}. Responses of the real server for POST were not measured (openapi gives no schema).
-- Not done tonight: no rotation / size cap; readers re-scan only the new bytes (incremental), verify_chain()
+- Known limitations: no rotation / size cap; readers re-scan only the new bytes (incremental), verify_chain()
   re-reads the whole file.
 """
 from __future__ import annotations

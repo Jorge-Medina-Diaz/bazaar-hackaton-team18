@@ -10,7 +10,7 @@ public evidence: settlements in the feed (who received which card, who paid what
 page(data) fills agent/dashboard.html; data=None gives the live page that polls data.json.
 
 M1 (K-13, INV-18): /api/me is redacted (agent.redact) before it is used or served, and the error text is too.
-NOTES (M1): LOG_DIR is read here from BAZAAR_LOGS instead of importing the old agent.journal (M2 rewrites it).
+LOG_DIR comes from BAZAAR_LOGS (default logs/), so the dashboard never imports the runner's journal.
 """
 import collections, json, os, time  # noqa: E401
 

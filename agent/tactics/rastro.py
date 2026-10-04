@@ -6,7 +6,7 @@ Pure apart from `state` (a dict the runner keeps across ticks; None works, with 
 Every intent is re-checked by the Gate (G10-G23); this module only proposes what already passes its own
 copy of those rules, and refuses (proposes nothing) whenever an input it needs is missing.
 
-NOTES (M11, night build)
+Design notes
 - J4 (tactic "closer"): accept a sale with neg_lo >= accept_min (20) on the spot; else bid
   min(floor(dv_add - default_minus), cash_free) (49 for RET); with a rival bid >= ours, or in the endgame, raise to
   floor(dv_add - compete_minus) (79). Never lower: the floor is max(state memory, our standing bid). A raise or a
@@ -30,7 +30,7 @@ NOTES (M11, night build)
   a bid would block its thread through INV-08).
 - Predictions come from M3 (predict_team / predict_swap with the venue's fee_bps / fee_per_card); an unknown
   card value (UnknownCard etc.) turns into a prediction that never passes a gain check.
-- Not done tonight: reverse-form swaps where the rival names a card type it GIVES (only give.assets is read);
+- Known limitations: reverse-form swaps where the rival names a card type it GIVES (only give.assets is read);
   multi-card offers (always skipped); sale relist decay is per ref, not per asset; the fingerprint falls back to
   a local sha1 until agent.guards.fingerprint exists (a mismatch makes G10 refuse: fail closed).
 - For the Gate (M4a/M5): G10 still says fresh.venue == "rastro"; D2 accepts carry args["venue"] of another

@@ -1,6 +1,6 @@
 """M6a sim-core: FakeGame, a deterministic fake of The Bazaar with a virtual clock and its own scoring oracle.
 
-NOTES (M6a, night build)
+Design notes
 - Fidelity list (docs/harness-spec.md §9) implemented: pseudonymous makers on boards, /api/me/offers shows "t18" and
   includes offers addressed to us and "queued" ones, duel accept without body takes the standing rival offer at POST
   time, clock.limits with the real LIMIT_KEYS, dealer offers with venue null / to team / expires created+2,

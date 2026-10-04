@@ -3,7 +3,7 @@
 PURE: no I/O, no clock reads, no network. The Gate passes everything in. Foreign text never reaches this
 module: the World carries no text, and the only text we ever look at is the one we render from TEMPLATES.
 
-NOTES (M4b, night build)
+Design notes
 - check() covers open_thread (G30), say (G31), accept with source "dealer" (G32), duel_say (G50) and
   duel_accept (G51). Any other kind -> Verdict(False, "G02.kind"). Every exception -> refuse (fail closed).
 - plan_cfg is not part of the check() signature, so `grant_lookahead_ticks` is read from cfg with

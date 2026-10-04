@@ -1,7 +1,7 @@
 """M7 sensor: prioritised reads within the request budget -> immutable World (allowlisted fields, no foreign text)
 plus Secrets (memory only). docs/harness-spec.md §1 (steps 4-5), §2.7, §8, INV-13, INV-18; late input D2.
 
-NOTES (M7, night build)
+Design notes
 - Every GET goes through the transport's public SDK methods (clock(), me(), my_offers(), ...); never `._call(`.
   Keyless polling (poll()) uses agent.transport.public_get with the public limiter.
 - Foreign text never reaches the World. Each object is projected onto ALLOW[kind]; then split_untrusted() keeps a
@@ -28,7 +28,7 @@ NOTES (M7, night build)
 - Venue fee: fee_bps/fee_per_card are the max of the current and an announced pending fee (conservative, D2).
 - clock_reading: "?" with doors not open or no clock; "P" paused; round >= 2 and t >= 3.99 -> "N"; round >= 2 and
   t < 3.99 -> "M"; round 1 and t < 4 -> "C". After 10:21 a C morning reads as N (by then all timers run on game hours).
-- Left out tonight (open issues): per-item tolerance on boards (one malformed offer downs the whole board); feed gap
+- Known limitations: per-item tolerance on boards (one malformed offer downs the whole board); feed gap
   detection beyond an alarm row; value?card priority only from want_values() + visible offers + released catalog.
 """
 from __future__ import annotations

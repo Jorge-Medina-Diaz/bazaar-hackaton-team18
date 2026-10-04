@@ -14,7 +14,7 @@ Responses are classified fail-closed: ok (2xx + JSON object), deferred (429 wait
 refused (4xx with the game's {error, message} body). Everything else (3xx, 2xx not JSON or truncated, 4xx without
 the game's body, 5xx, network, timeout, any exception) is "unknown" and the caller freezes the domain.
 
-NOTES (M1, night build)
+Design notes
 - Test mode exception in the audit hook: with BAZAAR_TEST=1 a non-GET urllib request to a LOOPBACK host is let
   through without a permit, so the sim tests can drive the fake server with the real SDK (§10 test_sim). Outside
   test mode the hook is strict. GuardedTransport itself never relaxes in test mode (the permit is always required).

@@ -5,7 +5,7 @@ inbox -> STOP -> wait / paused-doors poll -> fast path (startup, first open-door
 gate.begin_tick + reconcile -> calibrator.on_tick -> pages.plan (Book.needs) -> tactics (each isolated) ->
 choose (order, budgets, accepts by deadline) -> gate.execute -> late window for duel_accept -> journal "tick".
 
-NOTES (M15, night build)
+Design notes
 - Exit codes: 0 = max_ticks reached / interrupted, 1 = cannot start (no key, plan unreadable, bad mode),
   2 = STOP (STOP file present or written, GateViolation, StopActive, JournalError, AssertionError), 3 = writer lock busy.
   A STOP file at start or during the run makes the runner journal it and exit 2 (so a hot update can relaunch `run`).
@@ -29,7 +29,7 @@ NOTES (M15, night build)
 - Late window: duel_accept intents are held back; from 50 % of the tick the runner re-reads (sensor.snapshot),
   re-proposes duels on the fresh World and executes the fresh duel_accepts (accept budget left this tick, the Gate
   re-checks G51 and the deadline). If the re-read fails or the tick moved, the early ones are dropped.
-- Not done tonight (open issues): Book.protect_sets is left as guards.build_book made it (pages.protect_sets would
+- Known limitations: Book.protect_sets is left as guards.build_book made it (pages.protect_sets would
   drop LAT at t205 but Book.keep would not follow); Calibrator recheck= (guards-based) is not wired; duels.e16_settled
   is not called (World has no done duels); L1 bench recorder is not polled; snapshots every 5 ticks only (not on
   every write tick); no req_rate in the tick row.

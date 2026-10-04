@@ -1,11 +1,11 @@
 """M17: architecture rules checked on the source (INV-01 AST layer 3, INV-13 AST, INV-18 secrets in source).
 
-NOTES (M17, night build)
+Design notes
 - The scan is AST-based, so docstrings and comments that *mention* a forbidden name do not count; only code does.
 - LEGACY modules (pre-harness, archived by M18) are allowed to keep their old SDK use, but no harness module may
   import them (checked on the static import graph). agent/dashboard.py and agent/client.py are panels/read-only.
 - INV-13: the literal "text" is allowed in agent/gate.py only inside the REQUEST_FOR body builders (_req_*), which
-  must put the "text" key in say/duel_say bodies (M5 open issue). The Gate never reads a text field.
+  must put the "text" key in say/duel_say bodies (by design). The Gate never reads a text field.
 """
 from __future__ import annotations
 

@@ -64,7 +64,7 @@ class ArchivedScriptsCannotRunTests(unittest.TestCase):
     def test_every_archived_python_file_is_guarded(self):
         import ast
         from pathlib import Path
-        archive = Path(__file__).resolve().parents[1] / 'archive'
+        archive = Path(__file__).resolve().parents[1] / 'docs' / 'history' / 'legacy-code'
         files = [p for p in archive.rglob('*.py') if '__pycache__' not in p.parts
                  and not p.relative_to(archive).parts[0] == 'tests']
         self.assertTrue(files)

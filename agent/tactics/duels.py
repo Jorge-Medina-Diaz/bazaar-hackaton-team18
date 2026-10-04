@@ -25,7 +25,7 @@ Policy (decide):
 - E16: two rival messages in one tick, or a settled price different from the one read -> duel accepts paused.
 - Accept budget: at most world.limits.accepts duel_accept intents per tick, nearest deadline first.
 
-NOTES (M12, night build) / open issues
+Design notes and known limitations
 - duel_fingerprint and predict_duel come from agent.guards (M4a) and agent.valuation (M3) (both present; a test checks
   the fingerprint matches the local copy). predict_duel takes side "buy"/"sell", mapped from the duel role.
 - Duel length T is not in the duel object: inferred from decay (0.06 -> 16 ticks, else 12, U-12) and the first message

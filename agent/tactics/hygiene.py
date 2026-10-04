@@ -5,7 +5,7 @@ Pure: reads World / Book / Valuer / Cfg / PlanCfg, returns Intents. The Gate re-
 Every intent here only REDUCES exposure (cancel, close_thread) or opens a pack (G40), so a missing input makes the
 watch do more closing, never less checking.
 
-NOTES (M9, night build)
+Design notes
 - J0: `startup_cancels` from plan_cfg are cancelled only if still live in world.my_offers (the four LAT listings
   2463/2592/1652/2591 were cancelled at 01:30, so against the current state J0 finds nothing). startup() also runs
   the generic unprotected-sale check (G19, INV-06) when a Book is given, so any new unprotected listing is caught.

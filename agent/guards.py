@@ -3,7 +3,7 @@ canonical offer shapes and fingerprints (docs/harness-spec.md §2.5, §3, §4; l
 
 PURE except build_book, which reads the journal object it is handed (no file or network I/O here).
 
-NOTES (M4a, night build)
+Design notes
 - G01 (STOP file) and the "result already exists for iid" half of G05 need I/O: the Gate does them (§2.6
   steps 1-2). check() does the unknown-domain half of G05 and everything else that is pure.
 - G07 here is ONE-SIDED: a team intent may not claim more neg than the guard computes (+0.01). The exact
@@ -28,7 +28,7 @@ NOTES (M4a, night build)
   (ref), want want_ref. Value: V(received) - V(given) - fee via Valuer.delta_swap semantics.
 - Rival venues (D2): accept on a venue != "rastro" needs the venue open in World.venues, owner != t18
   (INV-20), a known leaderboard with the owner outside the top RIVAL_TOP_N, and neg_lo >= RIVAL_VENUE_MIN_GAIN.
-- Not done tonight: dealer_block / thread_limit / recent_rastro are rebuilt from the journal best effort
+- Known limitations: dealer_block / thread_limit / recent_rastro are rebuilt from the journal best effort
   (the M2 row shapes were not final; dealer_block also comes from our threads' closed_reason / until_tick, see
   _closed_thread_blocks); delivery_risk does not yet look at "new dealer level announced";
   dup_min_price (RET/CHA >= 30) is a tactic rule, not a guard here.

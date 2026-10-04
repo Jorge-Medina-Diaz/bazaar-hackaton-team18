@@ -14,7 +14,7 @@ Hard properties (acceptance "0 writes; key never on disk"):
 - `plan_greedy` is a copy of starter_broker.bench_plan (archived by M18), made tolerant of malformed offers: an offer
   whose shape is not understood is skipped, never guessed.
 
-NOTES (night build, open issues for the lead)
+Design notes and known limitations
 - Wiring: M1's GuardedTransport forbids broker routes (INV-01, `broker()` raises) and GET_ALLOWLIST has no
   /api/broker/book, so there is no GET-only reader with the X-Broker-Key header yet. Until M1 (or the runner) supplies
   one, nobody can call `read_book` against the server: L1 is inert, which is the fail-closed state.

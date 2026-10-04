@@ -3,7 +3,7 @@
 No file, network or clock I/O: everything comes in as arguments (catalog, affinity, released sets, counts).
 Rewritten from logs/analysis/scoring/verify/vlib.py without its fixed paths and fixed RELEASED list.
 
-NOTES (M3, night build)
+Design notes
 - Copy marginals and page bonus come from catalog["values"]; a catalog without them -> ValueError (fail closed:
   no Valuer means valuation_ok = False upstream).
 - 4th+ copy (never measured, V-10): worth 0 when we BUY it, MARG[-1] when we SELL it. collection_value() itself

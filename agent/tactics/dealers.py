@@ -19,7 +19,7 @@ Rules implemented (acceptance of M10):
 - Fail closed: unknown opening limit, no profile, unreadable valuation or a missing helper module (agent.valuation /
   agent.guards not importable) -> no buy step (open threads are closed when the limit or value is unknown).
 
-NOTES (night build, open issues for the lead)
+Design notes and known limitations
 - Sell threads (selling to dealers, J13 resupply rebuys are buys) are not handled: an open sell thread of ours is left
   alone (manual / hygiene).
 - accept.venue for a dealer offer: the server gives venue null; the contract needs a VENUE_RE id, so we pass the dealer
