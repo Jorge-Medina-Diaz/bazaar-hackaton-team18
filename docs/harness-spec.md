@@ -1,5 +1,7 @@
 # Especificación del arnés — Team 18 (t18) · v2 (tras el equipo rojo)
 
+> **English summary:** this is the build contract of the harness, written in Spanish during the event. It covers architecture decisions (§0), the tick loop (§1), module signatures (§2), invariants INV-01..23 with the test that proves each (§3), guard formulas (§4), modes and CLI (§5), the journal (§6), calibration (§7), failure handling (§8), the fake server (§9), the test plan (§10) and module ownership (§11). The English overview is [architecture.md](architecture.md). For the release, the offline lab and the extra panels it mentions (`website/`, `panel.py`, `live_monitor.py`, `observe_performance.py`, `laboratorio.py`, …) were removed, and `archive/` moved to `docs/history/legacy-code/`.
+
 Sábado 3 oct 2026, ~03:30. La firma el arquitecto jefe. El plan de juego está en `docs/strategy.md`; los hechos, en `docs/knowledge.md`. Los cambios frente a la v1 y su motivo están en §14.
 Este documento es el contrato de construcción: cada fichero tiene un único módulo dueño, las firmas de M0 son fijas desde las 03:30 y cada invariante dice cómo se impone y qué test lo prueba.
 
@@ -723,7 +725,7 @@ Las comparaciones de rendimiento (p. ej. "frente a v0") van a `bazaar.py report`
 | 3 | M15 runner | agent/runner.py, tests/test_runner.py | A | todos los de A |
 | 3 | M16 cli | bazaar.py, tests/test_cli.py | A | M15, M2, M13 |
 | 3 | M17 integration | tests/test_architecture.py, tests/test_isolation.py, tests/test_e2e_fake.py, tests/test_chaos.py, tests/test_foreign_writer.py, tests/test_dry.py, tests/test_replay_friday.py, tests/fixtures/replay/** | A (+ casos por etapa) | M6a, M6b, M15, M16 |
-| 3 | M18 cleanup | archive/**, .gitignore, .vercelignore, CLAUDE.md, README.md, docs/research-context.md, live_monitor.py, observe_performance.py, website/worker.mjs, los `.py` que se archivan | parte 1 antes de las 07:00; parte 2 el sábado 23:15 | M1 |
+| 3 | M18 cleanup | docs/history/legacy-code/**, .gitignore, .vercelignore, CLAUDE.md, README.md, docs/research-context.md, live_monitor.py, observe_performance.py, website/worker.mjs, los `.py` que se archivan | parte 1 antes de las 07:00; parte 2 el sábado 23:15 | M1 |
 
 Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica de la etapa A. `config/plan.json` (M8) lo usa también la higiene: en la etapa A, M9 lee solo `startup_cancels`, `baseline_bands`, `protect_sets`, `grant_lookahead_ticks` y `day_end_hours`, y M8 lo crea con esas claves a las 05:00 (lo demás después). Las plantillas de texto son solo de M4b; los perfiles numéricos de los dealers (`profiles`) viven en `config/plan.json`. L2 (días) es trabajo dentro de M12 y `days_sign` en `config/plan.json`. L3 (informe) es `Calibrator.report` (M13) y `bazaar.py report` (M16). L4 (venue `auto`) es un fichero nuevo `agent/venue.py` con su propio intent y guarda, solo si se cumplen las condiciones de J11. L5 (dealers de nivel 3+) es trabajo de M10 en modo PROBE.
 
@@ -744,9 +746,9 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 
 ## 12. Limpieza del repositorio (M18)
 
-> **Hecho** (M18 partes 1 y 2). Lo que aquí dice `santi/` está ahora en `archive/docs/santi/`, salvo el kickoff, que está en `docs/official/kickoff.pdf`.
+> **Hecho** (M18 partes 1 y 2). Lo que aquí dice `santi/` está ahora en `docs/history/legacy-code/docs/santi/`, salvo el kickoff, que está en `docs/official/kickoff.pdf`.
 
-**Reglas:** archivar = `git mv <ruta> archive/<ruta>` (parte 2, una persona, el sábado a las 23:15 y `selftest` después). El `SystemExit` de los `.py` se pone en la parte 1, después de cualquier `from __future__`. Las fusiones se hacen dentro de los módulos dueños y se archivan solo cuando sus tests están en verde: casos de `offer_safety` de `test_agent_core` → `test_guards` (M4a); los de `team_writer` → `test_gate` (M5); `haggle.curve` → M10; frases de `agent/dealers.py` y `negotiation-design` → `talk.TEMPLATES` (M4b); `agent/duels.py` → M12.
+**Reglas:** archivar = `git mv <ruta> docs/history/legacy-code/<ruta>` (parte 2, una persona, el sábado a las 23:15 y `selftest` después). El `SystemExit` de los `.py` se pone en la parte 1, después de cualquier `from __future__`. Las fusiones se hacen dentro de los módulos dueños y se archivan solo cuando sus tests están en verde: casos de `offer_safety` de `test_agent_core` → `test_guards` (M4a); los de `team_writer` → `test_gate` (M5); `haggle.curve` → M10; frases de `agent/dealers.py` y `negotiation-design` → `talk.TEMPLATES` (M4b); `agent/duels.py` → M12.
 
 | Ruta | Acción | Motivo |
 |---|---|---|
@@ -772,7 +774,7 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 | api/index.py, vercel.json, run_dashboard.py, panel.py, panel.html, inventory_panel.py, laboratorio.py, negotiation_policy.py | keep | Paneles |
 | live_monitor.py, observe_performance.py | keep (con `client("read")`) | Paneles |
 | website/** | keep; `INTERVAL` a 15000 en `worker.mjs` solo si `worker.test.mjs` sigue en verde | Panel desplegado |
-| .vercelignore | keep (añadir archive/, sim/, config/, state/) | |
+| .vercelignore | keep (añadir docs/history/legacy-code/, sim/, config/, state/) | |
 | .gitignore | keep (añadir STOP*, stop*, state/, config/local*.json, .pytest_cache/) | |
 | tests/test_agent_core.py | merge, luego archive | |
 | tests/test_new_dealer.py, test_information.py, test_evaluation.py | archive | Prueban código archivado |
@@ -806,7 +808,7 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 13. **Caída:** relanzar el mismo `run`.
 14. **22:55** la higiene cierra los hilos con dealer; **23:00** `stop "cierre sábado"`; **23:15** M18 parte 2 (`git mv`) y `selftest`.
 
-**Domingo:** superado por [plan-domingo.md](plan-domingo.md) §3 y §4 (CHA ya está en `page_sets`; calendario en tres escenarios; despliegue de `night-build`; fin de dealers y endgame derivados en vivo, ≈ 13:55 / 14:25).
+**Domingo:** superado por [plan-domingo.md](history/plan-domingo.md) §3 y §4 (CHA ya está en `page_sets`; calendario en tres escenarios; despliegue de `night-build`; fin de dealers y endgame derivados en vivo, ≈ 13:55 / 14:25).
 
 **Nunca:** lanzar scripts archivados; usar la clave para escribir fuera de la máquina A; tocar `/api/admin/*`; editar `bazaar_sdk.py`; correr `selftest` con un `.env` de producción sin `tests/__init__.py` intacto.
 
@@ -915,8 +917,8 @@ Las secciones 0–14 son el contrato congelado de la noche del viernes. Aquí se
 - **Runner (`choose`):** con más de 4 duelos vivos (`MAX_LIVE_DUELS_FOR_THREADS`), ningún `open_thread` de una táctica; los manuales pasan. Cada descarte lleva código (`R04.*`): fila `dropped` para órdenes manuales y recuento en la fila `tick`. Una aceptación de táctica que gastaría el último cupo se retiene un tick (`R04.duel_slot`) si un duelo cerca de su deadline tiene una oferta rival dentro del límite; nunca la de `manual` ni la del `closer`. Los duelos que se quedan sin cupo de aceptación reciben un mensaje con el par del rival. En `live`, las intenciones de tácticas en pausa o sin armar solo dejan `would`, después de la ventana tardía, y no gastan cupos ni caja.
 - **Libro (`build_book`):** una fila `accepted_unsettled` deja de reservar caja en cuanto el World pasa de su tick (el servidor liquida en T+1). G19 no cancela ventas mientras falte el catálogo o el valorador.
 - **Tácticas:** `pages.need_limit` (el tope de un Need también mira el límite del dealer de respaldo); `extra_needs` solo con su set publicado, detrás de las cartas de página y desde `min_round`, y con el hilo topado en `cash_free` menos lo que la puja del closer necesita a su precio de endgame (`dealers.closer_reserve`, `0daffe5`); el closer no puja mientras haya riesgo de entrega; J13 nunca en el endgame; `hand_sales` fuera de J5, de las ventas a pujas y de los intercambios hasta el fin de dealers; un intercambio D1 solo da lo que daría `_spares`; las épicas nunca son sobrantes.
-- **Escrituras fuera de la Gate:** el contrato no tiene KIND para denuncias, venues ni broker. Las excepciones manuales con el OK de Jorge son regla de CLAUDE.md, no del arnés. Sábado: `PATCH /api/venues/v18`, `POST /api/broker/announce` y 9 `POST /api/flags`. Domingo: los scripts del scratchpad `flag_one.py` y `announce_stall.py`, que no miran STOP ni escriben en el diario, así que se apuntan en `docs/handoffs/HANDOFF-domingo.md`. INV-01 e INV-20 siguen valiendo para todo lo que sale por la Gate.
+- **Escrituras fuera de la Gate:** el contrato no tiene KIND para denuncias, venues ni broker. Las excepciones manuales con el OK de Jorge son regla de CLAUDE.md, no del arnés. Sábado: `PATCH /api/venues/v18`, `POST /api/broker/announce` y 9 `POST /api/flags`. Domingo: los scripts del scratchpad `flag_one.py` y `announce_stall.py`, que no miran STOP ni escriben en el diario, así que se apuntan en `docs/history/handoffs/HANDOFF-domingo.md`. INV-01 e INV-20 siguen valiendo para todo lo que sale por la Gate.
 - **Scripts manuales de la raíz** (fuera de `agent/`; leen solo por GET y escriben solo con `bazaar.py do ... --live`, por la Gate): `ladder_sell.py` (escalera de precios con un dealer; manda el siguiente precio solo cuando el anterior está en el hilo y el dealer ha contestado; se rinde a los 40 ticks), `egg_carrier.py` (lo mismo, con las variantes de huevo primero). Solo lectura: `flag_candidates.py` (denuncias de nivel A) y `announce_candidates.py` (parejas para anuncios en v18, sin clave). Simulador: `python3 -m sim.sunday C|A|B`.
 - **CLI:** `status` avisa `STALE?` si un runner tiene el candado y la última fila `tick` tiene más de 90 s, y lista las últimas filas `dropped` y `param`. Un `do` sin `--live` junto a un runner vivo se rechaza.
 - **Sin conectar:** `pages.protect_sets` (solo existe la definición), `Calibrator.recheck`, `duels.e16_settled` y el grabador L1 dentro del runner (lo hace `bench_rec.py` aparte).
-- **Fallos conocidos que quedan:** [plan-domingo.md](plan-domingo.md) §1.3.
+- **Fallos conocidos que quedan:** [plan-domingo.md](history/plan-domingo.md) §1.3.

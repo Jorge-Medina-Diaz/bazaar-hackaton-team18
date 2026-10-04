@@ -1,6 +1,6 @@
 # API: lo que sabemos (verificado con llamadas reales, vie 2 oct, tick 30)
 
-Spec completa: **`GET /openapi.json`** (copia en [openapi.json](openapi.json)). UI interactiva en `/docs` y `/redoc`.
+Spec completa: **`GET /openapi.json`** (copia en [openapi.json](../../../openapi.json)). UI interactiva en `/docs` y `/redoc`.
 Los métodos del SDK están documentados en las docstrings de `bazaar_sdk.py`. Aquí va lo que **no** está en el README.
 
 ## ⛔ Prohibido

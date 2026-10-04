@@ -1,6 +1,8 @@
 # Estrategia sábado y domingo — Team 18 (t18) · v2 (tras el equipo rojo)
 
-> **Escrito para el sábado (02:00–03:30).** El orden de jugadas J0–J13 es el que implementan las tácticas y sigue valiendo. **Superado:** la situación de §1 y §3, el calendario de §4 y las decisiones de venue (J11, D4). Lo vigente para el domingo, con el código final de `night-build`, está en [plan-domingo.md](plan-domingo.md). Hechos del sábado: [knowledge.md](knowledge.md) S-17..S-33. Solo se ha corregido donde contradecía los datos o el código.
+> **English summary:** the playbook (J0–J13) that the tactics implement, in Spanish, written before Saturday. It includes how the design was chosen (three designs scored by a panel, then a red team), cash plans and the calendar. Sunday's revisions are in [history/plan-domingo.md](history/plan-domingo.md).
+
+> **Escrito para el sábado (02:00–03:30).** El orden de jugadas J0–J13 es el que implementan las tácticas y sigue valiendo. **Superado:** la situación de §1 y §3, el calendario de §4 y las decisiones de venue (J11, D4). Lo vigente para el domingo, con el código final de `night-build`, está en [plan-domingo.md](history/plan-domingo.md). Hechos del sábado: [knowledge.md](knowledge.md) S-17..S-33. Solo se ha corregido donde contradecía los datos o el código.
 
 Escrito el sábado 3 oct 2026 entre las 02:00 y las 03:30, con el juego cerrado. Lo firma el arquitecto jefe. La v2 incorpora las críticas del equipo rojo (seguridad, escéptico de estrategia, jefe de ingeniería); la lista de cada problema y qué se hizo está en `docs/harness-spec.md` §14.
 La fuente de verdad es `docs/knowledge.md` (ids P-, V-, D-, R-, X-, U-, M-, C-, K-). Cualquier otro documento del repo es una lista de afirmaciones.
@@ -16,9 +18,9 @@ El cómo se construye está en `docs/harness-spec.md`. Este documento dice **qu�
 
 | Diseño | Puntos esperados | Seguridad | Construible antes de las 08:00 | Claridad |
 |---|---|---|---|---|
-| Cuantitativo (`logs/analysis/design_quant.md`) | **8** | 7 | 6 | **8** |
-| Seguridad (`logs/analysis/design_safety.md`) | 7 | **9** | 5 | **8** |
-| Frontera (`logs/analysis/design_frontier.md`) | 6 | 7 | 3 | 6 |
+| Cuantitativo ([`design_quant.md`](history/designs/design_quant.md)) | **8** | 7 | 6 | **8** |
+| Seguridad ([`design_safety.md`](history/designs/design_safety.md)) | 7 | **9** | 5 | **8** |
+| Frontera ([`design_frontier.md`](history/designs/design_frontier.md)) | 6 | 7 | 3 | 6 |
 
 - **Cuantitativo.** Acierta en el orden de jugadas (lo escaso: caja, huecos de escalera, cierres de página, cuota de dealers), en el plan de caja y en el cliente sin reintentos (`bazaar_sdk.py:62-86`). Falla en P(fill) = 0,7 para el cierre (R-05: 9 %), en fiar la seguridad a una convención y en el tamaño.
 - **Seguridad.** Acierta en la barrera física, la vigilancia de lo publicado, un camino de compra por carta, el límite que solo se endurece y el oráculo independiente. Falla en pujas de cierre de 20 a 30 (la caja no puntúa), en el venue automático (270 P que no hay) y en el tamaño.
@@ -87,7 +89,7 @@ Cada jugada la ejecuta una táctica del arnés y pasa por el Gate. "Armar" pasa 
 | **J9** | **LAT condicional:** si se cumple 2503 o 2504, comprar la otra rara a El Chato a ≤ 100 (V = 122,6 con la primera en mano: neg 0, hueco de nivel 2), solo si no le quita caja a J3. Si se cumplen las dos, LAT se cierra con equipos (+1 y +50: mide E5). **Si en t205 no se ha cumplido ninguna, LAT se da por muerta:** sale de las páginas protegidas y sus cartas se venden como autor a ≥ V + 2 o a pujas con ganancia ≥ 3 (t14 necesita LAT-03 y LAT-08, X-12). | Puja cumplida / t205 | +1..+51 de neg, o caja para el domingo | t205 | X-02, X-06, X-12, V-07 | G32 (`ALLOW_DEALER_CLOSE`={LAT}), G16, G13 |
 | **J10** | *(Superado por el código final, `55c25fd` y `70a487c`: valor = s·(p − L) + signo·\|w\|·d (S-26). El signo sale de cada duelo: `days_sign` del sensor, si no `days_meaning`, si no el papel (comprador −1, vendedor +1); un signo leído que contradice al papel da −1 y alarma. Comprador: 0 días y margen \|w\|·d; vendedor: 10 días y precio nunca fuera del límite. `plan.days_sign` ya no se usa. Lo de abajo es el plan del sábado.)* **Duels II de dos asuntos:** ningún mensaje con precio hasta leer `days_meaning` y `your_days_weight`; una persona fija el signo en `config/plan.json` (`days_sign`); mientras no esté, excedente ≥ 1 + max_d \|W(d) − W(base)\|. El mensaje lleva `days` arriba y dentro de `offer` (el SDK solo lo pone dentro; el esquema PostMessage admite los dos). | Primer duelo con `"days" ∈ issues` | 0 acuerdos con utilidad negativa en 68 duelos | Pausa si un resultado sale ≤ 0 | U-12, U-13, OpenAPI | G50 |
 | **J11** | **Venue `auto` a comisión 0**, solo si E15 mide ≥ 3 tratos/h en venues de equipo durante 2 h y `cash_free − coste del plan de páginas ≥ 270`. Por el Gate (intent `open_venue` de la mejora L4), nunca a mano. Nunca operamos en él. | E15 | Acceso a mm_points por flujo ajeno | Una condición falla → puesto | M-02..M-09, RULES l.76, l.119 | Guarda propia de L4 |
-| **J12** | **Domingo, CHA:** el mismo patrón que J3 + J4 en un solo modo: raras a El Chato (≤ 100, valor 112) → infrecuentes (Abuela ≤ 25, El Chato patrón t03 ≤ 31) → comunes (≤ 12) → cierre con equipo a min(floor(122 − 50), cash_free) = 72. Sin hilos nuevos durante Duels III. Último trato con dealer a las 13:45 (N). *(Plan vigente, `config/plan.json` de `night-build`: comunes CHA a la Abuela ≤ 12; CHA-06/07/08 a El Chato ≤ 31 con la Abuela de respaldo; raras CHA a los Pícaros ≤ 64 con El Chato de respaldo ≤ 93; después de la página, CHA-11 ≤ 170 y RET-11 ≤ 150 a los Pícaros, solo en la ronda 3. Hilos nuevos durante Duels III salvo con más de 4 duelos vivos. Fin de dealers y endgame derivados del reloj de pared y del calendario vivo (≈ 13:55 / 14:25). Detalle en [plan-domingo.md](plan-domingo.md) §5.1)* | CHA publicado | +50 si se llega a 9/10 y se cumple la puja; nada se pierde si la caja no llega | Igual que J3 y J4 | V-05, V-06, D-10 | igual que J3 y J4 |
+| **J12** | **Domingo, CHA:** el mismo patrón que J3 + J4 en un solo modo: raras a El Chato (≤ 100, valor 112) → infrecuentes (Abuela ≤ 25, El Chato patrón t03 ≤ 31) → comunes (≤ 12) → cierre con equipo a min(floor(122 − 50), cash_free) = 72. Sin hilos nuevos durante Duels III. Último trato con dealer a las 13:45 (N). *(Plan vigente, `config/plan.json` de `night-build`: comunes CHA a la Abuela ≤ 12; CHA-06/07/08 a El Chato ≤ 31 con la Abuela de respaldo; raras CHA a los Pícaros ≤ 64 con El Chato de respaldo ≤ 93; después de la página, CHA-11 ≤ 170 y RET-11 ≤ 150 a los Pícaros, solo en la ronda 3. Hilos nuevos durante Duels III salvo con más de 4 duelos vivos. Fin de dealers y endgame derivados del reloj de pared y del calendario vivo (≈ 13:55 / 14:25). Detalle en [plan-domingo.md](history/plan-domingo.md) §5.1)* | CHA publicado | +50 si se llega a 9/10 y se cumple la puja; nada se pierde si la caja no llega | Igual que J3 y J4 | V-05, V-06, D-10 | igual que J3 y J4 |
 
 ### 2.1 Qué NO hacemos (lista cerrada; la impone el Gate)
 1. **Comprar sobres.** No existe el intent.
@@ -127,7 +129,7 @@ Regla del Gate (libro en marcha, se actualiza tras cada envío): `cash_free = ca
 
 ### 3.2 Domingo
 
-> **Superado.** Caja de partida real: 555 + 150 = 705 P; gasto y topes en [plan-domingo.md](plan-domingo.md) §5.1 y §5.7 (la subida del closer es en el endgame, ≈ 14:25, no a las 12:00/13:00).
+> **Superado.** Caja de partida real: 555 + 150 = 705 P; gasto y topes en [plan-domingo.md](history/plan-domingo.md) §5.1 y §5.7 (la subida del closer es en el endgame, ≈ 14:25, no a las 12:00/13:00).
 
 - **Caja prevista:** ~110–200 + 150 = **~260–350**, más J13 y la liquidación de LAT si murió.
 - **Coste CHA calculado desde los Needs**, no fijo: 2 raras × ~87 + 3 infrecuentes × ~23–29 + 4 comunes × ~10 + cierre ≤ 72 ≈ **330–360**.
@@ -198,7 +200,7 @@ Con ticks de 30 s, el tick 160 cae a las 09:00:00 si el reloj no está en pausa.
 
 ### 4.5 Domingo (ticks de 15 s)
 
-> **Superado.** Esta tabla supone las lecturas N/C del sábado. El sábado demostró que el reloj sigue y lo anclado al día se re-ancla (S-17). Calendario vigente: [plan-domingo.md](plan-domingo.md) §3 (probable: ronda 3 y CHA a las 09:00, Duels III ~11:00, cierre de puestos y Gran Final ~14:00, congelación a las 15:00).
+> **Superado.** Esta tabla supone las lecturas N/C del sábado. El sábado demostró que el reloj sigue y lo anclado al día se re-ancla (S-17). Calendario vigente: [plan-domingo.md](history/plan-domingo.md) §3 (probable: ronda 3 y CHA a las 09:00, Duels III ~11:00, cierre de puestos y Gran Final ~14:00, congelación a las 15:00).
 
 | Bloque | N | C |
 |---|---|---|
@@ -264,4 +266,4 @@ Sábado ~08:30. Entradas tardías (consejos de t13; énfasis del jefe en robuste
 | D1 | **Swaps** carta por carta: se valoran V(recibida) − V(entregada) − comisión con el mínimo de una compra (≥ 3 aceptando); nunca se entrega una copia protegida (INV-06). Como autor solo en El Rastro, dando un sobrante (MAL, LAV, duplicados) por una carta del plan sin otra vía (nunca la carta de cierre: esa es J4) | J6 (aceptar) y J5 (publicar) | No hay medida de swaps del viernes: sin optimismo. Comisión calculada con 2 cartas. Forma inversa (el rival nombra lo que da) sin construir |
 | D2 | **Todos los venues:** se leen los tableros de todos los venues abiertos y `/api/me/offers`. Publicamos solo en El Rastro. Aceptar en el venue de otro equipo solo con neg_lo ≥ `RIVAL_VENUE_MIN_GAIN` (10, comisión de ese venue incluida, ceil(fee_bps/10000 · p + fee_per_card · cartas)) y dueño fuera del top `RIVAL_TOP_N` (5) del leaderboard; leaderboard desconocido = no | J6, J13, E15 | El dueño gana puntos de mercado con nuestros tratos (RULES l.119). Con el snapshot del viernes, v03 (t13, 1.º) y v02 (t12, 2.º) quedan fuera; v01 (t06) y v04 (t02) pasan |
 | D3 | **Pujas largas:** `expires_in_ticks` en unidades de 15 s: pedido = ticks deseados × segundos por tick / 15 (`contracts.expiry_units`) | J4, J5, J6 | Encaja con R-07 (a 60 s, lo pedido entre 4). No cambia la expectativa de cumplimiento (9 %, raras 4 %, R-05) |
-| D4 | **Sin venue propio** en esta versión (`open_venue` fuera de `KINDS`). *Domingo: sigue siendo la opción por defecto; la decisión y la condición para cambiarla están en [plan-domingo.md](plan-domingo.md) §5.3 (no hay `bench.finished` público, S-23)* | J11 sigue condicionado | M-04, M-05: greedy en `board` = puesto, cuesta 270 P y una caída da 0. Condición de cambio en `docs/LEEME-EQUIPO.md` §7.1 |
+| D4 | **Sin venue propio** en esta versión (`open_venue` fuera de `KINDS`). *Domingo: sigue siendo la opción por defecto; la decisión y la condición para cambiarla están en [plan-domingo.md](history/plan-domingo.md) §5.3 (no hay `bench.finished` público, S-23)* | J11 sigue condicionado | M-04, M-05: greedy en `board` = puesto, cuesta 270 P y una caída da 0. Condición de cambio en `docs/LEEME-EQUIPO.md` §7.1 |

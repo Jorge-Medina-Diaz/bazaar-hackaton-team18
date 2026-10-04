@@ -1,6 +1,6 @@
-# archive/ — superseded by the t18 harness (M18, docs/harness-spec.md §12)
+# Legacy code: superseded by the t18 harness (M18, docs/harness-spec.md §12)
 
-Moved here with `git mv`, so `git log --follow archive/<path>` shows each file's history.
+This was `archive/` during the event. It was moved here with `git mv`, so `git log --follow` on any file shows its history.
 
 - `*.py`, `agent/*.py`: pre-harness scripts and modules. Every one starts with
   `raise SystemExit(...)  # M18 guard` (after any `from __future__` import): they cannot run or be imported,

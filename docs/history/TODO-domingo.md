@@ -1,6 +1,6 @@
 # TO-DO domingo 4 oct (último día)
 
-Plan completo, comandos y razones: [docs/plan-domingo.md](docs/plan-domingo.md). Hechos: [docs/knowledge.md](docs/knowledge.md). Escrituras manuales: [docs/handoffs/HANDOFF-domingo.md](docs/handoffs/HANDOFF-domingo.md).
+Plan completo, comandos y razones: [docs/plan-domingo.md](plan-domingo.md). Hechos: [docs/knowledge.md](../knowledge.md). Escrituras manuales: [docs/handoffs/HANDOFF-domingo.md](handoffs/HANDOFF-domingo.md).
 
 ## 08:30–08:50 (Jorge, máquina A)
 - [ ] Energía: tapa = "no hacer nada" (powercfg, plan §4.1), enchufada.

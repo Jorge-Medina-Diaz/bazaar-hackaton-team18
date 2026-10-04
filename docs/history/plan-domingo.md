@@ -1,6 +1,6 @@
 # Plan del domingo 4 oct · Chamberí (último día)
 
-*Escrito la noche del sábado al domingo, con el juego cerrado. Cada cifra sale de los datos o de los ids de [knowledge.md](knowledge.md). Lo que no se pudo comprobar dice **sin verificar**. Este documento sustituye a `DOMINGO.md` (que ahora solo remite aquí).*
+*Escrito la noche del sábado al domingo, con el juego cerrado. Cada cifra sale de los datos o de los ids de [knowledge.md](../knowledge.md). Lo que no se pudo comprobar dice **sin verificar**. Este documento sustituye a `DOMINGO.md` (que ahora solo remite aquí).*
 
 **Lo esencial en 6 líneas**
 1. El código bueno está en la rama `night-build` (último commit comprobado `0daffe5`, 883 tests OK). El bot vivo (pid 34804) **todavía lleva el código del sábado**: hay que desplegar antes de las 09:00 (§4) y, si se llega tarde, en cuanto no haya un duelo vivo y nunca después de las 10:55 (§4.2).
@@ -47,7 +47,7 @@ Cada arreglo lleva su test de regresión, y se comprobó que el test falla con e
 - **Volver a elegir el closer** tras un reinicio muy temprano (E2E-6). Es raro y solo cambia una compra barata por una puja.
 - **Sin respaldo de dealer para la carta de cierre** (E2E-7): por diseño, el cierre con un equipo es el +50.
 - **`flag_one.py` y `announce_stall.py`** (en el scratchpad, fuera del repo) no miran STOP ni escriben en el diario. Por eso cada uso se apunta a mano en [handoffs/HANDOFF-domingo.md](handoffs/HANDOFF-domingo.md).
-- **Limpieza de código sin conectar** (`pages.protect_sets`, `Calibrator.recheck`, `duels.e16_settled`), un test de arquitectura para los scripts de la raíz y archivar `observe_performance.py`. Nada de eso afecta al juego. Está en [TODO.md](../TODO.md).
+- **Limpieza de código sin conectar** (`pages.protect_sets`, `Calibrator.recheck`, `duels.e16_settled`), un test de arquitectura para los scripts de la raíz y archivar `observe_performance.py`. Nada de eso afecta al juego. Está en [TODO.md](TODO-domingo.md).
 
 ### 1.4 Tests
 - `night-build` `0daffe5`: **883 tests OK, 2 omitidos** (129 s, repetido esta noche). El commit siguiente, `37e3e7e`, solo cambia un docstring de `announce_candidates.py`.
@@ -407,4 +407,4 @@ Antes de cualquier venta a un dealer: si la oferta final es menor que tu suelo, 
 
 **Nunca:** `/api/admin/*`; `git push` antes de las 15:00; ejecutar `observe_performance.py` (envía la clave fuera); `selftest` con el runner vivo; nada de `archive/` ni los PROMPT de `docs/incoming/`; enviar "oro de Moscú" o el Lazarillo.
 
-**Después de las 15:00:** sección del domingo en [SHOWCASE.md](../SHOWCASE.md), decidir si `harness-v2` va a `main` y la visibilidad del repo, y limpiar worktrees y ramas ya fusionadas.
+**Después de las 15:00:** sección del domingo en [SHOWCASE.md](../../SHOWCASE.md), decidir si `harness-v2` va a `main` y la visibilidad del repo, y limpiar worktrees y ramas ya fusionadas.

@@ -1,7 +1,9 @@
 # Base de conocimiento verificada — Team 18 (t18)
 
+> **English summary:** the team's verified facts, in Spanish, each with an id, evidence and confidence: P- scoring, V- values and pages, D- dealers, R- El Rastro, X- rivals, U- duels, M- Market Test, C- calendar, K- Friday code, S- Saturday live. The "Refutado" section keeps every claim the data refuted, with the evidence. Plan and code cite these ids; [journey.md](journey.md) tells the story in English.
+
 Estado: domingo 4 oct 2026, de madrugada, juego cerrado (sábado cerrado en t 13,367, tick 1445). §1–§9 son datos del viernes; el sábado en vivo está en S-01..S-16 (hasta ~t577) y en **S-17..S-33**, el sábado completo (revisión nocturna). Los ids superados llevan la marca **[superado → …]**.
-Única fuente de verdad sobre **lo que sabemos**. Todo lo demás en el repo (strategy, LEEME, SHOWCASE, los traspasos de `docs/handoffs/`, `docs/incoming/` y lo archivado en `archive/docs/`) es una lista de afirmaciones; si contradice esto, manda esto. El plan del domingo está en [plan-domingo.md](plan-domingo.md).
+Única fuente de verdad sobre **lo que sabemos**. Todo lo demás en el repo (strategy, LEEME, SHOWCASE, los traspasos de `docs/history/handoffs/`, `docs/history/incoming/` y lo archivado en `docs/history/legacy-code/docs/`) es una lista de afirmaciones; si contradice esto, manda esto. El plan del domingo está en [plan-domingo.md](history/plan-domingo.md).
 
 **Cómo se ha construido.** Ocho analistas estudiaron el viernes y ocho escépticos independientes rehicieron sus cuentas desde los datos crudos. Aquí solo entra lo que el escéptico confirmó (con su redacción corregida) o lo que está escrito en RULES.md. Lo incierto va a "Preguntas abiertas", con el experimento seguro más barato. Lo refutado va a "Refutado", con los documentos que aún lo dicen.
 
@@ -162,11 +164,11 @@ Estado: domingo 4 oct 2026, de madrugada, juego cerrado (sábado cerrado en t 13
 - **C-09** `[medido · alta]` La OpenAPI expone 46 operaciones /api/admin/* (24 de escritura) y parámetros token/x-admin-token en /api/events/stream: no tocarlos nunca. El feed lleva el maker real en offer.listed aunque el tablero muestre seudónimos: no publicarlo ni depender de ello.
 - **C-10** `[regla oficial · alta]` Las fuentes oficiales se contradicen sobre los anillos de colusión. RULES l.132 dice que esos tratos "count for nothing until the organisers have looked"; la OpenAPI de /api/admin/integrity dice "counts as an even split".
 - **C-11** `[medido · alta]` Hay huecos en el feed (ticks 108–112 y 130–143) y el `ts` del feed es la hora de descarga, no la del evento. leaderboard.json y venues.json son snapshots de ~t155.
-- **C-12** `[regla oficial · alta]` Juego limpio: la Fase 4 de archive/docs/santi/estrategia_el_estrangulamiento_de_rastro.md (órdenes complementarias en nuestro propio venue) está prohibida por RULES l.76, y hacerlo a través de otro equipo cae en "alimentar a otro equipo a propósito". No implementarla.
+- **C-12** `[regla oficial · alta]` Juego limpio: la Fase 4 de docs/history/legacy-code/docs/santi/estrategia_el_estrangulamiento_de_rastro.md (órdenes complementarias en nuestro propio venue) está prohibida por RULES l.76, y hacerlo a través de otro equipo cae en "alimentar a otro equipo a propósito". No implementarla.
 
 ## 9. Nuestro código
 
-*Todo K-01..K-17 es del código del viernes, hoy archivado en `archive/` (no se ejecuta). El arnés v2 lo sustituye.*
+*Todo K-01..K-17 es del código del viernes, hoy archivado en `docs/history/legacy-code/` (no se ejecuta). El arnés v2 lo sustituye.*
 
 - **K-01** `[medido · alta]` market.sell_dups se queda con la copia de serial más bajo aunque ya esté a la venta, así que puede llegar a poner a la venta todas las copias. Así acabó LAT-05 entera a la venta (t150). El LAT-01 #16 lo publicó en t143 código ad hoc que no está en el repo.
 - **K-02** `[inferido · alta]` La guarda PROTECT de run_loop.best_trade cuenta las copias que tenemos, no las que quedan sin publicar: con las dos LAT-01 a la venta, todavía dejaría pasar una puja por LAT-01.
@@ -190,89 +192,89 @@ Estado: domingo 4 oct 2026, de madrugada, juego cerrado (sábado cerrado en t 13
 
 ## Refutado
 
-Cada línea: la afirmación falsa → lo que sale de los datos o de las reglas → documentos que aún la dicen. Las rutas apuntan a donde está hoy cada documento (casi todos en `archive/docs/`). Las citas de SHOWCASE.md, CLAUDE.md y research-context.md se corrigieron en esos ficheros el domingo 4.
+Cada línea: la afirmación falsa → lo que sale de los datos o de las reglas → documentos que aún la dicen. Las rutas apuntan a donde está hoy cada documento (casi todos en `docs/history/legacy-code/docs/`). Las citas de SHOWCASE.md, CLAUDE.md y research-context.md se corrigieron en esos ficheros el domingo 4.
 
-1. "La escalera pesa poco / los puntos salen de equipos, no de la escalera" → hasta t40 la puntuación era 100 % escalera y nuestro 0,022 valía 5,25–5,91 puntos de 30 (P-13). Lo dicen: archive/docs/playbook.md:22, archive/docs/scoring.md §4.2.
-2. "El viernes es entrenamiento que puntúa poco" → el viernes pesa el 20 % del total (P-16). Lo dice: archive/docs/scoring.md:24.
-3. "El sábado es la ronda decisiva / lleva la mayor parte del juego" → el sábado y el domingo pesan lo mismo (40 % cada uno). Lo dicen: archive/docs/scoring.md:24, archive/docs/STRATEGY.md §1. SHOWCASE.md ("Saturday and Sunday ... weigh 2× Friday combined") también se equivoca: juntos pesan 4× el viernes.
-4. "neg_points = primas de valor 1 a 1" → hay que restar la comisión cuando aceptamos, incluir los sobres sin abrir en V, aplicar el +50 de SAL-10, y con dealers solo cuentan las pérdidas (P-03, P-04, P-07). Lo dicen: archive/docs/scoring.md §4.1 y :61, archive/docs/playbook.md:22, archive/docs/STRATEGY.md.
-5. "Las pérdidas con vendedores fueron por pagar por encima de nuestro valor" → LAT-06 se pagó por debajo de su valor (22 frente a 22,5) y LAV-06 fue una venta, no una compra; LAT-06 y LAT-08 restaron por el sobre sin abrir (P-06). Lo dicen: archive/docs/audit.md §2 (l.23), archive/docs/playbook.md:4 y regla 1, archive/docs/playbook.md E13.
-6. "Comprar a ≤ valor da 0 neg_points" → LAT-06 a 22 ≤ 22,5 restó −1,86 (efecto del sobre sin abrir). Lo dice: archive/docs/experiments.md EXP-012.
-7. "Con LAT-08 la escalera solo puntúa la parte del rango capturada" → la escalera dio 0 porque el trato era una pérdida; LAT-06, 7 P por debajo de la apertura, también dio 0 (P-10). Lo dice: archive/docs/playbook.md E13.
-8. "Comisión = 5 % + 1 P por carta" → se redondea hacia arriba: ceil(5 % × precio + cartas) (R-01). Lo dice: archive/docs/scoring.md §4.1 (acierta en que la paga quien acepta).
-9. "Packs are luck, and luck never scores" → comprar un sobre puntúa como trato con dealer a su valor esperado (sobre a 23: −8,49). Lo que no puntúa es el resultado de abrirlo (P-08). Lo dice: archive/docs/STRATEGY.md:55.
-10. "A full-share deal on a 7 P card scores like one on a pack" → solo si el precio queda por debajo de nuestro valor (LAT-01 a 10 dio 0). Lo dicen: archive/docs/STRATEGY.md:43, archive/docs/santi/STRATEGY_v2.md:55.
-11. "El primer Market Test es el viernes a las 22:00 (hora 3)" → el viernes se paró en la hora 2,65 y no hubo ningún banco (M-01, C-01). Lo dicen: archive/docs/santi/STRATEGY_v2.md:10, :51 y :82, archive/docs/RECHECK.md:68, SHOWCASE.md (fila de Santi), archive/docs/STRATEGY.md:94 (§3.B/§4).
-12. "Hard bench Sat 01:00 / benches every 2 h from Sat 09:00" → la hora de juego 16 es a las 21:00 (N) o a las 22:21 (C), y a la 01:00 las puertas están cerradas. Lo dice: archive/docs/STRATEGY.md:66. archive/docs/santi/STRATEGY_v2.md (calendario) da como seguras las horas de la lectura N.
-13. "Market Test seguro a las ~09:20 (hora 3,0)" y "hora 5,0 a las ~10:00" → depende de la lectura del reloj, que no se conoce (C-05). Lo dicen: archive/docs/README.md:7 y :28, archive/docs/audit.md:104, archive/docs/playbook.md:80.
-14. "Tenemos 281 P" / "dinero ~430 a las 09:00" → al cierre hay 260; con la concesión del sábado, 410 (V-08). Lo dicen: archive/docs/playbook.md:80, archive/docs/audit.md:104.
-15. "at_hours: viernes de 0 a 4" → el viernes fue de 0 a 2,65. Lo dice: archive/docs/api.md:42.
-16. "Las ofertas caducan a los 40 ticks (en la práctica 30)" → el valor por defecto (40) dio 10 ticks a 60 s/tick (R-07). Lo dice: archive/docs/api.md:37.
-17. "your_value es el valor marginal de cada copia (la 1.ª al 100 %, la 2.ª al 25 %)" → todas las copias muestran el valor de la última (V-03). Lo dice: archive/docs/api.md:24.
-18. "La Abuela imita el tamaño de nuestros pasos" → su concesión apenas depende de nuestro paso (pendiente ≤ 0,16). Esto sí vale para El Chato. Lo dice: archive/docs/STRATEGY.md:50.
-19. "Las palabras mueven su ancla (17 por texto sin precio)" → 17 es el precio fijo de bienvenida antes del primer trato (D-02). Lo dicen: archive/docs/STRATEGY.md:51, archive/docs/santi/STRATEGY_v2.md:55.
-20. "Solo el primer hilo de cada equipo recibe el precio fijo" → son todos los hilos hasta el primer trato, y además ella compra la común a 13. Lo dice: archive/docs/playbook.md:145.
-21. "Cooloff tras 'Come back after lunch'" → no se midió ninguno: hubo reaperturas en el mismo tick atendidas con normalidad. Lo dice: archive/docs/playbook.md:154.
-22. "La final llega antes con pasos pequeños" → llega en su 5.ª–7.ª oferta; con pasos pequeños hubo más ofertas, no menos. Lo dice: archive/docs/playbook.md:155.
-23. "Suelo secreto de 22, 23 o 24 en sobres" → las finales van de 19 a 24. Lo dice: archive/docs/playbook.md:156.
-24. "La Abuela compra la infrecuente a 13 fijo y la común a 5 fijo" → la infrecuente abre a 12 y cierra a 13–16; la común, 5 o 6. Lo dice: archive/docs/playbook.md:163.
-25. "Los regalos son por ser amables" → llegan en el primer hilo negociado tras el primer trato; no hay ninguna prueba de que influya la amabilidad. Lo dice: archive/docs/playbook.md:167.
-26. "El inventario de la Abuela son las cartas que le venden los equipos" → crea cartas nuevas cuando no tiene la que le piden (D-12). Lo dice: archive/docs/playbook.md:27.
-27. "El Chato cambia rápido a la oferta final" y "con él, pocos pasos y grandes" → sus finales llegan en su 5.ª–7.ª oferta, y un salto de 22 consiguió 1 P. El patrón eficiente es un paso constante de ~3–4 P. Lo dicen: archive/docs/playbook.md:70 y :75, archive/docs/experiments.md EXP-011.
-28. "Límites de compra: sobre ≤ 23, común ≤ 10, infrecuente ≤ 22" → las finales de infrecuente van de 21 a 25: con un tope de 22 se abandonan la mayoría. Lo dice: archive/docs/decisions.md D-006 (l.19).
-29. "Solo hay 18 raras / 30 copias de cada rara en circulación" → hay 29 raras acuñadas y entre 2 y 5 por rara; El Chato acuña bajo demanda (X-03). Lo dicen: archive/docs/santi/STRATEGY_v2.md:16, archive/docs/santi/estrategia_el_estrangulamiento_de_rastro.md §2.
-30. "La Abuela no vende raras; las raras solo se mueven entre equipos" → El Chato vende raras sueltas, el sobre de plata tiene un hueco de rara (86 %) y el de bienvenida un 40 %. Lo dice: archive/docs/santi/STRATEGY_v2.md §1 #7.
-31. Estrategia del estrangulamiento (acumular raras con el sobre de barrio, controlar páginas con 3–4 copias, "24 P para él frente a 6 P para ti") → el sobre de barrio no trae raras, nadie ha tenido 2 copias de una rara y El Chato acuña copias nuevas. Lo dice: archive/docs/santi/estrategia_el_estrangulamiento_de_rastro.md §2 y Fase 2.
-32. "Para LAT nos faltan 2 raras que nadie vende" → t13 publicó LAT-09 a 65, t06 publicó LAT-10 a 84, y El Chato tiene LAT-09 #4 y bajó LAT-10 a 82. Lo dice: archive/docs/decisions.md D-008.
-33. "Vender LAT a t15 cuando esté cerca de completar" → t15 completó LAT en t142. Lo dice: archive/docs/playbook.md:51.
-34. "Compradores de SAL = t13; de LAT = t14 y t07" → t13 ya completó SAL; ahora compran SAL t02, t08 y t06, y en LAT falta t04. Lo dice: archive/docs/playbook.md:136.
+1. "La escalera pesa poco / los puntos salen de equipos, no de la escalera" → hasta t40 la puntuación era 100 % escalera y nuestro 0,022 valía 5,25–5,91 puntos de 30 (P-13). Lo dicen: docs/history/legacy-code/docs/playbook.md:22, docs/history/legacy-code/docs/scoring.md §4.2.
+2. "El viernes es entrenamiento que puntúa poco" → el viernes pesa el 20 % del total (P-16). Lo dice: docs/history/legacy-code/docs/scoring.md:24.
+3. "El sábado es la ronda decisiva / lleva la mayor parte del juego" → el sábado y el domingo pesan lo mismo (40 % cada uno). Lo dicen: docs/history/legacy-code/docs/scoring.md:24, docs/history/legacy-code/docs/STRATEGY.md §1. SHOWCASE.md ("Saturday and Sunday ... weigh 2× Friday combined") también se equivoca: juntos pesan 4× el viernes.
+4. "neg_points = primas de valor 1 a 1" → hay que restar la comisión cuando aceptamos, incluir los sobres sin abrir en V, aplicar el +50 de SAL-10, y con dealers solo cuentan las pérdidas (P-03, P-04, P-07). Lo dicen: docs/history/legacy-code/docs/scoring.md §4.1 y :61, docs/history/legacy-code/docs/playbook.md:22, docs/history/legacy-code/docs/STRATEGY.md.
+5. "Las pérdidas con vendedores fueron por pagar por encima de nuestro valor" → LAT-06 se pagó por debajo de su valor (22 frente a 22,5) y LAV-06 fue una venta, no una compra; LAT-06 y LAT-08 restaron por el sobre sin abrir (P-06). Lo dicen: docs/history/legacy-code/docs/audit.md §2 (l.23), docs/history/legacy-code/docs/playbook.md:4 y regla 1, docs/history/legacy-code/docs/playbook.md E13.
+6. "Comprar a ≤ valor da 0 neg_points" → LAT-06 a 22 ≤ 22,5 restó −1,86 (efecto del sobre sin abrir). Lo dice: docs/history/legacy-code/docs/experiments.md EXP-012.
+7. "Con LAT-08 la escalera solo puntúa la parte del rango capturada" → la escalera dio 0 porque el trato era una pérdida; LAT-06, 7 P por debajo de la apertura, también dio 0 (P-10). Lo dice: docs/history/legacy-code/docs/playbook.md E13.
+8. "Comisión = 5 % + 1 P por carta" → se redondea hacia arriba: ceil(5 % × precio + cartas) (R-01). Lo dice: docs/history/legacy-code/docs/scoring.md §4.1 (acierta en que la paga quien acepta).
+9. "Packs are luck, and luck never scores" → comprar un sobre puntúa como trato con dealer a su valor esperado (sobre a 23: −8,49). Lo que no puntúa es el resultado de abrirlo (P-08). Lo dice: docs/history/legacy-code/docs/STRATEGY.md:55.
+10. "A full-share deal on a 7 P card scores like one on a pack" → solo si el precio queda por debajo de nuestro valor (LAT-01 a 10 dio 0). Lo dicen: docs/history/legacy-code/docs/STRATEGY.md:43, docs/history/legacy-code/docs/santi/STRATEGY_v2.md:55.
+11. "El primer Market Test es el viernes a las 22:00 (hora 3)" → el viernes se paró en la hora 2,65 y no hubo ningún banco (M-01, C-01). Lo dicen: docs/history/legacy-code/docs/santi/STRATEGY_v2.md:10, :51 y :82, docs/history/legacy-code/docs/RECHECK.md:68, SHOWCASE.md (fila de Santi), docs/history/legacy-code/docs/STRATEGY.md:94 (§3.B/§4).
+12. "Hard bench Sat 01:00 / benches every 2 h from Sat 09:00" → la hora de juego 16 es a las 21:00 (N) o a las 22:21 (C), y a la 01:00 las puertas están cerradas. Lo dice: docs/history/legacy-code/docs/STRATEGY.md:66. docs/history/legacy-code/docs/santi/STRATEGY_v2.md (calendario) da como seguras las horas de la lectura N.
+13. "Market Test seguro a las ~09:20 (hora 3,0)" y "hora 5,0 a las ~10:00" → depende de la lectura del reloj, que no se conoce (C-05). Lo dicen: docs/history/legacy-code/docs/README.md:7 y :28, docs/history/legacy-code/docs/audit.md:104, docs/history/legacy-code/docs/playbook.md:80.
+14. "Tenemos 281 P" / "dinero ~430 a las 09:00" → al cierre hay 260; con la concesión del sábado, 410 (V-08). Lo dicen: docs/history/legacy-code/docs/playbook.md:80, docs/history/legacy-code/docs/audit.md:104.
+15. "at_hours: viernes de 0 a 4" → el viernes fue de 0 a 2,65. Lo dice: docs/history/legacy-code/docs/api.md:42.
+16. "Las ofertas caducan a los 40 ticks (en la práctica 30)" → el valor por defecto (40) dio 10 ticks a 60 s/tick (R-07). Lo dice: docs/history/legacy-code/docs/api.md:37.
+17. "your_value es el valor marginal de cada copia (la 1.ª al 100 %, la 2.ª al 25 %)" → todas las copias muestran el valor de la última (V-03). Lo dice: docs/history/legacy-code/docs/api.md:24.
+18. "La Abuela imita el tamaño de nuestros pasos" → su concesión apenas depende de nuestro paso (pendiente ≤ 0,16). Esto sí vale para El Chato. Lo dice: docs/history/legacy-code/docs/STRATEGY.md:50.
+19. "Las palabras mueven su ancla (17 por texto sin precio)" → 17 es el precio fijo de bienvenida antes del primer trato (D-02). Lo dicen: docs/history/legacy-code/docs/STRATEGY.md:51, docs/history/legacy-code/docs/santi/STRATEGY_v2.md:55.
+20. "Solo el primer hilo de cada equipo recibe el precio fijo" → son todos los hilos hasta el primer trato, y además ella compra la común a 13. Lo dice: docs/history/legacy-code/docs/playbook.md:145.
+21. "Cooloff tras 'Come back after lunch'" → no se midió ninguno: hubo reaperturas en el mismo tick atendidas con normalidad. Lo dice: docs/history/legacy-code/docs/playbook.md:154.
+22. "La final llega antes con pasos pequeños" → llega en su 5.ª–7.ª oferta; con pasos pequeños hubo más ofertas, no menos. Lo dice: docs/history/legacy-code/docs/playbook.md:155.
+23. "Suelo secreto de 22, 23 o 24 en sobres" → las finales van de 19 a 24. Lo dice: docs/history/legacy-code/docs/playbook.md:156.
+24. "La Abuela compra la infrecuente a 13 fijo y la común a 5 fijo" → la infrecuente abre a 12 y cierra a 13–16; la común, 5 o 6. Lo dice: docs/history/legacy-code/docs/playbook.md:163.
+25. "Los regalos son por ser amables" → llegan en el primer hilo negociado tras el primer trato; no hay ninguna prueba de que influya la amabilidad. Lo dice: docs/history/legacy-code/docs/playbook.md:167.
+26. "El inventario de la Abuela son las cartas que le venden los equipos" → crea cartas nuevas cuando no tiene la que le piden (D-12). Lo dice: docs/history/legacy-code/docs/playbook.md:27.
+27. "El Chato cambia rápido a la oferta final" y "con él, pocos pasos y grandes" → sus finales llegan en su 5.ª–7.ª oferta, y un salto de 22 consiguió 1 P. El patrón eficiente es un paso constante de ~3–4 P. Lo dicen: docs/history/legacy-code/docs/playbook.md:70 y :75, docs/history/legacy-code/docs/experiments.md EXP-011.
+28. "Límites de compra: sobre ≤ 23, común ≤ 10, infrecuente ≤ 22" → las finales de infrecuente van de 21 a 25: con un tope de 22 se abandonan la mayoría. Lo dice: docs/history/legacy-code/docs/decisions.md D-006 (l.19).
+29. "Solo hay 18 raras / 30 copias de cada rara en circulación" → hay 29 raras acuñadas y entre 2 y 5 por rara; El Chato acuña bajo demanda (X-03). Lo dicen: docs/history/legacy-code/docs/santi/STRATEGY_v2.md:16, docs/history/legacy-code/docs/santi/estrategia_el_estrangulamiento_de_rastro.md §2.
+30. "La Abuela no vende raras; las raras solo se mueven entre equipos" → El Chato vende raras sueltas, el sobre de plata tiene un hueco de rara (86 %) y el de bienvenida un 40 %. Lo dice: docs/history/legacy-code/docs/santi/STRATEGY_v2.md §1 #7.
+31. Estrategia del estrangulamiento (acumular raras con el sobre de barrio, controlar páginas con 3–4 copias, "24 P para él frente a 6 P para ti") → el sobre de barrio no trae raras, nadie ha tenido 2 copias de una rara y El Chato acuña copias nuevas. Lo dice: docs/history/legacy-code/docs/santi/estrategia_el_estrangulamiento_de_rastro.md §2 y Fase 2.
+32. "Para LAT nos faltan 2 raras que nadie vende" → t13 publicó LAT-09 a 65, t06 publicó LAT-10 a 84, y El Chato tiene LAT-09 #4 y bajó LAT-10 a 82. Lo dice: docs/history/legacy-code/docs/decisions.md D-008.
+33. "Vender LAT a t15 cuando esté cerca de completar" → t15 completó LAT en t142. Lo dice: docs/history/legacy-code/docs/playbook.md:51.
+34. "Compradores de SAL = t13; de LAT = t14 y t07" → t13 ya completó SAL; ahora compran SAL t02, t08 y t06, y en LAT falta t04. Lo dice: docs/history/legacy-code/docs/playbook.md:136.
 35. "Tenemos la única página completa del juego" → al cierre hay 9 páginas completas. Lo dice: SHOWCASE.md:75.
-36. "Los 4 primeros son los 4 de los únicos tratos de raras" → caducado: al cierre hay 8 ventas de raras entre equipos. Lo dice: archive/docs/STRATEGY.md:31.
-37. "Cobertura de settlements del 64 %" → es el 64 % de los ids, pero el 91 % de los tratos que mueven cartas. Lo dice: archive/docs/audit.md:3.
-38. "Revender el contenido del sobre da +12–15" → las 3 cartas siguen sin vender (−8,4 neto). Lo dice: archive/docs/experiments.md EXP-010.
-39. "Los repetidos a 9 se venden en ~10–20 ticks / nuestros 9 P se venden" → se vendieron 5 de 9 y la limitación era la demanda. Lo dicen: archive/docs/experiments.md EXP-005b, archive/docs/playbook.md:122, SHOWCASE.md:69.
-40. "El dinero parado tiene coste de oportunidad" → ni una de las 484 ofertas de venta era rentable comprándolas de una en una. Lo dice: archive/docs/audit.md §3.
-41. "Las ofertas dirigidas ganan los dos" → nuestras dirigidas se cumplieron 0 de 8; en todo el mercado, 3 de 29. Lo dicen: archive/docs/playbook.md:101, archive/docs/decisions.md D-008.
-42. "Guardar el sobre de bienvenida hasta RET" → se abrió en t145, y guardarlo abarataba las cartas que comprábamos (P-06). Lo dice: archive/docs/audit.md §5 opción e.
-43. "Mínimos del viernes: común 7, infrecuente 17, sobre 19" → la común más barata entre equipos se vendió a 5, la infrecuente a 12 y el sobre más barato fue de 17. Lo dice: archive/docs/STRATEGY.md:54.
-44. "En los duelos esperar cuesta" → el decay es por intercambio, no por tiempo (U-02). Lo dicen: docs/research-context.md §4, el docstring y el comentario BETA de archive/agent/duels.py, archive/docs/santi/STRATEGY_v2.md:19 y §3.5.
-45. "En duelos solo cedemos cuando el rival se mueve" → el código cede tras la primera oferta rival aunque el rival calle (K-06). Lo dicen: archive/docs/playbook.md:171, el comentario de archive/agent/duels.py.
-46. "6 duelos por sesión en la práctica" → fueron 30 duelos en la sesión, con hasta 6 simultáneos. Lo dice: archive/docs/playbook.md:170.
+36. "Los 4 primeros son los 4 de los únicos tratos de raras" → caducado: al cierre hay 8 ventas de raras entre equipos. Lo dice: docs/history/legacy-code/docs/STRATEGY.md:31.
+37. "Cobertura de settlements del 64 %" → es el 64 % de los ids, pero el 91 % de los tratos que mueven cartas. Lo dice: docs/history/legacy-code/docs/audit.md:3.
+38. "Revender el contenido del sobre da +12–15" → las 3 cartas siguen sin vender (−8,4 neto). Lo dice: docs/history/legacy-code/docs/experiments.md EXP-010.
+39. "Los repetidos a 9 se venden en ~10–20 ticks / nuestros 9 P se venden" → se vendieron 5 de 9 y la limitación era la demanda. Lo dicen: docs/history/legacy-code/docs/experiments.md EXP-005b, docs/history/legacy-code/docs/playbook.md:122, SHOWCASE.md:69.
+40. "El dinero parado tiene coste de oportunidad" → ni una de las 484 ofertas de venta era rentable comprándolas de una en una. Lo dice: docs/history/legacy-code/docs/audit.md §3.
+41. "Las ofertas dirigidas ganan los dos" → nuestras dirigidas se cumplieron 0 de 8; en todo el mercado, 3 de 29. Lo dicen: docs/history/legacy-code/docs/playbook.md:101, docs/history/legacy-code/docs/decisions.md D-008.
+42. "Guardar el sobre de bienvenida hasta RET" → se abrió en t145, y guardarlo abarataba las cartas que comprábamos (P-06). Lo dice: docs/history/legacy-code/docs/audit.md §5 opción e.
+43. "Mínimos del viernes: común 7, infrecuente 17, sobre 19" → la común más barata entre equipos se vendió a 5, la infrecuente a 12 y el sobre más barato fue de 17. Lo dice: docs/history/legacy-code/docs/STRATEGY.md:54.
+44. "En los duelos esperar cuesta" → el decay es por intercambio, no por tiempo (U-02). Lo dicen: docs/research-context.md §4, el docstring y el comentario BETA de docs/history/legacy-code/agent/duels.py, docs/history/legacy-code/docs/santi/STRATEGY_v2.md:19 y §3.5.
+45. "En duelos solo cedemos cuando el rival se mueve" → el código cede tras la primera oferta rival aunque el rival calle (K-06). Lo dicen: docs/history/legacy-code/docs/playbook.md:171, el comentario de docs/history/legacy-code/agent/duels.py.
+46. "6 duelos por sesión en la práctica" → fueron 30 duelos en la sesión, con hasta 6 simultáneos. Lo dice: docs/history/legacy-code/docs/playbook.md:170.
 47. "El bot de duelos cierra rápido" → 3,83 rondas de media y un 15,7 % perdido; los días se fijan sin leer days_meaning. Lo dice: SHOWCASE.md:101.
-48. "result = parte del pastel" → result es el excedente absoluto por el decay; cómo se convierte en duel_points no se conoce. Lo dicen: archive/docs/STRATEGY.md:9, archive/docs/ANALISIS_RENDIMIENTO.md:17, archive/docs/README.md:38, archive/docs/scoring.md §4.3.
-49. "El límite del rival es nuestro límite en la otra pata" → no encaja con 4 de 15 parejas (U-04). Puede ser la "regla de rival fijo" de archive/docs/README.md:7; si es eso, está refutada.
-50. "Greedy ya está cerca del óptimo" → un oráculo lo supera por 4–11 pp según el modelo; solo es casi óptimo entre las políticas que no conocen los límites. Lo dice: archive/docs/broker-design.md §5.
-51. "Esperar en el broker mejora" → esperar pierde frente a greedy en todos los modelos (M-08). Lo dicen: archive/docs/broker-design.md §3.4, el docstring de archive/agent/broker.py.
-52. "Tope oficial de 10 emparejamientos por tick" → es un recorte del public_plan del starter, no una regla. Lo dice: archive/docs/broker-design.md §3.6.
-53. "Comprobar si la API admite comisión 0" → ya está comprobado: v02 y v04 abrieron con 0. Lo dice: archive/docs/broker-design.md §1.
-54. "La primera sesión será con el puesto porque no tenemos nivel 2" → tenemos nivel 2. Lo dice: archive/docs/broker-design.md §4.
-55. "Max-card arregla la elección voraz en el banco" → solo vale para ofertas públicas; en el banco puede perder −20 P. Lo dice: archive/docs/PROPUESTA.md:54.
-56. "30 puntos enteros de broker propio y el puesto saca la mitad" → la mitad se aplica a los puntos del banco, y el reparto entre bench_points y mm_points no se conoce. Lo dicen: archive/docs/playbook.md:48, archive/docs/scoring.md:118, archive/docs/santi/estrategia_el_estrangulamiento_de_rastro.md:8 y :57.
-57. "Atraer el flujo de El Rastro con comisión cercana a 0" → sin respaldo: tres venues rivales ya tienen comisión 0 y no han hecho ningún trato. Lo dice: archive/docs/santi/STRATEGY_v2.md fila 9 / §3.2.
-58. "+150 P a las 09:00" y "~240 aceptaciones esta noche" → la concesión llega a la hora 4,05 (09:03 con N, 10:24 con C), y el viernes hubo 160 ticks. Lo dice: archive/docs/santi/STRATEGY_v2.md §1 #10 y #11.
-59. "Aceptar órdenes segundos antes del cierre del tick" → ninguna regla lo premia y se arriesga a perder el tick. Lo dice: archive/docs/santi/estrategia_el_estrangulamiento_de_rastro.md §4.
-60. "offer_ok() antes de cualquier aceptación" → run_loop y duels aceptan sin offer_ok (K-09). Lo decía el CLAUDE.md del viernes (ya reescrito); archive/docs/README.md:53, SHOWCASE.md:93.
-61. "sell-dups nunca vende la última copia" → ha puesto a la venta todas las copias de LAT-05 (K-01). Lo dice: el docstring de archive/market.py.
-62. "La caja nunca baja de RESERVE (270)" → RESERVE = 150 y solo se aplica a compras. Lo dice: el docstring de archive/run_loop.py.
-63. "Un solo ejecutor" garantizado → el candado es local, de una sola máquina. Lo decía el CLAUDE.md del viernes (ya reescrito); archive/docs/README.md:23.
-64. "El mismo código corre en vivo y en el simulador" → run_broker usa starter_broker. Lo dice: el docstring de archive/agent/broker.py.
-65. "client.py usa wait_on_tick=False" → usa el valor por defecto, True. Lo dice: archive/docs/STRATEGY.md:102.
-66. "Pasan las 93 pruebas" → 2 dan error en Windows. Lo dice: archive/docs/HANDOFF.md.
+48. "result = parte del pastel" → result es el excedente absoluto por el decay; cómo se convierte en duel_points no se conoce. Lo dicen: docs/history/legacy-code/docs/STRATEGY.md:9, docs/history/legacy-code/docs/ANALISIS_RENDIMIENTO.md:17, docs/history/legacy-code/docs/README.md:38, docs/history/legacy-code/docs/scoring.md §4.3.
+49. "El límite del rival es nuestro límite en la otra pata" → no encaja con 4 de 15 parejas (U-04). Puede ser la "regla de rival fijo" de docs/history/legacy-code/docs/README.md:7; si es eso, está refutada.
+50. "Greedy ya está cerca del óptimo" → un oráculo lo supera por 4–11 pp según el modelo; solo es casi óptimo entre las políticas que no conocen los límites. Lo dice: docs/history/legacy-code/docs/broker-design.md §5.
+51. "Esperar en el broker mejora" → esperar pierde frente a greedy en todos los modelos (M-08). Lo dicen: docs/history/legacy-code/docs/broker-design.md §3.4, el docstring de docs/history/legacy-code/agent/broker.py.
+52. "Tope oficial de 10 emparejamientos por tick" → es un recorte del public_plan del starter, no una regla. Lo dice: docs/history/legacy-code/docs/broker-design.md §3.6.
+53. "Comprobar si la API admite comisión 0" → ya está comprobado: v02 y v04 abrieron con 0. Lo dice: docs/history/legacy-code/docs/broker-design.md §1.
+54. "La primera sesión será con el puesto porque no tenemos nivel 2" → tenemos nivel 2. Lo dice: docs/history/legacy-code/docs/broker-design.md §4.
+55. "Max-card arregla la elección voraz en el banco" → solo vale para ofertas públicas; en el banco puede perder −20 P. Lo dice: docs/history/legacy-code/docs/PROPUESTA.md:54.
+56. "30 puntos enteros de broker propio y el puesto saca la mitad" → la mitad se aplica a los puntos del banco, y el reparto entre bench_points y mm_points no se conoce. Lo dicen: docs/history/legacy-code/docs/playbook.md:48, docs/history/legacy-code/docs/scoring.md:118, docs/history/legacy-code/docs/santi/estrategia_el_estrangulamiento_de_rastro.md:8 y :57.
+57. "Atraer el flujo de El Rastro con comisión cercana a 0" → sin respaldo: tres venues rivales ya tienen comisión 0 y no han hecho ningún trato. Lo dice: docs/history/legacy-code/docs/santi/STRATEGY_v2.md fila 9 / §3.2.
+58. "+150 P a las 09:00" y "~240 aceptaciones esta noche" → la concesión llega a la hora 4,05 (09:03 con N, 10:24 con C), y el viernes hubo 160 ticks. Lo dice: docs/history/legacy-code/docs/santi/STRATEGY_v2.md §1 #10 y #11.
+59. "Aceptar órdenes segundos antes del cierre del tick" → ninguna regla lo premia y se arriesga a perder el tick. Lo dice: docs/history/legacy-code/docs/santi/estrategia_el_estrangulamiento_de_rastro.md §4.
+60. "offer_ok() antes de cualquier aceptación" → run_loop y duels aceptan sin offer_ok (K-09). Lo decía el CLAUDE.md del viernes (ya reescrito); docs/history/legacy-code/docs/README.md:53, SHOWCASE.md:93.
+61. "sell-dups nunca vende la última copia" → ha puesto a la venta todas las copias de LAT-05 (K-01). Lo dice: el docstring de docs/history/legacy-code/market.py.
+62. "La caja nunca baja de RESERVE (270)" → RESERVE = 150 y solo se aplica a compras. Lo dice: el docstring de docs/history/legacy-code/run_loop.py.
+63. "Un solo ejecutor" garantizado → el candado es local, de una sola máquina. Lo decía el CLAUDE.md del viernes (ya reescrito); docs/history/legacy-code/docs/README.md:23.
+64. "El mismo código corre en vivo y en el simulador" → run_broker usa starter_broker. Lo dice: el docstring de docs/history/legacy-code/agent/broker.py.
+65. "client.py usa wait_on_tick=False" → usa el valor por defecto, True. Lo dice: docs/history/legacy-code/docs/STRATEGY.md:102.
+66. "Pasan las 93 pruebas" → 2 dan error en Windows. Lo dice: docs/history/legacy-code/docs/HANDOFF.md.
 67. "Todo lo que toca la API deja rastro en logs/" → open_pack y el escritor del hilo 296 no dejaron log. Lo decía el CLAUDE.md del viernes (ya reescrito).
-68. "run_morning es seguro de relanzar" → reintenta open_venue ante errores de red. Lo dice: el docstring de archive/run_morning.py.
-69. "Las claves del broker nunca llegan al navegador" → agent/dashboard.snapshot manda /api/me entero. Lo dicen: archive/docs/HANDOFF.md (panel), el docstring de api/index.py.
-70. "agent/dealers.py['chato'] abre al 60 %" → el código tiene un ancla de 0,70. Lo dice: archive/docs/playbook.md (El Chato).
-71. "El bucle captura cualquier excepción y sigue" → sigue, pero pierde el paso de mercado de ese tick (K-16). Lo dice: archive/docs/playbook.md E11.
-72. "Los puntos son la parte del rango capturada a los vendedores" → la escalera solo cuenta tratos que son ganancia a nuestros valores (P-10). Lo dice: archive/docs/README.md:38.
-73. "t18 no tiene venue; por eso el mercado está fijo en 7,5" y "el Market Test solo puntúa en los venues inscritos" → tenemos el puesto gratuito v18 desde el tick 201, entra en cada Market Test y saca bench 0,5. Lo que nos separa de t10 es el mercado orgánico (S-23, S-24). Lo dicen: docs/incoming/EL_ORO_DE_MOSCU.md §1 y §5, docs/incoming/PARA_JORGE.md §3. El LEEME y strategy §1 lo decían también; ya están corregidos.
-74. "`adjustments` vacío = nadie ha denunciado" → enviamos 9 denuncias, 3 sumaron +10 cada una a neg_points, y `adjustments` siguió vacío (S-28). Lo dicen: los tres ficheros de docs/incoming/.
+68. "run_morning es seguro de relanzar" → reintenta open_venue ante errores de red. Lo dice: el docstring de docs/history/legacy-code/run_morning.py.
+69. "Las claves del broker nunca llegan al navegador" → agent/dashboard.snapshot manda /api/me entero. Lo dicen: docs/history/legacy-code/docs/HANDOFF.md (panel), el docstring de api/index.py.
+70. "agent/dealers.py['chato'] abre al 60 %" → el código tiene un ancla de 0,70. Lo dice: docs/history/legacy-code/docs/playbook.md (El Chato).
+71. "El bucle captura cualquier excepción y sigue" → sigue, pero pierde el paso de mercado de ese tick (K-16). Lo dice: docs/history/legacy-code/docs/playbook.md E11.
+72. "Los puntos son la parte del rango capturada a los vendedores" → la escalera solo cuenta tratos que son ganancia a nuestros valores (P-10). Lo dice: docs/history/legacy-code/docs/README.md:38.
+73. "t18 no tiene venue; por eso el mercado está fijo en 7,5" y "el Market Test solo puntúa en los venues inscritos" → tenemos el puesto gratuito v18 desde el tick 201, entra en cada Market Test y saca bench 0,5. Lo que nos separa de t10 es el mercado orgánico (S-23, S-24). Lo dicen: docs/history/incoming/EL_ORO_DE_MOSCU.md §1 y §5, docs/history/incoming/PARA_JORGE.md §3. El LEEME y strategy §1 lo decían también; ya están corregidos.
+74. "`adjustments` vacío = nadie ha denunciado" → enviamos 9 denuncias, 3 sumaron +10 cada una a neg_points, y `adjustments` siguió vacío (S-28). Lo dicen: los tres ficheros de docs/history/incoming/.
 75. "Revender épicas da beneficio" (como puntuación) → la caja no puntúa (P-02, Payday S-22). Con dealers, comprar suma min(0, V − p) (P-04). Además, las cifras citadas son brutas: RET-11 dejó +67 netos tras comisión (no +79) y MAL-11 +34 (no +45). Lo dicen: EL_ORO_DE_MOSCU.md §2c y PARA_JORGE.md §4.
 76. "De 09:00 a 12:17 del domingo sigue contando la ronda del sábado" → el sábado la ronda cambió al abrir (tick 161), aunque el calendario la ponía en t 4,0 (S-17). Muy probablemente la ronda 3 empieza a las 09:00. Lo dice: EL_ORO_DE_MOSCU.md §6.
 77. "Domingo: CHA a las 12:17 y Duels III a las 14:17" → eso solo pasa si el calendario no se re-ancla (escenario A). El precedente del sábado apunta a CHA a las 09:00, Duels III ~11:00 y cierre de puestos ~14:00 (plan-domingo.md §3). Lo dicen: EL_ORO_DE_MOSCU.md §6 y §7, PARA_JORGE.md §3.
 78. "Banco + «oro de Moscú» da LAT-13" → LAT-13 tiene tirada 1, acuñada 1/1 y en manos de t02 desde el tick 1021. Ernesto se desentiende desde entonces (S-29). Lo dicen: EL_ORO_DE_MOSCU.md §4 y §7, PARA_JORGE.md §2.
 79. "Con la frase del Lazarillo, los Pícaros no hacen trucos ese día" → después de su huevo, t10 recibió 5 ofertas con carta cambiada (de 20) y t08 2 (de 4) (S-29). Lo dicen: EL_ORO_DE_MOSCU.md §4, PARA_JORGE.md §2.
 80. "No tenemos tratos con El Chato en la ronda 2" → hicimos 2 (RET-09 y RET-10 a 86, ticks 206 y 213), antes del tramo que miró ese estudio, que empieza en el tick 559 (S-30). Lo dice: EL_ORO_DE_MOSCU.md §2b.
-81. "Mercado = 15 × bench + 15 × mm" → por ronda es 22,5 × bench + 7,5 × orgánico (S-23). Lo dice: docs/handoffs/HANDOFF-sabado-2100.md §2 (lleva nota de corrección).
+81. "Mercado = 15 × bench + 15 × mm" → por ronda es 22,5 × bench + 7,5 × orgánico (S-23). Lo dice: docs/history/handoffs/HANDOFF-sabado-2100.md §2 (lleva nota de corrección).
 82. "El feed público trae `bench.finished` con la eficiencia de cada venue" → en 15.339 eventos no hay ninguno (S-23). Lo dicen: HANDOFF-sabado-2100.md §2 y §4.3; `egg_watch.py` lo vigila sin resultado.
 83. "En Duels II ofrecimos el peor día" → antes de `5ee5593` mandábamos siempre 5 días (318 de 318 mensajes). Lo que hundió la sesión fue el margen de peor caso (S-27). Lo decía el relato del sábado por la noche.
 84. "Repartir los tratos durante el día sube la nota" → la nota final de una ronda depende de qué tratos se hicieron, no de cuándo. La bajada durante el día es la ponderación por fase (P-16). Lo que sí obliga a ir pronto es el cupo por hora de cada dealer y el cierre de los puestos. Lo dice: EL_ORO_DE_MOSCU.md §2a.

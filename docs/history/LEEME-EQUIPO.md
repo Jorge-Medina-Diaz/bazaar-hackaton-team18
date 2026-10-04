@@ -1,6 +1,6 @@
 # LÉEME — Team 18 (t18), sábado 3 oct 2026
 
-> **Histórico: guía del sábado a las 08:35.** Las reglas de puntuación (§1) y el arnés (§5) siguen valiendo. La situación, el calendario y las decisiones del sábado están superados. **Domingo: [plan-domingo.md](plan-domingo.md).** Hechos al día: [knowledge.md](knowledge.md) S-17..S-33. Este documento solo se ha corregido donde contradecía los datos.
+> **Histórico: guía del sábado a las 08:35.** Las reglas de puntuación (§1) y el arnés (§5) siguen valiendo. La situación, el calendario y las decisiones del sábado están superados. **Domingo: [plan-domingo.md](plan-domingo.md).** Hechos al día: [knowledge.md](../knowledge.md) S-17..S-33. Este documento solo se ha corregido donde contradecía los datos.
 
 Para quien estaba dormido: diez minutos. Si algo choca con `docs/knowledge.md` (ids P-, V-, D-, R-, X-, U-, M-, C-, K-), manda `knowledge.md`. Plan completo: `docs/strategy.md`. Arnés: `docs/harness-spec.md`.
 

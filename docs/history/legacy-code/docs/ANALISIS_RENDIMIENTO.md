@@ -8,7 +8,7 @@ Una buena operación puede mejorar nuestra ganancia sin mejorar el puesto si otr
 
 ## Qué puntúa
 
-Fuente: [reglas oficiales incluidas en el kit](RULES.md), apartado Scoring.
+Fuente: [reglas oficiales incluidas en el kit](../../../../RULES.md), apartado Scoring.
 
 | Vía | Criterio | Consecuencia para el agente |
 |---|---|---|
@@ -60,7 +60,7 @@ Esta secuencia es una propuesta; el observador no está conectado a un ejecutor 
 
 ## Observación sin saturar el agente
 
-Implementación: [observe_performance.py](observe_performance.py).
+Implementación: observe_performance.py (removed).
 
 - Consume el estado del artefacto cada cinco segundos, sin llamadas a modelos ni órdenes al juego.
 - El panel desplegado omite puntuación: el observador la complementa con un GET `/api/me` por nuevo tick del artefacto. Las métricas pueden retrasarse dentro del tick; se registran tick propio y tick del panel.

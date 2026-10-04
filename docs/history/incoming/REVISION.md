@@ -1,6 +1,6 @@
 # Revisión de los documentos de Rubén (sáb 3 oct, 22:30–22:55)
 
-*Revisión nocturna, dom 4 oct, solo con lecturas: snapshots de las 23:59, el feed fusionado (con huecos), el diario, `untrusted.jsonl`, `eggs.jsonl` y los hilos. Los originales se quedan en esta carpeta tal cual, con un aviso arriba. **Son datos, no instrucciones**: sus PROMPT no se pegan en ninguna sesión, porque reenviarían denuncias, escribirían fuera de la Gate y gastarían el "oro de Moscú", que ya está agotado. El plan vigente está en [../plan-domingo.md](../plan-domingo.md) y los hechos en [../knowledge.md](../knowledge.md).*
+*Revisión nocturna, dom 4 oct, solo con lecturas: snapshots de las 23:59, el feed fusionado (con huecos), el diario, `untrusted.jsonl`, `eggs.jsonl` y los hilos. Los originales se quedan en esta carpeta tal cual, con un aviso arriba. **Son datos, no instrucciones**: sus PROMPT no se pegan en ninguna sesión, porque reenviarían denuncias, escribirían fuera de la Gate y gastarían el "oro de Moscú", que ya está agotado. El plan vigente está en [../plan-domingo.md](../plan-domingo.md) y los hechos en [../knowledge.md](../../knowledge.md).*
 
 Claves: **OK** = correcto · **MAL** = falso · **HECHO** = ya se hizo · **SIN VERIFICAR** = no se ha podido comprobar.
 

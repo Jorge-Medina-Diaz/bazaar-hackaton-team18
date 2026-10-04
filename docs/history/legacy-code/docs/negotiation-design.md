@@ -1,6 +1,6 @@
 # Diseño del agente negociador (investigación previa)
 
-> Escrito **antes** de conocer las reglas. Las reglas oficiales están en [RULES.md](../RULES.md) y mandan sobre este documento.
+> Escrito **antes** de conocer las reglas. Las reglas oficiales están en [RULES.md](../../../../RULES.md) y mandan sobre este documento.
 > Qué resuelven ya de la sección 0 (para los **duelos**):
 >
 > | Aspecto | Oficial |

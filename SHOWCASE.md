@@ -84,13 +84,13 @@ Three people, three tools (Claude Code, Codex, scripts), one key, and Friday tic
 
 | Who | Contribution |
 |---|---|
-| **Jorge** | The live engine: generic haggler (`agent/haggle.py`, concession curve + `AC_next` acceptance), dealer profiles as data, `market.py` (deal scanner + `sell-dups`), `scout.py` feed reader. Ran the experiments that produced the climb. Kept the playbook. *(Friday code, now in `archive/`; replaced on Saturday by the v2 harness.)* |
-| **Rubén** | Offline negotiation lab: `negotiation_policy.py`, a step-by-step simulator, **17 tests** and comparative evaluation. Ran the first real pilot (SAL-02 at 9). Ran a cross-review (`archive/docs/RECHECK.md`) that **found 4 bugs** in teammates' code before they cost anything. |
-| **Santi** | Strategy v1 → v2: the scoring breakdown, the read on how t10 was leading, the corrected calendar (first Market Test is *tonight*, Sunday weighs as much as Saturday). Built `agent/scorer.py` (now `archive/agent/scorer.py`), which prices every card, offer and pack in our private primas, plus the shared fill history. |
+| **Jorge** | The live engine: generic haggler (`agent/haggle.py`, concession curve + `AC_next` acceptance), dealer profiles as data, `market.py` (deal scanner + `sell-dups`), `scout.py` feed reader. Ran the experiments that produced the climb. Kept the playbook. *(Friday code, now in `docs/history/legacy-code/`; replaced on Saturday by the v2 harness.)* |
+| **Rubén** | Offline negotiation lab: `negotiation_policy.py`, a step-by-step simulator, **17 tests** and comparative evaluation. Ran the first real pilot (SAL-02 at 9). Ran a cross-review (`docs/history/legacy-code/docs/RECHECK.md`) that **found 4 bugs** in teammates' code before they cost anything. |
+| **Santi** | Strategy v1 → v2: the scoring breakdown, the read on how t10 was leading, the corrected calendar (first Market Test is *tonight*, Sunday weighs as much as Saturday). Built `agent/scorer.py` (now `docs/history/legacy-code/agent/scorer.py`), which prices every card, offer and pack in our private primas, plus the shared fill history. |
 
 **Habits that made the difference:**
-- **Hypothesis before the run, result after.** Every action against the game is a row in `archive/docs/experiments.md` (EXP-001 to EXP-008), with parameters, outcome and the score change.
-- **Decisions are dated and reversible.** `archive/docs/decisions.md` records each decision with its evidence and a "revisit if…" condition. D-005 and D-006 were overturned by D-007 within an hour, based on data.
+- **Hypothesis before the run, result after.** Every action against the game is a row in `docs/history/legacy-code/docs/experiments.md` (EXP-001 to EXP-008), with parameters, outcome and the score change.
+- **Decisions are dated and reversible.** `docs/history/legacy-code/docs/decisions.md` records each decision with its evidence and a "revisit if…" condition. D-005 and D-006 were overturned by D-007 within an hour, based on data.
 - **We keep a list of our mistakes.** The playbook keeps a table of errors (wrong limit source, rejecting a card we valued above its price, wrong status name, misread offer durations, price logged as 0). Each has its cost and the fix.
 - **Structure over words.** The code sets every price and every accept, and `offer_ok()` checks the structured offer before any accept. Text never binds us.
 - **One executor per key.** We share an accept quota and dealer threads, so only one person runs against the game at a time.
@@ -133,3 +133,26 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 - The duel part of the score is a mean per duel, so a no-deal pulls it down.
 - Market per round = 22.5 × bench + 7.5 × organic. Our free stall earns half the bench; t10's lead is trades between other teams on its venue.
 - The calendar re-anchors each day at its real opening time.
+
+---
+
+## Sunday (round 3, Chamberí): the final day
+
+Saturday closed 2nd. The night was spent on an orchestrated audit of the harness, with the game closed (see [docs/journey.md](docs/journey.md)):
+- 11 parallel audits;
+- an adversarial check of every bug finding;
+- 47 confirmed bugs fixed, each with a regression test;
+- a full Sunday rehearsed in the simulator under three clock scenarios.
+
+| When | What happened |
+|---|---|
+| 09:15 | The organisers re-anchored the Sunday schedule, as our Saturday data predicted. The harness derived the dealer day end (13:55) and the endgame (14:25) from the live clock, so no config change was needed |
+| 09:20–09:35 | Chamberí (×1.6 for us) completed from three dealer levels in parallel: Abuela for commons, El Chato for uncommons, Los Pícaros for rares and the epic. The closing card came from a team bid. **4 album pages complete** |
+| 09:22 | A team bid 238 for our SAL-11 epic while the dealer offered 157: sold to the team for **+27** |
+| 09:32 | A live bug caught by our own safety net: the calibrator's daily-surprise threshold stopped the bot on a deal that *gained* less than predicted. We fixed it, added a test, redeployed and logged it |
+| 09:35 | Three more "level A" Pícaros tricks flagged: **+30**. The cap of three scoring flags is per round |
+| 10:09 | We opened our own board venue (v28) with a broker. On the hard Market Test it matched **96.7 % of the possible gains** (bench 0.5, the same as the stall, at zero risk) and recorded the full synthetic book for the first time |
+| 10:20 | **1st in negotiation (24.89)**, 3rd overall, 0.88 behind the leader. All the gap was in organic market-making |
+| 11:00, 14:00 | Duels III and the Grand Final, played with the day-sign fix |
+
+Final standings: see the organisers' leaderboard at the 15:00 freeze.

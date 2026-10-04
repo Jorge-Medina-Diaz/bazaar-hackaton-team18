@@ -2,7 +2,7 @@
 
 *Para todo el equipo. Actualizado el vie 2 oct, tick 71. Etiquetas: ✅ medido con nuestras propias jugadas · 📜 dicho en las reglas o el kickoff · 🔌 dato de la API · ❓ hipótesis/inferencia.*
 
-**Fuentes:** [RULES.md](../RULES.md) (sección *Scoring* y demás) · presentación del kickoff (diapositivas 6, 8 y 9) · API (`/api/catalog → values`, `/api/me → affinity, score`, `/api/schedule`, `/api/leaderboard`) · nuestras mediciones ([experiments.md](experiments.md): EXP-005, EXP-007 y la verificación de la fórmula en el tick 33).
+**Fuentes:** [RULES.md](../../../../RULES.md) (sección *Scoring* y demás) · presentación del kickoff (diapositivas 6, 8 y 9) · API (`/api/catalog → values`, `/api/me → affinity, score`, `/api/schedule`, `/api/leaderboard`) · nuestras mediciones ([experiments.md](experiments.md): EXP-005, EXP-007 y la verificación de la fórmula en el tick 33).
 
 ---
 
