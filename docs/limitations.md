@@ -13,7 +13,7 @@ We list what we know is missing or imperfect. The code shipped here is the code 
 
 ## Sensor and data
 - One malformed offer marks its whole board source down for that tick (fail closed, coarse).
-- The public feed only serves its last 500 events, and our archive starts at tick 1179. Saturday ticks 394–1178 are missing.
+- The public feed only serves its last 500 events. Our merged archive (ours plus Rubén's) covers ticks 30–2696 with gaps at 56–143, 180–404 and 437–559.
 - The calibrator re-scans the journal every tick: O(rows), fine for one event.
 
 ## Market
