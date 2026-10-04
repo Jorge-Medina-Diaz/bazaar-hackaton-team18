@@ -1,10 +1,11 @@
-Duels, our side (GET /api/duels?done=true, read 13:00 Sun) vs the field (duel.closed events in feed_public.jsonl)
+Duels, our side (GET /api/duels?done=true, read 13:00 Sun; Grand Final row read after the 15:00 close) vs the field (duel.closed events in feed_public.jsonl)
 
 session            ours: deals / duels   result (sum)   min result of a deal   days used in deals   field deal rate
 Duels II  (Sat)    44 / 68  (65 %)       791.6          3.3                    0, 5, 7, 10          475 / 612 (78 %)
 Duels III (Sun)    57 / 68  (84 %)       1187.6         2.3                    0, 10                457 / 612 (75 %)
+Grand Final (Sun)  24 / 34  (71 %)       320.1          0.5                    0, 10                208 / 306 (68 %)
 
-No deal of ours ended below our limit (min result > 0 in both sessions).
+No deal of ours ended below our limit (min result > 0 in every session).
 Between the two sessions: the day sign is read from the server's days_meaning (buyer 0 days, seller 10), the
 worst-case days margin was removed, and a silent rival gets its own (price, days) echoed back. After Duels III, for the
 Grand Final: an ultimatum two ticks before the deadline and L+1 for silent-rival sellers (docs/journey.md, harness-spec §15).

@@ -9,7 +9,7 @@ We list what we know is missing or imperfect. The code shipped here is the code 
 
 ## Runner
 - **A manual accept can lose the accept slot to a duel accept.** Accepts are sorted by deadline, then priority (`agent/runner.py`, `choose`). The dropped order is logged (`dropped`) but not re-queued.
-- **The late window was tuned for 30 s ticks.** At 15 s ticks it leaves about 1–1.5 s of headroom under the rate limit.
+- **The late window was tuned for 30 s ticks.** At 15 s ticks it leaves about 1–1.5 s of headroom under the rate limit. Measured in the Grand Final: 81 accepts and offers missed the tick (`G03.late`, 143 over the weekend) even with the reduced read, and we closed 71 % of duels against 84 % in Duels III.
 
 ## Sensor and data
 - One malformed offer marks its whole board source down for that tick (fail closed, coarse).

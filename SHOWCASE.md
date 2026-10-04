@@ -8,9 +8,9 @@ We built an autonomous trading agent that cannot write to the game except throug
 |---|---|---|
 | Friday · El Rastro | Measured the scorer, then traded on it: first complete album page of the game | **13th → 2nd** at tick 75, closed 7th |
 | Saturday · Gran Vía | New harness overnight (one Gate, ~30 guards, a write-ahead journal). El Retiro and La Latina pages closed with team deals at the +50 cap | **7th → 2nd** (31.26) |
-| Sunday · Chamberí | Chamberí (our ×1.6 set) complete in about 12 minutes (09:21–09:33). Duels III closed **84 %** of duels (the field 75 %). 1st in negotiation by 10:20 | 3rd at 10:20, 0.88 from 1st · final: see the 15:00 freeze |
+| Sunday · Chamberí | Chamberí (our ×1.6 set) complete in about 12 minutes (09:21–09:33). Duels III closed **84 %** of duels (the field 75 %). 1st in negotiation by 10:20 | 3rd at 10:20, 0.88 from 1st · **final: 5th, 32.27** (1st: t05, 37.73) |
 
-**Check it in two minutes:** `python3 -m unittest discover -s tests -t .` (911 tests, no key, no network) · `python3 -m sim.sunday C 120` (a Sunday against the fake server) · [data/](data/README.md) (the live journal, its hash chain verifies) · [docs/architecture.md](docs/architecture.md).
+**Check it in two minutes:** `python3 -m unittest discover -s tests -t .` (912 tests, no key, no network) · `python3 -m sim.sunday C 120` (a Sunday against the fake server) · [data/](data/README.md) (the live journal, its hash chain verifies) · [docs/architecture.md](docs/architecture.md).
 
 ---
 
@@ -27,7 +27,7 @@ Each idea comes with what it changed, its evidence, and where it lives.
 **2. One write path, enforced three times.**
 - Every write is a typed `Intent`. The Gate re-reads the world in the same tick, runs the guards, recomputes the prediction, writes a WAL row with `fsync`, and only then hands the transport a **one-use permit** bound to `(method, exact path, sha256(body))`.
 - A `sys.addaudithook` kills any other non-GET request, and an AST test fails the build if anything else touches the wire.
-- Evidence: **1,645 writes through the Gate, 1,644 accepted by the server and 0 refused.** The one `unknown` (an exception) froze its domain and was reconciled as not landed two ticks later, exactly as designed. Our own guards refused 447 more first.
+- Evidence: **1,850 writes through the Gate (Sat 09:21 – Sun 14:55), 1,849 accepted by the server and 0 refused.** The one `unknown` (an exception) froze its domain and was reconciled as not landed two ticks later, exactly as designed. Our own guards refused 531 more first.
 - Where: [agent/gate.py](agent/gate.py), [agent/transport.py](agent/transport.py), [data/journal-summary.txt](data/journal-summary.txt).
 
 **3. Structure over words: the text never decides a number.**
@@ -82,7 +82,7 @@ Each idea comes with what it changed, its evidence, and where it lives.
 | Architecture | Frozen contract (`agent/contracts.py`), one owner per module, pure tactics that only propose. A single-writer lock and an operator inbox: even manual orders go through the same Gate (`bazaar.py do`) |
 | Safety | Fail closed everywhere. Any response that is not clean `ok` / `deferred` / `refused` is `unknown` and freezes its domain. Missing data refuses. A broken journal stops the bot. A STOP file halts writes within the tick |
 | Evidence | A hash-chained write-ahead journal: every intent, result, refusal, prediction, measurement, pause and operator command. It verifies end to end ([data/](data/README.md)) |
-| Tests | 911 tests, stdlib only, isolated from the key and the network: guards, Gate, transport fault injection, chaos (deaths mid-write), a fake server with dealer, team and duel bots, the Friday replay, and three Sunday clock scenarios. CI on Python 3.9 and 3.12 |
+| Tests | 912 tests, stdlib only, isolated from the key and the network: guards, Gate, transport fault injection, chaos (deaths mid-write), a fake server with dealer, team and duel bots, the Friday replay, and three Sunday clock scenarios. CI on Python 3.9 and 3.12 |
 | Operations | `selftest` per stage, bound to the code hash: a tactic only arms if its stage is green for the exact code running. Dry mode with the same budgets. `clockcheck` and `status` with zero writes |
 | Secrets | The key only in `.env` on one machine. Redaction by pattern and by value. Verified: no key in any shipped file |
 | Docs | [Architecture](docs/architecture.md) · [journey](docs/journey.md) · [limitations](docs/limitations.md) · the full Spanish contract with invariants INV-01..23 and the test that proves each ([harness-spec](docs/harness-spec.md)) |
@@ -230,7 +230,9 @@ Saturday closed 2nd. The night was spent on an orchestrated audit of the harness
 | 12:53 | v28 closed after the last Market Test, bond refunded. Our matchmaking announcements drew 12 listings from t01 and t04 and **one trade between two other teams** (t01 → t13, LAV-04 at 6, tick 2144). Organic, but small |
 | 13:00–13:15 | Before the Grand Final, four independent reviewers attacked the deployed code, the Duels III data, the tick timing and the operations; 110k random duel states went through the real Gate with 0 refusals. Three changes shipped: an ultimatum two ticks before a duel's deadline, silent-rival sellers go to L+1 at the end (5 of 12 had ended with no deal), and 15 s ticks read only clock, account, offers and duels (32 of 33 late refusals came from the full snapshot overrunning) |
 
-**Final standings:** the organisers' leaderboard at the 15:00 freeze (Grand Final at 14:00 still to play when this was written).
+| 14:00–14:50 | **The Grand Final** (34 duels each, 15 s ticks): **24 of 34 deals (71 %)**, the field 68 %, result 320.1; duel points 22.63 → 27.97. Lower than Duels III: the reduced read did not remove lateness, and 81 accepts or offers still missed the 15 s tick (`G03.late`) |
+
+**Final standings** (public leaderboard after the 15:00 close, [data/leaderboard-final.json](data/leaderboard-final.json)): **5th, 32.27** (negotiating 23.27, market 9.00). 1st t05 37.73, 2nd t10 35.76, 3rd t12 34.51, 4th t03 34.19. We were 4th of 18 in negotiation and 15th of 18 in market: the gap was market-making, as the self-critique below explains.
 
 ---
 
@@ -278,7 +280,7 @@ We wanted to learn the game, not just play it, so here is the honest account. At
    - Several AI sessions operated in parallel, at a coordination cost.
 7. **The unscheduled +400 P grant** cost us about 0.3–0.7 final points. It is real, but it does not explain the result.
 
-**The pattern that connects them.** We optimised what we controlled: the safety of the harness, the negotiation and the evidence. We automated little of what depended on other teams, organic market-making, and that is what decided the podium. 155 commits and 911 tests went into making every write safe; almost nothing went into bringing other teams' trades to our venue.
+**The pattern that connects them.** We optimised what we controlled: the safety of the harness, the negotiation and the evidence. We automated little of what depended on other teams, organic market-making, and that is what decided the podium. 155 commits and 912 tests went into making every write safe; almost nothing went into bringing other teams' trades to our venue.
 
 **What we would do differently next time:**
 - Model each score component's ceiling on day one, and staff the biggest uncaptured one.
