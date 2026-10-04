@@ -3,7 +3,7 @@
     "Datos del plan M8 (docs/harness-spec.md 2.1 PlanCfg, docs/strategy.md J0-J13). Las claves que empiezan por '_' las ignora load_plan. El runner lee este fichero al arrancar: cualquier cambio necesita reinicio.",
     "Domingo (medido): el reloj solo avanza con las puertas abiertas; el sábado siguió en 2,65 y los eventos del día se desplazaron -1,35. Escenario esperado C: el domingo sigue en 13,367; R3/CHA a las 09:00, Duels III ~11:00, cierre de puestos + Gran Final ~14:00, congelación 15:00 (t19,367).",
     "Fin del día de dealers y endgame se derivan en cada tick (pages.effective_plan): cierre = el antes de clock.closes (pared: t + (closes - ahora)/3600) y del day_closes / end_round del schedule en vivo; fin de dealers = min(cierre, primer 'persona enabled:false' de >= 3 puestos) - day_end_min_before_close; endgame = cierre - closer.endgame_min_before_close. day_end_hours y closer.endgame_hours son solo el respaldo (schedule legible sin cierre y sin clock.closes).",
-    "Compras domingo: CHA comunes de la Abuela (<= 12), CHA-06/07/08 de El Chato (<= 31, Abuela de respaldo), CHA raras de los Pícaros (<= 60) con El Chato de respaldo (<= 90, perfil 'rare'), CHA-11 y RET-11 de los Pícaros (extra_needs, <= 170 / <= 150; solo con CHA publicado). Ventas a Pilar/Banco: solo a mano (load_plan solo admite abuela/chato/picaros).",
+    "Compras domingo: CHA comunes de la Abuela (<= 12), CHA-06/07/08 de El Chato (<= 31, Abuela de respaldo), CHA raras de los Pícaros (<= 64: sus 15 raras vendidas el sábado fueron a 50-64) con El Chato de respaldo (<= 93, perfil 'rare': sus finales de raras fueron 90, 90, 91 y 93, D-10; con dealers comprar por debajo del valor 112 no resta nada, P-04, y la simulación del domingo con tope 90 no cerraba casi ningún hilo), CHA-11 y RET-11 de los Pícaros (extra_needs, <= 170 / <= 150; solo con CHA publicado). Ventas a Pilar/Banco: solo a mano (load_plan solo admite abuela/chato/picaros).",
     "resupply_min 999 apaga J13 el último día (vender la única copia de una común CHA podía dejar la página por debajo de 9/10). endgame_buy_any: tras el fin de dealers o en el endgame, J6 compra primeras copias fuera de las páginas por debajo de nuestro valor (el efectivo a las 15:00 vale 0).",
     "hand_sales: copias sueltas reservadas para las ventas a mano a los dealers (escalera L1/L3 y portadoras de huevos: MAL-01 #940, MAL-02 #789, MAL-04 #583, MAL-05 #582, LAV-02 #938, LAV-03 #788, LAV-05 #939); J5, las ventas a pujas y los intercambios no las tocan hasta el fin del día de dealers (simulación del domingo: J5 las listaba a 9 P a las 09:00).",
     "startup_cancels: los cinco ids ya están cancelados (no-op por G23).",
@@ -18,7 +18,7 @@
     "RET-01": 11, "RET-02": 11, "RET-03": 11, "RET-04": 11, "RET-05": 11,
     "RET-06": 25, "RET-07": 25, "RET-08": 31, "RET-09": 90, "RET-10": 90,
     "CHA-01": 12, "CHA-02": 12, "CHA-03": 12, "CHA-04": 12, "CHA-05": 12,
-    "CHA-06": 31, "CHA-07": 31, "CHA-08": 31, "CHA-09": 90, "CHA-10": 90,
+    "CHA-06": 31, "CHA-07": 31, "CHA-08": 31, "CHA-09": 93, "CHA-10": 93,
     "CHA-11": 170, "RET-11": 150
   },
   "extra_needs": [{"ref": "CHA-11", "max_price": 170}, {"ref": "RET-11", "max_price": 150}],
@@ -29,13 +29,13 @@
     "RET:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 11,  "fallback_after": null},
     "RET-11":       {"dealer": "picaros", "anchor": 115, "step": 3, "limit": 150, "fallback_after": 24},
     "CHA-11":       {"dealer": "picaros", "anchor": 130, "step": 4, "limit": 170, "fallback_after": 24},
-    "CHA:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24, "fallback_dealer": "chato"},
+    "CHA:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 64, "fallback_after": 24, "fallback_dealer": "chato"},
     "CHA-06":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-07":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-08":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA:uncommon": {"dealer": "abuela", "anchor": 16, "step": 2, "limit": 25,  "fallback_after": null},
     "CHA:common":   {"dealer": "abuela", "anchor": 7,  "step": 1, "limit": 12,  "fallback_after": null},
-    "rare":         {"dealer": "chato",  "anchor": 70, "step": 2, "limit": 90,  "fallback_after": null}
+    "rare":         {"dealer": "chato",  "anchor": 70, "step": 2, "limit": 93,  "fallback_after": null}
   },
   "closer": {"accept_min": 20, "default_minus": 50, "compete_minus": 20, "freeze_at": 8,
              "endgame_min_before_close": 35,

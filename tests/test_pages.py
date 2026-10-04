@@ -513,8 +513,8 @@ class SundayPlanTest(unittest.TestCase):
     def test_cha_rare_need_cap_reaches_the_chato_fallback(self):
         card = {"set": "CHA", "rarity": "rare"}
         self.assertEqual(pages.profile_for(self.cfg, "CHA-09", card)["dealer"], "picaros")
-        self.assertEqual(pages.need_limit(self.cfg, "CHA-09", card), 90)
-        self.assertEqual(self.cfg["dealer_max"]["CHA-09"], 90)
+        self.assertEqual(pages.need_limit(self.cfg, "CHA-09", card), 93)
+        self.assertEqual(self.cfg["dealer_max"]["CHA-09"], 93)
 
     def test_extra_needs_only_after_the_cha_release(self):
         cfg = dict(self.cfg, page_sets=[])

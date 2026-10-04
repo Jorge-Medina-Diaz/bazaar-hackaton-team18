@@ -442,3 +442,36 @@ class TestInvariants(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HiddenCardTest(unittest.TestCase):
+    """Sim fidelity (night audit): a hidden card is worth 0, like the live value?card for LAT-13 (prestige only).
+    Without it a full-Sunday sim run failed the Valuer self_check (405 vs 0) and froze dealers and rastro."""
+
+    def test_hidden_card_is_worth_zero(self):
+        cat = {"sets": [{"id": "LAT", "released": True, "cards": [
+            {"id": "LAT-12", "rarity": "legendary", "book": 450, "print_run": 3, "page": False},
+            {"id": "LAT-13", "rarity": "legendary", "book": 450, "print_run": 1, "page": False, "hidden": True}]}]}
+        m = Model(cat)
+        self.assertEqual(m.base("LAT-13", {"LAT": 0.9}), 0.0)
+        self.assertEqual(m.base("LAT-12", {"LAT": 0.9}), 405.0)
+
+
+class MasterBonusTest(unittest.TestCase):
+    """Sim fidelity (night audit): the master bonus the live server pays (Valuer V-13, SAL-12 593.45 with SAL-11
+    held); without it the Sunday sim failed self_check after the RET-11 / CHA-11 buys and froze the tactics."""
+
+    def test_model_matches_the_valuer(self):
+        from agent.valuation import Valuer
+        cat = {"values": {"copy_marginals": [1.0, 0.25, 0.1], "page_bonus": 0.25, "master_bonus": 0.1},
+               "sets": [{"id": "SAL", "released": True, "cards":
+                         [{"id": f"SAL-{i:02d}", "rarity": "common", "book": 10, "print_run": 300, "page": True}
+                          for i in range(1, 11)]
+                         + [{"id": "SAL-11", "rarity": "epic", "book": 180, "print_run": 9, "page": False},
+                            {"id": "SAL-12", "rarity": "legendary", "book": 450, "print_run": 3, "page": False}]}]}
+        aff = {"SAL": 1.1}
+        held = collections.Counter({f"SAL-{i:02d}": 1 for i in range(1, 12)})
+        m, v = Model(cat), Valuer(cat, aff, frozenset({"SAL"}))
+        with_l = collections.Counter(held)
+        with_l["SAL-12"] += 1
+        self.assertAlmostEqual(m.total(with_l, aff) - m.total(held, aff), v.delta_add(held, "SAL-12"), places=6)
