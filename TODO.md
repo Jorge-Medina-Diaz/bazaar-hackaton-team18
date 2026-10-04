@@ -15,7 +15,7 @@ Plan completo, comandos y razones: [docs/plan-domingo.md](docs/plan-domingo.md).
 ## Durante el día (cada uno, a mano y con el OK de Jorge; plan §6)
 - [ ] Pilar (nivel 3): SAL-11 si la oferta 20117 caduca sin venderse, LAT-06 #1105 y LAV-03 #788 como prueba.
 - [ ] Denuncias de nivel A, ≤ 3, una a una (plan §5.5).
-- [ ] Anuncios en v18, ≤ 1 cada 20–30 min, desde las 10:00 (plan §5.3).
+- [ ] Anuncios en v18, uno cada ~10 min de 09:15 a 14:30, con go / no-go a las 11:00 (plan §5.3).
 - [ ] Primer duelo de Duels III (~11:00): mirar las alarmas de `days_meaning`. Si las hay, el bot sigue por papel: **no pausar** (plan §5.2).
 - [ ] Cada hora, `python3 bazaar.py status`. Nada de reiniciar con duelos vivos. Después de las 13:55, relanzar sin `dealers`.
 

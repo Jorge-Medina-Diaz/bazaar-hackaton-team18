@@ -3,7 +3,7 @@
 *Escrito la noche del sábado al domingo, con el juego cerrado. Cada cifra sale de los datos o de los ids de [knowledge.md](knowledge.md). Lo que no se pudo comprobar dice **sin verificar**. Este documento sustituye a `DOMINGO.md` (que ahora solo remite aquí).*
 
 **Lo esencial en 6 líneas**
-1. El código bueno está en la rama `night-build` (último commit comprobado `ebf88cf`, 882 tests OK). El bot vivo (pid 34804) **todavía lleva el código del sábado**: hay que desplegar antes de las 09:00 (§4).
+1. El código bueno está en la rama `night-build` (último commit comprobado `0daffe5`, 883 tests OK). El bot vivo (pid 34804) **todavía lleva el código del sábado**: hay que desplegar antes de las 09:00 (§4) y, si se llega tarde, en cuanto no haya un duelo vivo y nunca después de las 10:55 (§4.2).
 2. Escenario más probable (C): a las 09:00 empiezan la ronda 3 y CHA; Duels III a las ~11:00; cierran los puestos y empieza la Gran Final a las ~14:00; todo se congela a las 15:00.
 3. El arnés calcula solo el fin del día de dealers (13:55) y el endgame (14:25) a partir del reloj de pared y del calendario vivo. Funciona en los tres escenarios y no hay que tocar `config/plan.json`.
 4. A las 09:00:30, `python3 bazaar.py clockcheck` dice el escenario.
@@ -34,6 +34,7 @@ Cada arreglo lleva su test de regresión, y se comprobó que el test falla con e
 | **SAL-11 a la venta** | Tras un reinicio sin catálogo, la higiene cancelaba la oferta de SAL-11 (19:44 y 22:12) | `d839634` |
 | **CHA** | Las raras CHA no tenían un respaldo que funcionara; los extra_needs se abrían antes que las cartas de página y en la ronda 2 | `b5d2f96`, `e2269d1` (Pícaros ≤ 64, El Chato ≤ 93), `d9401d8`, `5cb6082` (extra_needs detrás de la página y `min_round` 3) |
 | **El Rastro** | J13 podía vender la única común de CHA. La compra de cualquier carta del final podía gastar la caja de la subida del closer. Un intercambio podía llevarse una carta reservada | `a34e7c7`, `2bfcb16` (`resupply_min` 999), `40bd4de`, `3a95137`, `e9ea3bf` |
+| **Caja del closer frente a las épicas** | Con los topes, CHA-11 (≤ 170) y RET-11 (≤ 150) podían dejar ~61 P de 705, menos que la puja del closer (72 a 9/10, 102 en el endgame). Un +50 con un equipo vale más que un 4.º candidato a L4 (solo cuentan 3) | `0daffe5`: el hilo de un `extra_needs` se topa en `cash_free` − reserva del closer (su Need + 30 antes del endgame, menos nuestra puja ya puesta). Las cartas de la página no se topan |
 | **Ventas a mano** | J5 listaba las sueltas que hacen falta para las ventas a mano (escalera y huevos) | `49eb183`, `f0352eb` (`hand_sales`, también LAT-06 #1105 y LAT-02 #1103) |
 | **Bloqueos de dealer** | `persona_budget` y `sold_out` no bloqueaban al dealer | `2512ce4`: hasta el final de la hora de juego |
 | **Fusión de `audit-fixes`** | Fallos ya arreglados en otra rama: `do` sin `--live` que enviaba de verdad junto al runner, la final trampa de los Pícaros, el closer que valoraba su puja como 2.ª copia, bucle de pausa al conciliar, flatten | `249808c` (fusión), `ede86fe` (caché del Valuer por contenido del catálogo) |
@@ -49,7 +50,7 @@ Cada arreglo lleva su test de regresión, y se comprobó que el test falla con e
 - **Limpieza de código sin conectar** (`pages.protect_sets`, `Calibrator.recheck`, `duels.e16_settled`), un test de arquitectura para los scripts de la raíz y archivar `observe_performance.py`. Nada de eso afecta al juego. Está en [TODO.md](../TODO.md).
 
 ### 1.4 Tests
-- `night-build` `ebf88cf`: **882 tests OK, 2 omitidos** (136 s, repetido esta noche).
+- `night-build` `0daffe5`: **883 tests OK, 2 omitidos** (129 s, repetido esta noche). El commit siguiente, `37e3e7e`, solo cambia un docstring de `announce_candidates.py`.
 - `selftest` en verde en todas las etapas en el worktree de `night-build`. **En la máquina A hay que repetirlo** tras la fusión, porque cambia el `code_hash` (§4).
 - La fusión de `night-docs` sobre `night-build` es limpia y no toca código (comprobado en un clon aparte).
 
@@ -80,20 +81,29 @@ Cada arreglo lleva su test de regresión, y se comprobó que el test falla con e
 | Palanca | Puntos de ronda | Cómo | Riesgo |
 |---|---|---|---|
 | Trato con equipo al tope (+50) | ≈ +2,9 cada uno (LAT-10 a 72 dio ≈ +1,9 de tablero, S-30) | El closer de CHA (común que nos vale 122, a ≤ 72, y luego ≤ 102). CHA comprada a equipos muy por debajo del valor: una rara CHA (V 112) a ≤ 62 da +50 | Que nadie venda. Es la mejor palanca que depende de nosotros |
-| SAL-11 a un equipo a 245 (oferta 20117) | ≈ +2,7 (+47) | Ya está publicada; caduca a las 09:25 | Que nadie compre |
+| **Orgánico en v18** | **+7,5 × m, la palanca más grande.** El orgánico va con la raíz cuadrada, así que los primeros tratos pesan mucho: t16 sacó m ≈ 0,53 (+4,0 de ronda) con 2 tratos dirigidos en su puesto (80 P), y t09 m ≈ 0,68 con 6 tratos en v21 (si su banco fue 0,5) | Anuncios cada ~10 min con parejas reales o con el reclamo de comisión 0 (§5.3) | El sábado v18 hizo 0 tratos y casi no hubo parejas entre no rivales |
+| SAL-11 (V 198) | **≈ 0 a 245.** Lleva publicada desde el tick 1125 (renovada en 1192, 1327 y 1425, oferta 20117) y nadie la compró en ~300 ticks. Los equipos pagaron 195–216 por épicas: RET-11 a 216 (t1245), MAL-11 a 195 (t1264), SAL-11 a 207 (t1296). A 210–215, +12..+17 neg ≈ +0,7..+1,0 | Decides tú (§6 #3): republicar a 210–215 para equipos, o Pilar con suelo 199 | Pilar nunca ha pagado más de 199 por una épica |
 | Denuncias de nivel A | ≈ +0,6 cada una (+10 neg) | ≤ 3, a mano (§5.5) | Sin verificar si el tope de 3 es por ronda |
 | Escalera | +0,044 de escalera ≈ +0,4 de ronda | 12 huecos alcanzables (niveles 1–4) | Ernesto (nivel 5) no da trato |
-| Orgánico en v18 | +7,5 × m | Anuncios a mano (§5.3) | El sábado casi no hubo parejas entre no rivales |
+| Sobrantes a equipos | +2..+19 neg cada uno (precio − V; quien acepta paga la comisión): SAL-05 #1104 (V 2,8), LAT-02 #1103 (V 2,2), LAT-06 #1105 (V 5,6) | J5 los publica sola: SAL-05 en cuanto se reanuda `rastro`; LAT-02 y LAT-06 están en `hand_sales` (reservadas para Pilar y El Chato) hasta el fin de dealers | El sábado LAT-02 a 11 y LAT-06 a 25 se publicaron 11 veces cada una y nadie las compró |
 | Duelos | La parte media de duelos **baja con cada duelo sin trato** (S-27) | Código nuevo (§5.2) | Duels II nos costó puestos |
+
+Escala de la tabla: +50 neg ≈ +2,9 de ronda, así que 1 neg ≈ 0,058 de ronda.
+
+**Camino a la victoria, con números:**
+- Ronda 2 aproximada (S-32): t10 ≈ 27,2 + 18,75 = **45,95**; nosotros ≈ 26,1 + 11,25 = **37,35**. Si los dos repetimos, la distancia final crece.
+- **Nuestro techo en la ronda 3:** negociación ≤ 30 (la mejor de la ronda 2 fue 28,1, t03) + mercado ≤ 18,75 (puesto: banco 0,5 = 11,25, más orgánico al tope 7,5) = **48,75**. Aun en el techo, t10 tendría que bajar de 39,3 (48,75 − 9,48).
+- **Ronda realista buena:** negociación ≈ 27–28 (el +50 del closer, una rara CHA barata, denuncias, escalera) + mercado ≈ 15,2 (m ≈ 0,53, como t16) ≈ **42–43**. Con eso, t10 tendría que quedarse por debajo de ~33, unos 12–13 puntos menos que en la ronda 2 (por ejemplo, sin orgánico y con 4–5 puntos menos de negociación).
+- **Conclusión:** ganar depende también de que t10 falle. Lo que sí está en nuestra mano es subir la R3 todo lo posible y no regalar el 2.º. El orgánico es lo que más mueve (+4 de ronda con dos tratos), así que tiene un ritmo y una métrica de go/no-go en §5.3.
 
 **Qué hace t10 (S-32)** y cómo nos afecta:
 - **Mercado orgánico:** lo saca de anuncios en su venue v07 cada ~20 ticks, con parejas concretas entre otros equipos (11 tratos, 8 parejas). Lo más probable es que repita el tope.
 - **Dealers:** abrió 106 hilos en la ronda 2, frente a nuestros 16.
 - **Huevos:** tiene los tres (Castizo, cocido y El Chato).
 - **Lo que no podemos tocar:** sus duelos y sus tratos.
-- **Lo que sí:** nuestras palancas de abajo.
+- **Lo que sí:** nuestras palancas de la tabla de arriba.
 
-**En resumen: ganar exige una ronda 3 nuestra muy buena (los +50 con equipos son lo que más mueve) y que t10 no repita la suya. Lo que controlamos es maximizar la R3 y no regalar el 2.º.**
+**En resumen: ganar exige una ronda 3 nuestra muy buena (el orgánico en v18 y los +50 con equipos son lo que más mueve) y que t10 no repita la suya. Lo que controlamos es maximizar la R3 y no regalar el 2.º.**
 
 ---
 
@@ -172,6 +182,8 @@ Enchufada a la corriente; no pulsar suspender.
 
 ### 4.2 08:32 Desplegar (si nadie lo ha hecho ya)
 Comprobar primero: si `git log -1 --oneline` en `harness-v2` ya enseña la fusión de `night-docs` y `status` muestra un pid nuevo, saltar a §4.3.
+
+**Si se llega tarde (después de las 09:00):** desplegar en cuanto no haya ningún duelo vivo, y **nunca más tarde de las 10:55**, antes de Duels III (~11:00 en C y en B). Antes de Duels III no hay duelos el domingo. Si ya empezó, esperar a un hueco: `grep -E "duel_(say|accept)" logs/run/journal.jsonl | tail -2` (si la última fila tiene más de 2 min, no hay duelo vivo). El código viejo tiene las horas fijas: en B (el reloj salta a 16,65) dispararía el endgame a 18,783 (≈ 11:08) y el fin de dealers a 19,283 (≈ 11:38); en C no cierra los hilos antes de que cierren los puestos (14:00), y en los duelos usa el margen de días del sábado (S-27). Mientras tanto, `dealers` y `rastro` siguen en pausa (lo están desde el sábado) y no hay que tocar nada más. Con un duelo vivo, esperar a que acabe: un `stop` en mitad de un duelo lo pierde.
 1. **Parar el bot viejo** (las puertas están cerradas y no hay duelos):
    ```
    python3 bazaar.py stop "deploy domingo"
@@ -192,7 +204,7 @@ Comprobar primero: si `git log -1 --oneline` en `harness-v2` ya enseña la fusi�
 4. **Verificar** (con el bot parado):
    ```
    python3 bazaar.py selftest      # todas las etapas en verde
-   python3 -m unittest discover -s tests -t .   # opcional si hay tiempo (~2,5 min): 882+ OK
+   python3 -m unittest discover -s tests -t .   # opcional si hay tiempo (~2,5 min): 883+ OK
    ```
 5. **Quitar el STOP y lanzar** (PowerShell, desacoplado como el sábado):
    ```
@@ -222,6 +234,7 @@ python3 -c "import json; from agent.runner import code_hash; s=json.load(open('s
 | 09:01 | Primer tick abierto sano: `down` sin `catalog` (si sale, esperar un tick) y fila `param day_times` | `python3 bazaar.py status` |
 | 09:01 | **Huevos de la Abuela** con los dealers aún en pausa (§5.6) | `python3 egg_carrier.py abuela 940 MAL-01 6 9,8,7,6 5,6` |
 | 09:01 | Reanudar El Rastro (J6 compras de CHA a equipos, closer; J5 solo repetidas reales) | `python3 bazaar.py resume rastro --why "domingo: J6 CHA, closer, repes"` |
+| 09:02 | **SAL-11: decides (a) equipos a 212 o (b) Pilar con suelo 199** (§5.4). Cancelar la 20117 y lanzar lo elegido | §6 #3 |
 | 09:03 | Paga: caja ≈ 705 (`tick ... cash`) | `python3 bazaar.py status` |
 | 09:05 | Escenario confirmado | `python3 bazaar.py clockcheck` |
 | ~09:08 (al terminar los huevos, o a las 09:10 como tarde) | **Reanudar dealers**: escalera y CHA | `python3 bazaar.py resume dealers --why "domingo ronda 3: escalera + CHA"` |
@@ -244,7 +257,7 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
 |---|---|---|---|
 | 1 | Abuela | CHA comunes, ancla 7, paso +1, ≤ 12 | MAL-01 #940 con los huevos, a ≥ 6 (V 5) |
 | 2 | El Chato | CHA-06/07/08, ancla 27, paso +1, ≤ 31 (Abuela de respaldo a los 24 ticks). Respaldo de las raras CHA: ancla 70, paso +2, ≤ 93 | — |
-| 3 | Pilar | Nada (la Gate no admite perfiles de Pilar) | Tres ventas: **SAL-11** #1063 (desde las 09:25 si no se ha vendido), **LAT-06** #1105 (el sábado pagó 16) y **LAV-03** #788 como prueba (no se sabe si compra comunes) |
+| 3 | Pilar | Nada (la Gate no admite perfiles de Pilar) | Tres ventas: **SAL-11** #1063 (solo si eliges la opción (b) de §5.4, suelo 199), **LAT-06** #1105 (el sábado pagó 16) y **LAV-03** #788 como prueba (no se sabe si compra comunes) |
 | 4 | Pícaros | CHA-09/10 ≤ 64 (ancla 45, paso +3; El Chato tras un abandono). Después de la página: CHA-11 ≤ 170 (ancla 130) y RET-11 ≤ 150 (ancla 115), solo en la ronda 3. Sus finales trampa se cierran sin contraoferta | Denunciar trucos de nivel A (§5.5) |
 | 5 | Ernesto | Nada | Nada, salvo la línea de huevo si hay pruebas (§5.6) |
 
@@ -252,7 +265,7 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
 - **El closer:** en cuanto CHA llega a 8/10 se congela la carta de cierre (una común). A 9/10 se puja a equipos a 72 (V − 50) y en el endgame se sube a 102 (V − 20). La carta de cierre nunca se compra a un dealer.
 - **Compras a equipos (J6):** cualquier carta CHA del plan con ganancia ≥ 3 tras la comisión. Una rara CHA a ≤ 62 da el tope de +50: vigilar El Rastro cuando los equipos abran sobres de CHA.
 - **Durante Duels III** el bot sigue abriendo hilos (bloqueo solo con > 4 duelos) y los hilos abiertos siguen negociando.
-- **Caja prevista** (705): comunes ~40, infrecuentes ~90, raras ~120, CHA-11 ~140, RET-11 ~135, cierre 72–102. Total ≈ 600–630, con topes de hasta ~750. Lo que no llegue se queda sin comprar y no resta.
+- **Caja prevista** (705): comunes ~40, infrecuentes ~90, raras ~120, CHA-11 ~140, RET-11 ~135, cierre 72–102. Total ≈ 600–630, con topes de hasta ~750. Lo que no llegue se queda sin comprar y no resta. **CHA-11 y RET-11 nunca se comen la caja del closer** (`0daffe5`): su hilo se topa en `cash_free` menos la puja del closer a su precio de endgame (≈ 102, o lo que le falte a nuestra puja ya puesta). Si no cabe ni el ancla (130 / 115), el hilo no se abre: es lo esperado, no un fallo. Comprobación a mano a 8/10 de CHA: `python3 bazaar.py status` (`cash_free` ≥ ~110).
 
 ### 5.2 Duels III (≈ 11:00) y Gran Final (≈ 14:00)
 - **Formato:** precio + días (0–10), 12 ticks, decay 0,10, 4 a la vez. Duels III tiene 2 vueltas y la Final 1.
@@ -277,11 +290,15 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
   - Si el broker se cae, esa sesión da 0.
   - Cuesta 20 P + 250 P de fianza bloqueada.
 - **Cuánto vale:** mercado por ronda = 22,5 × bench + 7,5 × orgánico. Quedándonos quietos sacamos 11,25 por ronda.
-- **Lo que sí: orgánico en v18 con anuncios a mano** (excepción manual, tu OK para cada texto):
+- **Lo que sí: orgánico en v18 con anuncios a mano** (excepción manual, tu OK para cada envío). Es la palanca más grande de la ronda (§2):
+  - **Cuánto vale:** el orgánico es la raíz cuadrada del valor creado entre otros equipos en nuestro venue, normalizado al top 3 y con tope 1 (S-23). Con dos tratos dirigidos, t16 sacó m ≈ 0,53 (+4,0 de ronda); t09 sacó m ≈ 0,68 con 6 (si su banco fue 0,5). Ojo: los `trades` del leaderboard son acumulados desde el viernes. v02 de t12 enseña 11 tratos y t12 marca 7,25 de mercado, así que en la ronda 2 apenas le dieron orgánico. Lo que cuenta son los tratos de hoy.
   - **Por qué funciona:** t10 publica cada ~20 ticks parejas concretas ("Team 6 bids 6 P for RET-03 (offer 17714)… post it publicly on v07…; El Rastro costs 5 % + 1 P") y sacó 11 tratos y 8 parejas. t16 llegó a m ≈ 0,53 con dos tratos dirigidos en su puesto.
-  - **El sábado v18 hizo 0 tratos.**
-  - **Expectativa baja:** `announce_candidates.py` solo encontró una pareja cercana entre no rivales en todo el sábado.
-  - **Procedimiento**, desde las 10:00 y como mucho uno cada 20–30 min hasta las 14:30:
+  - **El sábado v18 hizo 0 tratos** y `announce_candidates.py` solo encontró una pareja cercana entre no rivales en todo el día. Hay que provocar las parejas, no solo esperar a encontrarlas.
+  - **Ritmo:** de 09:15 a 14:30, un anuncio cada ~10 min (≈ 40 ticks de 15 s; es el ritmo de t10 el sábado, ~20 ticks de 30 s).
+    - Si `announce_candidates.py` da una pareja, el anuncio la cita: ids, precios y que en v18 no hay comisión, frente al 5 % + 1 P de El Rastro.
+    - Si no hay pareja, va el reclamo fijo: "Team 18 stall v18: 0 % fee, 0 P per card, auto-matched every tick. Post your sale or your bid on v18 and skip El Rastro's 5 % + 1 P." Puedes aprobar el reclamo una vez; cada envío sigue necesitando tu sí.
+  - **Go / no-go a las 11:00:** si v18 tiene `trades` ≥ 1 en el leaderboard (o `mm_points` > 0 en `/api/me`), seguir al mismo ritmo hasta las 14:30. Si sigue en 0, bajar a uno cada 30 min y solo con pareja concreta. A las 12:30, la misma revisión.
+  - **Procedimiento:**
     ```
     python3 announce_candidates.py                # solo lectura, sin clave: parejas y borrador
     python3 C:/Users/jorge/AppData/Local/Temp/claude/c--Users-jorge-Desktop-hackaton-claude-bazaar-kit/27e13914-d038-4ac9-be22-314fc951d24e/scratchpad/announce_stall.py "<texto aprobado>"
@@ -292,13 +309,19 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
     - el bot nunca publica en venues rivales: solo El Rastro;
     - cada envío se apunta en [handoffs/HANDOFF-domingo.md](handoffs/HANDOFF-domingo.md).
   - **Medir (sin clave):** `curl -s https://bazaar.causaprima.ai/api/leaderboard | python3 -c "import json,sys; d=json.load(sys.stdin); [print(v['venue'], v['owner'], v['trades'], v['pairs']) for v in d['venues'] if v['venue'] in ('v18','v07','v01','v16')]"`
+  - **`mm_points` (GET con clave, no la imprime):** `cd C:/Users/jorge/AppData/Local/Temp/claude/c--Users-jorge-Desktop-hackaton-claude-bazaar-kit/27e13914-d038-4ac9-be22-314fc951d24e/scratchpad && MSYS_NO_PATHCONV=1 python3 peekfull.py /api/me | python3 -c "import json,sys; s=json.load(sys.stdin)['score']; print(s['mm_points'], s['market'])"`
 - **Reabrir la decisión** solo si un rival pasa de 12,5 + 0,5 de mercado (prueba de que se puede superar al puesto). Aun así, solo con tu OK y un broker probado abierto ≥ 2 ticks antes de una sesión.
 
 ### 5.4 Épicas: qué sí y qué no
 - **No hay arbitraje que puntúe.** Comprar a un dealer por encima de nuestro valor resta (min(0, V − p), P-04), y la caja final vale 0 (S-22). Revender a un equipo solo suma si el precio supera *nuestro* valor de la carta. Lo de Rubén ("revender épicas da beneficio") está refutado (knowledge, refutación 75).
 - **Sí:**
   - comprar a los Pícaros por debajo de nuestro valor para la escalera L4: CHA-11 (V 288) a ≤ 170 y RET-11 (V 234) a ≤ 150. Los Pícaros vendieron épicas a 128–155;
-  - **SAL-11** (V 198): primero el equipo que pague 245 (+47, oferta 20117, hasta las 09:25); si no, Pilar por escalera a ≥ 200 (§6.3). A Ernesto no (113–126).
+  - **SAL-11** (V 198, asset 1063). A 245 nadie la ha comprado en ~300 ticks (oferta 20117, caduca a las 09:25), mientras los equipos pagaban 195–216 por épicas. **Decides tú a las 09:00** (§6 #3):
+    - **(a) Equipos a 210–215:** +12..+17 neg si alguien compra (publicamos; la comisión la paga quien acepta). Es lo que mejor paga si sale.
+    - **(b) Pilar con suelo 199** (V + 1, lo mínimo que admite `ladder_sell`): +1 neg y un hueco de escalera L3. Pilar nunca ha cerrado una épica por encima de 199: la nuestra a 199 (S-21, en la "fiebre SAL" sin verificar) y LAV-11 de t08 a 140 (tick 550, feed). Rubén cita además 179 y 195 (sin verificar). **Sin fiebre, lo más probable es que no haya trato.**
+    - En los dos casos hay que cancelar antes la 20117: la Gate no deja volver a publicar ni vender en un hilo una carta que ya está publicada (`G13.listed`).
+    - En el escenario A, (b) espera a las 12:17: los huecos de Pilar de la ronda 2 ya están 3/3.
+    - A Ernesto no (113–126).
 - No vender CHA-11 ni RET-11 una vez compradas: cualquier venta por debajo de su valor resta.
 
 ### 5.5 Denuncias (Pícaros)
@@ -352,11 +375,11 @@ Cada una, una vez y apuntada en [handoffs/HANDOFF-domingo.md](handoffs/HANDOFF-d
 |---|---|---|---|
 | 1 | Desplegar `night-build` + `night-docs` | 08:30–08:50, sin duelos | §4.2 |
 | 2 | Huevos Castizo + cocido | 09:01, `dealers` aún en pausa | `python3 egg_carrier.py abuela 940 MAL-01 6 9,8,7,6 5,6` |
-| 3 | Pilar, SAL-11 (L3) | Oferta 20117 caducada sin venderse (~09:25; la caja no subió 245) | `python3 ladder_sell.py pilar 1063 SAL-11 200 260,250,242,235,228,222,216,211,207,203,201,200` |
-| 4 | Pilar, LAT-06 (L3) | Al terminar la 3 | `python3 ladder_sell.py pilar 1105 LAT-06 7 18,16,14,12,10,9,8,7` |
+| 3 | SAL-11: eliges (a) o (b) (§5.4) | 09:00–09:10. Primero, si la 20117 sigue abierta, cancelarla: `python3 bazaar.py do cancel --args '{"offer_id": 20117, "ref": "SAL-11"}' --why "Jorge: SAL-11 a 245 sin comprador" --live` | (a) Equipos: `python3 bazaar.py do list_offer --args '{"side": "sell", "ref": "SAL-11", "asset_id": 1063, "price": 212, "expires_ticks": 240, "closer": false, "want_ref": null}' --why "Jorge: SAL-11 a equipos a 212" --live` (renovar si caduca sin venderse; a las ~12:00 sin comprador, pasar a (b)). (b) Pilar: `python3 ladder_sell.py pilar 1063 SAL-11 199 260,250,242,235,228,222,216,211,207,203,201,199` |
+| 4 | Pilar, LAT-06 (L3) | Al terminar la 3 (si en la 3 elegiste (a), ya: Pilar está libre) | `python3 ladder_sell.py pilar 1105 LAT-06 7 18,16,14,12,10,9,8,7` |
 | 5 | Pilar, LAV-03 (L3, prueba) | Al terminar la 4. Abortar si no puja ≥ 8 | `python3 ladder_sell.py pilar 788 LAV-03 8 16,14,12,11,10,9,8` |
 | 6 | Denuncia de nivel A (≤ 3) | `flag_candidates.py` la lista y la has leído | §5.5 |
-| 7 | Anuncio en v18 | Desde las 10:00, ≤ 1 cada 20–30 min, texto aprobado | §5.3 |
+| 7 | Anuncio en v18 | De 09:15 a 14:30, uno cada ~10 min; a las 11:00 go / no-go (si v18 sigue en 0 tratos, uno cada 30 min y solo con pareja). Texto aprobado | §5.3 |
 | 8 | Huevo de El Chato (opcional) | CHA-06/07/08 en mano, sin hilo con El Chato, LAT-06 sin vender a Pilar | `python3 egg_carrier.py chato 1105 LAT-06 8 18,16,14,12,10,9,8 3` |
 | 9 | Escalera Abuela si L1 < 3 tratos a las ~12:30 | Sin hilo con la Abuela abierto. Antes de que haya una puja del closer, porque un hilo con la Abuela la retira | `python3 ladder_sell.py abuela 789 MAL-02 6 9,8,7,6` (también 583 MAL-04 y 582 MAL-05) |
 | 10 | Huevo de Ernesto | Solo con una pista nueva o un `egg.found` de banco | `python3 ladder_sell.py banco <id> <ref> <suelo ≥ V+1> <precios> 5` (una pieza que le interese; con cuidado) |
@@ -370,6 +393,7 @@ Antes de cualquier venta a un dealer: si la oferta final es menor que tu suelo, 
 
 | Riesgo | Señal | Qué hacer |
 |---|---|---|
+| **Despliegue tarde** | Son más de las 09:00 y `status` enseña todavía el pid 34804 (código del sábado) | Desplegar (§4.2) en cuanto no haya un duelo vivo, como muy tarde a las 10:55 (antes de Duels III). Hasta entonces `dealers` y `rastro` siguen en pausa. En B, el código viejo dispararía el endgame a las ≈ 11:08 y el fin de dealers a las ≈ 11:38 |
 | **Se cae el bot** | `status` → `lock free` o `STALE?` con las puertas abiertas | Relanzar el mismo `Start-Process` de §4.2 (sin `selftest` si el código no ha cambiado). Las pausas siguen en `state/pauses.json`; el cierre de puestos, en `state/day_times.json`. **Después de las 13:55** relanzar sin dealers: `--arm hygiene,rastro,closer,duels` |
 | **Reloj distinto** (tarde, en pausa, otra hora de cierre) | `clockcheck`: `paused True`, otra `t_hours` u otro `closes` | Nada: el fin de dealers y el endgame siguen a `clock.closes` y al calendario vivo. Si `clockcheck` da `derived day_end -`, ponerlo a mano: `day_end_hours.sun` = (puestos o cierre, lo primero) − 0,083 y `closer.endgame_hours` (`sun`, `N`, `*`) = cierre − 0,583 (en C: 18,284 / 18,783). Después `stop`, `resume --why`, relanzar. Nunca con duelos vivos |
 | **Cooloff o cupo de un dealer** | `alarm` / `refused` con `cooloff`, `persona_quota`, `persona_budget` o `sold_out` | Nada: la Gate bloquea a ese dealer hasta `until_tick` o hasta el final de la hora de juego. No insistir a mano (Ernesto castiga la insistencia) |
