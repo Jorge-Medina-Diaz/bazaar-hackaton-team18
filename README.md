@@ -115,5 +115,6 @@ python3 bazaar.py replay-friday                  # replay Friday against the fak
 3. [SHOWCASE.md](SHOWCASE.md): the memory for the judges: ten ideas, the craft, the three rounds, what went wrong and what we changed.
 4. [docs/limitations.md](docs/limitations.md): what we know is missing or imperfect.
 5. Deeper, in Spanish: the build contract [docs/harness-spec.md](docs/harness-spec.md) and the verified facts [docs/knowledge.md](docs/knowledge.md) (P-, V-, D-, U-, M-, S- ids).
+6. [docs/demo/rastro-intel/](docs/demo/rastro-intel/README.md): the market-intelligence demo (live market watchers, screenshots, final standings), in Spanish.
 
 Team: Jorge, Rubén and Santi. The team key lives only in `.env` on the machine that runs the bot (and, for the optional hosted dashboard, in a Vercel environment variable read by a read-only client), never in Git. No code here calls `/api/admin/*`.
