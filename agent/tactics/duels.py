@@ -403,6 +403,14 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
             return ("say", r, rd)
         p = _clamp(v, r if (r >= mine if buyer else r <= mine) else mine, need_say)
         return ("say", p, say_days) if p != mine else wait          # never resend our own price (G50.repeat)
+    # 5b. ultimatum (Sun, Duels III review: 3 of 4 no-deals ended 8-11 P short of our limit; no deal scores 0, and a
+    # seller at 10 days still gets 1 + 10|w| at L+1): two ticks before the deadline a rival still outside our limit
+    # gets our closest allowed price (margin kept by Lm and the final guard)
+    if v.tick >= v.deadline - 2 and not ok_r and mine is not None:
+        p = _clamp(v, Lm, need_say)
+        p = max(p, mine) if buyer else min(p, mine)
+        if p != mine:
+            return ("say", p, say_days)
     last_our_tick = v.ours[-1][0] if v.ours else -1
     if v.tick >= v.deadline - P["final"] and not ok_r and last_our_tick < v.deadline - P["final"]:
         p = _clamp(v, mine + P["final_frac"] * (Lm - mine), need_say)
