@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-04T12:30:07",
+ "updated": "2026-10-04T12:35:10",
  "groups": {
   "pilar|venta|fav·uncommon": {
    "hilos": 41,
@@ -67,9 +67,14 @@
    "mejora_max": 5
   },
   "pilar|venta|resto·uncommon": {
-   "hilos": 79,
+   "hilos": 81,
    "cierres": [
     14,
+    16,
+    16,
+    16,
+    16,
+    16,
     16,
     16,
     16,
@@ -157,12 +162,12 @@
     21
    ],
    "p_sube": {
-    "2-3": 0.51,
+    "2-3": 0.5,
     "1": 0.54,
     "4+": 0.46
    },
    "n_sube": {
-    "2-3": 79,
+    "2-3": 80,
     "1": 114,
     "4+": 46
    },
@@ -172,7 +177,7 @@
    "mejora_max": 4
   },
   "pilar|compra|resto·None": {
-   "hilos": 31,
+   "hilos": 32,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -182,7 +187,7 @@
    "mejora_max": null
   },
   "pilar|venta|resto·None": {
-   "hilos": 48,
+   "hilos": 47,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -192,7 +197,7 @@
    "mejora_max": 0
   },
   "pilar|venta|fav·rare": {
-   "hilos": 55,
+   "hilos": 56,
    "cierres": [
     65,
     65,
@@ -324,7 +329,7 @@
    "n_sube": {
     "2-3": 103,
     "1": 16,
-    "4+": 42
+    "4+": 43
    },
    "final_min": 4,
    "final_med": 5.0,
@@ -424,7 +429,7 @@
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 207,
+   "hilos": 208,
    "cierres": [
     46,
     46,
@@ -445,6 +450,7 @@
     50,
     50,
     50,
+    52,
     52,
     52,
     52,
@@ -685,9 +691,9 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 66,
+    "2-3": 68,
     "1": 82,
-    "4+": 60
+    "4+": 61
    },
    "final_min": 1,
    "final_med": 3,
@@ -731,7 +737,7 @@
    "mejora_max": 0
   },
   "picaros|compra|resto·epic": {
-   "hilos": 91,
+   "hilos": 94,
    "cierres": [
     128,
     128,
@@ -773,6 +779,7 @@
     146,
     146,
     147,
+    149,
     150,
     150,
     150,
@@ -811,10 +818,10 @@
    "n_sube": {
     "4+": 65,
     "1": 7,
-    "2-3": 23
+    "2-3": 28
    },
    "final_min": 1,
-   "final_med": 3.0,
+   "final_med": 3,
    "perdona_max": 48,
    "mejora_max": 57
   },
@@ -850,7 +857,7 @@
    "mejora_max": 27
   },
   "picaros|compra|resto·None": {
-   "hilos": 17,
+   "hilos": 18,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
