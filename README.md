@@ -90,14 +90,15 @@ For live updates instead of polling: `GET /api/events/stream?scope=team` with yo
 
 ## Team 18 (t18)
 
-This repository also holds the trading harness of team 18. **Start with [docs/LEEME-EQUIPO.md](docs/LEEME-EQUIPO.md)** (team guide, in Spanish), then [CLAUDE.md](CLAUDE.md) for the layout and the rules.
+This repository also holds the trading harness of team 18. **Start with [docs/plan-domingo.md](docs/plan-domingo.md)** (Sunday plan, in Spanish) and [docs/knowledge.md](docs/knowledge.md) (verified facts), then [CLAUDE.md](CLAUDE.md) for the layout and the rules. [docs/LEEME-EQUIPO.md](docs/LEEME-EQUIPO.md) is the Saturday-morning team guide, kept for reference.
 
 - One command runs everything: `python3 bazaar.py` (`selftest`, `clockcheck`, `run [--live] [--arm ...]`, `status`, `stop "reason"`). Without `--live` it is a dry run with zero writes.
 - Every write to the game goes through one Gate (`agent/gate.py`) and one transport (`agent/transport.py`); everything else is read-only.
 - Kill switch: `python3 bazaar.py stop "reason"`, or create a file named `STOP` in the repo root.
 - The team key lives only in `.env` on the executor machine, never in Git. Never call `/api/admin/*`.
 - Contract: [docs/harness-spec.md](docs/harness-spec.md) · facts: [docs/knowledge.md](docs/knowledge.md) · play book: [docs/strategy.md](docs/strategy.md) · official rules: [RULES.md](RULES.md), [docs/official/kickoff.pdf](docs/official/kickoff.pdf).
-- Panels (read-only): `api/index.py` + `agent/dashboard.py` (Vercel), `website/` (hosted panel), `panel.py`, `live_monitor.py`, `observe_performance.py`, and the offline lab `laboratorio.py`.
+- Panels (read-only): `api/index.py` + `agent/dashboard.py` (Vercel), `website/` (hosted panel), `panel.py`, `live_monitor.py`, and the offline lab `laboratorio.py`. Read-only helpers: `bench_rec.py` (Market Test book recorder) and `egg_watch.py` (keyless easter-egg watcher). Do not run `observe_performance.py`: it sends the team key to an external host.
+- The kit's `starter_agent.py` and `starter_broker.py` (sections 1 and 5 above) are in `archive/` and disabled (`SystemExit`); in this repo everything goes through `python3 bazaar.py`.
 - Superseded scripts and notes are in [archive/](archive/README.md); none of them can run.
 
 Tests: `python3 -m unittest discover -s tests -t .` (the panel website: `node --test website/worker.test.mjs`).

@@ -1,5 +1,8 @@
 # BRIEFING sábado — Team 18 (léelo en 5 minutos)
 
+> **Histórico (sábado 08:35).** Se conserva como registro. Lo de aquí está superado: caja, nivel, LAT 8/10, escenarios N/C del reloj y número de tests. Hechos vigentes: [../knowledge.md](../knowledge.md). Plan del domingo: [../plan-domingo.md](../plan-domingo.md).
+
+
 *Escrito el sáb 3 oct a las 08:35. Base: `docs/knowledge.md` (hechos verificados por 8 analistas + 8 escépticos sobre los datos del viernes) y `docs/strategy.md` (plan completo). Si algo aquí contradice esos dos, mandan ellos.*
 
 ---

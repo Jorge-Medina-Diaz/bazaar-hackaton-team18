@@ -19,3 +19,6 @@ runs/
 __pycache__/
 .pytest_cache/
 .venv/
+
+# Claude Code worktrees (night-build, night-docs, ...): local only
+/.claude/

@@ -13,7 +13,6 @@ archive/
 sim/
 docs/
 tests/
-santi/
 .venv/
 __pycache__/
 .pytest_cache/
