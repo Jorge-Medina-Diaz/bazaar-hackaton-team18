@@ -93,7 +93,7 @@ python3 bazaar.py replay-friday                  # replay Friday against the fak
 
 1. [docs/journey.md](docs/journey.md): how we adapted over three days. What we measured, what broke live, how we fixed it.
 2. [docs/architecture.md](docs/architecture.md): modules, tick order, invariants, guards.
-3. [SHOWCASE.md](SHOWCASE.md): the Friday, Saturday and Sunday story, told with the numbers.
+3. [SHOWCASE.md](SHOWCASE.md): the memory for the judges: ten ideas, the craft, the three rounds, what went wrong and what we changed.
 4. [docs/limitations.md](docs/limitations.md): what we know is missing or imperfect.
 5. Deeper, in Spanish: the build contract [docs/harness-spec.md](docs/harness-spec.md) and the verified facts [docs/knowledge.md](docs/knowledge.md) (P-, V-, D-, U-, M-, S- ids).
 
