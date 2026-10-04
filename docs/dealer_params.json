@@ -1,8 +1,8 @@
 {
- "updated": "2026-10-04T13:40:57",
+ "updated": "2026-10-04T13:46:01",
  "groups": {
   "pilar|venta|fav·uncommon": {
-   "hilos": 45,
+   "hilos": 47,
    "cierres": [
     22,
     22,
@@ -23,6 +23,12 @@
     24,
     24,
     24,
+    25,
+    25,
+    25,
+    25,
+    25,
+    25,
     25,
     25,
     25,
@@ -58,17 +64,17 @@
     30
    ],
    "p_sube": {
-    "2-3": 0.75,
+    "2-3": 0.76,
     "1": 0.8,
-    "4+": 0.6
+    "4+": 0.57
    },
    "n_sube": {
-    "2-3": 68,
+    "2-3": 71,
     "1": 40,
-    "4+": 10
+    "4+": 14
    },
    "final_min": 4,
-   "final_med": 5,
+   "final_med": 5.0,
    "perdona_max": 4,
    "mejora_max": 5
   },
@@ -185,7 +191,7 @@
    "mejora_max": 4
   },
   "pilar|compra|resto·None": {
-   "hilos": 35,
+   "hilos": 36,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
@@ -447,7 +453,7 @@
    "mejora_max": 1
   },
   "picaros|compra|resto·rare": {
-   "hilos": 225,
+   "hilos": 226,
    "cierres": [
     46,
     46,
@@ -737,9 +743,9 @@
     "4+": 1.0
    },
    "n_sube": {
-    "2-3": 85,
-    "1": 85,
-    "4+": 68
+    "2-3": 86,
+    "1": 86,
+    "4+": 69
    },
    "final_min": 1,
    "final_med": 3,
@@ -788,7 +794,7 @@
    "mejora_max": 0
   },
   "picaros|compra|resto·epic": {
-   "hilos": 112,
+   "hilos": 114,
    "cierres": [
     128,
     128,
@@ -881,9 +887,9 @@
     "2-3": 1.0
    },
    "n_sube": {
-    "4+": 80,
+    "4+": 83,
     "1": 8,
-    "2-3": 35
+    "2-3": 36
    },
    "final_min": 1,
    "final_med": 3.0,
@@ -922,7 +928,7 @@
    "mejora_max": 27
   },
   "picaros|compra|resto·None": {
-   "hilos": 20,
+   "hilos": 19,
    "cierres": [],
    "p_sube": {},
    "n_sube": {},
