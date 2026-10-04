@@ -7,7 +7,7 @@ Actualización: los cuatro fallos se corrigieron en los módulos `agent/` de est
 Evaluación de los dos agentes del equipo: Codex y Jorge. Santi aporta estrategia y valoración; su scorer no es todavía un tercer agente que negocie. Esta revisión no inició operaciones de juego.
 
 - Pull de `codex/plan-negociacion`: actualizado, con los cambios locales del panel conservados.
-- Pull de `Santi`: actualizado en `/Users/ruben/projects/bazaar-hackaton-team18-strategy`, rama local `review/strategy`.
+- Pull de `Santi`: actualizado en `<carpeta local>`, rama local `review/strategy`.
 - Estrategia revisada: `Santi@5ebf3cb`, `STRATEGY.md`, `santi/STRATEGY_v2.md` y `agent/scorer.py`.
 - Agente de Jorge revisado: `feat/jorge@cfd0e69`. Se leyó el código actualizado después del segundo pull.
 - Política de Codex: `bdaa6aa`, `negotiation_policy.py`.

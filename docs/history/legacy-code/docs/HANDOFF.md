@@ -18,7 +18,7 @@
 - Publicado mediante Sites: `https://bazaar-equipo18-cartas.rubenwork1009.chatgpt.site`. Estado de despliegue `succeeded`, revisión de entorno 1.
 - El acceso a los datos requiere la clave del equipo, validada contra `/api/me`. Sesión cifrada AES-GCM de ocho horas en cookie Secure, HttpOnly y SameSite=Strict; el secreto de sesión se configuró en Sites y no figura en el repositorio. La página pública no contiene respuestas privadas.
 - El Worker consulta cuatro fuentes cada cinco segundos mientras el panel está abierto. Usa únicamente GET contra el juego y conserva los datos anteriores marcando fallos por fuente. Caché separado por clave mediante HMAC; su ruta interna devuelve 404 al público. Los movimientos observados son temporales y no se atribuyen a compras/ventas históricas sin evidencia.
-- Fuente compartida en `website/`; checkout de despliegue separado en `/Users/ruben/projects/hackathon/deploy/mesa-cartas`. Identidad en `website/.openai/hosting.json`; reutilizar ese Site en próximos despliegues.
+- Fuente compartida en `website/`; checkout de despliegue separado en `<carpeta local>`. Identidad en `website/.openai/hosting.json`; reutilizar ese Site en próximos despliegues.
 - Verificación: 59 pruebas Python y cinco pruebas del Worker pasaron, JavaScript válido, compilación y empaquetado correctos, publicación verificada mediante estado de Sites. No se tuvo disponible la clave real para comprobar una entrada del equipo; esa verificación sigue pendiente y no se afirma como completada.
 - Se conservó el trabajo anterior; estos cambios del panel se suben a `codex/plan-negociacion`, sin mezclar ni modificar los agentes de compañeros.
 - Siguiente paso concreto: abrir la URL con la clave del equipo y comprobar las cuatro horas de verificación tras dos ciclos; informar de cualquier fuente que marque `invalid_response`.
@@ -37,7 +37,7 @@
 ## Repositorio y autorización
 
 - Repositorio: `https://github.com/Jorge-Medina-Diaz/bazaar-hackaton-team18.git`.
-- Carpeta: `/Users/ruben/projects/bazaar-hackaton-team18`.
+- Carpeta: `<carpeta local>`.
 - Rama: `codex/plan-negociacion`, creada desde `main` en `ca4228b`.
 - Rubén autorizó pruebas incrementales, después juego real y finalmente commit y push de nuestros cambios a esta rama. Claude quedó al margen por su indicación.
 - Se revisaron README y reglas oficiales. No se reutilizó código de negotiation-lab. Los starters y el SDK originales conservan su código.
@@ -84,7 +84,7 @@ Evaluación: `python3 evaluacion.py`. Recorrido: `python3 laboratorio.py --scena
 ## Recheck de strategy y comparación de agentes
 
 - Rubén pidió pull antes de cambios y evaluación sin iniciar operaciones. Se hizo `git pull --ff-only` en `codex/plan-negociacion` y en el worktree `review/strategy` que sigue `origin/Santi`; se conservaron los cambios locales del panel.
-- Revisados `Santi@5ebf3cb` y `feat/jorge@cfd0e69`, incluida la actualización de Jorge recibida en el segundo pull. La estrategia está en `/Users/ruben/projects/bazaar-hackaton-team18-strategy`.
+- Revisados `Santi@5ebf3cb` y `feat/jorge@cfd0e69`, incluida la actualización de Jorge recibida en el segundo pull. La estrategia está en `<carpeta local>`.
 - Añadidos `RECHECK.md` y `recheck.py`: informe, comparación de decisiones de los dos agentes y cuatro probes offline reproducibles. Tres fallos del scorer: marginales repetidos en bundles, cantidades solicitadas insuficientes y bonus de página ya completa. Un fallo del registro de Jorge: precio 0 cuando el dealer acepta una oferta propia de compra por 9.
 - El fallo anterior de leer liquidaciones solo en standing_offers ya fue corregido por Jorge; se retiró. No se modificaron los motores de otros compañeros.
 - Consultados feed, reloj, calendario, dealers y leaderboard mediante GET públicos sin clave. Observaciones iniciales sobre 500 eventos, ticks 30–56; se separan evidencia e hipótesis. No se iniciaron compras, ventas ni conversaciones desde este recheck.

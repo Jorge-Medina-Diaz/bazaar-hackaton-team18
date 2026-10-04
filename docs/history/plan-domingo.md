@@ -145,7 +145,7 @@ Si abren tarde o pausan, todo se retrasa lo mismo, pero el cierre sigue a las 15
 ### 3.3 Cómo saber a las 09:00 cuál aplica
 A las **09:00:30** y a las **09:05** (GET sin clave a `/api/clock` y `/api/schedule`):
 ```
-cd C:/Users/jorge/Desktop/hackaton-claude/bazaar-kit
+cd <repo>
 python3 bazaar.py clockcheck
 ```
 Imprime `reading`, `round`, `t_hours`, `paused`, `doors`, el cierre (schedule y pared), el cierre de puestos, el `day_end` / `endgame` derivados y una línea `scenario`:
@@ -169,7 +169,7 @@ Sin herramientas: `curl -s https://bazaar.causaprima.ai/api/clock` y `curl -s ht
 
 ## 4. Runbook 08:30–09:05 (máquina A)
 
-Todo desde `C:/Users/jorge/Desktop/hackaton-claude/bazaar-kit`, en Git Bash salvo donde pone PowerShell. **Un solo operador y una sola sesión de Claude** con el bot.
+Todo desde `<repo>`, en Git Bash salvo donde pone PowerShell. **Un solo operador y una sola sesión de Claude** con el bot.
 
 ### 4.1 08:30 Energía (PowerShell)
 El sábado la máquina se durmió de 22:55 a 23:43 (S-31).
@@ -191,7 +191,7 @@ Comprobar primero: si `git log -1 --oneline` en `harness-v2` ya enseña la fusi�
    ```
 2. **Apartar los no versionados** que traen las ramas (git se niega a sobrescribirlos; son copias iguales o superadas):
    ```
-   mkdir -p C:/tmp/sat-untracked && mv bench_rec.py egg_watch.py docs/HANDOFF-sabado-1130.md docs/HANDOFF-sabado-2100.md C:/tmp/sat-untracked/
+   mkdir -p <tmp>/sat-untracked && mv bench_rec.py egg_watch.py docs/HANDOFF-sabado-1130.md docs/HANDOFF-sabado-2100.md <tmp>/sat-untracked/
    ```
    `egg_watch.py` (pid 18236) sigue corriendo con su código ya cargado: no hace falta tocarlo.
 3. **Fusionar:**
@@ -301,7 +301,7 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
   - **Procedimiento:**
     ```
     python3 announce_candidates.py                # solo lectura, sin clave: parejas y borrador
-    python3 C:/Users/jorge/AppData/Local/Temp/claude/c--Users-jorge-Desktop-hackaton-claude-bazaar-kit/27e13914-d038-4ac9-be22-314fc951d24e/scratchpad/announce_stall.py "<texto aprobado>"
+    python3 <scratchpad>/announce_stall.py "<texto aprobado>"
     ```
   - **Reglas:**
     - nunca nombrar a contendientes (t10, t05, t12, t03, t06, t14);
@@ -309,7 +309,7 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
     - el bot nunca publica en venues rivales: solo El Rastro;
     - cada envío se apunta en [handoffs/HANDOFF-domingo.md](handoffs/HANDOFF-domingo.md).
   - **Medir (sin clave):** `curl -s https://bazaar.causaprima.ai/api/leaderboard | python3 -c "import json,sys; d=json.load(sys.stdin); [print(v['venue'], v['owner'], v['trades'], v['pairs']) for v in d['venues'] if v['venue'] in ('v18','v07','v01','v16')]"`
-  - **`mm_points` (GET con clave, no la imprime):** `cd C:/Users/jorge/AppData/Local/Temp/claude/c--Users-jorge-Desktop-hackaton-claude-bazaar-kit/27e13914-d038-4ac9-be22-314fc951d24e/scratchpad && MSYS_NO_PATHCONV=1 python3 peekfull.py /api/me | python3 -c "import json,sys; s=json.load(sys.stdin)['score']; print(s['mm_points'], s['market'])"`
+  - **`mm_points` (GET con clave, no la imprime):** `cd <scratchpad> && MSYS_NO_PATHCONV=1 python3 peekfull.py /api/me | python3 -c "import json,sys; s=json.load(sys.stdin)['score']; print(s['mm_points'], s['market'])"`
 - **Reabrir la decisión** solo si un rival pasa de 12,5 + 0,5 de mercado (prueba de que se puede superar al puesto). Aun así, solo con tu OK y un broker probado abierto ≥ 2 ticks antes de una sesión.
 
 ### 5.4 Épicas: qué sí y qué no
@@ -334,11 +334,11 @@ Un hueco vale parte capturada × L/45. Solo cuentan los tratos con ganancia a nu
   ```
   Para cada candidata que apruebes, apuntar `neg_points` antes, enviar, y comprobar después:
   ```
-  python3 C:/Users/jorge/AppData/Local/Temp/claude/c--Users-jorge-Desktop-hackaton-claude-bazaar-kit/27e13914-d038-4ac9-be22-314fc951d24e/scratchpad/flag_one.py <message_id> "Los Pícaros ofrecen <carta dada> en un hilo sobre <carta del tema> y el texto nombra <carta del tema>"
+  python3 <scratchpad>/flag_one.py <message_id> "Los Pícaros ofrecen <carta dada> en un hilo sobre <carta del tema> y el texto nombra <carta del tema>"
   ```
   Para leer `neg_points` (GET de solo lectura; no imprime la clave):
   ```
-  cd C:/Users/jorge/AppData/Local/Temp/claude/c--Users-jorge-Desktop-hackaton-claude-bazaar-kit/27e13914-d038-4ac9-be22-314fc951d24e/scratchpad && MSYS_NO_PATHCONV=1 python3 peekfull.py /api/me | python3 -c "import json,sys; print(json.load(sys.stdin)['score']['neg_points'])"
+  cd <scratchpad> && MSYS_NO_PATHCONV=1 python3 peekfull.py /api/me | python3 -c "import json,sys; print(json.load(sys.stdin)['score']['neg_points'])"
   ```
   Si da error o el cambio es ≤ 0, parar. Apuntar cada una en HANDOFF-domingo.
 

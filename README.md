@@ -6,12 +6,14 @@ It is an autonomous agent that collects Madrid cards, haggles with five dealer p
 **The design idea:** every write to the game is a typed `Intent` that passes **one Gate**. The Gate re-reads the world, checks it against about thirty guards, logs a write-ahead journal and then sends it through **one transport**. That transport physically refuses anything else.
 **The method:** we measured what the scorer pays for, wrote it down as numbered facts, and changed the plan and the code only from those facts.
 
+**The game in 30 seconds.** 18 teams collect Madrid cards to complete album pages. Every card has a private value for each team (a team's own neighbourhoods are worth ×1.6 to it), so trades exist: with five dealer personas (levels 1–5, each with a price ladder) and with other teams, on the public market (El Rastro) or on venues that teams open. Twice a day there are duel sessions: 1-to-1 negotiations on price and, later, delivery day. The score is **negotiating** (value gained in team deals at your own values, duels, the dealer ladder) plus **market-making** (Market Test efficiency and trades between *other* teams on your venue), relative to the field; judges add 40 %. The currency is primas (P).
+
 | | Result |
 |---|---|
 | Friday (round 1) | **13th → 2nd** by tick 75 (first complete album page of the game); closed 7th |
 | Saturday (round 2) | **7th → 2nd** (2nd-best negotiation score of the field at the close) |
 | Final (after the 15:00 close) | **5th of 18, 32.27** (negotiating 23.27, 4th of 18; market 9.00, 15th of 18). 1st: t05, 37.73. Our gap to 1st was market-making: see [the self-critique](SHOWCASE.md#self-critique-why-we-did-not-climb-higher) |
-| Sunday (round 3) | 4 album pages complete by 09:35. 1st in negotiation by 10:20. Our own board venue matched 96.7 % of the hard Market Test's possible gains (bench score 0.5, the same as the free stall) |
+| Sunday (round 3) | Chamberí complete in 12 minutes (09:21–09:33): 4 album pages. 1st in negotiation by 10:20. Our own board venue matched 96.7 % of the hard Market Test's possible gains (bench score 0.5, the same as the free stall) |
 | Duels | Duels II (Sat): 44/68 deals, 65 %. After the day-sign fix, **Duels III (Sun): 57/68 deals, 84 % (field 75 %)**, total result 791.6 → 1,187.6, no deal below our limit. Grand Final: 24/34 (71 %, field 68 %) |
 | Writes through the Gate (Sat 09:21 – Sun 14:55) | **1,850: 1,849 accepted by the server, 0 refused, 1 `unknown`** (an exception: its domain froze and it was reconciled as not landed 2 ticks later, as designed). Our own guards refused 531 more before they left the process: 282 were redundant thread closes from a bug fixed in `f9b4e2e`, 143 missed the tick deadline (81 of them in the Grand Final's 15 s ticks), the rest were value, cash and protection checks. Manual writes outside the Gate (flags, venue, broker, announcements) are logged separately |
 | Tests | 912 unit, property, chaos and end-to-end tests (stdlib only, no network, no key) |

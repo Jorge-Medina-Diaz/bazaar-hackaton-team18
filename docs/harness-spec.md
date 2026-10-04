@@ -330,7 +330,7 @@ def predict_duel(limit: int, price: int, decay: float, rounds: int, side: str) -
 def predict_none(model: str = "none") -> Prediction
 def verdict(pred: Prediction, measured_neg: float, ladder_delta: float) -> str   # pass|soft_fail|hard_fail|surprise_up
 ```
-Origen: se reescribe desde `logs/analysis/scoring/verify/vlib.py` (que tiene la ruta `C:/Users/jorge/...` y `RELEASED` fijos, medido). `released_sets` sale de `catalog.sets[].released` en cada tick.
+Origen: se reescribe desde `logs/analysis/scoring/verify/vlib.py` (que tiene la ruta `<ruta local>` y `RELEASED` fijos, medido). `released_sets` sale de `catalog.sets[].released` en cada tick.
 
 ### 2.5 `agent/guards.py` (M4a) y `agent/talk.py` (M4b)
 ```python

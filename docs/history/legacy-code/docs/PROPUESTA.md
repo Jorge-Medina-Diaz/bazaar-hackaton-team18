@@ -4,7 +4,7 @@ Estado: Rubén autorizó empezar con pruebas incrementales. Implementados la pol
 
 - Repositorio: `Jorge-Medina-Diaz/bazaar-hackaton-team18`.
 - Rama local: `codex/plan-negociacion`, creada desde `main` en `ca4228b`.
-- Carpeta local: `/Users/ruben/projects/bazaar-hackaton-team18`.
+- Carpeta local: `<carpeta local>`.
 - Los cinco archivos del kit coinciden con el kit oficial que ya revisamos.
 
 ## La idea

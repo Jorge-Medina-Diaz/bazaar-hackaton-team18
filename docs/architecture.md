@@ -8,7 +8,7 @@ This is the English map of the harness. The full build contract, with every sign
 2. **Fail closed.** Unknown, missing or malformed means refuse. The bot never guesses.
 3. **Code decides numbers, text never does.** Foreign text (dealers, rivals, LLMs) never enters the data the tactics read. Our own text is templated and firewalled.
 4. **Measure, then act.** Every write carries a predicted score change, and the calibrator checks it against the measured change.
-5. **Stdlib only, single process, no LLM at runtime.** Python ≥ 3.9 on Windows, macOS and Linux (CI).
+5. **Stdlib only, single process, no LLM at runtime.** Python ≥ 3.9; developed and run on Windows, CI on Linux (Python 3.9 and 3.12).
 
 ## Modules
 

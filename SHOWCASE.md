@@ -136,7 +136,7 @@ Before and after every action we logged `/api/me → score`. Two numbers changed
 | A good dealer deal (SAL-02 at 9 with Abuela) | `ladder_points` **+0.014** |
 | Selling one duplicate common to another team at 9 P | `neg_points` **+6.8**, exactly 9 − 2.2 (that card's value to us) |
 
-That showed **`neg_points` is value gained in our private primas, 1 to 1.** A duplicate is worth 2 P to us and 9 P to a team missing it, and the 7 P difference goes straight into our score. Everyone else was still focused on haggling with Abuela. We moved our effort to trading with other teams.
+That showed **`neg_points` is value gained at our private values, 1 to 1.** A duplicate is worth 2 P to us and 9 P to a team missing it, and the 7 P difference goes straight into our score. Everyone else was still focused on haggling with Abuela. We moved our effort to trading with other teams.
 
 ##### 2. We used the public feed as free intel
 `/api/feed` shows every team's dealer haggles and trades. From it we:
@@ -218,14 +218,14 @@ Saturday closed 2nd. The night was spent on an orchestrated audit of the harness
 | When | What happened |
 |---|---|
 | 09:15 | The organisers re-anchored the Sunday schedule, as our Saturday data predicted. The harness derived the dealer day end (13:55) and the endgame (14:25) from the live clock, so no config change was needed |
-| 09:20–09:35 | Chamberí (×1.6 for us) completed from three dealer levels in parallel: Abuela for commons, El Chato for uncommons, Los Pícaros for rares and the epic. The closing card came from a team bid. **4 album pages complete** |
+| 09:21–09:33 | Chamberí (×1.6 for us) completed from three dealer levels in parallel: Abuela for commons, El Chato for uncommons, Los Pícaros for rares and the epic. The closing card came from a team bid. **4 album pages complete** |
+| 09:23 · 11:55 | Two easter eggs sent through the Gate as template lines: the Abuela's (**Castizo** badge, all three badges held) and El Chato's, copied from the public feed in two minutes after Team 2 asked him about the calamares sandwich (a free neighbourhood pack) |
 | 09:27 | Team 13 paid 238 for our SAL-11 epic while Doña Pilar's best offer was 165. We spotted the bid because the Gate refused our own accept (`G13.listed`: the card was still offered to the dealer); we closed the dealer thread and sold to the team for **+27** |
-| 09:32 | A live bug caught by our own safety net: the calibrator's daily-surprise threshold stopped the bot on a deal that *gained* less than predicted. We fixed it, added a test, redeployed and logged it |
 | 09:30 | Three more "level A" Pícaros tricks flagged: **+30**. The cap of three scoring flags is per round |
+| 09:32 | A live bug caught by our own safety net: the calibrator's daily-surprise threshold stopped the bot on a deal that *gained* less than predicted. We fixed it, added a test, redeployed and logged it |
 | 10:09 | We opened our own board venue (v28) with a broker. On the hard Market Test it matched **96.7 % of the possible gains** (bench 0.5, the same as the stall, at zero risk) and recorded the full synthetic book for the first time |
 | 10:20 | **1st in negotiation (24.89)**, 3rd overall, 0.88 behind the leader. All the gap was in organic market-making |
 | 11:00 | Duels III with the day-sign fix: **57 of 68 duels closed (84 %, the field 75 %)**, up from 44 of 68 in Duels II, result 791.6 → 1,187.6, none below our limit |
-| 09:23 · 11:55 | Two easter eggs sent through the Gate as template lines: the Abuela's (**Castizo** badge, all three badges held) and El Chato's, copied from the public feed in two minutes after Team 2 asked him about the calamares sandwich (a free neighbourhood pack) |
 | 12:28 | **El Taller:** three spare commons worth about 2 P each became an uncommon (LAT-06), sold to Doña Pilar at 16, filling her third ladder slot |
 | 12:53 | v28 closed after the last Market Test, bond refunded. Our matchmaking announcements drew 12 listings from t01 and t04 and **one trade between two other teams** (t01 → t13, LAV-04 at 6, tick 2144). Organic, but small |
 | 13:00–13:15 | Before the Grand Final, four independent reviewers attacked the deployed code, the Duels III data, the tick timing and the operations; 110k random duel states went through the real Gate with 0 refusals. Three changes shipped: an ultimatum two ticks before a duel's deadline, silent-rival sellers go to L+1 at the end (5 of 12 had ended with no deal), and 15 s ticks read only clock, account, offers and duels (32 of 33 late refusals came from the full snapshot overrunning) |
@@ -247,14 +247,14 @@ What we would keep: the single write path, the predicted-against-measured journa
 | Sat | After the RET page, nothing aimed at empty ladder slots, and the rank drifted 1st → 8th | The ladder plan became explicit: three deals per level, highest levels first |
 | Sat 21:18 | Duels II sent a neutral 5 days on every message: the sign fix never reached the tactic, because the sensor drops free text by design | Derive `days_sign` in the sensor from the server's own wording. Duels III: 84 % deals |
 | Sat 22:55 | The machine slept for 48 minutes and the bot missed the last ticks | Detached runner, power settings, `STALE?` warning in `status` |
-| Sun 09:32 | The calibrator stopped the bot on a deal that gained less than predicted | Threshold −5 → −60, with a test; real losses still stop the bot |
+| Sun 09:32 | The calibrator stopped the bot on a deal that gained less than predicted | Threshold −5 → −60, with a test; at 13:13 −500, after a cancel followed by a refill read as a −28.7 surprise. Real losses still stop the bot through `LOSS_STOP` |
 | Weekend | 282 refusals were redundant thread closes (`G33.not_open`) | A walked-out thread counts as closed (`f9b4e2e`) |
 
 ## Self-critique: why we did not climb higher
 
-We wanted to learn the game, not just play it, so here is the honest account. At 14:02 on Sunday we were 5th with 32.41. The leader, t05, had 37.14.
+We wanted to learn the game, not just play it, so here is the honest account. At the close we were 5th with 32.27. The leader, t05, had 37.73.
 
-**Where the gap is.** Of the 4.73 points, **4.08 are market** (13.08 against our 9.00) and only 0.65 are negotiating. In negotiation we were 3rd ([data/payday-analysis.txt](data/payday-analysis.txt), [data/leaderboard-sunday-1402.json](data/leaderboard-sunday-1402.json)).
+**Where the gap is.** Of the 5.46 points, **4.08 are market** (13.08 against our 9.00, 15th of 18) and 1.37 are negotiating (4th of 18) ([data/payday-analysis.txt](data/payday-analysis.txt), [data/leaderboard-final.json](data/leaderboard-final.json)).
 
 **What we got wrong**, by impact on points:
 1. **We underrated organic market-making all weekend.**
@@ -274,14 +274,14 @@ We wanted to learn the game, not just play it, so here is the honest account. At
 4. **Idle cash.**
    - We kept 531 P unused for the last two hours of Saturday while other teams converted the +400 grant into deals.
    - On Sunday we still held 437 P at 14:03, after Chamberí was complete. Cash is worth 0 at the freeze, and we were too conservative.
-5. **Too many live redeploys.** On Saturday, 17 stops and redeploys cost 87 ticks, 9 of them during Duels II, and the machine slept for 48 minutes. On Sunday, two more interruptions. Robust code, fragile operations.
+5. **Too many live redeploys.** On Saturday, 17 stops and redeploys cost 87 ticks, 9 of them during Duels II, and the machine slept for 48 minutes. On Sunday, 10 more stops: 8 planned redeploys, the calibrator's false stop at 09:31, and the last one at 14:55, when the harness stopped itself on an offer it had not written (`foreign_writer`, invariant INV-16). Robust code, fragile operations.
 6. **Split effort.**
    - Our analysts built good tools: a news radio, a trick detector, a rival-multiplier estimator and a duel lab.
    - They lived on another branch and never fed the bot's decisions.
    - Several AI sessions operated in parallel, at a coordination cost.
 7. **The unscheduled +400 P grant** cost us about 0.3–0.7 final points. It is real, but it does not explain the result.
 
-**The pattern that connects them.** We optimised what we controlled: the safety of the harness, the negotiation and the evidence. We automated little of what depended on other teams, organic market-making, and that is what decided the podium. 155 commits and 912 tests went into making every write safe; almost nothing went into bringing other teams' trades to our venue.
+**The pattern that connects them.** We optimised what we controlled: the safety of the harness, the negotiation and the evidence. We automated little of what depended on other teams, organic market-making, and that is what decided the podium. Over 150 commits and 912 tests went into making every write safe; almost nothing went into bringing other teams' trades to our venue.
 
 **What we would do differently next time:**
 - Model each score component's ceiling on day one, and staff the biggest uncaptured one.
