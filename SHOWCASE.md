@@ -133,3 +133,26 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 - The duel part of the score is a mean per duel, so a no-deal pulls it down.
 - Market per round = 22.5 × bench + 7.5 × organic. Our free stall earns half the bench; t10's lead is trades between other teams on its venue.
 - The calendar re-anchors each day at its real opening time.
+
+## Sunday (round 3): Chamberí in 40 minutes, the duels fixed, a venue of our own
+
+**The night before** we ran an overnight audit with independent reviewers that tried to refute each other's findings. It produced about 60 fixes, each with its regression test, and the playbook `docs/plan-domingo.md`. Two of the fixes decided the morning:
+- **The clock.** The Sunday schedule was scripted for t = 16.65 while the clock stood at 13.37. The harness now derives the dealer-day end and the endgame from the server's wall-clock close and the live schedule, not from fixed hours. The server re-anchored the day exactly as predicted (scenario C), and nothing had to be touched by hand.
+- **The duel days.** A buyer now sends day 0 and a seller day 10. The Gate and the tactic share one sign rule, read from the server's own `days_meaning`. On Saturday we had sent a neutral 5 days on every message.
+
+| When | What happened |
+|---|---|
+| 09:15 | Clock starts. Round 3 opens, Chamberí (×1.6 for us) is released, and +150 P arrives. Dealers stay paused so that teams' first Chamberí sales reach our El Rastro buyer first |
+| 09:23 | Abuela egg sent through the Gate as a template line: **Castizo** badge. We now hold all three badges |
+| 09:24 | SAL-11 sold to another team's bid at 238 (**+27**) instead of the dealer's 199. We spotted the bid because the Gate refused our own accept (`G13.listed`) while the card was still offered to the dealer |
+| 09:21–09:33 | **Chamberí complete in about 40 minutes.** Rares came from Los Pícaros (58, ~60), uncommons from El Chato (31), commons from the Abuela (9–10), and the closing card from a team's sale into our standing bid at 72 |
+| 09:35 | Three firm Pícaros tricks flagged: **+30**. This confirmed that the cap of three scoring flags resets each round |
+| 09:32 | The calibrator stopped the bot. A closing-card buy that gained +23 had been predicted at +50, and the daily surprise limit was −5. We redeployed with a −60 limit within minutes; real losses stay with `LOSS_STOP` |
+| 10:09 | We opened our own **board venue v28** with a broker (0 % fee), so that we see the Market Test book *before* the cross, which the free stall never showed us. Hard Market Test: **0.967 efficiency**, the same 0.5 bench points as the stall, and no session lost |
+| 11:00–11:52 | Duels III: **57 of 68 duels closed with a deal (84 %)**, against 73.5 % for the rest of the field (Saturday's Duels II: 65 % against 77.6 %). Duel points went from 0 to 22.6. No accept and no offer outside our limit |
+| 11:55 | El Chato egg, copied from the public feed in two minutes: Team 2 had opened a *buy* thread and asked about the calamares sandwich, so we did the same through the Gate (`chato_buy` template). Free neighbourhood pack |
+| 12:28 | **El Taller:** three spare commons worth about 2 P each became an uncommon (LAT-06), sold to Doña Pilar at 16. That filled her third ladder slot |
+| 12:53 | Our venue v28 closed after the last Market Test with its bond refunded. It ran at 0.967 efficiency and hosted one trade between two other teams (t01 → t13), brought in by our matchmaking announcements |
+| 13:00–13:15 | Before the Grand Final, four independent reviewers attacked the deployed code, the Duels III data, the tick timing and the operations. 110k random duel states went through the real Gate with 0 refusals. Two changes came out of it: silent-rival sellers now go to L+1 at the end (5 of 12 such sellers had ended with no deal), and the 15 s ticks read only clock, account, offers and duels (32 of 33 late refusals came from the full snapshot overrunning) |
+
+We kept a rule all day: **dealer gains score only on the ladder, and a loss counts in full**. With every page complete, no listing anywhere below our value and Don Ernesto's legendaries above what we could pay, we did not spend the remaining cash to "use it": a gold pack would have cost about −175 negotiation points. It went into standing bids below our value instead, which can only add.
