@@ -335,7 +335,7 @@ class TestSecrets(Base):
 
 class TestVenuesAndBudget(Base):
     def test_other_boards_every_4_ticks_when_fast_ticks(self):
-        self.t.data["clock"]["tick_seconds"] = 15.0
+        self.t.data["clock"]["tick_seconds"] = 20.0      # between FAST_TICK_S (16, Sun Final) and SLOW_TICK_S (30)
         w, _ = self.s.snapshot(None)
         self.assertIn("board:v01", self.t.calls)
         for tick in (160, 161, 162):

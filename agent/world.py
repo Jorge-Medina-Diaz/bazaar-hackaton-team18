@@ -513,7 +513,7 @@ class Sensor:
     VALUES_PER_TICK = 3
     OTHER_BOARDS_EVERY = 4            # ticks, unless tick_seconds >= SLOW_TICK_S (D2)
     SLOW_TICK_S = 30.0
-    FAST_TICK_S = 10.0                # below: clock, me, me/offers, duels only (§14 S-M6)
+    FAST_TICK_S = 16.0                # below: clock, me, me/offers, duels only (§14 S-M6). Sun 13:15: 16 so the 15 s ticks of the Grand Final read only those (32 of 33 Duels III G03.late came from the full snapshot overrunning)
     CATALOG_EVERY = 10
     LEADERBOARD_EVERY = 4
     MAX_OTHER_BOARDS = 8

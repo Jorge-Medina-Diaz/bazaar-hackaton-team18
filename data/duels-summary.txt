@@ -6,5 +6,5 @@ Duels III (Sun)    57 / 68  (84 %)       1187.6         2.3                    0
 
 No deal of ours ended below our limit (min result > 0 in both sessions).
 Between the two sessions: the day sign is read from the server's days_meaning (buyer 0 days, seller 10), the
-worst-case days margin was removed, a silent rival gets its own (price, days) echoed back, and near the deadline the
-tactic gives an ultimatum at the closest allowed price (docs/journey.md, harness-spec §15).
+worst-case days margin was removed, and a silent rival gets its own (price, days) echoed back. After Duels III, for the
+Grand Final: an ultimatum two ticks before the deadline and L+1 for silent-rival sellers (docs/journey.md, harness-spec §15).

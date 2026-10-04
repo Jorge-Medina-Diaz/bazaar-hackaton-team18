@@ -340,6 +340,17 @@ class TestTwoIssues(unittest.TestCase):
         self.assertEqual(D.decide(D.view(b, 114), {}), ("say", 167, 0))
         self.assertNotEqual(D.decide(D.view(b, 110), {})[1], 167)            # not before deadline - 2
 
+    def test_silent_seller_goes_to_the_limit_at_the_end(self):
+        # Sun Duels III audit: silent-rival sellers stopped 5-10 P above L (slow_cap); at deadline-2 a seller at 10
+        # days offers L+1 (worth 1 + 10|w|); a silent-rival buyer keeps the cap
+        s = self.two(role="seller", L=79, w=3.0, meaning="each delivery day adds this much cash to your side",
+                     msgs=[msg("you", 104, 128, 10), msg("you", 112, 87, 10)])
+        self.assertEqual(D.decide(D.view(s, 114), {}), ("say", 80, 10))
+        b = self.two(L=168, w=1.1, meaning="each delivery day costs you this much cash",
+                     msgs=[msg("you", 104, 104, 0), msg("you", 112, 158, 0)])
+        kind, p, d = D.decide(D.view(b, 114), {})
+        self.assertTrue(kind == "wait" or p < 167, (kind, p))
+
     def test_unreadable_days_no_message(self):
         self.assertEqual(D.decide(D.view(self.two(w=None, meaning="x"), 100), {})[0], "wait")
         # days_meaning is free text the Sensor never passes: the weight alone makes the duel playable

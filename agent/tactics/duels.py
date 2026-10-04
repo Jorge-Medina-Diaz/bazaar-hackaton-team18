@@ -383,7 +383,10 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
             frac = (1 - P["slow_keep"]) * max(0, v.tick - t0) / max(1, tail_start - t0)
         else:
             frac = (1 - P["slow_keep"]) + P["slow_keep"] * (v.tick - tail_start) / max(1, P["slow_tail"])
-        p = _clamp(v, anchor + (Lm - anchor) * min(P["slow_cap"], frac), need_say)
+        # Sun Duels III audit: 5 of 12 silent-rival SELLERS ended without a deal 5-10 P from L, and a seller at 10 days
+        # still gets 1 + 10|w| at L+1; so at the end a silent seller goes all the way (buyers keep the cap: +1 only)
+        cap = 1.0 if (not buyer and v.tick >= end) else P["slow_cap"]
+        p = _clamp(v, anchor + (Lm - anchor) * min(cap, frac), need_say)
         p = max(p, mine) if buyer else min(p, mine)
         return ("say", p, say_days) if p != mine else wait
 

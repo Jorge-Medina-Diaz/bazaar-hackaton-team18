@@ -69,10 +69,10 @@ The most important finding was about the clock:
 
 - **09:15–09:35:**
   - 4 album pages complete: CHA bought from three dealer levels in parallel, with the closing card bought from a team.
-  - SAL-11 sold to a team bid at 238 while Pilar offered 157: +27, settled at 09:27 (`data/score-timeline.csv`, tick 1494).
+  - SAL-11 sold to a team bid at 238 while Pilar's best offer was 165: +27, settled at 09:27 (`data/score-timeline.csv`, tick 1494).
   - 3 more correct flags at 09:30 (+30), and the Castizo easter-egg badge.
 - **A live bug, caught by our own safety net.** The calibrator's daily "negative surprise" threshold (−5) stopped the bot on a deal that *gained* +23 against a +50 prediction. Fail closed did its job. We raised the threshold to −60 (real losses stay with `LOSS_STOP`), added a test and redeployed in minutes.
-- **The Market Test with our own venue.** We opened a board venue (v28) with a broker that matches like the stall, plus cross-run matches the stall never makes. It recorded the full synthetic book before matching, which the stall never shows. Result on the hard test: bench 0.5, the same score as the free stall, at **96.7 % efficiency** (`/api/me` `bench_efficiency` 0.967 at 10:20). The books are in [data/market-test/](../data/market-test/).
+- **The Market Test with our own venue.** We opened a board venue (v28) with a broker that matches like the stall, plus cross-run matches the stall never makes. It recorded the full synthetic book before matching, which the stall never shows. Result on the hard test: bench 0.5, the same score as the free stall, at **96.7 % efficiency** (`/api/me` `bench_efficiency` 0.967 at 10:20). Our matchmaking announcements drew 12 listings to v28 and one trade between two other teams (t01 → t13, tick 2144). The books are in [data/market-test/](../data/market-test/).
 - **Duels III (11:00)** was played with the day-sign fix: **57 of 68 duels closed (84 %, field 75 %)** against 44 of 68 (65 %) in Duels II, and the summed result went from 791.6 to 1,187.6, with no deal below our limit ([data/duels-summary.txt](../data/duels-summary.txt)). After it, the tactic gained an ultimatum two ticks before the deadline (`4460a91`): three of the four Duels III no-deals had ended 8–11 P short of our limit. A pre-flight review had simulated 12-tick, decay-0.1 duels through the real Gate guards; every message and accept passed. The Grand Final (14:00) is after the end of these traces.
 
 ## What we challenged and did not bring in
