@@ -193,6 +193,10 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
   - **Dealer-to-dealer loops**, which fill level 3 and 4 ladder slots.
   - t12 and t04 spent about the whole grant (net 405 and 380 P out) in those two hours. These were exactly the plays we had already made with our own cash before it: SAL-11 from Los Pícaros at 139, SAL-11 to Pilar at 199, ladder 0.214 → 0.366. Our level 3 and 4 slots were full.
   - **In short, the grant subsidised the late movers.**
+- **Our estimate of the cost to us:**
+  - About −0.5 to −1.1 negotiating points on Saturday's board, which is −0.3 to −0.7 on the final score. Three methods: the erosion of teams with no deals, our own point budget, and the leader's pace (details in the data file).
+  - It did not change our Saturday rank, and t10's pace was the same before and after it.
+  - The same 400 P paid for our Chamberí on Sunday.
 - We did not change strategy in reaction. The cash went into Chamberí on Sunday, completed in about 12 minutes.
 
 **What we measured on Saturday** (and the docs now use):

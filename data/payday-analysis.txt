@@ -57,3 +57,19 @@ Why it helped us less:
 
 Limits of this analysis: rivals' private values are unknown, so their points per deal cannot be computed; the public feed misses 18 of 77
 settlements after the grant and most before it; the leaderboard is relative and lags a few ticks.
+
+Estimated impact on us (three methods; ranges, not a precise number)
+A. Erosion of teams that made no deals (the score is relative: others' deals lower yours).
+   Before the grant (ticks 1050-1230): t17 -0.31 negotiating per 100 ticks. After it (1230-1440): t05 -0.69, t15 -0.87, t16 -0.13 (mean -0.56).
+   Extra erosion about -0.25 per 100 ticks, i.e. about -0.5 over the 210 ticks (range 0 to -1.2).
+B. Our own budget. After the grant we added at least +80 neg_points (LAT-10 +50, flags +30). On Saturday +50 measured about +1.9 on the board (S-30),
+   so that alone is worth about +3.0, before counting two Pilar ladder slots and Duels II. Observed: +1.25 negotiating (22.51 -> 23.76).
+   The field therefore took at least about 1.8 from us in that window. Our pre-grant drift (-0.31 per 100 ticks) explains about 0.65 of it,
+   which leaves about 1.1 to the field's acceleration (grant-funded deals plus Duels II, which overlapped).
+C. The leader. t10's pace did not change (+1.62 per 100 ticks before, +1.42 after): its lead was not created by the grant.
+   The teams that accelerated were mid-table: t01 (-0.36 -> +1.94), t04 (-0.40 -> +1.28), t09 (+0.68 -> +1.98), t17 (-0.55 -> +0.99).
+
+Estimate: about -0.5 to -1.1 negotiating points on Saturday's board (central -0.8). The final score averages the rounds
+(0.5 x Fri + Sat + Sun) / 2.5 and the Saturday board shows (0.5 x Fri + Sat) / 1.5, so a Saturday-board point is worth 0.6 final points:
+about -0.3 to -0.7 final points. No team passed us because of it on Saturday (we went 4th -> 2nd), and the same +400 paid for our
+Chamberi on Sunday, so the net effect on us is smaller than the Saturday figure.
