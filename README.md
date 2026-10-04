@@ -11,8 +11,9 @@ It is an autonomous agent that collects Madrid cards, haggles with five dealer p
 | Friday (round 1) | **13th → 2nd** by tick 75 (first complete album page of the game); closed 7th |
 | Saturday (round 2) | **7th → 2nd** (2nd-best negotiation score of the field at the close) |
 | Sunday (round 3) | 4 album pages complete by 09:35. 1st in negotiation by 10:20. Our own board venue matched 96.7 % of the hard Market Test's possible gains (bench score 0.5, the same as the free stall) |
-| Writes through the Gate (Sat 09:21 – Sun 12:06) | **1,625, all accepted by the server (0 refused)**. Our own guards refused 428 more before they left the process: 282 were redundant thread closes from a bug fixed in `f9b4e2e`, 57 missed the tick deadline, the rest were value, cash and protection checks. Manual writes outside the Gate (flags, venue, broker, announcements) are logged separately |
-| Tests | 910 unit, property, chaos and end-to-end tests (stdlib only, no network, no key) |
+| Duels | Duels II (Sat): 44/68 deals, 65 %. After the day-sign fix, **Duels III (Sun): 57/68 deals, 84 % (field 75 %)**, total result 791.6 → 1,187.6, no deal below our limit |
+| Writes through the Gate (Sat 09:21 – Sun 13:00) | **1,645: 1,644 accepted by the server, 0 refused, 1 `unknown`** (an exception: its domain froze and it was reconciled as not landed 2 ticks later, as designed). Our own guards refused 428 more before they left the process: 282 were redundant thread closes from a bug fixed in `f9b4e2e`, 57 missed the tick deadline, the rest were value, cash and protection checks. Manual writes outside the Gate (flags, venue, broker, announcements) are logged separately |
+| Tests | 911 unit, property, chaos and end-to-end tests (stdlib only, no network, no key) |
 
 ---
 
@@ -76,7 +77,7 @@ python3 bazaar.py replay-friday                  # replay Friday against the fak
 | `agent/tactics/` | Pure strategy: `hygiene`, `dealers`, `rastro` (team market + page closer) and `duels` propose Intents; `pages` turns targets into Needs; `bench` is a read-only Market Test recorder used by `bench_rec.py` |
 | `config/plan.json` | Every tunable number: target pages, dealer profiles (anchor/step/limit), caps, duel parameters, day times |
 | `sim/` | Fake Bazaar server with dealer, team and duel bots, fault injection and invariant checks |
-| `tests/` | 910 tests, including real captured server responses (`tests/fixtures/`), the Friday replay and chaos tests |
+| `tests/` | 911 tests, including real captured server responses (`tests/fixtures/`), the Friday replay and chaos tests |
 | `ladder_sell.py`, `egg_carrier.py` | Operator tools: a manual dealer sale with a price ladder. They write only through `bazaar.py do` (the Gate) |
 | `flag_candidates.py`, `announce_candidates.py`, `egg_watch.py`, `bench_rec.py` | Read-only operator tools (trick finder, market matchmaking drafts, feed archiver, Market Test recorder) |
 | `picaros.py`, `radio.py`, `rivals.py`, `affinity.py` (+ `agent/affinity.py`), `afinidad_propia.py` | Read-only analysis tools by the team's analysts (all keyless except `affinity.py` online, which reads `/api/me`): Pícaros trick detector, a feed watcher that rates news for t18, rival tracking, and a Bayesian estimate of each rival's per-set multiplier from public trades |

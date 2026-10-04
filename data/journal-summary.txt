@@ -1,7 +1,7 @@
-journal rows: 8344 | first seq 1 last seq 8344
-rows by kind: would 2132, tick 1796, intent 1625, result 1625, refused 428, cmd 300, measure 163, arm 152, resume 34, stop 24, accepted_unsettled 20, reconciled 20, pause 13, alarm 6, param 5, baseline 1
-write results by status: ok 1625
-guard refusals by code (top 20): G33.not_open 282, G03.late 57, G13.listed 22, G04.threads 18, G16.cash 12, G06.valuation 7, G30.listed 5, G31.final 5, G50.repeat 4, G23.not_ours 3, G10.gone 2, G10.shape 1, G21.closer_flag 1, G13.not_ours 1, G32.not_executable 1, G31.should_accept 1, G30.thread_open 1, G30.no_need 1, G13.protected 1, G15.path 1
+journal rows: 8687 | first seq 1 last seq 8687
+rows by kind: would 2145, tick 1999, intent 1645, result 1644, refused 447, cmd 339, measure 165, arm 162, resume 38, stop 26, reconciled 22, accepted_unsettled 21, pause 14, alarm 8, param 7, dropped 3, baseline 1, unknown 1
+write results by status: ok 1644
+guard refusals by code (top 20): G33.not_open 282, G03.late 62, G13.listed 22, G04.threads 18, G16.cash 12, G06.source:board 9, G06.valuation 7, G30.listed 6, G31.final 5, G50.repeat 4, G21.high 4, G23.not_ours 3, G10.gone 2, G10.shape 1, G21.closer_flag 1, G13.not_ours 1, G32.not_executable 1, G31.should_accept 1, G30.thread_open 1, G30.no_need 1
 intents by day and kind:
   2026-10-03 duel_say: 699
   2026-10-03 list_offer: 163
@@ -13,11 +13,11 @@ intents by day and kind:
   2026-10-03 accept: 9
   2026-10-03 open_pack: 4
   2026-10-04 duel_say: 405
-  2026-10-04 say: 66
-  2026-10-04 open_thread: 23
+  2026-10-04 say: 67
+  2026-10-04 list_offer: 27
+  2026-10-04 open_thread: 25
   2026-10-04 duel_accept: 18
-  2026-10-04 list_offer: 14
-  2026-10-04 accept: 11
-  2026-10-04 close_thread: 5
-  2026-10-04 cancel: 3
+  2026-10-04 accept: 12
+  2026-10-04 close_thread: 7
+  2026-10-04 cancel: 4
   2026-10-04 open_pack: 1

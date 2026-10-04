@@ -1,12 +1,13 @@
 # Traces from the live weekend
 
-Real data that the harness and its tools recorded from Sat 3 Oct 09:21 to Sun 4 Oct 12:06 (first and last journal rows). Friday's traces are not included. Secrets were removed at write time by `agent/redact.py`, and we checked that neither the team key nor the broker key appears anywhere in this folder.
+Real data that the harness and its tools recorded from Sat 3 Oct 09:21 to Sun 4 Oct 13:00 (first and last journal rows). Friday's traces are not included. Secrets were removed at write time by `agent/redact.py`, and we checked that neither the team key nor the broker key appears anywhere in this folder.
 
 | File | What it is | Produced by |
 |---|---|---|
 | `journal.jsonl` | The harness's hash-chained write-ahead journal, Saturday and Sunday. One JSON object per row with `seq`, `ts`, `tick`, `day`, `mode`, `kind` and `prev` (the hash of the previous row). Row kinds: `intent`, `result`, `refused`, `would`, `tick`, `measure`, `pause`, `alarm`, `cmd`, `arm`, `resume`, `stop`, `reconciled`, `param`… | `agent/journal.py` via the Gate, runner and calibrator |
 | `journal-summary.txt` | Counts by row kind, write status, guard refusal code, and intent kind per day | a one-off script over `journal.jsonl` |
 | `score-timeline.csv` | One line per journal `tick` row (ticks while the runner was stopped are absent): cash, `cash_free` and the raw score inputs from `/api/me` (`neg_points`, `ladder_points`, `duel_points`, `mm_points`). These are not the normalised leaderboard score; market points come from `bench_points`, which is not recorded here, so `mm_points` stays 0. Join on `seq` with `journal.jsonl` for wall time | the `tick` rows of the journal |
+| `duels-summary.txt` | Duels II vs Duels III: our deals, results and days used, against the field's deal rate | `/api/duels?done=true` (read-only) and the public feed |
 | `report.txt` | The calibration report: predicted vs measured per tactic, and ladder deltas per dealer. Its last two lines show only what the report process itself decided; the live pauses and STOP are the `pause` / `stop` rows of `journal.jsonl` (tick 1513) | `python3 bazaar.py report` |
 | `feed_public.jsonl` | The public game feed from tick 1179 onwards (settlements, listings, thread messages, duels, eggs). It is public data from the organisers' API | `egg_watch.py` |
 | `market-test/v18-stall-saturday.jsonl` | The book of our free stall during Saturday's 6th Market Test (after the stall's auto-matching) | `bench_rec.py` |

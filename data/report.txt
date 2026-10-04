@@ -1,15 +1,15 @@
 # Calibration report
-measures: 163  round_resets: 0  NEG_CAP_CONFIRMED: False
+measures: 165  round_resets: 0  NEG_CAP_CONFIRMED: False
   -: info=128
   closer: hard_fail=1, pass=1
   dealers: pass=20, surprise_up=1
-  manual: hard_fail=1, pass=8, surprise_up=1
-  rastro: pass=5
+  manual: hard_fail=1, pass=9, surprise_up=1
+  rastro: hard_fail=1, pass=5
   ladder Δ by dealer abuela: [0.016, 0.014, 0.018, 0.0, 0.002, 0.0, 0.005, 0.013, 0.016, 0.013, 0.002]
   ladder Δ by dealer chato: [0.013, 0.015, 0.064, 0.008, 0.007, 0.016, 0.009]
   ladder Δ by dealer picaros: [0.072, 0.072, 0.072, 0.07, 0.062, 0.013]
-  ladder Δ by dealer pilar: [0.0, 0.064, 0.064, 0.044, 0.009, 0.0, 0.067]
+  ladder Δ by dealer pilar: [0.0, 0.064, 0.064, 0.044, 0.009, 0.0, 0.067, 0.0]
   negative surprise sat: -0.05
-  negative surprise sun: -27.00
+  negative surprise sun: -55.70
 pauses: none
 stop reasons: none

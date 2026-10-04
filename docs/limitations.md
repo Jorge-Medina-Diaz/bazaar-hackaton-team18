@@ -3,7 +3,7 @@
 We list what we know is missing or imperfect. The code shipped here is the code that played on Sunday. These items were found and written down, but not changed during the live event.
 
 ## Duels
-- **A two-issue duel can stall.** The "never retract" and "never worse than the rival" checks compare price only (`agent/talk.py` G50, `agent/tactics/duels.py`). Suppose the rival moves below our bid but asks for more days. Then no price is both monotone and acceptable, and the tactic waits. It never goes outside the limit, but it can miss a deal where the rival trades price for days. The partial fix in the code sends the rival's own (price, days) pair back as an echo near the deadline.
+- **A two-issue duel can stall.** The "never retract" and "never worse than the rival" checks compare price only (`agent/talk.py` G50, `agent/tactics/duels.py`). Suppose the rival moves below our bid but asks for more days. Then no price is both monotone and acceptable, and the tactic waits. It never goes outside the limit, but it can miss a deal where the rival trades price for days. Two partial fixes are in the code: near the deadline the tactic echoes the rival's own (price, days) pair, and two ticks before it gives an ultimatum at the closest allowed price (`4460a91`).
 - **One accept per tick is shared.** Up to 4 duels can end on the same deadline, and they share that slot with dealer accepts. In simulation, 3 of 4 late-converging duels close.
 - **The seller treats its limit as a price floor.** It ignores a days bonus that would make a lower price worth it.
 

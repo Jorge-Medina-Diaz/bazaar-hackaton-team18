@@ -148,11 +148,11 @@ Saturday closed 2nd. The night was spent on an orchestrated audit of the harness
 |---|---|
 | 09:15 | The organisers re-anchored the Sunday schedule, as our Saturday data predicted. The harness derived the dealer day end (13:55) and the endgame (14:25) from the live clock, so no config change was needed |
 | 09:20–09:35 | Chamberí (×1.6 for us) completed from three dealer levels in parallel: Abuela for commons, El Chato for uncommons, Los Pícaros for rares and the epic. The closing card came from a team bid. **4 album pages complete** |
-| 09:27 | A team bid 238 for our SAL-11 epic (seen 09:22) while the dealer offered 157: sold to the team for **+27** |
+| 09:27 | A team bid 238 for our SAL-11 epic while the dealer offered 157. We spotted the bid because the Gate refused our own accept (`G13.listed`: the card was still offered to the dealer); we closed the dealer thread and sold to the team for **+27** |
 | 09:32 | A live bug caught by our own safety net: the calibrator's daily-surprise threshold stopped the bot on a deal that *gained* less than predicted. We fixed it, added a test, redeployed and logged it |
 | 09:30 | Three more "level A" Pícaros tricks flagged: **+30**. The cap of three scoring flags is per round |
 | 10:09 | We opened our own board venue (v28) with a broker. On the hard Market Test it matched **96.7 % of the possible gains** (bench 0.5, the same as the stall, at zero risk) and recorded the full synthetic book for the first time |
 | 10:20 | **1st in negotiation (24.89)**, 3rd overall, 0.88 behind the leader. All the gap was in organic market-making |
-| 11:00 | Duels III, played with the day-sign fix: `duel_points` 0 → 22.63 by 11:45 |
+| 11:00 | Duels III with the day-sign fix: **57 of 68 duels closed (84 %, the field 75 %)**, up from 44 of 68 in Duels II, result 791.6 → 1,187.6, none below our limit |
 
 Final standings: see the organisers' leaderboard at the 15:00 freeze.
