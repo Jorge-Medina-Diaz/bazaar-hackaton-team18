@@ -1,6 +1,6 @@
 # Afinador · parámetros aprendidos por dealer (solo sus hilos)
 
-Actualizado 13:20:43.
+Actualizado 13:25:46.
 
 | dealer · lado · grupo | hilos | cierres | P(mejora tras nuestra concesión: 1 / 2-3 / 4+) | 1.er final en su respuesta | perdona hasta | se movió hasta |
 |---|---|---|---|---|---|---|
@@ -8,8 +8,8 @@ Actualizado 13:20:43.
 | picaros · compra · resto·epic | 109 | [128, 128, 128, 128, 128, 130, 130, 130, 134, 137] | 1.0 (n=8) / 1.0 (n=33) / 0.95 (n=80) | mín 1 · med 3.0 | 48 | 57 |
 | picaros · compra · resto·legendary | 1 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
 | picaros · compra · resto·rare | 225 | [46, 46, 48, 48, 48, 48, 48, 48, 48, 48] | 0.98 (n=85) / 0.98 (n=85) / 1.0 (n=68) | mín 1 · med 3 | 17 | 26 |
-| picaros · venta · resto·None | 11 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | 0 |
-| picaros · venta · resto·common | 135 | [4, 4, 4, 4, 4, 5, 5, 5, 5, 5] | 0.12 (n=116) / 0.15 (n=177) / 0.17 (n=12) | mín 3 · med 4 | 1 | 1 |
+| picaros · venta · resto·None | 12 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | 0 |
+| picaros · venta · resto·common | 137 | [4, 4, 4, 4, 4, 5, 5, 5, 5, 5] | 0.12 (n=117) / 0.15 (n=179) / 0.21 (n=14) | mín 3 · med 4 | 1 | 1 |
 | picaros · venta · resto·uncommon | 23 | [10, 10, 10, 11, 11, 11, 11, 11, 12, 12] | 0.29 (n=14) / 0.4 (n=15) / 0.33 (n=12) | mín 3 · med 4.0 | 1 | 3 |
 | pilar · compra · fav·common | 1 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
 | pilar · compra · fav·uncommon | 3 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
@@ -21,4 +21,4 @@ Actualizado 13:20:43.
 | pilar · venta · resto·None | 51 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | 0 |
 | pilar · venta · resto·common | 1 | [] | — (n=0) / — (n=0) / — (n=0) | mín None · med None | None | None |
 | pilar · venta · resto·rare | 22 | [50, 50, 52, 52, 52, 52, 54, 56, 56, 56] | 1.0 (n=2) / 0.94 (n=16) / 1.0 (n=27) | mín 4 · med 5 | 3 | 14 |
-| pilar · venta · resto·uncommon | 85 | [14, 16, 16, 16, 16, 16, 16, 16, 16, 16] | 0.52 (n=124) / 0.51 (n=84) / 0.46 (n=46) | mín 4 · med 5 | 1 | 4 |
+| pilar · venta · resto·uncommon | 86 | [14, 16, 16, 16, 16, 16, 16, 16, 16, 16] | 0.53 (n=127) / 0.51 (n=84) / 0.46 (n=46) | mín 4 · med 5 | 1 | 4 |
