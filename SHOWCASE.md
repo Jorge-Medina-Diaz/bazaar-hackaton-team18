@@ -177,6 +177,18 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 | 21:18–22:55 | Duels II added a second issue, delivery days, and our deal rate fell to 65 %. The fix for the days sign never reached the tactic, because the sensor drops free text by design, so we sent a neutral 5 days with a worst-case margin. Found live, fixed in the sensor (`5ee5593`), redeployed mid-session | 28.20 | 7th |
 | 22:00–22:40 | Last card of La Latina bought from another team (+50). We **flagged** the three clearest Pícaros tricks: +10 each | **31.26** | **2nd** |
 
+**An unscheduled shock: the +400 P Payday** ([data/payday-analysis.txt](data/payday-analysis.txt)).
+- At 20:58, with two hours of round 2 left, the organisers gave every team +400 P: "Only deals score, never cash you hold".
+- It was not in the published schedule, which listed 150 P on Saturday morning and 150 P on Sunday.
+- The same cash was worth very different amounts depending on each team's plan:
+  - Teams that had sunk 270 P into their own venue were short of cash. They converted it at once: +4.8 deals each on average and +0.49 negotiating. t10 made +9 deals (+2.98) and t12 +6 (+2.43).
+  - Teams on the free stall made +1.0 deals on average and lost 0.11 negotiating. The score is relative, so the field's new deals raised the bar for everyone else: t05, t15 and t02 dropped 1.4–2.0 points without trading.
+- Our case:
+  - We had 131 P before the grant and had budgeted our cash for Sunday's Chamberí (our ×1.6 set, released only in round 3).
+  - We spent 72 P of the 400 on Saturday (LAT-10 from a team, +50) and kept the rest.
+  - Our rank still improved, 4th → 2nd, but the gap to t10 widened from 4.59 to 6.32 in those two hours.
+- We did not change strategy in reaction. The cash went into Chamberí on Sunday, completed in about 12 minutes.
+
 **What we measured on Saturday** (and the docs now use):
 - A ladder slot is worth (share of the dealer's range) × level/45.
 - Two-issue duels follow `(s·(p − L) + sign·w·days)·(1 − decay)^rounds`; this matches all 44 Duels II deals (95/95 with Duels I, knowledge S-26).

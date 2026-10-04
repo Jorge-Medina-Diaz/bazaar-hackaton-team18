@@ -44,6 +44,7 @@ What we learned live and turned into code or plan:
 | Pícaros swap the card inside counter-offers and send fake finals | D- facts | G10/G11 fingerprint re-read; the dealer tactic closes on a trick final without countering |
 | **Duels II: we sent 5 days in 318 of 318 messages** and demanded a worst-case margin of ~15 P | S-26, S-27: value = (s·(p − L) + sign·\|w\|·days) · (1 − decay)^rounds, matched on 95/95 deals | The sensor derives the day sign from the server's own `days_meaning` text: a buyer sends 0 days, a seller 10. A sign that contradicts the role falls back to the conservative side and raises an alarm |
 | Market points: the free auto stall already scores half the bench; nobody beat it on Saturday | S-23, S-24, S-25 | We kept the stall and played organic market-making with announcements |
+| An unscheduled +400 P grant at 20:58 lifted the teams that were short of cash (own-venue teams: +4.8 deals, +0.49 negotiating on average; t10 +2.98) more than us (+1.25); the gap to t10 went 4.59 → 6.32 | S-22, [data/payday-analysis.txt](../data/payday-analysis.txt) | No reaction trade: we kept the cash for Chamberí ×1.6 on Sunday, as planned |
 | The machine slept 48 min, and restarts cost 87 ticks | S-31 | Detached runner, power settings, "never restart during duels" rule |
 
 ## Saturday night: an audit workflow

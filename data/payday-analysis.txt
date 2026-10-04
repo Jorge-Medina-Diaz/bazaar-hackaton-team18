@@ -1,0 +1,31 @@
+Payday (Sat 3 Oct, tick 1201, 20:58): +400 P to every team, not in the published schedule
+(Friday's /api/schedule listed only two grants: 150 P + a pack at hour 4.05 and 150 P on Sunday; tests/fixtures/harvest/probe/schedule.json).
+Organisers' note: "Don Ernesto's vault and Los Picaros' epics are within reach. Only deals score, never cash you hold."
+Round 2 (Saturday) still had ~2 game hours to run (closed at hour 13.37).
+
+Public leaderboard, tick 1230 (29 ticks after the grant) -> tick 1440 (Saturday close). Source: data/leaderboard-saturday.json
+team  deals  negotiating  market  score   rank
+t10     +9     +2.98   +0.00   +2.98   1 -> 1
+t18     +3     +1.25   +0.00   +1.25   4 -> 2
+t05     +0     -1.44   +0.00   -1.44   2 -> 3
+t12     +6     +2.43   -0.25   +2.18   7 -> 4
+t03     +2     -0.44   +0.22   -0.22   5 -> 5
+t06     +8     -1.73   +0.05   -1.69   3 -> 6
+t14     +5     -2.17   +0.00   -2.17   6 -> 7
+t17     +1     +0.99   +0.00   +0.98  10 -> 8
+t01     +1     +1.94   +0.00   +1.94  13 -> 9
+t13     +6     +0.39   +0.12   +0.50  11 -> 10
+t08     +3     +0.70   -0.05   +0.65  12 -> 11
+t04     +8     +1.28   +0.00   +1.28  14 -> 12
+t15     +0     -1.82   +0.00   -1.82   8 -> 13
+t16     +0     -0.27   +1.55   +1.28  15 -> 14
+t02     +3     -1.95   +0.00   -1.95   9 -> 15
+t09     +2     +1.98   +0.00   +1.99  16 -> 16
+t07     +2     +0.66   +0.00   +0.66  17 -> 17
+
+Teams that had sunk 270 P into their own venue (11): mean +4.8 deals, negotiating +0.49 after the grant.
+Teams on the free stall (6, t18 among them): mean +1.0 deals, negotiating -0.11.
+Gap t10 - t18: 4.59 at tick 1230 -> 6.32 at tick 1440.
+
+t18 (our journal): cash 131 before the grant, 531 after; Saturday close 555. We spent 72 P of it on Saturday (LAT-10 from a team, +50)
+and kept the rest for Chamberi (our x1.6 set), which was only released in round 3 (Sunday 09:15).
