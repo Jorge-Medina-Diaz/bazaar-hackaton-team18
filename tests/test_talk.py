@@ -690,7 +690,16 @@ class Misc(unittest.TestCase):
 
     def test_templates_cover_spec_names(self):
         self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell", "pilar_sell",
-                                               "picaros_buy", "picaros_sell", "banco_sell", "duel", "duel_days"})
+                                               "picaros_buy", "picaros_sell", "banco_buy", "banco_sell", "duel", "duel_days"})
+
+    def test_banco_buy_lines_pass_g60(self):   # Sun: CHA-12 from Don Ernesto (L5); no "final" claims
+        for i, raw in enumerate(talk.TEMPLATES["banco_buy"]):
+            self.assertEqual(raw.count("{p}"), 1, i)
+            self.assertNotIn("últim", raw)
+            for p in (380, 470):
+                text = talk.render("banco_buy", i, p)
+                self.assertIsNone(talk.FORBIDDEN.search(text), i)
+                self.assertTrue(talk.firewall(text, p, None, template="banco_buy").ok, i)
 
 
 class SundayEggLines(unittest.TestCase):

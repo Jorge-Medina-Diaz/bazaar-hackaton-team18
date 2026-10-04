@@ -82,6 +82,12 @@ TEMPLATES: Mapping[str, tuple] = {
         "Me he movido yo; ¿qué tal {p} P?",
         "Precio justo: {p} P.",
     ),
+    "banco_buy": (                                       # Sun: CHA-12 from Don Ernesto (L5), patient and plain
+        "Buenas, don Ernesto. Me interesa esta pieza para cerrar mi colección. ¿{p} P?",
+        "Con todo respeto, don Ernesto: {p} P.",
+        "Me muevo yo, sin prisa: {p} P.",
+        "Gracias por su paciencia, don Ernesto. ¿{p} P?",
+    ),
     "banco_sell": (
         "Buenas tardes, don Ernesto. Le traigo una pieza para su cámara. ¿{p} P?",
         "Pieza de primera, sin prisa por mi parte. ¿Qué tal {p} P?",

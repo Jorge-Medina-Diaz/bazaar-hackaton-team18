@@ -22,7 +22,7 @@
     "CHA-06": 31, "CHA-07": 31, "CHA-08": 31, "CHA-09": 93, "CHA-10": 93,
     "CHA-11": 170, "RET-11": 150
   },
-  "extra_needs": [{"ref": "CHA-11", "max_price": 225, "min_round": 3}, {"ref": "RET-11", "max_price": 150, "min_round": 3}, {"ref": "LAV-07", "max_price": 16, "min_round": 3}],
+  "extra_needs": [{"ref": "CHA-11", "max_price": 225, "min_round": 3}, {"ref": "RET-11", "max_price": 150, "min_round": 3}, {"ref": "LAV-07", "max_price": 16, "min_round": 3}, {"ref": "CHA-12", "max_price": 470, "min_round": 3}],
   "profiles": {
     "RET:rare":     {"dealer": "chato",  "anchor": 70, "step": 4, "limit": 90,  "fallback_after": null},
     "RET-08":       {"dealer": "chato",  "anchor": 13, "step": 1, "limit": 31,  "fallback_after": 10, "fallback_dealer": "abuela"},
@@ -31,6 +31,7 @@
     "RET-11":       {"dealer": "picaros", "anchor": 115, "step": 3, "limit": 150, "fallback_after": 24},
     "CHA-11":       {"dealer": "picaros", "anchor": 130, "step": 4, "limit": 170, "fallback_after": 24},
     "LAV-07":       {"dealer": "chato",   "anchor": 10, "step": 1, "limit": 16, "fallback_after": null},
+    "CHA-12":       {"dealer": "banco",   "anchor": 380, "step": 5, "limit": 470, "fallback_after": null},
     "CHA:rare":     {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 64, "fallback_after": 24, "fallback_dealer": "chato"},
     "CHA-06":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
     "CHA-07":       {"dealer": "chato",  "anchor": 27, "step": 1, "limit": 31,  "fallback_after": 24, "fallback_dealer": "abuela"},
