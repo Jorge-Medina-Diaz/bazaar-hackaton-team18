@@ -462,5 +462,25 @@ class TestHarvest(unittest.TestCase):
         self.assertGreater(n, 100)
 
 
+class WorldPathTwoIssue(unittest.TestCase):
+    """Regression (dom 4 oct): the World drops days_meaning text, so two-issue duels never played."""
+
+    def test_two_issue_duel_plays_through_world_parser(self):
+        from agent.world import parse_duel
+        raw = duel(issues=("price", "days"), w=2.0, meaning="delivery days")
+        parsed = parse_duel(raw)
+        self.assertNotIn("days_meaning", parsed)                 # the text itself never enters the World
+        self.assertTrue(parsed["days_meaning_known"])
+        kind = D.decide(D.view(parsed, 100), {"days_sign": -1})[0]
+        self.assertNotEqual(kind, "wait")
+
+    def test_no_meaning_still_waits(self):
+        from agent.world import parse_duel
+        parsed = parse_duel(duel(issues=("price", "days"), w=2.0, meaning=None))
+        self.assertFalse(parsed["days_meaning_known"])
+        self.assertEqual(D.decide(D.view(parsed, 100), {"days_sign": -1})[0], "wait")
+
+
+
 if __name__ == "__main__":
     unittest.main()
