@@ -744,7 +744,8 @@ class Runner:
         last slot is held back (R04.duel_slot) while an armed duels tactic may need it in the late window
         (duels.accept_slot_wanted). Dealer and team offers stay to the next tick; a manual order or a closer accept
         (the page's +50, a rival may take the card) is never held."""
-        if not bool(_cfg(self.cfg, "DUEL_ACCEPT_SHARED", True)) or "duels" not in self.armed_now()                 or self.paused("duels") or any(it.kind == "duel_accept" for it in chosen):
+        if (not bool(_cfg(self.cfg, "DUEL_ACCEPT_SHARED", True)) or "duels" not in self.armed_now()
+                or self.paused("duels") or any(it.kind == "duel_accept" for it in chosen)):
             return chosen
         early = [it for it in chosen if it.kind == "accept" and it.tactic not in ("manual", "closer")]
         kept = sum(1 for it in chosen if it.kind == "accept" and it.tactic in ("manual", "closer"))
