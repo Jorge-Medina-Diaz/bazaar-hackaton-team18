@@ -304,9 +304,11 @@ We wanted to learn the game, not just play it, so here is the honest account. At
 
 ## How we worked
 
+We worked as a horizontal team of three: decisions were discussed together, and each of us owned an area.
+
 | Who | Role |
 |---|---|
-| **Jorge** | Lead and operator. Architecture of the harness, the Gate and the live runs. Ran every manual action, each with an explicit OK and a log line |
+| **Jorge** | Centralised the technical side and the operations: architecture of the harness, the Gate and the live runs. The one person with the key; ran every manual action, each with an explicit OK and a log line |
 | **Rubén** | The negotiation lab and evaluation. Cross-review that found 4 bugs on Friday, Radio Rastro (a news watcher that rates each event for t18), the Pícaros trick detector, and the jury evidence |
 | **Santi** | Analyst. The scoring breakdown, rival tracking, the Bayesian affinity estimator, Doña Pilar's playbook, the Voss-style duel plan and the team logbook |
 

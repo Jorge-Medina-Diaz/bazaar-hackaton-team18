@@ -92,7 +92,7 @@ python3 bazaar.py replay-friday                  # replay Friday against the fak
 | Path | What it is |
 |---|---|
 | `bazaar.py` | The CLI and the only entry point (`selftest`, `run`, `do`, `stop`, `status`, `report`…) |
-| `agent/` | The harness: `contracts` (frozen types) · `transport` (the write barrier) · `gate` · `guards` + `talk` (rules G01–G60) · `world` (sensor) · `valuation` · `journal` · `calibrate` · `runner` |
+| `agent/` | The harness: `contracts` (frozen types) · `transport` (the write barrier) · `gate` · `guards` + `talk` (rules G01–G60) · `world` (sensor) · `valuation` · `journal` · `calibrate` · `runner` · `execution` (single-writer lock) · `offer_safety` (structure before words) · `client` (read-only transport) · `redact` (secrets out of logs and pages) |
 | `agent/tactics/` | Pure strategy: `hygiene`, `dealers`, `rastro` (team market + page closer) and `duels` propose Intents; `pages` turns targets into Needs; `bench` is a read-only Market Test recorder used by `bench_rec.py` |
 | `config/plan.json` | Every tunable number: target pages, dealer profiles (anchor/step/limit), caps, duel parameters, day times |
 | `sim/` | Fake Bazaar server with dealer, team and duel bots, fault injection and invariant checks |
@@ -103,6 +103,8 @@ python3 bazaar.py replay-friday                  # replay Friday against the fak
 | `run_duel_eval.py` | Offline duel evaluator: plays the real duel tactic against 10 rival archetypes, with bootstrap confidence intervals; it reports points, deal rate, missed deals and any deal outside our limit |
 | `api/`, `run_dashboard.py`, `agent/dashboard.py` | Read-only team dashboard (local or Vercel) |
 | `data/` | Curated traces from the live weekend: journal, score timeline, Market Test books, public feed |
+| `SHOWCASE.md` | The memory for the judges: ideas, craft, the three rounds, what went wrong, the self-critique, how we worked |
+| `.env.example` | Template for `.env` (`BAZAAR_URL`, `BAZAAR_KEY`); the real `.env` never goes in Git |
 | `docs/` | Architecture, journey, limitations, the full spec, verified facts, playbook. [Index](docs/README.md) |
 | `bazaar_sdk.py`, `RULES.md`, [docs/sdk.md](docs/sdk.md) | The organisers' SDK, rules and kit README, unmodified (only `agent/transport.py` imports the SDK: `GuardedTransport` subclasses `Bazaar` and replaces its `_call`) |
 | `.github/workflows/tests.yml` | CI: the full suite on Python 3.9 and 3.12, plus the Sunday rehearsal |

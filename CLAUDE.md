@@ -44,10 +44,13 @@ flag_candidates.py, announce_candidates.py, egg_watch.py, bench_rec.py   read-on
 picaros.py, radio.py, rivals.py, affinity.py, afinidad_propia.py   read-only analysis tools (keyless; affinity.py needs the
                        key unless --offline); agent/affinity.py estimates rival multipliers
 run_duel_eval.py       offline duel evaluator against simulated rival archetypes
+api/                   index.py: the Vercel entry for the read-only dashboard
 data/                  curated live traces (see data/README.md)
 RULES.md, SHOWCASE.md  official rules; the weekend story with numbers
 .github/workflows/     CI (full suite on Python 3.9 and 3.12, Sunday rehearsal); vercel.json, .vercelignore: dashboard deploy
-docs/                  architecture, journey, limitations, spec, knowledge, strategy; docs/history/ is the event log
+docs/                  architecture, journey, limitations, spec, knowledge, strategy; docs/official/: the organisers' kickoff;
+                       docs/demo/: the market-intelligence demo; docs/history/ is the event log (read-only, never run)
+.env.example           template for .env (BAZAAR_URL, BAZAAR_KEY); the real .env never goes in Git
 state/, logs/, runs/   local runtime, never in Git
 ```
 
@@ -59,5 +62,5 @@ state/, logs/, runs/   local runtime, never in Git
 - **Fail closed.** If a function, a data source or a value is missing, refuse. Never act without checking.
 - **Before `--live`:** `selftest` must be green, and every armed tactic needs its stage green for the current `code_hash`.
 - **Kill switch:** `python3 bazaar.py stop "reason"` or a `STOP` file. After a crash, relaunch the same `run`; it reconciles before writing.
-- **Manual exceptions** are actions the Gate has no kind for: flags, and venue fee, announcements or broker. They need the team lead's explicit approval each time, and each must be logged with time, route, id, response and effect (the event's log is `docs/history/handoffs/HANDOFF-domingo.md`).
+- **Manual exceptions** are actions the Gate has no kind for: flags, and venue fee, announcements or broker. They need the operator's explicit approval each time, and each must be logged with time, route, id, response and effect (the event's log is `docs/history/handoffs/HANDOFF-domingo.md`).
 - **Keep it simple:** stdlib only, functions, no frameworks. Do not edit `agent/contracts.py` (frozen) or `bazaar_sdk.py` (official). Every behaviour change needs a test that fails on the old code.
