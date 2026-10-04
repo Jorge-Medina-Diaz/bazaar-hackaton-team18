@@ -1,0 +1,57 @@
+{
+ "equipo": "t18",
+ "sabado": {
+  "puesto": 2,
+  "puntos": 31.26
+ },
+ "eventos_analizados": 30000,
+ "picaros": {
+  "intentos_contra_t18": 12,
+  "colados_t18": 0,
+  "colados_mercado": 1,
+  "patron": "otra carta del mismo barrio con número menor"
+ },
+ "huevos": {
+  "Banco": "el oro de Moscú → carta oculta",
+  "Pícaros": "Lazarillo, Rinconete → sin trucos ese día",
+  "Abuela": "el chotis se baila en una baldosa → insignia Castizo",
+  "Chato": "Plaza Mayor, con caña → sobre gratis"
+ },
+ "insignias_t18": [
+  "Sharp ear",
+  "Trickster tricked",
+  "Castizo"
+ ],
+ "puntuacion": {
+  "salto_por_trato": 1.92,
+  "caida_10min_parados": -0.85,
+  "minimo": 28.13,
+  "maximo": 33.44
+ },
+ "mercado": {
+  "antes_venue": 5.91,
+  "tras_market_test": 8.33
+ },
+ "epicas": {
+  "compra_picaros": [
+   128,
+   167
+  ],
+  "venta_equipos_pilar": [
+   195,
+   238
+  ],
+  "banco": [
+   113,
+   120
+  ],
+  "sal11_t18": [
+   139,
+   238
+  ]
+ },
+ "gran_final": {
+  "duelos": 306
+ },
+ "web": "https://claude.ai/artifact/Xnhk2r11zVdee8ggcG3QGQ"
+}

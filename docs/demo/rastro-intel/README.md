@@ -2,6 +2,7 @@
 
 Material de apoyo para la demo: lo que aprendimos mirando el mercado del Bazaar en directo y las herramientas que lo hicieron posible.
 
+- **Para diapositivas:** `PARA_DIAPOSITIVAS.md` (guion diapositiva a diapositiva) y `datos.json` (cifras).
 - **Página:** `index.html` (se abre en el navegador; las capturas están en `img/`). Versión publicada: https://claude.ai/artifact/Xnhk2r11zVdee8ggcG3QGQ (privada, compartir desde su menú).
 - **Secciones enlazables:** `#trayectoria`, `#hallazgos`, `#herramientas`, `#final`, `#mejoras`.
 
