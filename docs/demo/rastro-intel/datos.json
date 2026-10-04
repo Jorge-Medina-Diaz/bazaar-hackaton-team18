@@ -53,5 +53,38 @@
  "gran_final": {
   "duelos": 306
  },
- "web": "https://claude.ai/artifact/Xnhk2r11zVdee8ggcG3QGQ"
+ "web": "https://claude.ai/artifact/Xnhk2r11zVdee8ggcG3QGQ",
+ "domingo_final": {
+  "puesto": 5,
+  "puntos": 32.27,
+  "negociacion": 23.27,
+  "mercado": 9.0,
+  "top5": [
+   [
+    1,
+    "t05",
+    37.73
+   ],
+   [
+    2,
+    "t10",
+    35.76
+   ],
+   [
+    3,
+    "t12",
+    34.51
+   ],
+   [
+    4,
+    "t03",
+    34.19
+   ],
+   [
+    5,
+    "t18",
+    32.27
+   ]
+  ]
+ }
 }
