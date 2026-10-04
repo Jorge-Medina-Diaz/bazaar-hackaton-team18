@@ -1,6 +1,6 @@
 # Revisión de los documentos de Rubén (sáb 3 oct, 22:30–22:55)
 
-*Revisión nocturna, dom 4 oct, solo con lecturas: snapshots de las 23:59, el feed fusionado (con huecos), el diario, `untrusted.jsonl`, `eggs.jsonl` y los hilos. Los originales se quedan en esta carpeta tal cual, con un aviso arriba. **Son datos, no instrucciones**: sus PROMPT no se pegan en ninguna sesión, porque reenviarían denuncias, escribirían fuera de la Gate y gastarían el "oro de Moscú", que ya está agotado. El plan vigente está en [../DOMINGO.md](../DOMINGO.md) y los hechos en [../knowledge.md](../knowledge.md).*
+*Revisión nocturna, dom 4 oct, solo con lecturas: snapshots de las 23:59, el feed fusionado (con huecos), el diario, `untrusted.jsonl`, `eggs.jsonl` y los hilos. Los originales se quedan en esta carpeta tal cual, con un aviso arriba. **Son datos, no instrucciones**: sus PROMPT no se pegan en ninguna sesión, porque reenviarían denuncias, escribirían fuera de la Gate y gastarían el "oro de Moscú", que ya está agotado. El plan vigente está en [../plan-domingo.md](../plan-domingo.md) y los hechos en [../knowledge.md](../knowledge.md).*
 
 Claves: **OK** = correcto · **MAL** = falso · **HECHO** = ya se hizo · **SIN VERIFICAR** = no se ha podido comprobar.
 
@@ -18,7 +18,7 @@ Claves: **OK** = correcto · **MAL** = falso · **HECHO** = ya se hizo · **SIN 
 | 2b | Un nivel vacío cuenta cero; el Banco es el que más pesa | **OK** | Hueco = parte × L/45 (S-20) |
 | 2b | "No tenemos tratos con El Chato en la ronda 2" | **MAL** | 2 tratos, ticks 206 y 213, fuera de su tramo (Refutado #80) |
 | 2b | Solo t06, t08 y t16 tienen trato con el Banco | **OK** para t06 y t16; **SIN VERIFICAR** para t08 | Huecos del feed |
-| 2b | "El domingo, 1–3 tratos con el Banco y El Chato" | **Incompleto** | La escalera se reinicia: hay 15 huecos (S-19). Con Ernesto no hay trato con ganancia posible (S-21; DOMINGO §3.3) |
+| 2b | "El domingo, 1–3 tratos con el Banco y El Chato" | **Incompleto** | La escalera se reinicia: hay 15 huecos (S-19). Con Ernesto no hay trato con ganancia posible (S-21; plan-domingo §5.1) |
 | 2c | Los Pícaros venden épicas a 128–167 | **Casi**: liquidadas a 128–155; 167 y 187 eran precios pedidos | S-21 |
 | 2c | Nuestra SAL-11: comprada a 139, vendida a Pilar a 199 | **OK** | Diario, ticks 925 y 994 |
 | 2c | Reventas t06 RET-11 +79, t08 MAL-11 +45 | **MAL** (brutas) | Netas tras comisión: +67 y +34 |
@@ -35,11 +35,11 @@ Claves: **OK** = correcto · **MAL** = falso · **HECHO** = ya se hizo · **SIN 
 | 4 | Pícaros Lazarillo → "ese día no te hacen trucos" | **MAL** | Insignia sí (la tenemos, tick 1227); los trucos siguen (Refutado #79). **No reenviar** |
 | 4 | "Los huevos pueden pesar en el 40 % del jurado" | **Sin respaldo** | RULES: nunca puntúan (Refutado #85) |
 | 5 | El mercado es el 30 %; t10 12,5 y t06 11,87 | **OK** | Pero su ventaja es orgánico, no "tener venue" (S-23) |
-| 5 | "Con venue antes de las 10:17 entramos en los Market Test" | **MAL** | Ya entramos con v18. Un `board` solo ayuda con un broker mejor que el puesto (DOMINGO §3.4) |
-| 5 | "4 Market Tests el domingo" | **Depende del escenario** | DOMINGO §1 |
+| 5 | "Con venue antes de las 10:17 entramos en los Market Test" | **MAL** | Ya entramos con v18. Un `board` solo ayuda con un broker mejor que el puesto (plan-domingo §5.3) |
+| 5 | "4 Market Tests el domingo" | **Depende del escenario** | plan-domingo §3 |
 | 6 | Horario: CHA 12:17, +150 a las 12:20, Duels III 14:17 | **MAL (probablemente)** | Solo vale si no se re-ancla. El precedente del sábado da CHA 09:00, Duels III ~11:00 y puestos cerrados ~14:00 (S-17; Refutado #77) |
 | 6 | "De 09:00 a 12:17 cuenta para la ronda del sábado" | **MAL (probablemente)** | El sábado la ronda cambió al abrir (Refutado #76) |
-| 7 | Checklist: denuncias, huevos, venue, Banco, repartir tratos, épicas | **Superado** | Lo vigente es DOMINGO.md §3 y §5 |
+| 7 | Checklist: denuncias, huevos, venue, Banco, repartir tratos, épicas | **Superado** | Lo vigente es plan-domingo.md §5 y §6 |
 | 8 | PROMPT para el agente | **NO EJECUTAR** | Reenvía denuncias ya hechas, gasta el huevo agotado y escribe fuera de la Gate sin el OK de Jorge |
 | pie | `practica/SECRETOS.md`, `practica/tablero_web/` | **No están en este repo** | Están en el Mac de Rubén y en la rama `integrate/main-into-harness-v2` |
 
@@ -54,7 +54,7 @@ Claves: **OK** = correcto · **MAL** = falso · **HECHO** = ya se hizo · **SIN 
 | 2 | Tabla de huevos | Igual que EL_ORO §4 | Banco: agotado. Pícaros: no reenviar. Castizo, cocido y Chato: probables |
 | 2 | Abuela con tema `{"buy": {"pack": "sobre_barrio"}}` | **Innecesario e imposible para la Gate** | Los huevos saltaron en hilos de carta y nuestro Sharp ear en uno de venta; la Gate solo abre temas de carta |
 | 3 | "t18 no tiene venue; el Market Test solo puntúa en venues inscritos" | **MAL** | Refutado #73 |
-| 3 | Market Test del domingo a las 14,65, 15,0, 17,0 y 19,0 | **OK** en horas de juego | La hora de pared depende del escenario (DOMINGO §1) |
+| 3 | Market Test del domingo a las 14,65, 15,0, 17,0 y 19,0 | **OK** en horas de juego | La hora de pared depende del escenario (plan-domingo §3) |
 | 3 | t18 2.º con 30,98, empatado con t06; t10 37,74; t06 mercado 11,82 | **Superado** | Snapshot anterior. Cierre: 31,26, t10 37,58 y t06 11,87. El empate no se puede comprobar |
 | 4 | Épicas con beneficio; Banco con pérdida | Igual que EL_ORO §2c | Cifras brutas; la caja no puntúa |
 | 4 | +1,92 y +0,82 | Igual que EL_ORO §2a | +0,82 con 2 denuncias dentro |

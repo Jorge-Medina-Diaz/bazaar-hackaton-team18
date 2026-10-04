@@ -1,6 +1,6 @@
 # LÉEME — Team 18 (t18), sábado 3 oct 2026
 
-> **Histórico: guía del sábado a las 08:35.** Las reglas de puntuación (§1) y el arnés (§5) siguen valiendo. La situación, el calendario y las decisiones del sábado están superados. **Domingo: [DOMINGO.md](DOMINGO.md).** Hechos al día: [knowledge.md](knowledge.md) S-17..S-33. Este documento solo se ha corregido donde contradecía los datos.
+> **Histórico: guía del sábado a las 08:35.** Las reglas de puntuación (§1) y el arnés (§5) siguen valiendo. La situación, el calendario y las decisiones del sábado están superados. **Domingo: [plan-domingo.md](plan-domingo.md).** Hechos al día: [knowledge.md](knowledge.md) S-17..S-33. Este documento solo se ha corregido donde contradecía los datos.
 
 Para quien estaba dormido: diez minutos. Si algo choca con `docs/knowledge.md` (ids P-, V-, D-, R-, X-, U-, M-, C-, K-), manda `knowledge.md`. Plan completo: `docs/strategy.md`. Arnés: `docs/harness-spec.md`.
 
@@ -79,7 +79,7 @@ Coleccionamos cromos de Madrid (página = 5 comunes + 3 infrecuentes + 2 raras d
 | J8 | Market Test con el puesto gratuito | Mitad del banco sin riesgo | — |
 | J9 | LAT: si se cumple 2503 o 2504, la otra rara a El Chato ≤ 100; si no, LAT muerta en el tick 205 y se vende | +1 a +51, o caja | Tick 205 |
 | J10 | Duels II: nada con precio hasta leer `days_meaning` | — | Resultado ≤ 0 |
-| J12 | **Domingo, CHA:** J3 + J4; cierre a 72, subida a 102 | +50 | Los puestos cierran ~14:00 si el calendario se re-ancla (DOMINGO §1) |
+| J12 | **Domingo, CHA:** J3 + J4; cierre a 72, subida a 102 | +50 | Los puestos cierran ~14:00 si el calendario se re-ancla (plan-domingo §3) |
 
 **Nunca:** comprar sobres; pagar a un dealer más que nuestro valor; cerrar página con un dealer; publicar la última copia libre de una página protegida; aceptar con ganancia < 3; bajar una puja de cierre; prompt injection; scripts antiguos. Las denuncias (flags) solo a mano y con el OK de Jorge: el sábado puntuaron las 3 primeras de nivel A (S-28).
 

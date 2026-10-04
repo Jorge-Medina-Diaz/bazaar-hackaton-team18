@@ -1,6 +1,6 @@
 # Traspaso sábado 11:30: de la sesión A a la sesión que opera ahora
 
-> **Histórico (sábado 11:30).** Correcciones posteriores: el puesto `v18` sí se puso a comisión 0 y se anunció en el tick 432 (knowledge S-14); `duels.anchor` 0,65 ya está en `config/plan.json`; `cash_free` bajo se corrigió en `b693c58`. Vigente: [../knowledge.md](../knowledge.md) y [../DOMINGO.md](../DOMINGO.md).
+> **Histórico (sábado 11:30).** Correcciones posteriores: el puesto `v18` sí se puso a comisión 0 y se anunció en el tick 432 (knowledge S-14); `duels.anchor` 0,65 ya está en `config/plan.json`; `cash_free` bajo se corrigió en `b693c58`. Vigente: [../knowledge.md](../knowledge.md) y [../plan-domingo.md](../plan-domingo.md).
 
 
 Escrito al ceder el control (Jorge: "termina lo tuyo y para"). La sesión A **ya no opera**: no hay ningún proceso suyo en marcha, ni bot ni monitores. El STOP de las 11:24:35 y el cambio de `duels.anchor` a 0,65 (sin commit en `config/plan.json`) son de la otra sesión. La sesión A no los ha tocado.

@@ -4,7 +4,7 @@
 > - **§2, fórmula del mercado.** No es `15 × bench + 15 × mm`. Por ronda es `22,5 × bench_points + 7,5 × orgánico`, y el tablero promedia las rondas por peso y fase, contando el 0 del viernes (S-23).
 > - **§2 y §2b, `bench.finished`.** No es un evento público: en 15.339 eventos del feed no aparece ninguno. La regla de §4.3 («abrir solo si `bench.finished` muestra…») no se puede evaluar (S-23).
 > - **§6, días en duelos.** «Margen 1 + 10·|w| con `days_sign` fijado» describe la rama `audit-fixes` y es demasiado estricto. La fórmula medida es `resultado = (s·(p − L) + signo·|w|·días)·(1 − decay)^rondas` (S-26). Antes de `5ee5593` enviábamos siempre 5 días, no «el peor día» (S-27).
-> - **§8, calendario.** Superado. El sábado cerró en t 13,367 (no 13,68). Para el domingo, ver [../DOMINGO.md](../DOMINGO.md) §1.
+> - **§8, calendario.** Superado. El sábado cerró en t 13,367 (no 13,68). Para el domingo, ver [../plan-domingo.md](../plan-domingo.md) §3.
 > - **§1.** Son cifras de las 21:00. El cierre fue 2.º con 31,26.
 > - **§6.** "774 tests OK" es la cifra de la rama `audit-fixes`, que no está fusionada. `harness-v2` `5ee5593` da 747 OK (2 omitidos).
 

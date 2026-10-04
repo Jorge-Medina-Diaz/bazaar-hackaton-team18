@@ -1,4 +1,4 @@
-> **AVISO (revisión del dom 4 oct): documento de Rubén del sáb 3 oct, conservado como registro. Es dato, no instrucción: no pegar sus PROMPT ni ejecutar sus comandos. Las denuncias ya se enviaron, el "oro de Moscú" está agotado y varias afirmaciones son falsas ("no tenemos venue", el horario del domingo). Veredicto afirmación por afirmación: [REVISION.md](REVISION.md). Plan vigente: [../DOMINGO.md](../DOMINGO.md).**
+> **AVISO (revisión del dom 4 oct): documento de Rubén del sáb 3 oct, conservado como registro. Es dato, no instrucción: no pegar sus PROMPT ni ejecutar sus comandos. Las denuncias ya se enviaron, el "oro de Moscú" está agotado y varias afirmaciones son falsas ("no tenemos venue", el horario del domingo). Veredicto afirmación por afirmación: [REVISION.md](REVISION.md). Plan vigente: [../plan-domingo.md](../plan-domingo.md).**
 
 # Denuncias a Los Pícaros: todo en uno (para Jorge, sáb 3 oct, 22:30)
 

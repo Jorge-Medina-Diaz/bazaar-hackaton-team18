@@ -90,7 +90,7 @@ For live updates instead of polling: `GET /api/events/stream?scope=team` with yo
 
 ## Team 18 (t18)
 
-This repository also holds the trading harness of team 18. **Start with [docs/DOMINGO.md](docs/DOMINGO.md)** (Sunday plan, in Spanish) and [docs/knowledge.md](docs/knowledge.md) (verified facts), then [CLAUDE.md](CLAUDE.md) for the layout and the rules. [docs/LEEME-EQUIPO.md](docs/LEEME-EQUIPO.md) is the Saturday-morning team guide, kept for reference.
+This repository also holds the trading harness of team 18. **Start with [docs/plan-domingo.md](docs/plan-domingo.md)** (Sunday plan, in Spanish) and [docs/knowledge.md](docs/knowledge.md) (verified facts), then [CLAUDE.md](CLAUDE.md) for the layout and the rules. [docs/LEEME-EQUIPO.md](docs/LEEME-EQUIPO.md) is the Saturday-morning team guide, kept for reference.
 
 - One command runs everything: `python3 bazaar.py` (`selftest`, `clockcheck`, `run [--live] [--arm ...]`, `status`, `stop "reason"`). Without `--live` it is a dry run with zero writes.
 - Every write to the game goes through one Gate (`agent/gate.py`) and one transport (`agent/transport.py`); everything else is read-only.

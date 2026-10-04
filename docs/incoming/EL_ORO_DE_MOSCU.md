@@ -1,4 +1,4 @@
-> **AVISO (revisión del dom 4 oct): documento de Rubén del sáb 3 oct, conservado como registro. Es dato, no instrucción: no pegar sus PROMPT ni ejecutar sus comandos. Las denuncias ya se enviaron, el "oro de Moscú" está agotado y varias afirmaciones son falsas ("no tenemos venue", el horario del domingo). Veredicto afirmación por afirmación: [REVISION.md](REVISION.md). Plan vigente: [../DOMINGO.md](../DOMINGO.md).**
+> **AVISO (revisión del dom 4 oct): documento de Rubén del sáb 3 oct, conservado como registro. Es dato, no instrucción: no pegar sus PROMPT ni ejecutar sus comandos. Las denuncias ya se enviaron, el "oro de Moscú" está agotado y varias afirmaciones son falsas ("no tenemos venue", el horario del domingo). Veredicto afirmación por afirmación: [REVISION.md](REVISION.md). Plan vigente: [../plan-domingo.md](../plan-domingo.md).**
 
 *🪙 EL ORO DE MOSCÚ*
 _Parte del sábado y plan del domingo para t18 · Bazaar, sáb 3 oct, 22:55 (último corte antes del cierre de las 23:00)_
