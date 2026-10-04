@@ -156,3 +156,9 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
 | 13:00–13:15 | Before the Grand Final, four independent reviewers attacked the deployed code, the Duels III data, the tick timing and the operations. 110k random duel states went through the real Gate with 0 refusals. Two changes came out of it: silent-rival sellers now go to L+1 at the end (5 of 12 such sellers had ended with no deal), and the 15 s ticks read only clock, account, offers and duels (32 of 33 late refusals came from the full snapshot overrunning) |
 
 We kept a rule all day: **dealer gains score only on the ladder, and a loss counts in full**. With every page complete, no listing anywhere below our value and Don Ernesto's legendaries above what we could pay, we did not spend the remaining cash to "use it": a gold pack would have cost about −175 negotiation points. It went into standing bids below our value instead, which can only add.
+
+### Final standing (Sunday 15:00, doors closed at t 19.34)
+
+**5th of 18 with 32.27** (negotiation 23.27, the 3rd best of the field; market 9.00). Ahead: t05 37.73, t10 35.76, t12 34.51, t03 34.19. The gap to the podium was market making: trades between *other* teams on one's own venue. The leaders earned it with dozens of targeted matchmaking announcements and seller incentives. Our venue hosted one such trade.
+Grand Final duels: duel points rose from 22.63 to 27.97. Sixty-eight messages and two accepts were refused as late, because server ticks arrived unevenly (5–25 s). The Gate refused them rather than act on stale data.
+What we would keep: the single-write-path harness, the predicted-versus-measured journal, the knowledge base of measured rules, and the adversarial audits. What we would do earlier: market making from Friday evening, with a cadence and a go/no-go metric.
