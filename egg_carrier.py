@@ -6,7 +6,8 @@ tick y con precios descendentes, y después regatea con las variantes normales h
 (solo GET) y escrituras (`bazaar.py do ... --live`, por la Gate) que ladder_sell.py. Cada uso necesita el OK de Jorge.
 
     python3 egg_carrier.py abuela 940 MAL-01 6 9,8,7,6 5,6           # Castizo y luego cocido
-    python3 egg_carrier.py chato 938 LAV-02 8 14,12,11,10,9,8 3      # calamares (solo con CHA-06/07/08 ya en mano)
+    python3 egg_carrier.py chato 1105 LAT-06 8 18,16,14,12,10,9,8 3  # calamares (solo con CHA-06/07/08 ya en mano;
+                                                                      # El Chato compra poco comunes y raras)
 Nunca: "oro de Moscú" (LAT-13 es de t02) ni la línea del Lazarillo a los Pícaros.
 """
 from __future__ import annotations

@@ -525,7 +525,9 @@ class SundayPlanTest(unittest.TestCase):
         self.assertIsNone(c["days_sign"])
         self.assertEqual(c["page_sets"], ["RET", "LAT", "CHA"])
         self.assertEqual({e["ref"]: e["max_price"] for e in c["extra_needs"]}, {"CHA-11": 170, "RET-11": 150})
-        self.assertEqual(set(c["hand_sales"]), {"MAL-01", "MAL-02", "MAL-04", "MAL-05", "LAV-02", "LAV-03", "LAV-05"})
+        self.assertEqual(set(c["hand_sales"]), {"MAL-01", "MAL-02", "MAL-04", "MAL-05", "LAV-02", "LAV-03", "LAV-05",
+                                                "LAT-06", "LAT-02"})   # night review P2: LAT-06 #1105 is the proven
+                                                                       # Pilar / Chato carrier; J5 listed it at 18
 
     def test_cha_rare_need_cap_reaches_the_chato_fallback(self):
         card = {"set": "CHA", "rarity": "rare"}
