@@ -355,6 +355,7 @@ class Runner:
         self.mode, self.paths, self.plan_cfg = mode, paths, plan_cfg
         self.plan_now: Mapping = plan_cfg          # plan_cfg with today's day end / endgame from the live schedule
         self._sched_seen: dict = {}                # pages.effective_plan memory (last live close, stalls hour)
+        self._times_logged = False                 # the first 'param day_times' row of this process is written
         self._drop_counts: dict = {}               # choose() drops of this tick, by R04 code (tick row)
         self._sign_noted: set = set()              # duel ids already alarmed for an unreadable days_meaning
         self.late_read_s: Optional[float] = None   # seconds the late-window re-read took (tick row)
@@ -828,7 +829,8 @@ class Runner:
         old, new = hours(self.plan_now), hours(pc)
         self.plan_now = pc
         moved = any((a is None) != (b is None) or (a is not None and abs(a - b) > 1 / 60) for a, b in zip(old, new))
-        if moved:
+        if moved or not self._times_logged:           # night review E2E-5: always the first one of each process
+            self._times_logged = True
             seen = self._sched_seen.get(day) or {}
             self.j("param", name="day_times", game_day=day, day_end=new[0], endgame=new[1], close=seen.get("close"),
                    stalls=seen.get("stalls"), tick=world.tick)

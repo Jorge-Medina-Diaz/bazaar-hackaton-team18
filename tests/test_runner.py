@@ -381,6 +381,18 @@ class TestLiveDayTimes(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertAlmostEqual(rows[-1]["endgame"], round(22.2 - 35 / 60, 3), places=3)
 
+    def test_first_day_times_row_even_when_it_equals_the_plan(self):
+        # night review E2E-5: scenario A derives 19.284 / 18.784, within a minute of the plan's 19.283 / 18.783, so
+        # no 'param day_times' row was written and the 09:05 runbook check found nothing
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 22.65 - 5 / 60},
+                                   "closer": {"endgame_hours": {"*": 22.65 - 35 / 60, "sun": 22.65 - 35 / 60}}}
+        r.update_plan(self.sun(16.7, 22.65))
+        r.update_plan(self.sun(16.71, 22.65))
+        rows = [x for x in r.journal.rows if x["kind"] == "param" and x.get("name") == "day_times"]
+        self.assertEqual(len(rows), 1)
+        self.assertAlmostEqual(rows[0]["day_end"], round(22.65 - 5 / 60, 3), places=3)
+
     def test_wall_close_reaches_the_tactics(self):
         # clock.closes 15:00 read at 09:00 with t13.367: close 19.367 even with a scripted day_closes at 22.65
         from datetime import datetime
