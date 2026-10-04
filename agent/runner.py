@@ -279,6 +279,20 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any, drops: Optional[li
 
 # ------------------------------------------------------------------------------------------- helpers
 
+DAY_TIMES_MAX_AGE_S = 6 * 3600      # state/day_times.json older than this is another day's: ignored at start
+
+
+def _seen_moved(a: Mapping, b: Mapping) -> bool:
+    """effective_plan memory changed by more than a minute (the live close is re-projected every read)."""
+    for day in set(a or {}) | set(b or {}):
+        ra, rb = (a or {}).get(day) or {}, (b or {}).get(day) or {}
+        for k in ("close", "stalls"):
+            x, y = ra.get(k), rb.get(k)
+            if (x is None) != (y is None) or (x is not None and abs(x - y) > 1 / 60):
+                return True
+    return False
+
+
 def _read_json(path: Path, default: Any) -> Any:
     try:
         return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -365,6 +379,7 @@ class Runner:
         self.frozen: dict = dict(_read_json(paths.frozen, {}) or {}) if isinstance(_read_json(paths.frozen, {}), dict) else {}
         self.ticks_done = 0
         self.wall = getattr(clock, "wall", None) or time.time   # epoch for the wall close (a sim clock gives its own)
+        self._sched_seen = self._load_day_times()
         for t in armed or ():
             self._arm(t, "run --arm", at_start=True)
         self._save_armed()
@@ -766,11 +781,40 @@ class Runner:
             self._sign_noted.add(did)
             self.alarm(why, duel=did, role=_g(d, "role"), tick=world.tick)
 
+    def _day_times_path(self) -> Path:
+        return Path(self.paths.state) / "day_times.json"
+
+    def _load_day_times(self) -> dict:
+        """The effective_plan memory a previous process of today left (night review E2E-1/S4: the stalls close at
+        14:00 leaves 'upcoming' once fired, so a cold restart after it brought back a 14:55 dealer day end and a
+        stream of refused open_threads). Older than DAY_TIMES_MAX_AGE_S (another day) or unreadable -> {}."""
+        raw = _read_json(self._day_times_path(), {})
+        try:
+            if not isinstance(raw, dict) or not (0 <= float(self.wall()) - float(raw["saved"]) <= DAY_TIMES_MAX_AGE_S):
+                return {}
+            out = {}
+            for day, rec in (raw.get("seen") or {}).items():
+                if isinstance(day, str) and isinstance(rec, dict):
+                    out[day] = {k: (float(rec[k]) if type(rec.get(k)) in (int, float) and math.isfinite(rec[k])
+                                    else None) for k in ("close", "stalls")}
+            return out
+        except Exception:                                                # noqa: BLE001 - fail closed: no memory
+            return {}
+
+    def _save_day_times(self) -> None:
+        try:
+            _write_json(self._day_times_path(), {"saved": float(self.wall()), "seen": self._sched_seen})
+        except Exception as e:                                           # noqa: BLE001
+            self.alarm(f"day_times.json not written: {e.__class__.__name__}")
+
     def update_plan(self, world: World) -> None:
         """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""
         try:
             from agent.tactics import pages
+            before = self._sched_seen
             pc, self._sched_seen = pages.effective_plan(self.plan_cfg, world, self._sched_seen, now=self.wall())
+            if self.mode == "live" and _seen_moved(before, self._sched_seen):
+                self._save_day_times()
         except Exception as e:                                           # noqa: BLE001 - keep the last plan
             if _is_fatal(e):
                 raise

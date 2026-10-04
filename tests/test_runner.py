@@ -395,6 +395,37 @@ class TestLiveDayTimes(unittest.TestCase):
         self.assertAlmostEqual(r.plan_now["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
         self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["*"], 19.367 - 35 / 60, places=3)
 
+    def test_stalls_latch_survives_a_cold_restart(self):
+        # night review E2E-1/S4: scenario C, the stalls close at 18.367 (14:00) fires and leaves 'upcoming'; a fresh
+        # process at 14:05 used to derive the 14:55 day end again. state/day_times.json keeps the latch for today.
+        from datetime import datetime
+        wall = lambda h, m: datetime.fromisoformat(f"2026-10-04T{h:02d}:{m:02d}:00+02:00").timestamp()   # noqa: E731
+        def w(t, upcoming):
+            return make_world(t_hours=t, clock=MappingProxyType({"paused": False, "doors": "open", "today": "sun",
+                                                                 "closes": "2026-10-04T15:00:00+02:00"}),
+                              schedule=MappingProxyType({"now_hours": t, "upcoming": tuple(upcoming)}))
+        stalls = [MappingProxyType({"at_hours": 18.367, "action": "persona",
+                                    "params": MappingProxyType({"id": p, "enabled": False})})
+                  for p in ("abuela", "chato", "pilar", "picaros", "banco")]
+        plan = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"*": 18.783}}}
+        def fresh(paths, at):
+            clk = FakeClock()
+            clk.wall = lambda: at
+            r = runner.Runner(mode="live", armed=(), paths=paths, plan_cfg=plan, transport=None,
+                              journal=FakeJournal(), gate=FakeGate(clk), sensor=FakeSensor(make_world()),
+                              calibrator=FakeCal(), cfg=Cfg(), clock=clk)
+            r.plan_now = plan
+            return r
+        r1 = fresh(Paths.at(tempfile.mkdtemp(prefix="t18-runner-")), wall(13, 50))
+        r1.update_plan(w(18.2, stalls))
+        self.assertAlmostEqual(r1.plan_now["day_end_hours"]["sun"], 18.2837, places=3)
+        self.assertTrue((Path(r1.paths.state) / "day_times.json").exists())
+        r2 = fresh(r1.paths, wall(14, 5))                                       # cold restart, entries gone
+        r2.update_plan(w(18.45, ()))
+        self.assertAlmostEqual(r2.plan_now["day_end_hours"]["sun"], 18.2837, places=3)
+        r3 = fresh(r1.paths, wall(14, 5) + 10 * 3600)                           # another day: the file is ignored
+        self.assertEqual(r3._sched_seen, {})
+
     def test_wall_comes_from_the_clock_when_it_has_one(self):
         import time as _time
         r, _ = bare_runner(make_world(), FakeClock())
