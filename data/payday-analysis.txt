@@ -29,3 +29,31 @@ Gap t10 - t18: 4.59 at tick 1230 -> 6.32 at tick 1440.
 
 t18 (our journal): cash 131 before the grant, 531 after; Saturday close 555. We spent 72 P of it on Saturday (LAT-10 from a team, +50)
 and kept the rest for Chamberi (our x1.6 set), which was only released in round 3 (Sunday 09:15).
+
+How the teams that gained used the 400 P (public settlements, tick 1201-1445; the feed shows 59 of the 77 settlements in this window)
+team  card moves  bought  sold  net cash out   what
+t12        6       475     70       405        RET-11 epic from t06 at 216, LAT-10 rare from t01 at 86, MAL-11 epic from Picaros at 139, 2 uncommons
+t04        9       551    171       380        LAV-11 and SAL-11 epics from Picaros (155 each), RET-10 from t06 at 84, 3 loops SAL-09 Picaros (50-55) -> Pilar (72-75)
+t10       10       554    325       229        MAL-11 epic from t08 at 195, SAL-11 epic from Picaros at 155 resold to t17 at 207, RET-11 epic from Picaros at 142,
+                                               SAL-09 Picaros 52 -> Pilar 77, plus Abuela and Chato
+t13       10       242     86       156        LAV-09, LAV-10, LAT-10 rares from Picaros (54-63), LAT-10 resold to t18 at 72
+t17        1       207      0       207        SAL-11 epic from t10 at 207
+t08        5       290    276        14        SAL-11 and MAL-11 epics from Picaros (140, 150), MAL-11 resold to t10 at 195
+t06       12       436    462       -26        SAL-11 (143) and RET-11 (137) epics from Picaros: RET-11 resold to t12 at 216, SAL-11 to the banco at 120
+t18        3        72     96       -24        LAT-10 from t13 at 72; sold SAL-10 (71) and RET-07 (25) to Pilar
+
+What the money bought:
+- Epics from Los Picaros: 11 in the public feed after the grant against 1 before it (the pre-grant feed is incomplete: 24 of 84 settlements),
+  each 137-155 P, which is more than most teams held. That was the organisers' stated aim: "Don Ernesto's vault and Los Picaros' epics are within reach".
+- Epic and rare resales between teams at 195-216 P (RET-11, MAL-11, SAL-11). A trade between teams scores for both sides at their private values
+  (up to +50 each): the grant financed both legs.
+- Dealer-to-dealer loops (SAL-09 bought from Los Picaros, sold to Pilar): ladder slots at levels 4 and 3, the heaviest after the banco.
+- t12 and t04 spent about the whole grant (net 405 and 380 P out) in the two hours that were left of round 2.
+
+Why it helped us less:
+- We had already spent our own cash on the same plays before the grant: SAL-11 epic from Los Picaros at 139 and LAT-09 at 55 (level 4), SAL-11 to
+  Pilar at 199 (level 3). Ladder 0.214 -> 0.366 between ticks 1000 and 1100, cash 303 -> 131. Our level 3 and 4 slots were full when the grant came.
+- The rest of our need was Chamberi, released only on Sunday. So the grant subsidised the teams that had not yet made these plays: late movers.
+
+Limits of this analysis: rivals' private values are unknown, so their points per deal cannot be computed; the public feed misses 18 of 77
+settlements after the grant and most before it; the leaderboard is relative and lags a few ticks.

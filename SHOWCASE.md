@@ -187,6 +187,12 @@ On Saturday the server refused 0 of our 1,079 writes. All 372 refusals came from
   - We had 131 P before the grant and had budgeted our cash for Sunday's Chamberí (our ×1.6 set, released only in round 3).
   - We spent 72 P of the 400 on Saturday (LAT-10 from a team, +50) and kept the rest.
   - Our rank still improved, 4th → 2nd, but the gap to t10 widened from 4.59 to 6.32 in those two hours.
+- **How the gainers used it** (public settlements):
+  - **Epics from Los Pícaros, 137–155 P each.** The feed shows 11 bought after the grant against 1 before it.
+  - **Epic resales between teams at 195–216 P.** Team trades score on both sides.
+  - **Dealer-to-dealer loops**, which fill level 3 and 4 ladder slots.
+  - t12 and t04 spent about the whole grant (net 405 and 380 P out) in those two hours. These were exactly the plays we had already made with our own cash before it: SAL-11 from Los Pícaros at 139, SAL-11 to Pilar at 199, ladder 0.214 → 0.366. Our level 3 and 4 slots were full.
+  - **In short, the grant subsidised the late movers.**
 - We did not change strategy in reaction. The cash went into Chamberí on Sunday, completed in about 12 minutes.
 
 **What we measured on Saturday** (and the docs now use):
