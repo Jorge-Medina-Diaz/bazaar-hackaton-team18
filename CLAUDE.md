@@ -39,6 +39,8 @@ sim/                   fake server, bots, faults and invariant checks for the te
 tests/                 the full suite (tests/__init__.py isolates: BAZAAR_TEST=1, no key, loopback only)
 ladder_sell.py, egg_carrier.py          operator sales to a dealer; they write only through `bazaar.py do`
 flag_candidates.py, announce_candidates.py, egg_watch.py, bench_rec.py   read-only operator tools
+picaros.py, radio.py, rivals.py, affinity.py, afinidad_propia.py   keyless analysis tools (agent/affinity.py: rival multipliers)
+run_duel_eval.py       offline duel evaluator against simulated rival archetypes
 data/                  curated live traces (see data/README.md)
 docs/                  architecture, journey, limitations, spec, knowledge, strategy; docs/history/ is the event log
 state/, logs/, runs/   local runtime, never in Git

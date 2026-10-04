@@ -10,3 +10,4 @@
 | [incoming/](incoming/) | Notes a teammate sent on Saturday night, kept as data. [REVISION.md](incoming/REVISION.md) gives the verdict on each claim (correct, wrong, done, unverified) |
 | [legacy-code/](legacy-code/README.md) | The Friday scripts and modules that the harness replaced. Every Python file starts with `raise SystemExit` and cannot run; `tests/test_agent_core.py` checks that |
 | [designs/](designs/) | The three competing harness designs (quantitative, safety, frontier) that a panel scored on Friday night; strategy.md §0 explains the choice |
+| [team-notes/](team-notes/) | Analysis notes by teammates (Spanish): Los Pícaros and how to stay safe from them, Doña Pilar, the Voss-style duel plan, the team logbook (bitácora), the rival-multiplier estimator, Radio Rastro and the analyst role |

@@ -312,11 +312,16 @@ class TestRootScriptsAreReadOnly(unittest.TestCase):
         keyed reads go through agent.client.client("read"), whose transport refuses every write."""
         bad = []
         for p in self.scripts():
-            src = p.read_text(encoding="utf-8")
+            t = tree(p)
+            docs = {id(n.body[0].value) for n in ast.walk(t)
+                    if isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.body
+                    and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
+            keyed = any((isinstance(n, ast.Constant) and n.value == "BAZAAR_KEY" and id(n) not in docs)
+                        or (isinstance(n, ast.Name) and n.id == "_load_env")
+                        or (isinstance(n, ast.alias) and n.name == "_load_env") for n in ast.walk(t))
             raw = any(isinstance(n, (ast.Import, ast.ImportFrom)) and any(
                 (a.name if isinstance(n, ast.Import) else (n.module or "")).startswith(("urllib", "http.client", "requests", "httpx"))
                 for a in n.names) for n in ast.walk(tree(p)))
-            keyed = "BAZAAR_KEY" in src or "_load_env" in src
             if raw and keyed and p.name not in self.KEYED_RAW_READERS:
                 bad.append(rel(p))
         self.assertEqual(bad, [])

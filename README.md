@@ -12,7 +12,7 @@ It is an autonomous agent that collects Madrid cards, haggles with five dealer p
 | Saturday (round 2) | **7th → 2nd** (2nd-best negotiation score of the field at the close) |
 | Sunday (round 3) | 4 album pages complete by 09:35. 1st in negotiation by 10:20. Our own board venue matched 96.7 % of the hard Market Test's possible gains |
 | Writes sent to the game | **1,625, all accepted by the server (0 refused)**. Our own guards stopped 428 more before they left the process |
-| Tests | 860 unit, property, chaos and end-to-end tests (stdlib only, no network, no key) |
+| Tests | 912 unit, property, chaos and end-to-end tests (stdlib only, no network, no key) |
 
 ---
 
@@ -75,9 +75,11 @@ python3 bazaar.py report                         # calibration report from the j
 | `agent/tactics/` | Pure strategy: `pages` (what we need), `dealers`, `rastro` (team market + page closer), `duels`, `hygiene`, `bench` |
 | `config/plan.json` | Every tunable number: target pages, dealer profiles (anchor/step/limit), caps, duel parameters, day times |
 | `sim/` | Fake Bazaar server with dealer, team and duel bots, fault injection and invariant checks |
-| `tests/` | 860 tests, including real captured server responses (`tests/fixtures/`), the Friday replay and chaos tests |
+| `tests/` | 912 tests, including real captured server responses (`tests/fixtures/`), the Friday replay and chaos tests |
 | `ladder_sell.py`, `egg_carrier.py` | Operator tools: a manual dealer sale with a price ladder. They write only through `bazaar.py do` (the Gate) |
 | `flag_candidates.py`, `announce_candidates.py`, `egg_watch.py`, `bench_rec.py` | Read-only operator tools (trick finder, market matchmaking drafts, feed archiver, Market Test recorder) |
+| `picaros.py`, `radio.py`, `rivals.py`, `affinity.py` (+ `agent/affinity.py`), `afinidad_propia.py` | Keyless analysis tools by the team's analysts: Pícaros trick detector, a feed watcher that rates news for t18, rival tracking, and a Bayesian estimate of each rival's per-set multiplier from public trades |
+| `run_duel_eval.py` | Offline duel evaluator: plays the real duel tactic against 10 rival archetypes, with bootstrap confidence intervals; it reports points, deal rate, missed deals and any deal outside our limit |
 | `api/`, `run_dashboard.py`, `agent/dashboard.py` | Read-only team dashboard (local or Vercel) |
 | `data/` | Curated traces from the live weekend: journal, score timeline, Market Test books, public feed |
 | `docs/` | Architecture, journey, limitations, the full spec, verified facts, playbook. [Index](docs/README.md) |
