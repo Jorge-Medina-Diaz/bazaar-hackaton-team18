@@ -1,6 +1,6 @@
 # Especificación del arnés — Team 18 (t18) · v2 (tras el equipo rojo)
 
-> **English summary:** this is the build contract of the harness, written in Spanish during the event. It covers architecture decisions (§0), the tick loop (§1), module signatures (§2), invariants INV-01..23 with the test that proves each (§3), guard formulas (§4), modes and CLI (§5), the journal (§6), calibration (§7), failure handling (§8), the fake server (§9), the test plan (§10) and module ownership (§11). The English overview is [architecture.md](architecture.md). For the release, the offline lab and the extra panels it mentions (`website/`, `panel.py`, `live_monitor.py`, `observe_performance.py`, `laboratorio.py`, …) were removed, and `archive/` moved to `docs/history/legacy-code/`.
+> **English summary:** this is the build contract of the harness, written in Spanish during the event. It covers architecture decisions (§0), the tick loop (§1), module signatures (§2), invariants INV-01..23 with the test that proves each (§3), guard formulas (§4), modes and CLI (§5), the journal (§6), calibration (§7), failure handling (§8), the fake server (§9), the test plan (§10) and module ownership (§11). The English overview is [architecture.md](architecture.md). For the release, the offline lab and the extra panels it mentions (`website/`, `panel.py`, `live_monitor.py`, `observe_performance.py`, `laboratorio.py`, …) were removed, and `archive/` moved to `docs/history/legacy-code/`. Sections 12–14 are the cleanup table, the Saturday runbook and the red-team decisions. §15 lists how the shipped code differs from the frozen contract, and it wins on any conflict. A few test criteria in §3 and §10 were not staged as written (see the note under §10).
 
 Sábado 3 oct 2026, ~03:30. La firma el arquitecto jefe. El plan de juego está en `docs/strategy.md`; los hechos, en `docs/knowledge.md`. Los cambios frente a la v1 y su motivo están en §14.
 Este documento es el contrato de construcción: cada fichero tiene un único módulo dueño, las firmas de M0 son fijas desde las 03:30 y cada invariante dice cómo se impone y qué test lo prueba.
@@ -8,7 +8,7 @@ Este documento es el contrato de construcción: cada fichero tiene un único mó
 Reglas de la casa:
 - Solo la biblioteca estándar de Python ≥ 3.9 (`from __future__ import annotations` en cada módulo nuevo), en Windows y macOS.
 - `bazaar_sdk.py` no se edita.
-- `website/` y los paneles siguen funcionando.
+- `website/` y los paneles siguen funcionando (regla del evento; en la versión publicada solo queda el panel de solo lectura `api/index.py` + `agent/dashboard.py` + `run_dashboard.py`).
 - Ningún LLM decide en tiempo de ejecución.
 - Todo camino de fichero sale de un único `Paths(root)`; los tests siempre usan una carpeta temporal.
 
@@ -574,13 +574,13 @@ Además, todo kind que dependa del valor (todos salvo cancel, close_thread, open
 
 | Comando | Qué hace |
 |---|---|
-| `python3 bazaar.py selftest` | `python3 -m unittest discover -s tests -t .`; falla si corre 0 tests o menos del mínimo por etapa; agrupa por etapa (core, hygiene, dealers, rastro, closer, duels) y escribe `state/selftest.json` `{etapa: {green, code_hash}}`; comprueba que `logs/run/` y `state/` (salvo `selftest.json`) no cambian. Comprueba Python ≥ 3.9. |
+| `python3 bazaar.py selftest` | Corre por etapa las listas de módulos de `bazaar.STAGE_FILES` (no la suite completa); falla si corre 0 tests o menos del mínimo por etapa; agrupa por etapa (core, hygiene, dealers, rastro, closer, duels) y escribe `state/selftest.json` `{etapa: {green, code_hash}}`; comprueba que `logs/run/` y `state/` (salvo `selftest.json`) no cambian. Comprueba Python ≥ 3.9. |
 | `python3 bazaar.py clockcheck` | GET sin clave a clock y schedule; imprime N/M/C/P/?, ronda, `t_hours`, `paused`, `upcoming`. |
 | `python3 bazaar.py run [--live] [--arm a,b]` | Toma el candado (dry incluido). Sin `--live`: dry, 0 escrituras. Con `--live`: escriben solo las tácticas armadas cuya etapa está en verde con el mismo `code_hash`; `armed.json` = exactamente `--arm`. |
 | `python3 bazaar.py arm/pause <táctica> --why "..."` | Deja `state/inbox/<ts>-arm.json` (temporal + `os.replace`); el runner lo aplica y lo anota. `arm` rechaza una táctica con su etapa en rojo. |
-| `python3 bazaar.py do <kind> --args '<json>' --why "..."` | Un intent humano, táctica `manual` (siempre armada en live). Con el runner vivo, va por el inbox; sin runner, toma el candado y ejecuta un solo tick. Las mismas guardas. |
+| `python3 bazaar.py do <kind> --args '<json>' --why "..." [--live]` | Un intent humano, táctica `manual` (siempre armada en live). Sin `--live` es un ensayo (`would`) y, con un runner vivo en live, se rechaza. Con el runner vivo va por el inbox; sin runner toma el candado y ejecuta un solo tick. Las mismas guardas. |
 | `python3 bazaar.py stop "motivo" [--flatten]` | Crea `STOP` en la raíz del repo (`Paths.root`, no el directorio actual). Con `--flatten`, primero deja una orden: el runner cancela nuestras pujas y cierra los hilos de compra en un tick y después escribe STOP. Crear a mano `STOP`, `STOP.txt`, `stop`… en la raíz también vale. (Se retira la afirmación de `BAZAAR_KILL`: no llega a un proceso en marcha.) |
-| `python3 bazaar.py resume --why "..."` | Borra STOP; el runner lo anota. Solo una persona. |
+| `python3 bazaar.py resume [táctica] --why "..."` | Sin táctica: borra STOP (STOP, STOP.*, stop, stop.*); el runner lo anota. Con táctica: deja una orden para reanudarla (exige runner vivo). Solo una persona. |
 | `python3 bazaar.py status` | 0 llamadas a la API; lee el diario con `writer=False`: modo, armadas, pausadas, STOP, pendientes, unknowns, `cash_free`, últimos veredictos, alarmas, quién tiene el candado (PID y orden). |
 | `python3 bazaar.py replay-friday` | Pasa los tratos y los 108 mensajes de duelo del viernes por las guardas. |
 | `python3 bazaar.py report` (L3) | Calibración por táctica. |
@@ -617,7 +617,7 @@ baseline | cmd | pause | resume | arm | param | stop | alarm | trip | error | sh
 2. **Ventana:** antes = `*_points` del tick previo; después = la primera lectura con cambio (≤ 3 ticks). Nunca `score` (P-14).
 3. **Cambio de ronda:** si `round` cambia entre los dos ticks, o todos los `*_points` caen a la vez sin liquidación nuestra → fila `round_reset`, nueva base, y esa ventana no da veredicto ni pausa (E2 queda como medida pura).
 4. **Atribución:** una liquidación → todo; varias → suma; ventana ambigua no cuenta para pausas blandas, pero un `hard_fail` de la suma pausa a todas las implicadas.
-5. **Acciones automáticas:** `hard_fail` → pausa persistente; 2 `soft_fail` en las últimas 5 → pausa; escalera que baja → pausa `dealers`; Δneg ≤ −1 sin atribuir → pausa de compras; liquidación de una oferta **creada por el arnés** que hoy fallaría G12/G20/G21/G32 → STOP; una heredada fuera de su banda de línea base → `alarm` (no STOP); suma diaria de sorpresas negativas < −5 → STOP.
+5. **Acciones automáticas:** `hard_fail` → pausa persistente; 2 `soft_fail` en las últimas 5 → pausa; escalera que baja → pausa `dealers`; Δneg ≤ −1 sin atribuir → pausa de compras; liquidación de una oferta **creada por el arnés** que hoy fallaría G12/G20/G21/G32 → STOP; una heredada fuera de su banda de línea base → `alarm` (no STOP); suma diaria de sorpresas negativas < −60 → STOP (era −5: el domingo a las 09:32 paró el bot un cierre que ganó +23 frente a +50 predicho; `9a871e2`). Sin `recheck` conectado, «fallaría hoy» se aproxima con Δneg medido ≤ −1 (`LOSS_STOP`).
 6. **Aprendizaje:** `NEG_CAP_CONFIRMED` solo si la ganancia sin tope predicha era ≥ 55 y lo medido es 50,0 ± 0,1 (E5); tabla de escalera por dealer (E4); `param DUEL_ACCEPT_SHARED=false` lo aplica una persona (E9). Ningún límite de precio se cambia solo.
 
 ---
@@ -664,7 +664,7 @@ baseline | cmd | pause | resume | arm | param | stop | alarm | trip | error | sh
 
 ## 10. Plan de pruebas
 
-`python3 -m unittest discover -s tests -t .` (lo lanza `selftest`; < 180 s con reloj virtual). Los tests usan `Paths.at(tempfile.mkdtemp())`, `BAZAAR_URL=http://127.0.0.1:<puerto>` y `BAZAAR_KEY=tk-test`.
+`python3 -m unittest discover -s tests -t .` corre la suite completa (< 180 s con reloj virtual; la lanza la CI de `.github/workflows/tests.yml`). `selftest` no la lanza: corre por etapa las listas de `bazaar.STAGE_FILES` con un mínimo de tests (`STAGE_MIN`); test_bots, test_agent_core, test_bench, test_valuer_cache, test_manual_scripts, test_sunday_sim, test_affinity, test_picaros, test_radio y test_rivals_public no están en ninguna etapa. Los tests usan `Paths.at(tempfile.mkdtemp())`, `BAZAAR_URL=http://127.0.0.1:<puerto>` y `BAZAAR_KEY=tk-test`.
 
 | Fichero | Dueño | Etapa | Criterio |
 |---|---|---|---|
@@ -692,7 +692,15 @@ baseline | cmd | pause | resume | arm | param | stop | alarm | trip | error | sh
 | test_foreign_writer.py | M17 | core | INV-16 |
 | test_dry.py | M17 | core | 1.000 ticks → 0 escrituras |
 | test_replay_friday.py | M17 | core | Rechaza el sobre a 23, LAT-01 a 10, LAT-06 con el sobre en mano, LAT-08 a 32, la venta de LAV-06 a 13 y LAT-03 a 9; aprueba SAL-02 a 9, SAL-08 a 24 y **SAL-10 a 80** (cierre: 80 ≤ floor(149,875 − 20) = 129 y min(69,9, 50) ≥ 20; con el tope fijo de 49 de la v1 se habría rechazado, que era la contradicción); 0/108 mensajes de duelo fuera de límite |
-| Paneles (test_inventory_panel, test_live_monitor, test_performance_observer, test_negotiation; `node --test website/worker.test.mjs`) | — | — | En verde |
+| Paneles (retirados en la versión publicada junto con `website/`, `panel.py`, `live_monitor.py`, `observe_performance.py`, `laboratorio.py`…) | — | — | — |
+
+Además, sin etapa: test_agent_core, test_bench (L1), test_valuer_cache, test_manual_scripts (scripts de la raíz), test_sunday_sim y los de las herramientas de análisis (test_affinity, test_picaros, test_radio, test_rivals_public).
+
+**Nota (versión publicada):** cuatro criterios no se cumplen al pie de la letra, como dicen los NOTES de cada test:
+- e2e usa 4 semillas, no 5;
+- las muertes de proceso de test_chaos son en proceso (`BaseException`), no de un subproceso;
+- INV-10 (dos dealer-bots en el mismo tick) no está montado;
+- INV-03 no tiene test de tasa (solo comprueba ≤ 1 aceptación por tick).
 
 Las comparaciones de rendimiento (p. ej. "frente a v0") van a `bazaar.py report`, fuera del `selftest`.
 
@@ -724,7 +732,7 @@ Las comparaciones de rendimiento (p. ej. "frente a v0") van a `bazaar.py report`
 | 2 | L1 bench | agent/tactics/bench.py, tests/test_bench.py | L (banco 7,0) | M0, M1, M2 |
 | 3 | M15 runner | agent/runner.py, tests/test_runner.py | A | todos los de A |
 | 3 | M16 cli | bazaar.py, tests/test_cli.py | A | M15, M2, M13 |
-| 3 | M17 integration | tests/test_architecture.py, tests/test_isolation.py, tests/test_e2e_fake.py, tests/test_chaos.py, tests/test_foreign_writer.py, tests/test_dry.py, tests/test_replay_friday.py, tests/fixtures/replay/** | A (+ casos por etapa) | M6a, M6b, M15, M16 |
+| 3 | M17 integration | tests/test_architecture.py, tests/test_isolation.py, tests/test_e2e_fake.py, tests/test_chaos.py, tests/test_foreign_writer.py, tests/test_dry.py, tests/test_replay_friday.py, tests/fixtures/harvest/** (el replay no tiene carpeta propia) | A (+ casos por etapa) | M6a, M6b, M15, M16 |
 | 3 | M18 cleanup | docs/history/legacy-code/**, .gitignore, .vercelignore, CLAUDE.md, README.md, docs/research-context.md, live_monitor.py, observe_performance.py, website/worker.mjs, los `.py` que se archivan | parte 1 antes de las 07:00; parte 2 el sábado 23:15 | M1 |
 
 Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica de la etapa A. `config/plan.json` (M8) lo usa también la higiene: en la etapa A, M9 lee solo `startup_cancels`, `baseline_bands`, `protect_sets`, `grant_lookahead_ticks` y `day_end_hours`, y M8 lo crea con esas claves a las 05:00 (lo demás después). Las plantillas de texto son solo de M4b; los perfiles numéricos de los dealers (`profiles`) viven en `config/plan.json`. L2 (días) es trabajo dentro de M12 y `days_sign` en `config/plan.json`. L3 (informe) es `Calibrator.report` (M13) y `bazaar.py report` (M16). L4 (venue `auto`) es un fichero nuevo `agent/venue.py` con su propio intent y guarda, solo si se cumplen las condiciones de J11. L5 (dealers de nivel 3+) es trabajo de M10 en modo PROBE.
@@ -747,6 +755,8 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 ## 12. Limpieza del repositorio (M18)
 
 > **Hecho** (M18 partes 1 y 2). Lo que aquí dice `santi/` está ahora en `docs/history/legacy-code/docs/santi/`, salvo el kickoff, que está en `docs/official/kickoff.pdf`.
+>
+> **Versión publicada:** se retiraron además `website/`, `panel.py`, `panel.html`, `live_monitor.py`, `observe_performance.py`, `inventory_panel.py`, `laboratorio.py`, `negotiation_policy.py` y sus tests, así que las filas «keep» de esos ficheros y sus menciones en §11 (M18, aceptación) y §13 son históricas. El `docs/README.md` actual es el índice nuevo; el archivado está en `docs/history/legacy-code/docs/README.md`.
 
 **Reglas:** archivar = `git mv <ruta> docs/history/legacy-code/<ruta>` (parte 2, una persona, el sábado a las 23:15 y `selftest` después). El `SystemExit` de los `.py` se pone en la parte 1, después de cualquier `from __future__`. Las fusiones se hacen dentro de los módulos dueños y se archivan solo cuando sus tests están en verde: casos de `offer_safety` de `test_agent_core` → `test_guards` (M4a); los de `team_writer` → `test_gate` (M5); `haggle.curve` → M10; frases de `agent/dealers.py` y `negotiation-design` → `talk.TEMPLATES` (M4b); `agent/duels.py` → M12.
 
@@ -798,7 +808,7 @@ Notas: M9 hygiene crea `agent/tactics/__init__.py` porque es la primera táctica
 3. **08:50** `python3 bazaar.py clockcheck`.
 4. **08:55** `python3 bazaar.py run --live --arm hygiene`.
 5. **09:00:30 y 09:05** `clockcheck` (E1, E6); `status` confirma 2463 y 1652 `cancelled`.
-6. **t173** Si la etapa B no está: `python3 bazaar.py do list_offer --args '{"side":"sell","ref":"LAV-03","asset_id":<id>,"price":9,"expires_ticks":60,"closer":false}' --why "J5"` (y MAL-04, MAL-05 a 9; LAV-04 a 12).
+6. **t173** Si la etapa B no está: `python3 bazaar.py do list_offer --args '{"side":"sell","ref":"LAV-03","asset_id":<id>,"price":9,"expires_ticks":60,"closer":false}' --why "J5" --live` (y MAL-04, MAL-05 a 9; LAV-04 a 12).
 7. **Actualización en caliente** (para cada etapa nueva): `python3 bazaar.py stop "hot update"` → `status` sin pendientes ni unknowns → `git pull` → `selftest` → `python3 bazaar.py run --live --arm hygiene,<lo que esté en verde>`. Concilia antes de escribir.
 8. **Etapa B en verde y RET publicado** (sobre de la subvención ya abierto con N): `arm dealers --why`, `arm rastro --why`.
 9. **Etapa C en verde, antes de Duels I:** `arm duels --why "Duels I"`.
@@ -903,21 +913,24 @@ STOP con `--flatten`; tipo de sobre desconocido sin excepción; cola rota del di
 
 ---
 
-## 15. Cambios desde el sábado 03:30 (código final: `night-build` `0daffe5`, que se despliega sobre `harness-v2` el domingo)
+## 15. Cambios desde el sábado 03:30 (código publicado: rama `release`; incluye `night-build` `0daffe5` y los cambios del domingo en vivo)
+
+- **Domingo (en vivo):** CHA-11 en `extra_needs` sube a 225, para que J6 pueda comprar la épica a un equipo; el hilo con los Pícaros sigue en el límite de su perfil, 170 (`8ba8399`). Don Ernesto (banco) es dealer de compra para CHA-12: `extra_needs` ≤ 470, perfil con ancla 380 y paso 5, plantilla `banco_buy` (`1ef5a66`). `DAILY_SURPRISE_STOP` pasa de −5 a −60 (`9a871e2`). LAV-07 como portadora del huevo de El Chato (`25fe09a`), retirada al llegar el huevo (`8de6c59`).
+- **§2.1 (M0):** `contracts.py` recibió las entradas tardías D1–D3 con valores por defecto: `ARGS["accept"]["venue"]` (D2: aceptar en venues de otros equipos con `RIVAL_VENUE_MIN_GAIN` / `RIVAL_TOP_N`), `ARGS["list_offer"]["want_ref"]` y side `"swap"` (D1), `World.boards` / `venues` / `leaderboard`, `DOWN_SOURCES` ampliado y `expiry_units()` (D3). Publicamos solo en El Rastro: la frase «el venue siempre es rastro» de §2.1 vale solo para `list_offer`.
 
 Las secciones 0–14 son el contrato congelado de la noche del viernes. Aquí se recoge en qué difiere el código; si algo choca, manda el código y esta lista. Las líneas de §3 (INV-03, INV-12) y §4 (G50, G51, día de la higiene) ya están reescritas con el código final.
 
 - **§2.2:** `GET_ALLOWLIST` vive en `agent/contracts.py:136`, no en `transport.py`, y admite `venues/[a-z0-9_-]+/offers` (D2), no solo `venues/rastro/offers`. `/api/broker/*` no está: `bench_rec.py` lee el libro con su propio GET, fuera del arnés.
 - **Presupuesto de peticiones:** runner 3,5 req/s, ráfaga 8, 2 fichas reservadas (`runner.RUNNER_RATE`); paneles 1 req/s (`client.PANEL_RATE`). La relectura de mitad de tick para aceptar duelos es la reducida (clock, me, me/offers, duels) y su duración va a la fila `tick` (`late_read_s`).
-- **§2.5, `talk.TEMPLATES`:** 10 plantillas (`abuela_buy`, `abuela_sell`, `chato_buy`, `chato_sell`, `pilar_sell`, `picaros_buy`, `picaros_sell`, `banco_sell`, `duel`, `duel_days`). `EGG_LINES` = {chato_buy 2, chato_sell 1, abuela_buy 2, abuela_sell 3, pilar_sell 1, banco_sell 2, picaros_sell 1}: cuántas variantes del final de cada plantilla son huevos que solo se mandan a mano (`dealers._variant` no las rota; cada línea pasa G60).
+- **§2.5, `talk.TEMPLATES`:** 11 plantillas (`abuela_buy`, `abuela_sell`, `chato_buy`, `chato_sell`, `pilar_sell`, `picaros_buy`, `picaros_sell`, `banco_buy`, `banco_sell`, `duel`, `duel_days`). `EGG_LINES` = {chato_buy 2, chato_sell 1, abuela_buy 2, abuela_sell 3, pilar_sell 1, banco_sell 2, picaros_sell 1}: cuántas variantes del final de cada plantilla son huevos que solo se mandan a mano (`dealers._variant` no las rota; cada línea pasa G60).
 - **§2.5, `guards.Cfg`:** además de lo listado, `RIVAL_TOP_N`, `RIVAL_VENUE_MIN_GAIN`, `GRANT_LOOKAHEAD_TICKS`, `DAYS_SIGN` (sin uso), `DAYS_WEIGHT_FALLBACK`, `ABUELA_DEALS_HOUR_MAX`, `TICKS_PER_GAME_HOUR`, `MIN_EXPIRES` y `MAX_EXPIRES`. Bloqueos de dealer (`_closed_thread_blocks`): `cooloff` hasta su `until_tick`; `persona_quota`, `persona_budget` y `sold_out` hasta el final de la hora de juego en curso (`2512ce4`).
-- **§2.1, `PlanCfg` / `config/plan.json`:** añade `duels {anchor 0,62, slow_cap 0,85, acc_late 2, e8_ticks 0, days_weight_fallback 1,0}`, `closer.freeze_at` 8, `closer.endgame_min_before_close` 35, `closer.endgame_hours` (respaldo), `day_end_min_before_close` 5, `day_end_hours` (solo `sun`, respaldo), `grant_lookahead_ticks` 12, `dup_min_price` {RET 30, CHA 30, LAT 18}, `resupply_min` 999 (J13 apagada), `endgame_buy_any`, `hand_sales`, `extra_needs` con `min_round`, `profiles.*.fallback_dealer` y el perfil genérico `rare` (respaldo de El Chato). Solo valen como perfil los dealers `abuela`, `chato` y `picaros`. `days_sign` sigue en el fichero porque `PlanCfg` la declara, pero no se usa.
+- **§2.1, `PlanCfg` / `config/plan.json`:** añade `duels {anchor 0,62, slow_cap 0,85, acc_late 2, e8_ticks 0, days_weight_fallback 1,0}`, `closer.freeze_at` 8, `closer.endgame_min_before_close` 35, `closer.endgame_hours` (respaldo), `day_end_min_before_close` 5, `day_end_hours` (solo `sun`, respaldo), `grant_lookahead_ticks` 12, `dup_min_price` {RET 30, CHA 30, LAT 18}, `resupply_min` 999 (J13 apagada), `endgame_buy_any`, `hand_sales`, `extra_needs` con `min_round`, `profiles.*.fallback_dealer` y el perfil genérico `rare` (respaldo de El Chato). Solo valen como perfil los dealers `abuela`, `chato`, `picaros` y `banco` (banco solo para comprar CHA-12, `1ef5a66`). Las ventas a Pilar y al banco siguen siendo a mano. `days_sign` sigue en el fichero porque `PlanCfg` la declara, pero no se usa.
 - **Días en duelos (G50/G51):** el sensor deriva `days_sign` de `days_meaning` y solo deja el signo en el World. El signo sale de `talk.days_sign_of`: `days_sign` del sensor, si no `days_meaning`, si no el papel (`ROLE_DAYS_SIGN`: comprador −1, vendedor +1). `talk.checked_sign`: un signo leído que contradice al papel da −1. El runner deja una alarma por duelo con el texto ilegible o en conflicto. Con días, devolver al rival su propio par (precio, días) en pie no cuenta como retroceso (G50).
 - **Fin del día y endgame (`pages.effective_plan`, cada tick en el runner):** cierre = el antes de `clock.closes` (pared: t + (closes − ahora)/3600, solo con puertas abiertas y reloj en marcha), del `day_closes` de hoy y de un `end_round` del calendario vivo; las entradas cuyo propio `wall` ya pasó no cuentan. Cierre de puestos = primera hora con ≥ 3 entradas `persona enabled:false` (`STALLS_MIN_PERSONAS`), recordada en memoria y en `state/day_times.json` (válido < 6 h). Fin de dealers = mín(cierre, puestos) − `day_end_min_before_close`; endgame = cierre − `closer.endgame_min_before_close`. Fila `param day_times` al arrancar y en cada cambio de más de 1 min. `pages.today` ya no adivina el día por la hora. `bazaar.py clockcheck` imprime lo mismo y la pista de escenario A/B/C.
 - **Runner (`choose`):** con más de 4 duelos vivos (`MAX_LIVE_DUELS_FOR_THREADS`), ningún `open_thread` de una táctica; los manuales pasan. Cada descarte lleva código (`R04.*`): fila `dropped` para órdenes manuales y recuento en la fila `tick`. Una aceptación de táctica que gastaría el último cupo se retiene un tick (`R04.duel_slot`) si un duelo cerca de su deadline tiene una oferta rival dentro del límite; nunca la de `manual` ni la del `closer`. Los duelos que se quedan sin cupo de aceptación reciben un mensaje con el par del rival. En `live`, las intenciones de tácticas en pausa o sin armar solo dejan `would`, después de la ventana tardía, y no gastan cupos ni caja.
 - **Libro (`build_book`):** una fila `accepted_unsettled` deja de reservar caja en cuanto el World pasa de su tick (el servidor liquida en T+1). G19 no cancela ventas mientras falte el catálogo o el valorador.
 - **Tácticas:** `pages.need_limit` (el tope de un Need también mira el límite del dealer de respaldo); `extra_needs` solo con su set publicado, detrás de las cartas de página y desde `min_round`, y con el hilo topado en `cash_free` menos lo que la puja del closer necesita a su precio de endgame (`dealers.closer_reserve`, `0daffe5`); el closer no puja mientras haya riesgo de entrega; J13 nunca en el endgame; `hand_sales` fuera de J5, de las ventas a pujas y de los intercambios hasta el fin de dealers; un intercambio D1 solo da lo que daría `_spares`; las épicas nunca son sobrantes.
-- **Escrituras fuera de la Gate:** el contrato no tiene KIND para denuncias, venues ni broker. Las excepciones manuales con el OK de Jorge son regla de CLAUDE.md, no del arnés. Sábado: `PATCH /api/venues/v18`, `POST /api/broker/announce` y 9 `POST /api/flags`. Domingo: los scripts del scratchpad `flag_one.py` y `announce_stall.py`, que no miran STOP ni escriben en el diario, así que se apuntan en `docs/history/handoffs/HANDOFF-domingo.md`. INV-01 e INV-20 siguen valiendo para todo lo que sale por la Gate.
+- **Escrituras fuera de la Gate:** el contrato no tiene KIND para denuncias, venues ni broker. Las excepciones manuales con el OK de Jorge son regla de CLAUDE.md, no del arnés. Sábado: `PATCH /api/venues/v18`, `POST /api/broker/announce` y 9 `POST /api/flags`. Domingo: denuncias (`flag_one.py`), anuncios (`announce_stall.py` y un anunciador cada 10 min) y la apertura del venue board v28 con un broker del operador. Ninguno de esos scripts está en el repo, mira STOP ni escribe en el diario: se apuntan en `docs/history/handoffs/HANDOFF-domingo.md`, y la traza del venue está en `data/market-test/`. L4 (`open_venue` como KIND) no se construyó. INV-01 e INV-20 siguen valiendo para todo lo que sale por la Gate.
 - **Scripts manuales de la raíz** (fuera de `agent/`; leen solo por GET y escriben solo con `bazaar.py do ... --live`, por la Gate): `ladder_sell.py` (escalera de precios con un dealer; manda el siguiente precio solo cuando el anterior está en el hilo y el dealer ha contestado; se rinde a los 40 ticks), `egg_carrier.py` (lo mismo, con las variantes de huevo primero). Solo lectura: `flag_candidates.py` (denuncias de nivel A) y `announce_candidates.py` (parejas para anuncios en v18, sin clave). Simulador: `python3 -m sim.sunday C|A|B`.
 - **CLI:** `status` avisa `STALE?` si un runner tiene el candado y la última fila `tick` tiene más de 90 s, y lista las últimas filas `dropped` y `param`. Un `do` sin `--live` junto a un runner vivo se rechaza.
 - **Sin conectar:** `pages.protect_sets` (solo existe la definición), `Calibrator.recheck`, `duels.e16_settled` y el grabador L1 dentro del runner (lo hace `bench_rec.py` aparte).
