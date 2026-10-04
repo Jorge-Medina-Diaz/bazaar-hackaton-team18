@@ -633,8 +633,25 @@ class G51DuelAccept(unittest.TestCase):
         self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "zzz"}), -1)
         self.assertEqual(talk.days_sign_of({"role": "seller", "days_meaning": None}), 1)
         self.assertEqual(talk.days_sign_of({"role": "seller", "days_sign": -1}), -1)
-        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "each delivery day adds cash"}), 1)
+        # night review D1/S1: a read sign that contradicts the role gives -1 (|w|*d, day 0), never the role's +1
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "each delivery day adds cash"}), -1)
+        self.assertEqual(talk.days_sign_of({"role": "seller", "days_meaning": "each delivery day reduces your cash"}),
+                         -1)
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_sign": 1}), -1)
+        self.assertEqual(talk.days_sign_of({"days_meaning": "each delivery day adds cash"}), 1)   # no role: as read
         self.assertIsNone(talk.days_sign_of({"days_meaning": "zzz"}))
+
+    def test_reworded_buyer_meaning_cannot_zero_the_days_penalty(self):
+        # night review D1/S1: buyer L100 w6, 'adds ... price you pay' parsed +1 used to give penalty 0 and accept
+        # 95@10 (true value 5 - 60 = -55). Now the conflict gives -1: penalty |w|*d, the accept is G51.limit.
+        m = "each delivery day adds this much to the price you pay"
+        d = {"role": "buyer", "your_days_weight": 6.0, "days_meaning": m}
+        self.assertAlmostEqual(talk._days_penalty(d, 10), 60.0)
+        self.assertEqual(talk._days_penalty(d, 0), 0.0)
+        b = self.fresh(role="buyer", limit=100, issues=("price", "days"), w=6.0,
+                       rival={"id": 9, "price": 95, "tick": TICK, "days": 10})
+        b["days_meaning"] = m
+        self.assertEqual(run(self.acc(b), fresh=b).code, "G51.limit")
 
     def test_without_guards_fails_closed(self):
         d = self.fresh()

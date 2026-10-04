@@ -750,14 +750,21 @@ class Runner:
         self._drop_counts = dict(counts)
 
     def note_days_sign(self, world: World) -> None:
-        """One alarm per two-issue duel whose days_meaning the sensor could not read (days_sign None): tactic and Gate
-        then fall back to the role's sign (talk.days_sign_of), and the operator should know the wording changed."""
+        """One alarm per two-issue duel whose days_meaning the sensor could not read (days_sign None: tactic and Gate
+        fall back to the role's sign) or read against the role (days_sign_conflict: both use -1, |w|*d and day 0;
+        talk.checked_sign). Either way the operator should know the wording changed."""
         for d in world.duels or ():
             did, issues = _g(d, "duel", _g(d, "id")), _g(d, "issues") or ()
-            if "days" in issues and _g(d, "days_sign") not in (1, -1) and did not in self._sign_noted:
-                self._sign_noted.add(did)
-                self.alarm("duel days_meaning not recognised: days sign taken from the role", duel=did,
-                           role=_g(d, "role"), tick=world.tick)
+            if "days" not in issues or did in self._sign_noted:
+                continue
+            if _g(d, "days_sign_conflict"):
+                why = "duel days_meaning contradicts the role: days sign -1 (each day costs us)"
+            elif _g(d, "days_sign") not in (1, -1):
+                why = "duel days_meaning not recognised: days sign taken from the role"
+            else:
+                continue
+            self._sign_noted.add(did)
+            self.alarm(why, duel=did, role=_g(d, "role"), tick=world.tick)
 
     def update_plan(self, world: World) -> None:
         """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""

@@ -360,6 +360,19 @@ class TestTwoIssues(unittest.TestCase):
         self.assertEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": add}, 10), 0.0)
         self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": "?"}, 5), 10.0)
 
+    def test_reworded_meaning_against_the_role_is_worst_case(self):
+        # night review D1/S1: buyer L100 w6 with 'adds ... the price you pay' (parsed +1) used to give penalty 0:
+        # accept 95@10 (true value 5 - 60 = -55) and say day 10 (Saturday's bug). The conflict now gives -1.
+        m = "each delivery day adds this much to the price you pay"
+        ro = {"price": 95, "days": 10, "tick": 114, "id": 3}
+        d = self.two(L=100, w=6.0, meaning=m, msgs=[msg("you", 100, 60, 0), msg("R", 114, 95, 10)], rival_offer=ro)
+        self.assertNotEqual(D.decide(D.view(d, 114), {})[0], "accept")
+        kind, p, days = D.decide(D.view(self.two(L=100, w=5.0, meaning=m), 100), {})
+        self.assertEqual((kind, days), ("say", 0))
+        # a seller's reworded 'reduces' reading -1 also goes to the safe side: day 0 and |w|*d (not penalty 0)
+        s = self.two(role="seller", L=60, w=2.0, meaning="each delivery day reduces the cash you receive")
+        self.assertEqual(D.decide(D.view(s, 100), {})[2], 0)
+
     def test_unknown_text_falls_back_by_role(self):
         # night audit: an unrecognised days_meaning no longer means "day 5 + worst case" (0/7 deals in Duels II):
         # the sign comes from the role (buyer -1, seller +1), the same in tactic and Gate (talk.days_sign_of)

@@ -343,6 +343,17 @@ class TestDaysSignAlarm(unittest.TestCase):
         alarms = [x for x in r.journal.rows if x["kind"] == "alarm" and "days_meaning" in x.get("why", "")]
         self.assertEqual([x["duel"] for x in alarms], [1])
 
+    def test_alarm_when_days_meaning_contradicts_the_role(self):
+        # night review D1/S1: a read sign against the role (sensor: days_sign -1 + days_sign_conflict) alarms once
+        r, _ = bare_runner(make_world(), FakeClock())
+        ds = ({"duel": 4, "issues": ("price", "days"), "days_sign": -1, "days_sign_conflict": True, "role": "buyer"},
+              {"duel": 5, "issues": ("price", "days"), "days_sign": -1, "role": "buyer"})
+        r.note_days_sign(make_world(duels=ds))
+        r.note_days_sign(make_world(tick=101, duels=ds))
+        alarms = [x for x in r.journal.rows if x["kind"] == "alarm" and "days_meaning" in x.get("why", "")]
+        self.assertEqual([x["duel"] for x in alarms], [4])
+        self.assertIn("contradicts", alarms[0]["why"])
+
 
 class TestLiveDayTimes(unittest.TestCase):
     """Night audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""

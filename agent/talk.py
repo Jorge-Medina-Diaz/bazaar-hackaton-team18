@@ -8,7 +8,8 @@ NOTES (M4b, night build)
   duel_accept (G51). Any other kind -> Verdict(False, "G02.kind"). Every exception -> refuse (fail closed).
 - plan_cfg is not part of the check() signature, so `grant_lookahead_ticks` is read from cfg with
   getattr(cfg, "GRANT_LOOKAHEAD_TICKS", 3). The days sign never comes from config (one sign for both roles is wrong
-  by construction): days_sign_of reads the duel itself.
+  by construction): days_sign_of reads the duel itself, and a read sign that contradicts the role becomes -1
+  (checked_sign: |w|*d and day 0, safe whichever sign is true).
 - Two-issue duels (price + days): the measured value is s*(p-L) + sign*|w|*d (44/44 Duels II deals; sign -1 for the
   buyer, +1 for the seller). G50/G51 need s*(p-L) >= 1 + _days_penalty: |w|*d when each day costs us (or the sign
   is unknown), 0 when days only add (the price itself never goes outside the limit). Same rule as
@@ -565,18 +566,29 @@ def sign_from_meaning(m: Any) -> Optional[int]:
 ROLE_DAYS_SIGN = {"buyer": -1, "seller": 1}   # Duels II: 34/34 buyers "costs you", 34/34 sellers "adds" (44/44 deals)
 
 
+def checked_sign(sign: Optional[int], role: Any) -> Optional[int]:
+    """A read sign cross-checked with the role's (night review D1/S1): agree -> it; disagree -> -1 (each day costs
+    us: |w|*d and day 0, safe whichever sign is true: a reworded 'adds ... you pay' must not zero a buyer's days
+    penalty); unread -> the role's. No role -> the read sign as is."""
+    role_sign = ROLE_DAYS_SIGN.get(role)
+    if sign not in (1, -1):
+        return role_sign
+    if role_sign is not None and sign != role_sign:
+        return -1
+    return sign
+
+
 def days_sign_of(duel: Mapping) -> Optional[int]:
     """Sign of the days issue: the sensor's days_sign (World), else the SERVER's own days_meaning (raw re-read,
     never rival text), else by role (buyer -1, seller +1: the value formula s*(p-L) + sign*|w|*d fits 44/44
-    Duels II deals with that mapping). None only for a duel without a buyer/seller role."""
+    Duels II deals with that mapping); a read sign that contradicts the role gives -1 (checked_sign).
+    None only for a duel without a buyer/seller role and no readable sign."""
     if not isinstance(duel, Mapping):
         return None
-    if duel.get("days_sign") in (1, -1):              # World: the sensor's derived field
-        return duel["days_sign"]
-    sign = sign_from_meaning(duel.get("days_meaning"))
-    if sign is not None:
-        return sign
-    return ROLE_DAYS_SIGN.get(duel.get("role"))
+    sign = duel.get("days_sign")                        # World: the sensor's derived field
+    if sign not in (1, -1):
+        sign = sign_from_meaning(duel.get("days_meaning"))
+    return checked_sign(sign, duel.get("role"))
 
 
 DUEL_DAYS_MAX = 10

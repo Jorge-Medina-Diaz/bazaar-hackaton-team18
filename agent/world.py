@@ -319,11 +319,16 @@ def _duel_offer(o: Any, what: str) -> Optional[dict]:
     return _project(o, "duel_offer")
 
 
-def _days_sign(m: Any):
-    """Server duel field days_meaning -> -1 / +1 / None, with the Gate's own parser (talk.sign_from_meaning) so the
-    sensor and G50/G51 can never read the same text differently. The text itself stays out of the World."""
-    from agent.talk import sign_from_meaning
-    return sign_from_meaning(m)
+def _days_sign(m: Any, role: Any = None) -> tuple:
+    """Server duel field days_meaning -> (sign -1 / +1 / None, conflict), with the Gate's own parser and cross-check
+    (talk.sign_from_meaning, talk.checked_sign) so the sensor and G50/G51 can never read the same text differently.
+    Unread -> None (the role decides later, the runner alarms); a read sign that contradicts the role -> -1 and
+    conflict True (the runner alarms). The text itself stays out of the World."""
+    from agent.talk import sign_from_meaning, checked_sign, ROLE_DAYS_SIGN
+    sign = sign_from_meaning(m)
+    if sign is None:
+        return None, False
+    return checked_sign(sign, role), role in ROLE_DAYS_SIGN and sign != ROLE_DAYS_SIGN[role]
 
 
 def _p_duel(d: Any) -> tuple:
@@ -338,7 +343,9 @@ def _p_duel(d: Any) -> tuple:
     _need(isinstance(d.get("issues", []), list), "duel.issues: list")
     _need(isinstance(d.get("messages", []), list), "duel.messages: list")
     out = _project(d, "duel")
-    out["days_sign"] = _days_sign(d.get("days_meaning"))   # the server's text stays out: only -1/+1/None enters
+    out["days_sign"], conflict = _days_sign(d.get("days_meaning"), d.get("role"))   # the text stays out: -1/+1/None
+    if conflict:
+        out["days_sign_conflict"] = True
     out["your_offer"] = _duel_offer(d.get("your_offer"), "duel.your_offer")
     out["rival_offer"] = _duel_offer(d.get("rival_offer"), "duel.rival_offer")
     msgs = []
