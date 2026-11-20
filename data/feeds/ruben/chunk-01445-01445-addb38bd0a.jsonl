@@ -1,0 +1,2 @@
+{"actor": "", "id": 73293, "payload": {"effective_tick": 1449, "fee_bps": 0, "fee_per_card": 0, "venue": "v07"}, "scope": "public", "t": 13.3667, "tick": 1445, "type": "venue.fee_announced"}
+{"actor": "", "id": 73294, "payload": {"effective_tick": 1449, "fee_bps": 0, "fee_per_card": 0, "venue": "v07"}, "scope": "public", "t": 13.3667, "tick": 1445, "type": "venue.fee_announced"}

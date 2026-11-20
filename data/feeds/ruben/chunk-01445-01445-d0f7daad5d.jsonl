@@ -1,0 +1,1 @@
+{"actor": "admin", "id": 73306, "payload": {"paused": true, "tick_seconds": 30.0}, "scope": "public", "t": 13.3667, "tick": 1445, "type": "clock.changed"}

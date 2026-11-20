@@ -1,0 +1,2 @@
+{"actor": "", "id": 73308, "payload": {"closes": "2026-10-04T15:00:00+02:00", "day": "sun", "name": "Sunday", "tick_seconds": 15.0}, "scope": "public", "t": 13.3667, "tick": 1445, "type": "day.opened"}
+{"actor": "calendar", "id": 73309, "payload": {"text": "Good morning! The Bazaar is open again: Sunday until 15:00, one tick every 15 s."}, "scope": "public", "t": 13.3667, "tick": 1445, "type": "announcement"}
