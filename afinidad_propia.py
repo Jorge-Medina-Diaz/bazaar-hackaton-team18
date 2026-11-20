@@ -2,7 +2,7 @@
 
 Solo GET públicos sin clave (/api/feed, /api/leaderboard, /api/catalog), como rivals.py: nunca usa BAZAAR_KEY ni
 escribe en el juego. Añade los eventos nuevos a logs/feed.jsonl y la foto del leaderboard a logs/leaderboard.jsonl
-(mismo formato que affinity.py) y deja el resumen en logs/self_affinity.json (lo que lee el panel).
+(mismo formato que affinity.py) y deja el resumen en logs/self_affinity.json.
 
     python3 afinidad_propia.py            # una pasada
     python3 afinidad_propia.py --offline  # solo logs/

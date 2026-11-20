@@ -3,7 +3,7 @@
 Contract: docs/harness-spec.md §2.7 (signatures), §4 (G13, G21, G30, G32 read what this module produces),
 docs/strategy.md J3, J4, J9, J12, J13. Pure: no I/O except load_plan reading config/plan.json.
 
-NOTES (M8, night build)
+Design notes
 - plan(): for each set of plan_cfg.page_sets that is released: every page card we do not hold is a Need. One of them
   is the closer (source "team", closer=True, never bought from a dealer); the others are dealer Needs with the
   profile's dealer and cap = min(profile.limit, dealer_max[ref], floor(dv_add - 1)). The closer is re-chosen each
@@ -29,12 +29,13 @@ from __future__ import annotations
 import json
 import math
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from agent.contracts import TEAM, Need, PlanCfg
 
-DEALERS = frozenset({"abuela", "chato"})
+DEALERS = frozenset({"abuela", "chato", "picaros", "banco"})   # banco: Sun CHA-12 (L5) buy
 RARITY_RANK = {"common": 0, "uncommon": 1, "rare": 2, "epic": 3, "legendary": 4}
 OPEN_STATUSES = frozenset({"open", "queued"})
 CLOSED_THREAD = frozenset({"closed", "deal", "expired", "cancelled", "settled"})
@@ -68,6 +69,11 @@ def load_plan(path: Path) -> PlanCfg:
     for k in ("page_sets", "protect_sets"):
         if not all(type(s) is str and s for s in cfg[k]):
             raise ValueError(f"plan.{k}: list of set ids")
+    for e in cfg.get("extra_needs", []):
+        if not (isinstance(e, dict) and type(e.get("ref")) is str and type(e.get("max_price")) is int
+                and e["max_price"] >= 1 and e["ref"] in (cfg.get("profiles") or {})
+                and type(e.get("min_round", 0)) is int):
+            raise ValueError("plan.extra_needs: [{ref, max_price, min_round?}] with a profile for ref")
     if not all(type(x) is int and x >= 0 for x in cfg["startup_cancels"]):
         raise ValueError("plan.startup_cancels: list of offer ids")
     if not all(type(k) is str and _num(v) for k, v in cfg["baseline_bands"].items()):
@@ -96,6 +102,15 @@ def load_plan(path: Path) -> PlanCfg:
         raise ValueError("plan.closer.freeze_at: int 1..9")
     if not isinstance(c.get("endgame_hours", {}), dict) or not all(_num(v) for v in c.get("endgame_hours", {}).values()):
         raise ValueError("plan.closer.endgame_hours: day -> hours")
+    for k, v in (("day_end_min_before_close", cfg.get("day_end_min_before_close")),
+                 ("closer.endgame_min_before_close", c.get("endgame_min_before_close"))):
+        if v is not None and not (_num(v) and 0 <= v <= 240):
+            raise ValueError(f"plan.{k}: minutes 0..240 or absent")
+    hs = cfg.get("hand_sales", [])
+    if not (isinstance(hs, list) and all(type(r) is str and r for r in hs)):
+        raise ValueError("plan.hand_sales: list of refs")
+    if type(cfg.get("endgame_buy_any", False)) is not bool:
+        raise ValueError("plan.endgame_buy_any: true / false")
     if not _num(cfg["resupply_min"]) or cfg["resupply_min"] < 0:
         raise ValueError("plan.resupply_min: number >= 0")
     if not all(type(v) is int and v >= 0 for v in cfg["dup_min_price"].values()):
@@ -240,10 +255,134 @@ def _sales_seen(world) -> Counter:
 
 
 def today(world) -> str:
+    """clock.today; missing -> "default" (never guessed from t_hours: Sunday spans t 13.37-19.37 or 16.65-22.65)."""
     d = (world.clock or {}).get("today") if isinstance(world.clock, Mapping) else None
     if type(d) is str and d:
         return d
-    return "sun" if (world.t_hours or 0) >= 18.0 else "sat"
+    return "default"
+
+
+# Day end / endgame from the server's live schedule and the wall clock (pre-Sunday audit, Sun 4 Oct). While the clock runs
+# the server re-projects the wall-anchored "day_closes" entry onto game hours every read (Sat snaps 170-1435:
+# day_closes sun = t + wall hours to 15:00), so the triggers follow a late start, a clock jump (16.65 at 09:00) or a
+# pause. clock.closes (wall) is the second source of the same close: t + (closes - now) / 3600 (1 game hour per wall
+# hour while the clock runs); the earlier of the two wins. Fixed plan hours are only a fallback.
+DAY_END_BEFORE_CLOSE_H = 5 / 60        # default day_end_min_before_close: dealer threads close 5 min before close
+ENDGAME_BEFORE_CLOSE_H = 35 / 60       # default closer.endgame_min_before_close: closer endgame 35 min before close
+STALLS_MIN_PERSONAS = 3                # a stall close = >= 3 personas disabled at the same hour (not one dealer's break)
+NEVER = math.inf
+
+
+def _live_schedule(world) -> Optional[Sequence]:
+    """world.schedule["upcoming"] when the doors are open, the clock runs and the list is not empty; else None."""
+    c = world.clock if isinstance(world.clock, Mapping) else {}
+    sched = world.schedule if isinstance(world.schedule, Mapping) else {}
+    up = sched.get("upcoming")
+    if c.get("doors") != "open" or c.get("paused") is True or not isinstance(up, (list, tuple)) or not up:
+        return None
+    return up
+
+
+def _wall_ts(s: Any) -> Optional[float]:
+    """An entry's 'wall' (ISO with offset, '2026-10-03T23:00:00+02:00') -> epoch seconds; None if absent/unreadable."""
+    if not isinstance(s, str):
+        return None
+    try:
+        return datetime.fromisoformat(s).timestamp()
+    except ValueError:
+        return None
+
+
+def live_times(world, now: Optional[float] = None) -> tuple:
+    """-> (close_h, stalls_h) from the live schedule; None for what is not there.
+    close_h: the earliest day_closes for today still ahead of t (else the next one, if clock.today is stale), capped
+    by an end_round still ahead; a day_closes already behind t is a fired entry that lingers (Sat 09:29: "fri 4.0"
+    still listed) and is ignored, and so is one whose own wall time is not after `now` (pre-Sunday review S2: the
+    closed-door 'day_closes sat' at 16.65 / wall Sat 23:00 must not end Sunday under scenario A if clock.today still
+    reads 'sat'). stalls_h: earliest hour at which >= STALLS_MIN_PERSONAS persona entries say enabled: false (kept
+    even when behind t: the stalls are then closed)."""
+    up = _live_schedule(world)
+    if up is None:
+        return None, None
+    day, t = today(world), world.t_hours if _num(world.t_hours) else 0.0
+    mine, nxt, ends, off = [], [], [], Counter()
+    for e in up:
+        if not isinstance(e, Mapping) or not _num(e.get("at_hours")):
+            continue
+        at, pr = float(e["at_hours"]), e.get("params") if isinstance(e.get("params"), Mapping) else {}
+        if e.get("action") == "day_closes" and at > t:
+            wall = _wall_ts(e.get("wall"))
+            if _num(now) and wall is not None and wall <= float(now):
+                continue                                # its wall time has passed: a stale entry, not today's close
+            (mine if pr.get("day") == day else nxt).append(at)
+        elif e.get("action") == "end_round" and at > t:
+            ends.append(at)
+        elif e.get("action") == "persona" and pr.get("enabled") is False:
+            off[at] += 1
+    close = min(mine) if mine else min(nxt, default=None)
+    if ends:
+        close = min(ends) if close is None else min(close, min(ends))
+    stalls = min([a for a, n in off.items() if n >= STALLS_MIN_PERSONAS], default=None)
+    return close, stalls
+
+
+def wall_close(world, now: Optional[float]) -> Optional[float]:
+    """Game hour of today's close from clock.closes (wall, ISO with offset): t + (closes - now) / 3600. None when the
+    doors are not open, the clock is paused, there is no `now`, or the close is not ahead (a past clock.closes while
+    the doors are open is stale: Saturday's 23:00 on Sunday's first tick must never end the day)."""
+    c = world.clock if isinstance(world.clock, Mapping) else {}
+    s = c.get("closes")
+    if not _num(now) or c.get("doors") != "open" or c.get("paused") is True or not isinstance(s, str)             or not _num(world.t_hours):
+        return None
+    try:
+        end = datetime.fromisoformat(s).timestamp()
+    except ValueError:
+        return None
+    left = (end - float(now)) / 3600.0
+    if not (0.0 < left <= 24.0):
+        return None
+    return float(world.t_hours) + left
+
+
+def _minutes(x: Any, default_h: float) -> float:
+    return x / 60.0 if _num(x) and 0 <= x <= 240 else default_h
+
+
+def effective_plan(plan_cfg: Mapping, world, seen: Optional[Mapping] = None, now: Optional[float] = None) -> tuple:
+    """-> (plan_cfg for this tick, seen). Today's day_end_hours / closer.endgame_hours derived every tick:
+    close = min(live day_closes / end_round, wall close from clock.closes and `now`), stalls = the finale's stall close;
+    day end = min(close, stalls) - day_end_min_before_close (5), endgame = close - closer.endgame_min_before_close (35).
+    `seen` (held by the runner, per day) keeps the last close and the stalls hour once their entries have fired and
+    left "upcoming" (the stalls close at 14:00 must keep the dealer day ended after 14:00).
+    No close and nothing seen: schedule readable -> the plan's hours; cold start / paused -> no trigger (a stale
+    plan hour after a clock jump would close every dealer thread at 11:38)."""
+    seen = dict(seen or {})
+    day = today(world)
+    close, stalls = live_times(world, now)
+    wc = wall_close(world, now)
+    if wc is not None:
+        close = wc if close is None else min(close, wc)
+    prev = seen.get(day) or {}
+    close = close if close is not None else prev.get("close")
+    stalls = stalls if stalls is not None else prev.get("stalls")
+    seen[day] = {"close": close, "stalls": stalls}
+    de_h = _minutes(plan_cfg.get("day_end_min_before_close"), DAY_END_BEFORE_CLOSE_H)
+    eg_h = _minutes((plan_cfg.get("closer") or {}).get("endgame_min_before_close"), ENDGAME_BEFORE_CLOSE_H)
+    if close is None and stalls is None:
+        if _live_schedule(world) is not None:
+            return plan_cfg, seen                       # schedule read, no close in it: plan hours
+        day_end = endgame = NEVER
+    else:
+        day_end = round(min(x for x in (close, stalls) if x is not None) - de_h, 4)
+        eh0 = ((plan_cfg.get("closer") or {}).get("endgame_hours") or {}).get(day)
+        endgame = round(close - eg_h, 4) if close is not None else (eh0 if _num(eh0) else NEVER)
+    pc = dict(plan_cfg)
+    pc["day_end_hours"] = dict(pc.get("day_end_hours") or {}, **{day: day_end})
+    cl = dict(pc.get("closer") or {})
+    keys = set(cl.get("endgame_hours") or {}) | {day, "*"} | ({world.reading} if isinstance(world.reading, str) else set())
+    cl["endgame_hours"] = {k: endgame for k in keys}
+    pc["closer"] = cl
+    return pc, seen
 
 
 def past_day_end(world, plan_cfg) -> bool:
@@ -263,6 +402,26 @@ def profile_for(plan_cfg, ref: str, card: Mapping) -> Optional[Mapping]:
         if key in prof:
             return prof[key]
     return None
+
+
+def need_limit(plan_cfg, ref: str, card: Mapping) -> Optional[int]:
+    """Need cap from the profiles: the first profile's limit, raised to its fallback profile's limit (the next
+    profile with another dealer, the fallback_dealer if set; same choice as dealers._pick_open_profile) when the
+    first has a fallback. Each thread stays capped by its own profile's limit. Pre-Sunday audit: CHA rares from the
+    Pícaros (<= 60) fall back to El Chato (finals 86-93): a 60 Need cap kept the Chato thread from ever opening."""
+    first = profile_for(plan_cfg, ref, card)
+    if not first:
+        return None
+    lim = int(first["limit"])
+    if not (first.get("fallback_after") or first.get("fallback_dealer")):
+        return lim
+    prof = plan_cfg.get("profiles") or {}
+    fb = first.get("fallback_dealer")
+    for key in (ref, f"{card.get('set')}:{card.get('rarity')}", card.get("rarity")):
+        p = prof.get(key)
+        if isinstance(p, Mapping) and p is not first and p.get("dealer") != first.get("dealer")                 and (not isinstance(fb, str) or p.get("dealer") == fb) and _num(p.get("limit")):
+            return max(lim, int(p["limit"]))
+    return lim
 
 
 # ------------------------------------------------------------------------------------------ closer_ref
@@ -322,6 +481,27 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
     no_dealers = past_day_end(world, plan_cfg)
     needs: list = []
 
+    # extra_needs: a card outside the pages bought from the dealer of its ref profile (Sat: SAL-11 epic from the
+    # Pícaros, resold to Pilar in the Salamanca fever). Cap = min(max_price, floor(value - 1)); never if held.
+    # min_round: not before that round (pre-Sunday review P6/E2E-3: under scenario A RET-11 was bought at 09:00 in
+    # round 2, where the L4 slots are already 3/3). They go AFTER the page Needs (pre-Sunday review P1: dealers.propose
+    # opens one thread per dealer in Need order, and CHA-11/RET-11 took the Pícaros slot before the CHA rares).
+    extras: list = []
+    rnd = world.round if type(world.round) is int else 0
+    for e in plan_cfg.get("extra_needs") or ():
+        try:
+            ref = e["ref"]
+            dealer = ((plan_cfg.get("profiles") or {}).get(ref) or {}).get("dealer")
+            if (no_dealers or held[ref] >= 1 or dealer not in DEALERS or rnd < int(e.get("min_round", 0))
+                    or ref.split("-", 1)[0] not in (world.released_sets or ())):
+                continue                            # unreleased set: the card cannot be bought yet (CHA before 16.65)
+            dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
+            cap = min(int(e["max_price"]), math.floor(dv - 1))
+            if cap >= 1:
+                extras.append(Need(set=ref.split("-", 1)[0], ref=ref, source=dealer, max_price=cap, closer=False))
+        except Exception:
+            continue                                # fail closed: no Need
+
     for set_id in plan_cfg.get("page_sets") or ():
         if set_id not in (world.released_sets or ()):
             continue
@@ -354,8 +534,8 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
                     if not prof:
                         continue
                     dv = min(_dv_add(valuer, held, ref, packs), float(sv.get(ref, math.inf)))
-                    cap = min(int(prof["limit"]), int((plan_cfg.get("dealer_max") or {}).get(ref, prof["limit"])),
-                              _floor(dv - 1.0))
+                    nl = need_limit(plan_cfg, ref, card)
+                    cap = min(nl, int((plan_cfg.get("dealer_max") or {}).get(ref, nl)), _floor(dv - 1.0))
                     if cap >= 1:
                         set_needs.append(Need(set=set_id, ref=ref, source=prof["dealer"], max_price=cap, closer=False))
             # closer Need: valued as the card that completes the page
@@ -378,6 +558,7 @@ def plan(world, valuer, plan_cfg, frozen: Mapping[str, str]) -> "tuple[list[Need
             needs.extend(set_needs)
         except Exception:
             continue                                # fail closed for this set: no Needs
+    needs.extend(extras)
     return needs, new_frozen
 
 

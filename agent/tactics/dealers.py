@@ -10,14 +10,16 @@ Rules implemented (acceptance of M10):
   a final above the limit closes the thread without accepting. If we cannot raise any more (limit reached) -> close.
 - Limit fixed at opening (min of profile limit, need.max_price, plan dealer_max, floor(dv_add - DEALER_MARGIN),
   cash_free) and it only goes down: every tick limit_t = min(opening limit, floor(dv_add - DEALER_MARGIN), need cap).
-- No new threads while >= 4 live duels (E-M6), with an unopened pack (G14), with a dealer blocked (cooloff/quota),
+  A plan.extra_needs card (outside the pages) is also capped at cash_free - closer_reserve(): the page closer's
+  team bid at its endgame price keeps its cash.
+- No new threads while > 4 live duels (E-M6; Sunday runs 4 at a time, so ladder threads keep opening), with an unopened pack (G14), with a dealer blocked (cooloff/quota),
   for the frozen closer card or a card that closes RET/CHA (INV-10), or more than one reopen per hour per (dealer, ref).
 - PROBE mode (profile {"probe": true}, for new dealer levels): haggle with prices capped at the safe limit but never
   accept; close on a final or after `fallback_after` of our messages. Intents carry experiment "PROBE:<dealer>:<ref>".
 - Fail closed: unknown opening limit, no profile, unreadable valuation or a missing helper module (agent.valuation /
   agent.guards not importable) -> no buy step (open threads are closed when the limit or value is unknown).
 
-NOTES (night build, open issues for the lead)
+Design notes and known limitations
 - Sell threads (selling to dealers, J13 resupply rebuys are buys) are not handled: an open sell thread of ours is left
   alone (manual / hygiene).
 - accept.venue for a dealer offer: the server gives venue null; the contract needs a VENUE_RE id, so we pass the dealer
@@ -30,7 +32,13 @@ NOTES (night build, open issues for the lead)
   open_thread intents by their args shape (dealer, side, ref, asset_ids, limit). book.thread_limit wins when present.
 - day_end_hours is not read here (its keys are not fixed); hygiene closes threads at day end, we only may open late.
 - Grant lookahead (G30.grant_soon) is left to the Gate; this module does not read the schedule.
-- Template for dealers other than abuela/chato (PROBE of level 3+): "chato_buy"; talk.TEMPLATES may need a generic one.
+- Templates by dealer: abuela_buy, chato_buy, picaros_buy, banco_buy; any other dealer falls back to "chato_buy".
+- Pícaros trick (live, Sat): their counter often gives another card at the asked price. Such an offer is never
+  executable (offer_safety), so on a turn whose only dealer offer is a trick we counter with our next step and ignore
+  its price; a trick marked final closes the thread (countering it made them walk: final_offer_refused). A correct
+  offer expiring now is countered too unless it is final; fallback_after bounds the thread.
+- A thread where the dealer spoke last with nothing executable (lapsed final, text only) closes after STALL_TICKS.
+- fallback_after is checked after the accept branch: an executable offer at/under the limit is still taken.
 - Profiles are looked up by ref, then "SET:rarity" (the keys config/plan.json uses), then bare rarity. RET-08/CHA-08
   "fallback_dealer" picks the next profile of that dealer after a walk/close within the hour (J3).
 - "fallback_after" is read as ticks since the thread opened (J3 "10 ticks"), not "still at 32": the thread is closed
@@ -48,11 +56,11 @@ from agent.contracts import TEAM, Intent, make_intent
 
 TACTIC = "dealers"
 PAGE_SETS_NO_DEALER_CLOSE = frozenset({"RET", "CHA"})
-MAX_LIVE_DUELS_FOR_NEW_THREADS = 3          # >= 4 live duels -> no new threads
+MAX_LIVE_DUELS_FOR_NEW_THREADS = 4          # > 4 live duels -> no new threads (Sunday max_concurrent is 4)
 STALL_TICKS = 3                             # our message unanswered this long -> close
 WALKS_PER_HOUR = 2                          # first thread + 1 reopen per hour per (dealer, ref)
 REQUIRED_SOURCES = frozenset({"clock", "me", "me/offers", "me/threads", "threads"})
-TEMPLATES = {"abuela": "abuela_buy", "chato": "chato_buy"}
+TEMPLATES = {"abuela": "abuela_buy", "chato": "chato_buy", "picaros": "picaros_buy", "banco": "banco_buy"}
 DEFAULT_TEMPLATE = "chato_buy"
 PRIO_ACCEPT, PRIO_CLOSE, PRIO_SAY, PRIO_OPEN = 60, 50, 40, 10
 _INF = float("inf")
@@ -202,6 +210,15 @@ def _standing(t: Mapping, dealer: str, ref: str, tick: int) -> Optional[Mapping]
     return best[1] if best else None
 
 
+def _dealer_last_offer(t: Mapping, dealer: str) -> Optional[Mapping]:
+    """The open offer of its own (of any shape) that the dealer's message carries when the dealer spoke last."""
+    msgs = [m for m in t.get("messages") or () if isinstance(m, Mapping)]
+    if not msgs or msgs[-1].get("sender") != dealer:
+        return None
+    o = msgs[-1].get("offer")
+    return o if isinstance(o, Mapping) and o.get("maker") == dealer and o.get("status") == "open" else None
+
+
 def _in_flight(t: Mapping) -> bool:
     for m in t.get("messages") or ():
         o = m.get("offer") if isinstance(m, Mapping) else None
@@ -273,8 +290,8 @@ def _variant(template: str, k: int) -> int:
     """M17: cycle through the template's lines (talk.render refuses an index past the last line: the 5th say
     to Chato, who has 4 lines, was refused G60.render). Repeats are still impossible: every say has a new price."""
     try:
-        from agent.talk import TEMPLATES as T
-        n = len(T[template])
+        from agent.talk import TEMPLATES as T, EGG_LINES
+        n = len(T[template]) - int(EGG_LINES.get(template, 0))     # egg probe lines are hand-sent only
     except Exception:
         n = 1
     return k % max(1, n)
@@ -294,11 +311,46 @@ def _margin(cfg) -> float:
     return float(m) if isinstance(m, (int, float)) and m >= 1.0 else 1.0
 
 
+def _extra_refs(plan_cfg) -> frozenset:
+    out = set()
+    for e in (plan_cfg or {}).get("extra_needs") or ():
+        if isinstance(e, Mapping) and isinstance(e.get("ref"), str):
+            out.add(e["ref"])
+    return frozenset(out)
+
+
+def closer_reserve(world, book, plan_cfg, needs) -> int:
+    """Cash an extra_need thread must leave for the page closer's team bid (pre-Sunday review: CHA-11 <= 170 and
+    RET-11 <= 150 could spend what the +50 closer bid needs at 9/10 and at the endgame raise).
+
+    Per closer Need: its endgame price (max_price now, plus default_minus - compete_minus before the endgame)
+    minus our standing bid on it (already in cash_free). Before the endgame this may over-reserve by up to
+    default_minus - compete_minus when a rival already forced the compete price: conservative on purpose."""
+    c = (plan_cfg or {}).get("closer") or {}
+    dm, cm = c.get("default_minus"), c.get("compete_minus")
+    raise_by = max(0, int(math.ceil(dm - cm))) if all(type(x) in (int, float) for x in (dm, cm)) else 0
+    try:
+        from agent.tactics.pages import endgame
+        if endgame(world, plan_cfg or {}):
+            raise_by = 0
+    except Exception:
+        pass                                        # unknown: keep the raise reserved (fail closed)
+    total = 0
+    for n in needs or ():
+        if not n.closer or type(n.max_price) is not int:
+            continue
+        oid = (book.own_bids or {}).get(n.ref)
+        standing = (book.bid_price or {}).get(oid, 0) if oid is not None else 0
+        total += max(0, n.max_price + raise_by - (standing if type(standing) is int else 0))
+    return total
+
+
 # ------------------------------------------------------------------------------------------ propose
 
 def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
     """One step per open dealer thread + new buy threads for dealer needs. Pure: returns Intent[]."""
     try:
+        from agent.offer_safety import offer_ok
         from agent.valuation import predict_dealer, predict_none
     except Exception:
         return []                                   # fail closed: no prediction model, no dealer step
@@ -363,12 +415,43 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
         fb = profile.get("fallback_after")
         sender, sender_tick = _last_sender(t)
         standing = _standing(t, dealer, ref, tick)
-        if not probe and type(fb) is int and fb > 0 and type(opened_tick) is int and tick - opened_tick >= fb:
+        fb_due = not probe and type(fb) is int and fb > 0 and type(opened_tick) is int and tick - opened_tick >= fb
+        # the dealer spoke last with an offer we cannot execute: a trick (fails offer_ok: another card, the Pícaros
+        # trick) or our card at a price expiring now (lapsed). A lapsed final is the dealer's last word: wait/close.
+        spoke = _dealer_last_offer(t, dealer) if standing is None else None
+        trick = spoke is not None and not offer_ok(spoke, {"buy": {"card": ref}}, buying=True)
+        lapsed = spoke is not None and not trick and spoke.get("final") is not True
+        waiting = standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0))
+        if fb_due and waiting:
             close(tid, ref, f"fallback_after {fb} ticks reached")
             continue
-        if standing is None or (sender == TEAM and (standing.get("created_tick") or -1) < (sender_tick or 0)):
-            if sender == TEAM and sender_tick is not None and tick - sender_tick >= STALL_TICKS:
-                close(tid, ref, "dealer silent")
+        if trick and spoke.get("final") is True:
+            # countering a Pícaros "final" makes them walk (closed_reason final_offer_refused, a walk burnt): leave
+            close(tid, ref, f"{dealer} offered a final that is not {ref}: close, never counter a final")
+            continue
+        if trick or lapsed:
+            # counter with our next step, never accept it, never read its price
+            nxt = next_price(profile, k, last, limit_t) if limit_t >= 1 and not probe else 0
+            if nxt < 1 or (last is not None and nxt <= last) or nxt in prices:
+                close(tid, ref, f"{'trick' if trick else 'lapsed'} offer and cannot raise (last {last}, limit {limit_t})")
+                continue
+            tpl = TEMPLATES.get(dealer, DEFAULT_TEMPLATE)
+            what = f"an offer that is not {ref}" if trick else "an offer expiring now"
+            out.append(make_intent(
+                "say", TACTIC, {"thread_id": tid, "ref": ref, "price": nxt, "template": tpl, "variant": _variant(tpl, k)},
+                f"{dealer} answered with {what}; our step {k} -> {nxt} (limit {limit_t})",
+                f"standing bid {nxt} for {ref}", predict_dealer(dv, nxt, "buy"), PRIO_SAY))
+            continue
+        if waiting:
+            if sender == TEAM:
+                if sender_tick is not None and tick - sender_tick >= STALL_TICKS:
+                    close(tid, ref, "dealer silent")
+            else:
+                # the dealer spoke last with nothing we can accept or counter (lapsed final, text only, nothing yet):
+                # one conversation per dealer, so never wait forever
+                quiet = sender_tick if sender_tick is not None else opened_tick
+                if type(quiet) is int and tick - quiet >= STALL_TICKS:
+                    close(tid, ref, "dealer spoke last with no executable offer")
             continue                                # wait for the dealer's answer
         s = standing["want"]["cash"]
         final = standing.get("final") is True
@@ -390,6 +473,9 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
                      "resupply": False, "venue": dealer},
                     f"{dealer} offers {ref} at {s} <= limit {limit_t} ({'final' if final else 'next ' + str(nxt0)})",
                     f"buy {ref} for {s}", predict_dealer(dv, s, "buy"), PRIO_ACCEPT))
+                continue
+            if fb_due:                              # after the accept: an offer at/under our limit is still taken
+                close(tid, ref, f"fallback_after {fb} ticks reached")
                 continue
             if final:
                 close(tid, ref, f"final {s} above limit {limit_t}: never counter a final")
@@ -415,6 +501,8 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
     dealer_max = (plan_cfg or {}).get("dealer_max") or {}
     allow_close = frozenset(getattr(cfg, "ALLOW_DEALER_CLOSE", frozenset({"LAT"})))
     cash_free = book.cash_free
+    extras = _extra_refs(plan_cfg)
+    reserve = closer_reserve(world, book, plan_cfg, needs) if extras else 0
     candidates = [(n.ref, n) for n in needs_by_ref.values()]
     for ref, prof in _probe_targets(plan_cfg, needs_by_ref):
         candidates.append((ref, None))
@@ -448,6 +536,8 @@ def propose(world, book, valuer, cfg, plan_cfg, needs, state) -> list:
             caps.append(need.max_price)
         if type(dealer_max.get(ref)) is int:
             caps.append(dealer_max[ref])
+        if ref in extras and type(cash_free) is int:
+            caps.append(cash_free - reserve)       # a card outside the pages never eats the closer's cash
         if any(type(c) is not int for c in caps) or type(profile.get("anchor")) is not int:
             continue
         limit = min(caps)

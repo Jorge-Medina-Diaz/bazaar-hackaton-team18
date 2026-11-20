@@ -1,7 +1,7 @@
 """M7 sensor: prioritised reads within the request budget -> immutable World (allowlisted fields, no foreign text)
 plus Secrets (memory only). docs/harness-spec.md §1 (steps 4-5), §2.7, §8, INV-13, INV-18; late input D2.
 
-NOTES (M7, night build)
+Design notes
 - Every GET goes through the transport's public SDK methods (clock(), me(), my_offers(), ...); never `._call(`.
   Keyless polling (poll()) uses agent.transport.public_get with the public limiter.
 - Foreign text never reaches the World. Each object is projected onto ALLOW[kind]; then split_untrusted() keeps a
@@ -28,7 +28,7 @@ NOTES (M7, night build)
 - Venue fee: fee_bps/fee_per_card are the max of the current and an announced pending fee (conservative, D2).
 - clock_reading: "?" with doors not open or no clock; "P" paused; round >= 2 and t >= 3.99 -> "N"; round >= 2 and
   t < 3.99 -> "M"; round 1 and t < 4 -> "C". After 10:21 a C morning reads as N (by then all timers run on game hours).
-- Left out tonight (open issues): per-item tolerance on boards (one malformed offer downs the whole board); feed gap
+- Known limitations: per-item tolerance on boards (one malformed offer downs the whole board); feed gap
   detection beyond an alarm row; value?card priority only from want_values() + visible offers + released catalog.
 """
 from __future__ import annotations
@@ -76,14 +76,16 @@ ALLOW: Mapping[str, frozenset] = MappingProxyType({
     "offer": frozenset({"id", "maker", "to", "venue", "thread", "status", "give", "want", "expires_tick",
                         "created_tick", "final"}),
     "thread": frozenset({"id", "kind", "team", "with", "venue", "topic", "status", "created_tick", "messages",
-                         "standing_offers", "closed_reason"}),
+                         "standing_offers", "closed_reason", "until_tick"}),
     "message": frozenset({"id", "tick", "sender", "offer", "final", "price"}),
     "duel": frozenset({"duel", "session", "status", "role", "issues", "your_days_weight", "your_limit",
                        "deadline_tick", "decay_per_round", "rounds", "your_offer", "rival_offer", "messages",
                        "result", "price", "days"}),
     "duel_offer": frozenset({"id", "price", "tick", "days"}),
     "duel_message": frozenset({"tick", "from", "price", "days"}),
-    "venue": frozenset({"id", "owner", "status", "fee_bps", "fee_per_card", "house", "mechanism", "starter"}),
+    "venue": frozenset({"id", "owner", "status", "fee_bps", "fee_per_card", "house", "mechanism", "starter",
+                        "pending_fee"}),
+    "pending_fee": frozenset({"fee_bps", "fee_per_card", "effective_tick"}),
     "event": frozenset({"id", "tick", "t", "type", "scope", "actor", "payload"}),
     "schedule": frozenset({"now_hours", "upcoming"}),
     "upcoming": frozenset({"at_hours", "action", "params", "wall"}),
@@ -317,6 +319,18 @@ def _duel_offer(o: Any, what: str) -> Optional[dict]:
     return _project(o, "duel_offer")
 
 
+def _days_sign(m: Any, role: Any = None) -> tuple:
+    """Server duel field days_meaning -> (sign -1 / +1 / None, conflict), with the Gate's own parser and cross-check
+    (talk.sign_from_meaning, talk.checked_sign) so the sensor and G50/G51 can never read the same text differently.
+    Unread -> None (the role decides later, the runner alarms); a read sign that contradicts the role -> -1 and
+    conflict True (the runner alarms). The text itself stays out of the World."""
+    from agent.talk import sign_from_meaning, checked_sign, ROLE_DAYS_SIGN
+    sign = sign_from_meaning(m)
+    if sign is None:
+        return None, False
+    return checked_sign(sign, role), role in ROLE_DAYS_SIGN and sign != ROLE_DAYS_SIGN[role]
+
+
 def _p_duel(d: Any) -> tuple:
     _need(isinstance(d, Mapping), "duel: object")
     _need(_int(d.get("duel")), "duel.duel: int")
@@ -329,6 +343,9 @@ def _p_duel(d: Any) -> tuple:
     _need(isinstance(d.get("issues", []), list), "duel.issues: list")
     _need(isinstance(d.get("messages", []), list), "duel.messages: list")
     out = _project(d, "duel")
+    out["days_sign"], conflict = _days_sign(d.get("days_meaning"), d.get("role"))   # the text stays out: -1/+1/None
+    if conflict:
+        out["days_sign_conflict"] = True
     out["your_offer"] = _duel_offer(d.get("your_offer"), "duel.your_offer")
     out["rival_offer"] = _duel_offer(d.get("rival_offer"), "duel.rival_offer")
     msgs = []
@@ -351,7 +368,9 @@ def _p_venue(v: Any, tick: int) -> tuple:
     _need(_int(v.get("fee_per_card")) and v["fee_per_card"] >= 0, "venue.fee_per_card: int")
     fee_bps, per_card = v["fee_bps"], v["fee_per_card"]
     pend = v.get("pending_fee")
-    if isinstance(pend, Mapping) and _int(pend.get("effective_tick")) and pend["effective_tick"] >= tick:
+    # an announced fee counts at once (max of both); only one already in effect (effective_tick < tick) is ignored,
+    # a missing / malformed effective_tick counts (fail closed: the fee can only look higher)
+    if isinstance(pend, Mapping) and not (_int(pend.get("effective_tick")) and pend["effective_tick"] < tick):
         if _int(pend.get("fee_bps")):
             fee_bps = max(fee_bps, pend["fee_bps"])
         if _int(pend.get("fee_per_card")):
@@ -360,6 +379,8 @@ def _p_venue(v: Any, tick: int) -> tuple:
     out = {"id": vid, "owner": v["owner"], "status": v["status"], "fee_bps": fee_bps, "fee_per_card": per_card,
            "house": v.get("house") is True, "starter": v.get("starter") is True,
            "mechanism": rules.get("mechanism") if isinstance(rules, Mapping) else None}
+    if isinstance(pend, Mapping):          # kept (ints only) so a later check can see an announced fee change
+        out["pending_fee"] = {k: pend[k] for k in ALLOW["pending_fee"] if _int(pend.get(k)) and pend[k] >= 0}
     return split_untrusted(out)
 
 
@@ -450,20 +471,8 @@ def parse_clock(d: Any) -> Mapping:
     return freeze(_p_clock(d)[0])
 
 
-def parse_me(d: Any) -> Mapping:
-    return freeze(_p_me(d)[0])
-
-
 def parse_offer(d: Any) -> Mapping:
     return freeze(_p_offer(d)[0])
-
-
-def parse_thread(d: Any) -> Mapping:
-    return freeze(_p_thread(d)[0])
-
-
-def parse_duel(d: Any) -> Mapping:
-    return freeze(_p_duel(d)[0])
 
 
 def clock_reading(clock: Optional[Mapping], schedule: Optional[Mapping]) -> str:
@@ -490,6 +499,9 @@ def clock_reading(clock: Optional[Mapping], schedule: Optional[Mapping]) -> str:
 
 # -------------------------------------------------------------------------------------------- sensor
 
+_NO_VALUE = object()          # sentinel: the server answered unknown_card for one ref
+
+
 class _SysClock:
     @staticmethod
     def now() -> float:
@@ -501,7 +513,7 @@ class Sensor:
     VALUES_PER_TICK = 3
     OTHER_BOARDS_EVERY = 4            # ticks, unless tick_seconds >= SLOW_TICK_S (D2)
     SLOW_TICK_S = 30.0
-    FAST_TICK_S = 10.0                # below: clock, me, me/offers, duels only (§14 S-M6)
+    FAST_TICK_S = 16.0                # below: clock, me, me/offers, duels only (§14 S-M6). Sun 13:15: 16 so the 15 s ticks of the Grand Final read only those (32 of 33 Duels III G03.late came from the full snapshot overrunning)
     CATALOG_EVERY = 10
     LEADERBOARD_EVERY = 4
     MAX_OTHER_BOARDS = 8
@@ -571,8 +583,9 @@ class Sensor:
         down.update(s for s in ALL_SOURCES if s not in ("clock", "schedule"))
         return self._assemble(prev, clock, t0, parts, down)
 
-    def snapshot(self, prev: Optional[World]) -> tuple:
-        """Full prioritised read (§1 step 5). Returns (World, Secrets)."""
+    def snapshot(self, prev: Optional[World], *, late: bool = False) -> tuple:
+        """Full prioritised read (§1 step 5). Returns (World, Secrets). late=True (the runner's mid-tick re-read for
+        duel accepts): the reduced read only (clock, me, me/offers, duels), so it fits a 15 s tick."""
         down: set = set()
         clock, t0 = self._read_clock(down)
         tick = clock["tick"] if clock else (prev.tick if prev else 0)
@@ -580,7 +593,7 @@ class Sensor:
         deadline = self._deadline(clock, t0)
         if clock is not None and deadline <= t0:            # paused / doors closed: reads are not racing a tick
             deadline = t0 + self.PAUSED_READ_BUDGET_S
-        reduced = tick_s < self.FAST_TICK_S
+        reduced = late or tick_s < self.FAST_TICK_S
         parts = self._carry(prev)
         secrets = Secrets()
         read: set = {"clock"}
@@ -863,11 +876,13 @@ class Sensor:
                                                  for a in me.get("assets", [])), default=str).encode()).hexdigest()
         if version != self._values_version:
             self._values, self._values_version = {}, version
+            self._no_value = set()
+        no_value = self.__dict__.setdefault("_no_value", set())   # refs the server cannot value (live 3 Oct)
         if not skip:
             order: list = []
 
             def add(r: Any) -> None:
-                if isinstance(r, str) and TOKEN_RE.fullmatch(r) and r and r not in self._values and r not in order:
+                if isinstance(r, str) and TOKEN_RE.fullmatch(r) and r and r not in self._values and r not in order                         and r not in no_value:
                     order.append(r)
             for r in self._wish:
                 add(r)
@@ -887,8 +902,19 @@ class Sensor:
                     for c in s.get("cards", []):
                         add(c.get("id"))
             for ref in order[: self.VALUES_PER_TICK]:
-                got = self._fetch("values", lambda ref=ref: self.transport.value(ref),
-                                  lambda d, ref=ref: self._p_value(d, ref), down)
+                def get(ref=ref):
+                    try:
+                        return self.transport.value(ref)
+                    except Exception as e:                          # noqa: BLE001 - re-raised below
+                        if getattr(e, "code", None) == "unknown_card":
+                            return _NO_VALUE                        # one card the server cannot value is
+                        raise                                       # not a source failure: skip that ref
+                got = self._fetch("values", get,
+                                  lambda d, ref=ref: (_NO_VALUE, []) if d is _NO_VALUE else self._p_value(d, ref),
+                                  down)
+                if got is _NO_VALUE:
+                    no_value.add(ref)
+                    continue
                 if got is None:
                     break
                 self._values[ref] = got

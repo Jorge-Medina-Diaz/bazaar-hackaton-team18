@@ -51,12 +51,28 @@ def text_prices(text):
     t = _norm(text)
     out = {int(m) for m in re.findall(r"\b(\d{1,4})\s*(?:p\b|primas|pesos|perlas|coins)", t)}
     out |= {int(m) for m in re.findall(r"\b(?:for|por|a)\s+(\d{1,4})\b", t)}
-    for m in re.finditer(r"\b([a-z]+)(?:[\s-]+(?:y\s+)?([a-z]+))?\b", t):
-        a, b = WORDS.get(m.group(1)), WORDS.get(m.group(2) or "")
-        if a is not None and a >= 10:
-            out.add(a + (b if b is not None and b < 10 and a % 10 == 0 and a >= 20 else 0))
-        elif a is not None and a >= 4:
-            out.add(a)
+    toks = re.findall(r"[a-z]+", t)
+    i = 0
+    while i < len(toks):                      # números en letra: «ciento ochenta y siete», «one hundred and five»
+        if toks[i] not in WORDS and toks[i] not in ("ciento", "doscientos", "trescientos"):
+            i += 1
+            continue
+        total, cur, used = 0, 0, False
+        while i < len(toks) and (toks[i] in WORDS or toks[i] in ("ciento", "doscientos", "trescientos", "y", "and")):
+            w = toks[i]
+            if w in ("y", "and"):
+                i += 1
+                continue
+            v = {"ciento": 100, "doscientos": 200, "trescientos": 300}.get(w, WORDS.get(w))
+            if w == "hundred":
+                cur = max(cur, 1) * 100
+            else:
+                cur += v
+            used = True
+            i += 1
+        total += cur
+        if used and total >= 4:
+            out.add(total)
     return out
 
 
@@ -115,6 +131,46 @@ def tricks(events, topics):
             out.append({"level": "posible", "motivo": f"el texto dice {next(iter(said))} y la oferta {price}",
                         **base})
     return out
+
+
+def trick_context(events, trick, names=None):
+    """Cómo intentan colarla en un hilo: carta y precio del cebo, su última oferta real, nuestra última puja,
+    si el texto nombra la carta buena, si lo marcan `final` y cuántos intentos van. Solo con datos del feed."""
+    tid, mid = trick.get("thread"), trick.get("message")
+    rev = {v: k for k, v in (names or {}).items()}               # ref -> nombre normalizado
+    asked, bait, price, final, text = None, None, None, False, ""
+    real, ours, attempts = None, None, 0
+    for e in events:
+        p = e.get("payload") or {}
+        if p.get("thread") != tid:
+            continue
+        if e.get("type") == "thread.opened":
+            asked = ((p.get("topic") or {}).get("buy") or {}).get("card") or asked
+        if e.get("type") != "thread.message" or not p.get("offer"):
+            continue
+        o = p["offer"]
+        if p.get("sender") == DEALER:
+            given = _refs(o.get("give"))
+            cash = (o.get("want") or {}).get("cash")
+            if asked and given and given != [asked]:
+                attempts += 1
+            elif given == [asked] and (p.get("message") or e.get("id")) != mid:
+                real = cash
+            if (p.get("message") or e.get("id")) == mid:
+                bait, price, final, text = (given[0] if given else None), cash, bool(o.get("final")), p.get("text") or ""
+                break
+        else:
+            ours = (o.get("give") or {}).get("cash")
+    t = _norm(text)
+
+    def named(ref):
+        core = re.sub(r"^(?:el|la|los|las|the)\s+", "", rev.get(ref) or "")
+        return bool(ref) and (ref.lower() in t or (len(core) >= 4 and core in t))
+    names_good, names_bait = named(asked), named(bait)
+    return {"asked": asked, "bait": bait, "bait_rarity": rarity(bait) if bait else None,
+            "asked_rarity": rarity(asked) if asked else None, "price": price, "last_real": real,
+            "our_bid": ours, "final": final, "attempts": attempts,
+            "text_names_good": names_good and not names_bait}
 
 
 def observations(events):
@@ -258,4 +314,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print(__doc__)
+        sys.exit(0)
     main()

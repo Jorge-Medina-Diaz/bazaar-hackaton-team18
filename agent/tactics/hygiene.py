@@ -5,14 +5,14 @@ Pure: reads World / Book / Valuer / Cfg / PlanCfg, returns Intents. The Gate re-
 Every intent here only REDUCES exposure (cancel, close_thread) or opens a pack (G40), so a missing input makes the
 watch do more closing, never less checking.
 
-NOTES (M9, night build)
+Design notes
 - J0: `startup_cancels` from plan_cfg are cancelled only if still live in world.my_offers (the four LAT listings
   2463/2592/1652/2591 were cancelled at 01:30, so against the current state J0 finds nothing). startup() also runs
   the generic unprotected-sale check (G19, INV-06) when a Book is given, so any new unprotected listing is caught.
 - Unprotected sales: free(ref) = held - listed - pending_out; while free < keep, cancel the ref's live sale/swap
   offer that expires first, recalculating (+1 per cancel). Own swaps (D1) hand over an asset, so they count as sales.
-- Bids: own bids are in Book.projected, so dv_add is computed with that bid's own copy removed (and the same for a buy
-  thread with a standing price). Inherited bids (id in plan_cfg.baseline_bands or Book.bid_band from the baseline)
+- Bids: own bids are in Book.projected, so dv_add is computed with that bid's own copy removed. A buy thread with a
+  standing price is valued as the copy after held (_counts_for_thread: never a 2nd copy of a ref we hold 0 of). Inherited bids (id in plan_cfg.baseline_bands or Book.bid_band from the baseline)
   only use their band (2503/2504 -> 0) and are not treated as closer bids, per strategy (keep until t205).
   Harness closer bid = bid_band >= 20, frozen closer ref, or closes_page(counts, ref) (valuer error -> closer).
   With valuation unavailable the value checks on bids/swaps are skipped (they only cancel); buy threads with a
@@ -38,7 +38,6 @@ from agent.contracts import Intent, Prediction, make_intent
 
 TACTIC = "hygiene"
 LIVE_OFFER = frozenset({"open", "queued"})
-TERMINAL_THREAD = frozenset({"deal", "closed", "expired", "cancelled", "canceled", "settled", "rejected", "done"})
 DEFAULT_BAND = 2.0
 CLOSER_BAND = 20.0
 GRANT_ACTIONS = frozenset({"grant", "grant_all", "grant_team"})
@@ -169,6 +168,17 @@ def _counts_without(book, ref: str) -> dict:
     return c
 
 
+def _counts_for_thread(book, ref: str) -> dict:
+    """Book.projected with `ref` at held: our open buy thread stands for the next copy after the ones we hold.
+    G15 allows one buy path per ref, so anything projected above held for `ref` is this thread. Removing only one
+    copy (_counts_without) valued it as a 2nd copy whenever `ref` was projected twice (live t191: the thread offer
+    also counted from my_offers, RET-09 91 -> 22.8; still possible with two open threads for one ref) and G19
+    closed every dealer thread."""
+    c = {k: v for k, v in _m(book.projected).items()}
+    c[ref] = int(_m(book.held).get(ref, 0) or 0)
+    return c
+
+
 def _dv_add(world, book, valuer, ref: str, counts: Mapping) -> float:
     v = float(valuer.delta_add(counts, ref, book.packs))
     sv = _m(world.server_values).get(ref)
@@ -225,7 +235,9 @@ def grant_soon(world, lookahead_ticks: int) -> bool:
 
 
 def _thread_open(t: Mapping) -> bool:
-    return t.get("status") not in TERMINAL_THREAD        # unknown status counts as open (fail closed)
+    # Only "open" is open: G33 refuses close_thread on anything else, so a server-ended thread ("walked",
+    # closed_reason final_offer_refused / persona_budget, ...) was re-proposed every tick (G33.not_open, t1455).
+    return t.get("status") == "open"
 
 
 def _thread_side(t: Mapping) -> tuple:
@@ -288,8 +300,10 @@ def delivery_risk(world, book, plan_cfg) -> bool:
 # --------------------------------------------------------------------------------------------- watch
 
 def unprotected_sales(world, book) -> list:
-    """G19 / INV-06: cancel own sales (and swaps) of refs with free(ref) < keep(ref), earliest expiry first."""
-    if book is None:
+    """G19 / INV-06: cancel own sales (and swaps) of refs with free(ref) < keep(ref), earliest expiry first.
+    Not on degraded data: with the catalog down build_book has no valuer and keeps every held ref (fail-closed
+    keep=1), so the manual sole-copy SAL-11 listing was cancelled on the first tick after two Saturday restarts."""
+    if book is None or "catalog" in (getattr(world, "down", None) or ()):
         return []
     by_ref: dict = {}
     for v in _live_own(world):
@@ -393,7 +407,8 @@ def swap_watch(world, book, valuer, cfg, plan_cfg) -> list:
         if v["side"] != "swap" or not v["ref"] or not v["want_ref"]:
             continue
         try:
-            gain = _dv_add(world, book, valuer, v["want_ref"], _m(book.projected))
+            # build_book already counts this swap's wanted copy in projected: value it as if not yet received
+            gain = _dv_add(world, book, valuer, v["want_ref"], _counts_without(book, v["want_ref"]))
             lose = max(float(valuer.delta_remove(book.held, v["ref"], book.packs)), _your_value(world, v["ref"]))
             g = gain - lose
         except Exception:
@@ -435,7 +450,7 @@ def thread_watch(world, book, valuer, cfg, plan_cfg) -> list:
                 out.append(_close(tid, ref, "fail closed: standing buy price with no valuation", P_THREAD_VALUE))
                 continue
             try:
-                dv = _dv_add(world, book, valuer, ref, _counts_without(book, ref))
+                dv = _dv_add(world, book, valuer, ref, _counts_for_thread(book, ref))
             except Exception:
                 out.append(_close(tid, ref, "fail closed: valuation error on a standing buy price", P_THREAD_VALUE))
                 continue
@@ -461,7 +476,8 @@ def startup(world, book, plan_cfg) -> list:
 def watch(world, book, valuer, cfg, plan_cfg, state: Optional[dict] = None) -> list:
     """G19 + INV-23 + day-end thread closing."""
     out = []
-    out.extend(unprotected_sales(world, book))
+    if valuer is not None:            # keep was computed without values otherwise (see unprotected_sales)
+        out.extend(unprotected_sales(world, book))
     out.extend(bid_watch(world, book, valuer, cfg, plan_cfg, state))
     out.extend(swap_watch(world, book, valuer, cfg, plan_cfg))
     out.extend(thread_watch(world, book, valuer, cfg, plan_cfg))

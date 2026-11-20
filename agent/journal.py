@@ -2,7 +2,7 @@
 
 Also keeps the old helpers: LOG_DIR and log(stream, **row) (used by the dashboard and the old scripts).
 
-NOTES (M2, night build)
+Design notes
 - Row: {seq, ts, tick?, day, mode, kind, prev, **redact(fields)}; prev = sha256 hex of the previous line's bytes
   (without the newline); the first row has prev = GENESIS ("0" * 64). fsync on every kind in FSYNC.
 - Extra keyword arguments beyond §2.3 (all with defaults): lock_path (default <root>/state/writer.lock, where
@@ -17,7 +17,9 @@ NOTES (M2, night build)
   to journal.corrupt, the journal is truncated to the last valid line and a "truncated" row is written with
   prev = hash of the last valid line. If the broken bytes look like an intent, its id (if readable) and the
   domains readable from its args are recorded and stay pending / frozen until a "reconciled" row with that id
-  (or with truncated=<seq of the truncated row>) resolves them. Any earlier broken line -> JournalError.
+  (or with truncated=<seq of the truncated row>) resolves them; the Gate writes `reconciled truncated=<seq>
+  landed=False` at its first reconcile (a torn intent was never sent, see below). Any earlier broken line ->
+  JournalError.
   Known gap: a crash between the truncation and the "truncated" row loses that pending marker (the bytes are
   still in journal.corrupt). A writer intent row is fsynced before the send, so a torn intent was never sent.
 - Intent rows: the intent's own kind cannot be passed as kind= (it is write()'s first parameter), so the Gate
@@ -31,7 +33,7 @@ NOTES (M2, night build)
   nested {"offer"|"thread"|"message": {"id"}}). Any row may also carry an explicit
   own = {"offers": [...], "dealer_threads": [...], "thread_msgs": [...], "duel_msgs": [[did, tick, price]],
   "accepts": [...]}. Responses of the real server for POST were not measured (openapi gives no schema).
-- Not done tonight: no rotation / size cap; readers re-scan only the new bytes (incremental), verify_chain()
+- Known limitations: no rotation / size cap; readers re-scan only the new bytes (incremental), verify_chain()
   re-reads the whole file.
 """
 from __future__ import annotations
@@ -66,7 +68,6 @@ class JournalError(Exception):
 GENESIS = "0" * 64
 MODES = frozenset({"live", "dry", "test"})
 RESOLUTION_KINDS = frozenset({"result", "unknown", "reconciled", "refused", "would", "deferred"})
-_HEADER = ("seq", "ts", "tick", "day", "mode", "kind", "prev")
 _KIND_RE = re.compile(r"[a-z][a-z0-9_]{0,31}")
 _TORN_KIND_RE = re.compile(rb'"kind"\s*:\s*"intent"')
 _TORN_ID_RE = re.compile(rb'"id"\s*:\s*"([0-9A-Za-z_-]{1,64})"')

@@ -13,18 +13,21 @@
     python3 bazaar.py status                         0 API calls: journal (reader), state files, STOP, lock holder
     python3 bazaar.py replay-friday | report
 
-NOTES (M16, night build)
+Design notes
 - The CLI never writes the journal, armed.json or pauses.json (INV-22): orders go to state/inbox/<ns>-<cmd>.json
   (temp file + os.replace) and the runner applies and journals them. Orders are only written while a runner holds the
   writer lock (probe: try to take the lock; busy = alive); otherwise `arm`/`pause` refuse (exit 1) because a later run
   ignores stale orders anyway. `stop --flatten` with no runner alive writes STOP at once and says flatten did not run.
+- `do` orders carry "live": a.live and the runner sends one for real only if it says live. `do` without --live is
+  refused while a live runner holds the lock (mode read from the lock's argv; unreadable counts as live).
 - `--root DIR` (first argument) relocates Paths for tests; production never passes it. Default Paths.at() is anchored
   on the package location, so `stop` from any folder writes <repo>/STOP.
 - selftest: one unittest subprocess per stage (env: BAZAAR_TEST=1, BAZAAR_NO_DOTENV=1, no key/url), green = exit 0
-  and at least STAGE_MIN tests ran (0 tests -> red). Test files that do not exist yet (M17) are listed as missing but
-  do not turn the stage red; tests/test_bots.py is not in any stage (known failures, informational). If logs/run or
+  and at least STAGE_MIN tests ran (0 tests -> red). A listed test file that is missing is reported but does not
+  turn the stage red. Tests outside the stage lists (test_bots, test_agent_core, the analysis tools...) run in the
+  full suite (CI), not in selftest. If logs/run or
   state/ (except selftest.json and writer.lock) change during the selftest, every stage is red.
-- replay-friday runs tests/test_replay_friday.py when it exists (M17); otherwise exits 1 ("not built").
+- replay-friday runs tests/test_replay_friday.py (the Friday replay against the fake server).
 - Exit codes: 0 ok, 1 refused / usage / red, 2 STOP from run, 3 writer lock busy (run).
 """
 from __future__ import annotations
@@ -80,6 +83,18 @@ def runner_alive(paths: Paths) -> bool:
             return False
     except RuntimeError:
         return True
+
+
+def runner_mode(paths: Paths) -> Optional[str]:
+    """"live" / "dry" from the argv the lock holder wrote in state/writer.lock; None if it cannot be read."""
+    try:
+        txt = Path(paths.lock).read_text(encoding="utf-8", errors="replace").split("\x00")[0].strip()
+        argv = json.loads(txt).get("argv")
+    except Exception:                                                    # noqa: BLE001
+        return None
+    if not isinstance(argv, list):
+        return None
+    return "live" if "--live" in argv else "dry"
 
 
 def write_order(paths: Paths, cmd: str, **fields: Any) -> Path:
@@ -184,6 +199,9 @@ def selftest(paths: Paths, *, stages: Sequence[str] = STAGES, runner_fn: Callabl
 
 # ------------------------------------------------------------------------------------------ status
 
+STALE_TICK_ROW_S = 90.0           # > 3 Sunday ticks (15 s) and > 2 Saturday ticks (30 s) without a tick row
+
+
 def status(paths: Paths) -> int:
     """0 API calls: reads files only."""
     from agent.transport import stop_active
@@ -221,9 +239,14 @@ def status(paths: Paths) -> int:
     if last_tick:
         _out(f"tick     {last_tick.get('tick')} cash {last_tick.get('cash')} cash_free {last_tick.get('cash_free')} "
              f"reading {last_tick.get('reading')} down {last_tick.get('down')}")
+        age = time.time() - float(last_tick.get("ts") or 0)
+        if isinstance(holder, dict) and age > STALE_TICK_ROW_S:
+            # Sat 22:55-23:43 the machine slept and nobody saw it: the runner writes a tick row every open tick
+            _out(f"STALE?   last tick row {int(age)} s ago with a runner holding the lock: if the doors are open, "
+                 f"the runner is stuck or the machine slept")
     _out(f"pending  {len(pend)} {[p.get('id') for p in pend][:10]}")
     _out(f"unknowns {unk[:20]}")
-    for kind, n in (("measure", 5), ("alarm", 5), ("stop", 3), ("pause", 5)):
+    for kind, n in (("measure", 5), ("alarm", 5), ("stop", 3), ("pause", 5), ("dropped", 5), ("param", 3)):
         sel = [r for r in rows if r.get("kind") == kind][-n:]
         for r in sel:
             _out(f"{kind:8s} t{r.get('tick')} " + json.dumps({k: v for k, v in r.items()
@@ -256,7 +279,45 @@ def cmd_clockcheck(base_url: Optional[str] = None, http: Optional[Callable] = No
     for u in (up or [])[:8]:
         if isinstance(u, dict):
             _out(f"  upcoming {u.get('at_hours')} {u.get('action')} {json.dumps(u.get('params'), default=str)[:120]}")
+    for line in day_lines(clock, sched, reading, time.time()):
+        _out(line)
     return 0
+
+
+def scenario_hint(clock: dict, stalls_h: Optional[float]) -> str:
+    """Sunday clock scenario (docs/history/plan-domingo.md): C = resume at 13.37 + Sunday events re-anchored (stalls ~18.37),
+    B = clock jumped to 16.65, A = resume and nothing moved (round 2, stalls 21.65). Doors closed -> no guess."""
+    t, rnd = clock.get("t_hours"), clock.get("round")
+    if clock.get("doors") != "open" or type(t) not in (int, float):
+        return "doors not open: no scenario yet"
+    if t >= 16.0:
+        return "B (clock jumped to ~16.65)"
+    if (type(rnd) is int and rnd >= 3) or (stalls_h is not None and stalls_h < 20.0):
+        return "C (resume ~13.37, Sunday events re-anchored)"
+    return "A (resume ~13.37, round 2, nothing moved)"
+
+
+def day_lines(clock: dict, sched: Any, reading: str, now: float) -> list:
+    """Today's derived times, the same rule the runner uses (pages.effective_plan with config/plan.json)."""
+    from types import SimpleNamespace
+    from agent.tactics import pages
+    try:
+        plan = pages.load_plan(REPO / "config" / "plan.json")
+        w = SimpleNamespace(clock=clock, schedule=sched if isinstance(sched, dict) else {}, reading=reading,
+                            t_hours=clock.get("t_hours"))
+        close, stalls = pages.live_times(w, now)
+        wall = pages.wall_close(w, now)
+        pc, _ = pages.effective_plan(plan, w, None, now=now)
+        day = pages.today(w)
+        de = (pc.get("day_end_hours") or {}).get(day)
+        eg = ((pc.get("closer") or {}).get("endgame_hours") or {}).get(day)
+    except Exception as e:                                               # noqa: BLE001
+        return [f"day times: {e.__class__.__name__}: {e}"]
+    f = lambda x: "-" if x is None else f"{x:.3f}"
+    return [f"today {clock.get('today')}  closes {clock.get('closes')}  schedule close {f(close)}  wall close {f(wall)}"
+            f"  stalls close {f(stalls)}",
+            f"derived day_end {f(de)}  endgame {f(eg)}  (plan fallback {plan.get('day_end_hours')})",
+            f"scenario {scenario_hint(clock, stalls)}"]
 
 
 def _arm_ok(paths: Paths, tactic: str) -> Optional[str]:
@@ -299,10 +360,16 @@ def cmd_do(paths: Paths, a) -> int:
     except Exception as e:                                               # noqa: BLE001
         _out(f"do: refused: {e}")
         return 1
-    order = {"kind": a.kind, "args": args, "why": a.why}
+    order = {"kind": a.kind, "args": args, "why": a.why, "live": bool(a.live)}
     if runner_alive(paths):
+        # the runner sends a `do` for real only if the order says live; a dry `do` next to a live runner is refused
+        # here so nobody believes a rehearsal is safe (or a real order was rehearsed). Unknown runner mode = live.
+        if not a.live and runner_mode(paths) != "dry":
+            _out("do: refused: the runner is live; repeat with --live to send it for real (a dry `do` needs a dry "
+                 "runner or no runner)")
+            return 1
         p = write_order(paths, "do", **order)
-        _out(f"do: order left for the runner ({p.name})")
+        _out(f"do: order left for the runner ({p.name}, {'live' if a.live else 'dry: would only'})")
         return 0
     plan = Path(a.plan) if a.plan else REPO / "config" / "plan.json"
     return runner.run("live" if a.live else "dry", [], paths=paths, plan_path=plan, max_ticks=1,

@@ -17,7 +17,7 @@ from sim.bots import AbuelaBot, ChatoBot, DuelRival, TeamBot
 from sim.world import FakeGame, Model
 
 REPO = Path(__file__).resolve().parents[1]
-PLAN = REPO / "config" / "plan.json"
+PLAN = REPO / "tests" / "fixtures" / "plan_night.json"   # frozen: config/plan.json changes during the game
 HARVEST = REPO / "tests" / "fixtures" / "harvest"
 STAGES = ("core", "hygiene", "dealers", "rastro", "closer", "duels")
 ADVERSARIES = ("honest", "twisted", "overpriced", "phantom", "injector", "opener", "closer_bidder", "swapper")

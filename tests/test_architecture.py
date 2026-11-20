@@ -1,11 +1,12 @@
 """M17: architecture rules checked on the source (INV-01 AST layer 3, INV-13 AST, INV-18 secrets in source).
 
-NOTES (M17, night build)
+Design notes
 - The scan is AST-based, so docstrings and comments that *mention* a forbidden name do not count; only code does.
-- LEGACY modules (pre-harness, archived by M18) are allowed to keep their old SDK use, but no harness module may
-  import them (checked on the static import graph). agent/dashboard.py and agent/client.py are panels/read-only.
+- LEGACY lists the Friday modules (now in docs/history/legacy-code/, guarded by SystemExit). They must never come
+  back into agent/: no harness module may import those names (checked on the static import graph).
+- agent/dashboard.py and agent/client.py are read-only (the dashboard and client("read")).
 - INV-13: the literal "text" is allowed in agent/gate.py only inside the REQUEST_FOR body builders (_req_*), which
-  must put the "text" key in say/duel_say bodies (M5 open issue). The Gate never reads a text field.
+  must put the "text" key in say/duel_say bodies (by design). The Gate never reads a text field.
 """
 from __future__ import annotations
 
@@ -275,6 +276,59 @@ class TestNoSecretsInSource(unittest.TestCase):
             s = p.read_text(encoding="utf-8", errors="replace")
             if re.search(r"(?i)x-(team|broker)-key", s) or re.search(r"tk-[A-Za-z0-9]{12,}", s):
                 bad.append(rel(p))
+        self.assertEqual(bad, [])
+
+
+class TestRootScriptsAreReadOnly(unittest.TestCase):
+    """The operator tools next to bazaar.py never write to the game on their own: they GET, and any write they need
+    goes through `python3 bazaar.py do ... --live` (so through the Gate). Checked on the AST of every top-level .py
+    and api/*.py, except bazaar_sdk.py (the official SDK, never imported by them) and bazaar.py (the CLI)."""
+
+    WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+    KEYED_RAW_READERS = {"bench_rec.py"}   # GETs /api/broker/book with the stall's key via urllib (no write route)
+
+    def scripts(self):
+        files = sorted(REPO.glob("*.py")) + sorted((REPO / "api").glob("*.py"))
+        return [p for p in files if p.name not in ("bazaar_sdk.py", "bazaar.py")]
+
+    def test_scripts_exist(self):
+        self.assertTrue({"ladder_sell.py", "egg_watch.py", "run_dashboard.py"} <= {p.name for p in self.scripts()})
+
+    def test_no_sdk_and_no_write_verbs(self):
+        bad = []
+        for p in self.scripts():
+            for node in ast.walk(tree(p)):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    names = [a.name for a in node.names] + ([node.module] if isinstance(node, ast.ImportFrom) else [])
+                    if any(n and n.split(".")[0] == "bazaar_sdk" for n in names):
+                        bad.append(f"{rel(p)}: imports bazaar_sdk (line {node.lineno})")
+                elif isinstance(node, ast.Constant) and node.value in self.WRITE_METHODS:
+                    bad.append(f"{rel(p)}: HTTP write verb {node.value!r} (line {node.lineno})")
+                elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
+                    bad.append(f"{rel(p)}: {node.func.id}() (line {node.lineno})")
+        self.assertEqual(bad, [])
+
+    def test_raw_http_scripts_do_not_hold_the_team_key(self):
+        """A script that speaks raw urllib must not load the team key (except the listed GET-only recorder):
+        keyed reads go through agent.client.client("read"), whose transport refuses every write."""
+        bad = []
+        for p in self.scripts():
+            t = tree(p)
+            docs = {id(n.body[0].value) for n in ast.walk(t)
+                    if isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.body
+                    and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
+            keyed = any((isinstance(n, ast.Constant) and n.value == "BAZAAR_KEY" and id(n) not in docs)
+                        or (isinstance(n, ast.Name) and n.id == "_load_env")
+                        or (isinstance(n, ast.alias) and n.name == "_load_env") for n in ast.walk(t))
+            raw = any(isinstance(n, (ast.Import, ast.ImportFrom)) and any(
+                (a.name if isinstance(n, ast.Import) else (n.module or "")).startswith(("urllib", "http.client", "requests", "httpx"))
+                for a in n.names) for n in ast.walk(tree(p)))
+            if raw and keyed and p.name not in self.KEYED_RAW_READERS:
+                bad.append(rel(p))
+        self.assertEqual(bad, [])
+
+    def test_no_write_mode_client(self):
+        bad = [rel(p) for p in self.scripts() if re.search(r"client\(\s*(mode\s*=\s*)?[\"']write", p.read_text(encoding="utf-8"))]
         self.assertEqual(bad, [])
 
 

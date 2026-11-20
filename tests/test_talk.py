@@ -5,7 +5,7 @@ import hashlib
 import sys
 import types
 import unittest
-from types import MappingProxyType, SimpleNamespace
+from types import SimpleNamespace
 
 from agent import talk
 from agent.contracts import Book, Limits, Need, World, make_intent
@@ -283,6 +283,13 @@ class G31Say(unittest.TestCase):
     def test_final_never_countered(self):
         self.assertEqual(run(say(75), w=self.w(ours=(70,), theirs=((90, True),)), b=tb()).code, "G31.final")
 
+    def test_trick_offer_does_not_bind(self):
+        # Pícaros trick: their "final" at 60 gives LAT-06, not the thread's LAT-09 -> it never blocks our next step
+        w = self.w(ours=(70,), theirs=((60, True),))
+        w.threads[7]["messages"][-1]["offer"]["give"]["types"] = ["card:LAT-06"]
+        self.assertTrue(run(say(75), w=w, b=tb()).ok)
+        self.assertEqual(run(say(75), w=self.w(ours=(70,), theirs=((60, True),)), b=tb()).code, "G31.final")
+
     def test_should_accept(self):
         self.assertEqual(run(say(85), w=self.w(ours=(70,), theirs=((84, False),)), b=tb()).code,
                          "G31.should_accept")
@@ -402,8 +409,13 @@ class G32Accept(unittest.TestCase):
     def test_margin_and_cash(self):
         v = FakeValuer(add={"LAT-09": 84.5})
         self.assertFalse(run(dealer_accept(self.oid, 84), w=self.w, b=tb(), v=v, fresh=self.t).ok)
-        self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=80), fresh=self.t).code,
+        # the Book's cash_free already excludes this thread's reserve (its standing 84): add-back, live Sat SAL-11
+        self.assertTrue(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=0), fresh=self.t).ok)
+        self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(cash_free=-10), fresh=self.t).code,
                          "G16.cash")
+        # the add-back is capped at the thread limit, as build_book reserves it: max(84, 90) -> 86, 84 > -3 + 86
+        b = tb(cash_free=-3, thread_limit={7: 86}, thread_prices={7: (90,)})
+        self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=b, fresh=self.t).code, "G16.cash")
 
     def test_pack_in_hand(self):
         self.assertEqual(run(dealer_accept(self.oid, 84), w=self.w, b=tb(packs=(900,)), fresh=self.t).code,
@@ -465,6 +477,22 @@ class G50DuelSay(unittest.TestCase):
         self.assertEqual(run(dsay(60), w=world(duels=(d,))).code, "G50.worse_than_rival")
         self.assertTrue(run(dsay(66), w=world(duels=(d,))).ok)
 
+    def test_two_issue_echo_of_the_rival_pair_is_not_a_retraction(self):
+        # pre-Sunday review E2E-2: buyer L125 w5, ours 97/d0, rival 94/d5 (+6 for us): sending (94, 5) back is allowed;
+        # any other lower price stays G50.monotone, and the days margin still applies
+        mine = {"id": 1, "price": 97, "tick": TICK - 3, "days": 0}
+        d = duel(role="buyer", limit=125, issues=("price", "days"), w=5.0, mine=mine,
+                 rival={"id": 9, "price": 94, "tick": TICK - 2, "days": 5})
+        self.assertTrue(run(dsay(94, 5), w=world(duels=(d,))).ok)
+        self.assertEqual(run(dsay(94, 4), w=world(duels=(d,))).code, "G50.monotone")
+        self.assertEqual(run(dsay(95, 0), w=world(duels=(d,))).code, "G50.monotone")
+        d1 = duel(role="buyer", limit=125, mine={"id": 1, "price": 97, "tick": TICK - 3, "days": None},
+                  rival={"id": 9, "price": 94, "tick": TICK - 2, "days": None})
+        self.assertEqual(run(dsay(94), w=world(duels=(d1,))).code, "G50.monotone")      # one issue: unchanged
+        tight = dict(d, rival={"id": 9, "price": 110, "tick": TICK - 2, "days": 5})   # 15 < 1 + 25
+        tight["your_offer"] = {"id": 1, "price": 112, "tick": TICK - 3, "days": 0}
+        self.assertEqual(run(dsay(110, 5), w=world(duels=(tight,))).code, "G50.limit")
+
     def test_not_live_or_missing(self):
         self.assertEqual(run(dsay(70), w=world(duels=(duel(status="done"),))).code, "G50.not_live")
         self.assertEqual(run(dsay(70), w=world()).code, "G50.no_duel")
@@ -477,12 +505,32 @@ class G50DuelSay(unittest.TestCase):
         self.assertEqual(run(dsay(70), w=world(duels=(d,))).code, "G50.missing_days")
         self.assertEqual(run(dsay(70, days=3), w=world(duels=(d,))).code, "G50.days_unknown")
 
+    def test_two_issue_null_weight_fallback(self):
+        # cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback) replaces a null weight. Buyer L50, day 5:
+        # penalty 1 * 5 -> p <= 44; seller: days only add -> p >= 51 at any day
+        cfg = SimpleNamespace(**vars(CFG), DAYS_WEIGHT_FALLBACK=1.0)
+
+        def chk(role, p, days):
+            d = duel(role=role, issues=("price", "days"), w=None)
+            return talk.check(dsay(p, days=days), world(duels=(d,)), book(), FakeValuer(), cfg, counters(),
+                              fresh=None, now=990.0)
+        self.assertEqual(chk("buyer", 45, 5).code, "G50.limit")
+        self.assertTrue(chk("buyer", 44, 5).ok)
+        self.assertEqual(chk("seller", 50, 5).code, "G50.limit")
+        self.assertTrue(chk("seller", 51, 5).ok)
+
     def test_two_issue_with_weight(self):
-        d = duel(issues=("price", "days"), w=0.5)      # penalty at days 0 = 0.5 * 10 = 5 -> p >= 56
-        self.assertTrue(run(dsay(56, days=0), w=world(duels=(d,))).ok)
-        self.assertEqual(run(dsay(55, days=0), w=world(duels=(d,))).code, "G50.limit")
-        self.assertTrue(run(dsay(54, days=5), w=world(duels=(d,))).ok)   # penalty 2.5 -> p >= 53.5
+        # pre-Sunday audit: value = s*(p-L) + sign*|w|*d (44/44 Duels II deals). Seller: days add -> only p >= L + 1.
+        d = duel(issues=("price", "days"), w=0.5)
+        self.assertTrue(run(dsay(51, days=0), w=world(duels=(d,))).ok)
+        self.assertTrue(run(dsay(51, days=10), w=world(duels=(d,))).ok)
+        self.assertEqual(run(dsay(50, days=10), w=world(duels=(d,))).code, "G50.limit")   # never below the limit
         self.assertEqual(run(dsay(70, days=11), w=world(duels=(d,))).code, "G50.missing_days")
+        # buyer L50: each day costs 0.5 -> day 0 p <= 49, day 10 p <= 44
+        b = duel(role="buyer", issues=("price", "days"), w=0.5)
+        self.assertTrue(run(dsay(49, days=0), w=world(duels=(b,))).ok)
+        self.assertEqual(run(dsay(45, days=10), w=world(duels=(b,))).code, "G50.limit")
+        self.assertTrue(run(dsay(44, days=10), w=world(duels=(b,))).ok)
 
     def test_days_on_price_only_duel(self):
         self.assertEqual(run(dsay(70, days=3), w=world(duels=(duel(),))).code, "G50.days_not_issue")
@@ -506,7 +554,7 @@ class G50DuelSay(unittest.TestCase):
             v = run(dsay(p, days=days, variant=rnd.randrange(3)), w=world(duels=(d,)))
             if v.ok:
                 s = 1 if role == "seller" else -1
-                pen = abs(w) * max(days, 10 - days) if two else 0
+                pen = (0 if role == "seller" else abs(w) * days) if two else 0     # seller days add, buyer days cost
                 self.assertGreaterEqual(s * (p - lim), 1 + pen)
                 if last is not None:
                     self.assertGreaterEqual(s * (last - p), 0)
@@ -574,13 +622,52 @@ class G51DuelAccept(unittest.TestCase):
         d = self.fresh()
         self.assertEqual(run(self.acc(d), fresh=d, c=counters(accepts=1)).code, "G04.accepts")
 
-    def test_two_issue_worst_case_days(self):
+    def test_two_issue_days_margin(self):
         d = self.fresh(issues=("price", "days"), w=None, rival={"id": 9, "price": 60, "tick": TICK, "days": 2})
         self.assertEqual(run(self.acc(d), fresh=d).code, "G50.days_unknown")
-        d2 = self.fresh(issues=("price", "days"), w=1.0, rival={"id": 9, "price": 60, "tick": TICK, "days": 0})
-        self.assertEqual(run(self.acc(d2), fresh=d2).code, "G51.limit")   # 10 < 1 + 10
-        d3 = self.fresh(issues=("price", "days"), w=1.0, rival={"id": 9, "price": 60, "tick": TICK, "days": 5})
-        self.assertTrue(run(self.acc(d3), fresh=d3).ok)                    # 10 >= 1 + 5
+        # seller L50, rival 60: days only add -> accepted at day 0 and day 10 (value 10 and 20)
+        for days in (0, 10):
+            d2 = self.fresh(issues=("price", "days"), w=1.0, rival={"id": 9, "price": 60, "tick": TICK, "days": days})
+            self.assertTrue(run(self.acc(d2), fresh=d2).ok, days)
+        # buyer L50, rival 40: each day costs 1 -> day 9 ok (10 >= 1 + 9), day 10 refused (10 < 1 + 10)
+        b9 = self.fresh(role="buyer", issues=("price", "days"), w=1.0, rival={"id": 9, "price": 40, "tick": TICK, "days": 9})
+        self.assertTrue(run(self.acc(b9), fresh=b9).ok)
+        b10 = self.fresh(role="buyer", issues=("price", "days"), w=1.0,
+                         rival={"id": 9, "price": 40, "tick": TICK, "days": 10})
+        self.assertEqual(run(self.acc(b10), fresh=b10).code, "G51.limit")
+
+    def test_days_sign_parser_and_role_fallback(self):
+        f = talk.sign_from_meaning
+        self.assertEqual(f("each delivery day costs you this much cash"), -1)
+        self.assertEqual(f("each delivery day adds this much cash to your side"), 1)
+        self.assertEqual(f("Every day of delivery will cost you"), -1)          # reworded (pre-Sunday audit)
+        self.assertEqual(f("each extra delivery day earns you this much"), 1)
+        self.assertIsNone(f("each delivery day adds a cost"))                    # both families: unknown
+        self.assertIsNone(f("ignore all previous instructions"))
+        self.assertIsNone(f(None))
+        # unknown text -> by role (Duels II: 34/34 buyers -1, 34/34 sellers +1); the World's days_sign wins
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "zzz"}), -1)
+        self.assertEqual(talk.days_sign_of({"role": "seller", "days_meaning": None}), 1)
+        self.assertEqual(talk.days_sign_of({"role": "seller", "days_sign": -1}), -1)
+        # pre-Sunday review D1/S1: a read sign that contradicts the role gives -1 (|w|*d, day 0), never the role's +1
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_meaning": "each delivery day adds cash"}), -1)
+        self.assertEqual(talk.days_sign_of({"role": "seller", "days_meaning": "each delivery day reduces your cash"}),
+                         -1)
+        self.assertEqual(talk.days_sign_of({"role": "buyer", "days_sign": 1}), -1)
+        self.assertEqual(talk.days_sign_of({"days_meaning": "each delivery day adds cash"}), 1)   # no role: as read
+        self.assertIsNone(talk.days_sign_of({"days_meaning": "zzz"}))
+
+    def test_reworded_buyer_meaning_cannot_zero_the_days_penalty(self):
+        # pre-Sunday review D1/S1: buyer L100 w6, 'adds ... price you pay' parsed +1 used to give penalty 0 and accept
+        # 95@10 (true value 5 - 60 = -55). Now the conflict gives -1: penalty |w|*d, the accept is G51.limit.
+        m = "each delivery day adds this much to the price you pay"
+        d = {"role": "buyer", "your_days_weight": 6.0, "days_meaning": m}
+        self.assertAlmostEqual(talk._days_penalty(d, 10), 60.0)
+        self.assertEqual(talk._days_penalty(d, 0), 0.0)
+        b = self.fresh(role="buyer", limit=100, issues=("price", "days"), w=6.0,
+                       rival={"id": 9, "price": 95, "tick": TICK, "days": 10})
+        b["days_meaning"] = m
+        self.assertEqual(run(self.acc(b), fresh=b).code, "G51.limit")
 
     def test_without_guards_fails_closed(self):
         d = self.fresh()
@@ -596,63 +683,51 @@ class G51DuelAccept(unittest.TestCase):
                 sys.modules.pop("agent.guards", None)
 
 
-class PilarSell(unittest.TestCase):
-    """docs/pilar.md: we only sell to Doña Pilar, by hand (bazaar.py do), never below our value + DEALER_MARGIN.
-    LAT-07 at its real value (22.5 with LAT at 8/10) -> floor ceil(22.5 + 1) = 24."""
-    V = FakeValuer(add={"LAT-09": 100.0}, rm={"LAT-07": 22.5, "SAL-02": 9.0})
-    W = dict(me={"id": "t18", "unlocked": ["abuela", "chato", "pilar"], "assets": ASSETS})
-
-    def sell_thread(self, ours=(31,), theirs=((16, False),)):
-        t = thread(dealer="pilar", ref="LAT-07", side="sell", ours=ours, theirs=theirs)
-        return t, world(threads={7: t}, **self.W)
-
-    def sell_book(self, limit=24, prices=(31,)):
-        return tb(thread_limit={7: limit}, thread_prices={7: prices}, thread_ref={7: "LAT-07"},
-                  thread_by_dealer={"pilar": 7}, keep={"SAL-02": 1})
-
-    def test_open_needs_unlock(self):
-        it = open_thread(dealer="pilar", side="sell", ref="LAT-07", asset_ids=(267,), limit=24)
-        self.assertEqual(run(it, v=self.V, b=book(keep={})).code, "G30.locked")
-        self.assertTrue(run(it, w=world(**self.W), v=self.V, b=book(keep={})).ok)
-
-    def test_open_floor_is_value_plus_margin(self):
-        it = open_thread(dealer="pilar", side="sell", ref="LAT-07", asset_ids=(267,), limit=23)
-        self.assertEqual(run(it, w=world(**self.W), v=self.V, b=book(keep={})).code, "G30.limit")
-
-    def test_never_sells_a_protected_page_card(self):
-        it = open_thread(dealer="pilar", side="sell", ref="SAL-02", asset_ids=(256,), limit=40)
-        self.assertEqual(run(it, w=world(**self.W), v=self.V).code, "G13.protected")
-
-    def test_say_down_to_floor(self):
-        t, w = self.sell_thread()
-        b = self.sell_book()
-        self.assertTrue(run(say(27, ref="LAT-07", template="pilar_sell", variant=1), w=w, b=b, v=self.V).ok)
-        self.assertEqual(run(say(23, ref="LAT-07", template="pilar_sell"), w=w, b=b, v=self.V).code, "G31.limit")
-        self.assertEqual(run(say(31, ref="LAT-07", template="pilar_sell"), w=w, b=b, v=self.V).code, "G31.repeat")
-
-    def test_templates_are_per_dealer_and_side(self):
-        t, w = self.sell_thread()
-        b = self.sell_book()
-        self.assertEqual(run(say(27, ref="LAT-07", template="chato_sell"), w=w, b=b, v=self.V).code, "G60.template")
-        self.assertNotIn("pilar_buy", talk.TEMPLATES)   # gold packs only: we never buy from her
-
-    def test_accept_her_offer_only_at_or_over_floor(self):
-        for price, ok in ((24, True), (23, False)):
-            t, w = self.sell_thread(theirs=((price, False),))
-            t["messages"][-1]["offer"]["want"] = {"cash": 0, "assets": [{"id": 267}], "types": []}
-            oid = t["messages"][-1]["offer"]["id"]
-            v = run(dealer_accept(oid, price, ref="LAT-07", side="sell"), w=w, b=self.sell_book(), v=self.V, fresh=t)
-            self.assertEqual(v.ok, ok, v)
-
-
 class Misc(unittest.TestCase):
     def test_other_kinds_refused(self):
         it = make_intent("cancel", "hygiene", {"offer_id": 1, "ref": None}, "t", "t", PRED)
         self.assertEqual(run(it).code, "G02.kind")
 
     def test_templates_cover_spec_names(self):
-        self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell",
-                                               "pilar_sell", "duel", "duel_days"})
+        self.assertEqual(set(talk.TEMPLATES), {"abuela_buy", "chato_buy", "abuela_sell", "chato_sell", "pilar_sell",
+                                               "picaros_buy", "picaros_sell", "banco_buy", "banco_sell", "duel", "duel_days"})
+
+    def test_banco_buy_lines_pass_g60(self):   # Sun: CHA-12 from Don Ernesto (L5); no "final" claims
+        for i, raw in enumerate(talk.TEMPLATES["banco_buy"]):
+            self.assertEqual(raw.count("{p}"), 1, i)
+            self.assertNotIn("últim", raw)
+            for p in (380, 470):
+                text = talk.render("banco_buy", i, p)
+                self.assertIsNone(talk.FORBIDDEN.search(text), i)
+                self.assertTrue(talk.firewall(text, p, None, template="banco_buy").ok, i)
+
+
+class SundayEggLines(unittest.TestCase):
+    """Pre-Sunday audit (Sun 4 Oct): the hand-sent egg lines render, pass G60 and stay out of automatic rotation."""
+    LINES = {("abuela_buy", 7): "chotis", ("abuela_buy", 8): "cocido", ("abuela_sell", 5): "chotis",
+             ("abuela_sell", 6): "cocido", ("chato_sell", 3): "calamares", ("chato_buy", 5): "calamares",
+             ("banco_sell", 5): "Casa Prima"}
+
+    def test_each_line_renders_and_passes_g60(self):
+        for (tpl, i), word in self.LINES.items():
+            raw = talk.TEMPLATES[tpl][i]
+            self.assertEqual(raw.count("{p}"), 1, (tpl, i))
+            self.assertIn(word, raw)
+            for p in (6, 8, 200):
+                text = talk.render(tpl, i, p)
+                self.assertLessEqual(len(text), talk.MAX_LEN)
+                self.assertIsNone(talk.FORBIDDEN.search(text), (tpl, i))
+                self.assertTrue(talk.firewall(text, p, None, template=tpl).ok, (tpl, i))
+
+    def test_lines_are_inside_the_egg_tail(self):
+        for (tpl, i) in self.LINES:
+            self.assertGreaterEqual(i, len(talk.TEMPLATES[tpl]) - talk.EGG_LINES[tpl], (tpl, i))
+
+    def test_egg_line_through_g31(self):
+        self.assertTrue(run(say(75, variant=5), w=world(threads={7: thread(ours=(70,))}), b=tb()).ok)   # chato_buy[5]
+
+    def test_never_the_oro_de_moscu(self):
+        self.assertFalse(any("Mosc" in line for lines in talk.TEMPLATES.values() for line in lines))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ import random
 import sys
 import types
 import unittest
-from types import MappingProxyType
 from unittest import mock
 
 from agent.contracts import FRIDAY, TEAM, Book, Need, Prediction, World
@@ -366,6 +365,51 @@ class ProposeUnitTest(Base):
         its = self._step(self._haggled(23), [need("RET-06", "abuela")])
         self.assertEqual([(i.kind, i.args["price"], i.args["template"]) for i in its], [("say", 20, "abuela_buy")])
 
+    def test_variant_skips_egg_lines(self):
+        # egg probe lines (the last EGG_LINES[t] lines of a template) are hand-sent only: rotation never reaches them
+        from agent import talk
+        for tpl, eggs in talk.EGG_LINES.items():
+            n = len(talk.TEMPLATES[tpl])
+            self.assertGreater(n - eggs, 0, tpl)
+            got = {D._variant(tpl, k) for k in range(40)}
+            self.assertEqual(got, set(range(n - eggs)), tpl)
+
+    def test_trick_offer_countered_never_accepted(self):
+        # Pícaros trick: the dealer's only live offer gives another card (RET-07) at a low price
+        t = self._haggled(15)
+        trick = t["messages"][-1]["offer"]
+        trick["give"]["types"] = ["card:RET-07"]
+        t["standing_offers"] = [trick]
+        its = self._step(t, [need("RET-06", "abuela")])
+        self.assertEqual([(i.kind, i.args.get("price")) for i in its], [("say", 20)])
+        # no room left above our last price -> close, still no accept
+        its = self._step(t, [need("RET-06", "abuela")], make_book(thread_limit={7: 18}, thread_by_dealer={"abuela": 7}))
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_trick_marked_final_closes_never_counters(self):
+        # live Sat: countering a Pícaros trick with final:true made them walk (final_offer_refused, a walk burnt)
+        t = self._haggled(15, final=True)
+        t["messages"][-1]["offer"]["give"]["types"] = ["card:RET-07"]
+        its = self._step(t, [need("RET-06", "abuela")])
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_own_shape_final_expiring_now_is_not_a_trick(self):
+        # a correct final for RET-06 expiring this tick is not executable and must never be countered (G31.final)
+        t = self._haggled(23, final=True)
+        t["messages"][-1]["offer"]["expires_tick"] = 10                    # world tick 10: dead by tick 11
+        self.assertEqual(self._step(t, [need("RET-06", "abuela")]), [])     # dealer spoke at 9: wait
+        # the dealer spoke last with nothing executable: closed after STALL_TICKS (one conversation per dealer)
+        its = self._step(t, [need("RET-06", "abuela")], tick=9 + D.STALL_TICKS)
+        self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_text_only_dealer_message_does_not_block_forever(self):
+        t = self._haggled(23)
+        t["messages"][-1]["offer"] = None
+        t["standing_offers"] = []
+        self.assertEqual(self._step(t, [need("RET-06", "abuela")]), [])
+        its = self._step(t, [need("RET-06", "abuela")], tick=12)
+        self.assertEqual([(i.kind, i.reason) for i in its], [("close_thread", "dealer spoke last with no executable offer")])
+
     def test_final_above_limit_closes(self):
         its = self._step(self._haggled(24, final=True),
                          [need("RET-06", "abuela")], make_book(thread_limit={7: 22}, thread_by_dealer={"abuela": 7}))
@@ -431,11 +475,12 @@ class OpenTest(Base):
         its = self._open([need("RET-06", "abuela"), need("RET-02", "abuela")])
         self.assertEqual(len(its), 1)
 
-    def test_no_new_threads_with_four_live_duels(self):
-        w = make_world(duels=[{"status": "live"}] * 4)
+    def test_no_new_threads_with_five_live_duels(self):
+        # Sunday's Duels III and Grand Final run 4 at a time: ladder threads keep opening; only > 4 stops them
+        w = make_world(duels=[{"status": "live"}] * 5)
         self.assertEqual(self._open([need("RET-06", "abuela")], world=w), [])
-        w3 = make_world(duels=[{"status": "live"}] * 3)
-        self.assertEqual(len(self._open([need("RET-06", "abuela")], world=w3)), 1)
+        w4 = make_world(duels=[{"status": "live"}] * 4)
+        self.assertEqual(len(self._open([need("RET-06", "abuela")], world=w4)), 1)
 
     def test_skips_closer_frozen_and_page_closing(self):
         self.assertEqual(self._open([need("RET-06", "abuela", closer=True)]), [])
@@ -461,6 +506,60 @@ class OpenTest(Base):
                         D.DealerState.rebuild(w, None))
         self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("abuela", 25)])
 
+    def test_cha_rare_picaros_then_chato_at_90(self):
+        # pre-Sunday audit: each thread keeps its own profile limit; the Need (cap 90) lets the Chato fallback open
+        cat = {"sets": [{"id": "CHA", "cards": [{"id": "CHA-09", "rarity": "rare"}]}]}
+        plan = {"profiles": {
+            "CHA:rare": {"dealer": "picaros", "anchor": 45, "step": 3, "limit": 60, "fallback_after": 24,
+                         "fallback_dealer": "chato"},
+            "rare": {"dealer": "chato", "anchor": 70, "step": 4, "limit": 90, "fallback_after": None}},
+            "dealer_max": {"CHA-09": 100}}
+        vals = {"CHA-09": 112.0}
+        import dataclasses
+        w = dataclasses.replace(make_world(tick=30, unlocked=("abuela", "chato", "picaros")), catalog=cat)
+        its = D.propose(w, make_book(), FakeValuer(vals), Cfg(), plan, [need("CHA-09", "picaros", max_price=90)],
+                        D.DealerState.rebuild(w, None))
+        self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("picaros", 60)])
+        walked = {3: {"id": 3, "with": "picaros", "topic": {"buy": {"card": "CHA-09"}}, "status": "closed",
+                      "created_tick": 15, "messages": [], "standing_offers": []}}
+        w2 = dataclasses.replace(w, threads=walked)
+        its = D.propose(w2, make_book(), FakeValuer(vals), Cfg(), plan, [need("CHA-09", "picaros", max_price=90)],
+                        D.DealerState.rebuild(w2, None))
+        self.assertEqual([(i.args["dealer"], i.args["limit"]) for i in its], [("chato", 90)])
+
+    def test_extra_need_leaves_the_closer_endgame_cash(self):
+        # pre-Sunday review: CHA-11 <= 170 / RET-11 <= 150 could leave less than the CHA closer needs (72 at 9/10,
+        # 102 at the endgame raise). Closer Need 72 + (50 - 20) = 102 reserved; a standing closer bid is already
+        # out of cash_free, so only its raise is kept
+        import dataclasses
+        cat = {"sets": [{"id": "CHA", "cards": [{"id": "CHA-11", "rarity": "epic"}, {"id": "CHA-04", "rarity": "common"}]}]}
+        plan = {"profiles": {"CHA-11": {"dealer": "picaros", "anchor": 130, "step": 4, "limit": 170}},
+                "dealer_max": {}, "extra_needs": [{"ref": "CHA-11", "max_price": 170}],
+                "closer": {"default_minus": 50, "compete_minus": 20}}
+        w = dataclasses.replace(make_world(unlocked=("abuela", "chato", "picaros")), catalog=cat)
+        needs = [need("CHA-11", "picaros", max_price=170), need("CHA-04", "team", max_price=72, closer=True)]
+        vals = {"CHA-11": 288.0, "CHA-04": 122.0}
+
+        def limit(cash_free, **kw):
+            its = D.propose(w, make_book(cash_free=cash_free, **kw), FakeValuer(vals), Cfg(), plan, needs,
+                            D.DealerState())
+            return [i.args["limit"] for i in its if i.kind == "open_thread"]
+        self.assertEqual(limit(400), [170])
+        self.assertEqual(limit(250), [148])                                  # 250 - 102
+        self.assertEqual(limit(200), [])                                     # 98 < anchor 130: not opened
+        self.assertEqual(limit(200, own_bids={"CHA-04": 50}, bid_price={50: 72}), [170])   # 200 - 30
+        self.assertEqual(D.closer_reserve(w, make_book(), plan, needs), 102)
+        # at the endgame the closer Need already carries its raised price: no extra raise reserved
+        eg = dict(plan, closer={"default_minus": 50, "compete_minus": 20, "endgame_hours": {"default": 9.0}})
+        self.assertEqual(D.closer_reserve(w, make_book(), eg, [need("CHA-04", "team", max_price=102, closer=True)]),
+                         102)
+        # page cards are not capped by the reserve (they are what makes the closer possible)
+        its = self._open([need("RET-09", "chato"), need("RET-02", "team", max_price=72, closer=True)],
+                         book=make_book(cash_free=100),
+                         plan=dict(PLAN, extra_needs=[{"ref": "CHA-11", "max_price": 170}],
+                                   closer={"default_minus": 50, "compete_minus": 20}))
+        self.assertEqual([i.args["limit"] for i in its], [90])
+
     def test_fallback_after_closes_slow_thread(self):
         o = dealer_offer(1, "chato", "RET-08", 32, 21)
         t = {"id": 7, "with": "chato", "topic": {"buy": {"card": "RET-08"}}, "status": "open", "created_tick": 15,
@@ -469,6 +568,15 @@ class OpenTest(Base):
         its = D.propose(w, make_book(thread_limit={7: 31}), FakeValuer(VALUES), Cfg(), PLAN,
                         [need("RET-08", "chato")], D.DealerState.rebuild(w, None))
         self.assertEqual([i.kind for i in its], ["close_thread"])
+
+    def test_fallback_after_still_accepts_within_limit(self):
+        o = dealer_offer(1, "chato", "RET-08", 30, 24, final=True)              # final 30 <= limit 31
+        t = {"id": 7, "with": "chato", "topic": {"buy": {"card": "RET-08"}}, "status": "open", "created_tick": 15,
+             "messages": [{"id": 1, "tick": 24, "sender": "chato", "offer": o}], "standing_offers": [o]}
+        w = make_world(tick=25, threads={7: t})
+        its = D.propose(w, make_book(thread_limit={7: 31}), FakeValuer(VALUES), Cfg(), PLAN,
+                        [need("RET-08", "chato")], D.DealerState.rebuild(w, None))
+        self.assertEqual([(i.kind, i.args.get("price")) for i in its], [("accept", 30)])
 
 
 class ProbeTest(Base):
@@ -517,7 +625,7 @@ class RebuildTest(unittest.TestCase):
 
 def _real_plan():
     from pathlib import Path
-    return json.loads((Path(__file__).resolve().parents[1] / "config" / "plan.json").read_text(encoding="utf-8"))
+    return json.loads((Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "plan_night.json").read_text(encoding="utf-8"))
 
 
 class RealPlanTest(Base):
@@ -525,10 +633,7 @@ class RealPlanTest(Base):
 
     def setUp(self):
         super().setUp()
-        try:
-            self.plan = _real_plan()
-        except Exception as e:                                      # pragma: no cover
-            self.skipTest(f"config/plan.json unreadable: {e}")
+        self.plan = _real_plan()                                    # the shipped plan must load: no skip
 
     def _open(self, needs, world=None):
         w = world or make_world()
@@ -643,10 +748,7 @@ class SimBotsTest(Base):
 
     def setUp(self):
         super().setUp()
-        try:
-            import sim.bots as B
-        except Exception as e:                                      # pragma: no cover
-            self.skipTest(f"sim/bots.py not importable: {e}")
+        import sim.bots as B
         self.B = B
 
     def _check(self, sim, limit):

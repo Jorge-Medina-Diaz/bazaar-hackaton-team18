@@ -15,8 +15,6 @@ from pathlib import Path
 from typing import Optional
 
 TEAM = "t18"
-WRITE_EXEMPT_CLOSED = ("DELETE",)          # cancel; close_thread is a POST matched by path below
-
 
 def _body_hashes(body) -> set:
     if body is None:

@@ -79,7 +79,8 @@ def world(tick=200, board=(), boards=None, my_offers=(), assets=(), offers_to_us
     return World(tick=tick, t_hours=t_hours, round=2, tick_seconds=30.0, tick_deadline=1e12, clock={},
                  limits=FRIDAY, reading=reading, me=me, my_offers=tuple(my_offers),
                  offers_to_us=tuple(offers_to_us), board=tuple(board), own_pseudonym="mown",
-                 threads={}, foreign_threads=(), duels=(), catalog=CATALOG, schedule={},
+                 threads={}, foreign_threads=(), duels=(), catalog=CATALOG,
+                 schedule={"now_hours": t_hours, "upcoming": []},
                  released_sets=frozenset({"RET", "MAL", "SAL", "LAT"}), feed_new=(), server_values={},
                  down=frozenset(down), boards=MappingProxyType(dict(boards or {})), venues=tuple(venues),
                  leaderboard=tuple(leaderboard))
@@ -207,6 +208,13 @@ class CloserTests(unittest.TestCase):
 
     def test_no_closer_bid_with_delivery_risk_or_pack(self):
         self.assertFalse([i for i in run(world(), book(delivery_risk=True)) if i.args.get("ref") == CLOSER])
+        # hygiene's own predicate (it cancels the bid next tick): schedule unreadable, or a pack grant due
+        import dataclasses
+        down = dataclasses.replace(world(), down=frozenset({"schedule"}))
+        self.assertFalse([i for i in run(down, book()) if i.args.get("ref") == CLOSER])
+        grant = dataclasses.replace(world(), schedule={"now_hours": 10.0, "upcoming": [
+            {"at_hours": 10.01, "action": "grant_all", "params": {"packs": ["sobre"]}}]})
+        self.assertFalse([i for i in run(grant, book()) if i.args.get("ref") == CLOSER])
         self.assertEqual(run(world(), book(packs=(123,))), [])
 
     def test_one_route_per_ref(self):
@@ -273,6 +281,7 @@ class J13Tests(unittest.TestCase):
             "abuela quota": (w, self.base(deals={"abuela": 7})),
             "expires soon": (world(tick=200, assets=[card(1, "RET-03")], board=[bid(5, "RET-03", 35, exp=201)]),
                              self.base()),
+            "endgame": (world(assets=[card(1, "RET-03")], board=[bid(5, "RET-03", 35)], t_hours=12.5), self.base()),
         }
         for name, (ww, bb) in cases.items():
             with self.subTest(name):
@@ -295,6 +304,25 @@ class SwapTests(unittest.TestCase):
                 out = run(world(assets=[card(1, "SAL-04")], board=[o]),
                           book(held={"SAL-04": 1}, keep={"SAL-04": 1}), needs=())
                 self.assertFalse([i for i in out if i.args.get("give_asset") == 1 or i.args.get("asset_id") == 1])
+
+    def test_swap_by_asset_id_respects_hand_sales_epics_and_resale(self):
+        # pre-Sunday review P7: a swap naming one of our asset ids skipped hand_sales, the epic no-spare rule and not_spare
+        import copy, dataclasses
+        o = swap(7, "LAT-09", want_asset=1)
+        plan = dict(PLAN, hand_sales=["MAL-04"], day_end_hours={"default": 11.0})
+        def acc(w, b, pl=plan, val=None):
+            out = rastro.propose(w, b, FakeValuer(**(val or VAL)), None, pl, [], {})
+            return [i for i in out if i.kind == "accept"]
+        self.assertFalse(acc(world(assets=[card(1, "MAL-04")], board=[o]), book(held={"MAL-04": 1})))
+        self.assertTrue(acc(world(t_hours=11.2, assets=[card(1, "MAL-04")], board=[o]), book(held={"MAL-04": 1})))
+        cat = copy.deepcopy(CATALOG)
+        cat["sets"][2]["cards"].append({"id": "SAL-11", "rarity": "epic", "book": 200})
+        val = dict(add=VAL["add"], rm=dict(VAL["rm"], **{"SAL-11": 10.0}))
+        w = dataclasses.replace(world(assets=[card(1, "SAL-11", "epic")], board=[o]), catalog=cat)
+        self.assertFalse(acc(w, book(held={"SAL-11": 1}), PLAN, val))                   # epic: never a spare
+        w2 = world(assets=[card(1, "MAL-04")], board=[o])
+        self.assertFalse(acc(w2, book(held={"MAL-04": 1}), dict(PLAN, resale=["MAL-04"])))   # bought for resale
+        self.assertTrue(acc(w2, book(held={"MAL-04": 1}), PLAN))
 
     def test_swap_listed_asset_not_handed(self):
         o = swap(7, "LAT-09", want_asset=1)
@@ -424,5 +452,141 @@ class VenueTests(unittest.TestCase):
         self.assertEqual(run(world(), b), [])
 
 
+class ResaleNeverSpareTests(unittest.TestCase):
+    def test_epic_legendary_and_plan_resale_refs_never_listed(self):
+        # Sat live: SAL-11 (epic, bought for resale to Los Picaros, plan extra_needs) was listed on El Rastro at V+2
+        assets = [card(1, "SAL-11", "epic"), card(2, "LAT-12", "legendary"), card(3, "MAL-04"), card(4, "MAL-05")]
+        val = FakeValuer(add=VAL["add"], rm=dict(VAL["rm"], **{"SAL-11": 198.0, "LAT-12": 405.0}))
+        plan = dict(PLAN, extra_needs=[{"ref": "MAL-05", "max_price": 10}])
+        held = {"SAL-11": 1, "LAT-12": 1, "MAL-04": 1, "MAL-05": 1}
+        out = rastro.propose(world(assets=assets), book(held=held), val, None, plan, [], {})
+        listed = [i.args["ref"] for i in out if i.kind == "list_offer" and i.args["side"] in ("sell", "swap")]
+        self.assertEqual(listed, ["MAL-04"])
+
+
+class RealBookTests(unittest.TestCase):
+    """With the real Valuer and guards.build_book (the test doubles above hid this): build_book counts our own
+    standing bid's copy in projected, so the closer read RET-05 as a 2nd copy (3.25, not 99.1) and never moved."""
+
+    RET = [card(100 + i, f"RET-{i:02d}", "common" if i <= 5 else ("uncommon" if i <= 8 else "rare"))
+           for i in range(1, 11) if i != 5]
+
+    def real(self, my_offers=(), board=(), assets=()):
+        import json
+        from dataclasses import replace
+        from pathlib import Path
+        from agent import guards
+        from agent.valuation import Valuer
+        cat = json.loads((Path(__file__).resolve().parent / "fixtures" / "harvest" / "catalog.json")
+                         .read_text(encoding="utf-8"))
+        aff = {"LAV": 0.7, "MAL": 0.5, "LAT": 0.9, "SAL": 1.1, "RET": 1.3, "CHA": 1.6}
+        w = world(board=board, my_offers=my_offers, assets=list(self.RET) + list(assets))
+        w = replace(w, catalog=cat, schedule={"now_hours": 10.0, "upcoming": []},
+                    me=dict(w.me, affinity=aff))
+        v = Valuer(cat, aff, w.released_sets)
+        b = replace(guards.build_book(w, None, v, guards.Cfg(), PLAN, {}, {}), valuation_ok=True)
+        return w, b, v
+
+    def test_projected_counts_our_bid(self):
+        w, b, v = self.real(my_offers=[own_bid(50, CLOSER, 49)])
+        self.assertEqual(b.projected.get(CLOSER), 1)                    # the trap: our own bid's copy
+        cx = rastro._Ctx(w, b, v, None, PLAN, [CLOSER_NEED], {})
+        self.assertAlmostEqual(cx.dv_add(CLOSER), 99.125, places=3)
+        self.assertTrue(v.closes_page(cx.proj, CLOSER))
+
+    def test_closer_raises_with_its_own_bid_standing(self):
+        w, b, v = self.real(my_offers=[own_bid(50, CLOSER, 49)], board=[bid(60, CLOSER, 55)])
+        out = rastro.propose(w, b, v, None, PLAN, [CLOSER_NEED], {})
+        self.assertEqual([(i.kind, i.tactic, i.args["offer_id"]) for i in out if i.kind == "cancel"],
+                         [("cancel", "closer", 50)])
+
+    def test_closer_switches_to_a_board_sale(self):
+        state = {}
+        w, b, v = self.real(my_offers=[own_bid(50, CLOSER, 49)], board=[sale(1, CLOSER, 70)])
+        out = rastro.propose(w, b, v, None, PLAN, [CLOSER_NEED], state)
+        self.assertEqual([(i.kind, i.args["offer_id"]) for i in out if i.args.get("ref") == CLOSER],
+                         [("cancel", 50)])
+        self.assertEqual(state["closer"][CLOSER]["pending"]["what"], "accept")
+
+    def test_j6_switch_values_the_first_copy(self):
+        need = Need(set="MAL", ref="MAL-09", source="team", max_price=60, closer=False)
+        w, b, v = self.real(my_offers=[own_bid(51, "MAL-09", 10)], board=[sale(2, "MAL-09", 20)])
+        out = rastro.propose(w, b, v, None, PLAN, [need], {})
+        self.assertEqual([(i.kind, i.args["offer_id"]) for i in out if i.args.get("ref") == "MAL-09"],
+                         [("cancel", 51)])                              # 35 - 20 - 2 = 13 >= 3 (2nd copy: 8.75)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class BuyAnyTests(unittest.TestCase):
+    """M9 (pre-Sunday audit): after the dealer day end or in the endgame, J6 also buys a first copy outside the page
+    sets below our value (cash held at the 15:00 freeze scores 0); never a 2nd copy, never a page-set ref."""
+    PLAN_ANY = dict(PLAN, endgame_buy_any=True, page_sets=["RET"], day_end_hours={"default": 11.0})
+    VAL_ANY = dict(add=dict(VAL["add"], **{"SAL-04": 40.0}), rm=VAL["rm"])
+
+    def go(self, t, held=None, offers=None, plan=None):
+        w = world(t_hours=t, board=offers or [sale(41, "SAL-04", 20)])
+        return rastro.propose(w, book(held=held), FakeValuer(**self.VAL_ANY), None, plan or self.PLAN_ANY, [], {})
+
+    def accepts(self, out):
+        return [(i.args["ref"], i.args["price"]) for i in out if i.kind == "accept"]
+
+    def test_off_before_the_dealer_day_end(self):
+        self.assertEqual(self.accepts(self.go(10.0)), [])
+
+    def test_on_after_the_dealer_day_end(self):
+        out = self.go(11.2)
+        self.assertEqual(self.accepts(out), [("SAL-04", 20)])
+        self.assertGreaterEqual([i for i in out if i.kind == "accept"][0].prediction.neg_lo, 3)
+
+    def test_on_in_the_endgame(self):
+        plan = dict(self.PLAN_ANY, day_end_hours={})
+        self.assertEqual(self.accepts(self.go(12.1, plan=plan)), [("SAL-04", 20)])     # endgame_hours N 12.0
+
+    def test_never_a_second_copy(self):
+        self.assertEqual(self.accepts(self.go(11.2, held={"SAL-04": 1})), [])
+
+    def test_never_a_page_set_ref_without_a_need(self):
+        self.assertEqual(self.accepts(self.go(11.2, offers=[sale(42, "RET-03", 5)])), [])
+
+    def test_flag_off(self):
+        plan = dict(self.PLAN_ANY, endgame_buy_any=False)
+        self.assertEqual(self.accepts(self.go(11.2, plan=plan)), [])
+
+    def test_not_below_min_gain(self):
+        self.assertEqual(self.accepts(self.go(11.2, offers=[sale(43, "SAL-04", 37)])), [])
+
+    def test_keeps_the_closer_raise_cash(self):
+        # pre-Sunday review P3: closer bid 49 standing after the dealer day end, before the endgame. Its endgame raise
+        # needs floor(99.1 - 20) - 49 = 30 more; with cash_free 40 a 20 P buy-any would leave 20 and block the raise
+        val = dict(add=dict(self.VAL_ANY["add"]), rm=self.VAL_ANY["rm"])
+        def go(cash):
+            w = world(t_hours=11.2, board=[sale(41, "SAL-04", 20)], my_offers=[own_bid(50, CLOSER, 49)])
+            return rastro.propose(w, book(cash_free=cash, own_bids={CLOSER: 49}), FakeValuer(**val), None,
+                                  self.PLAN_ANY, [CLOSER_NEED], {})
+        self.assertEqual(self.accepts(go(40)), [])
+        self.assertEqual(self.accepts(go(60)), [("SAL-04", 20)])                 # 60 - 30 = 30 >= 20
+
+
+class HandSalesTests(unittest.TestCase):
+    """plan.hand_sales (Sunday sim: J5 listed the ladder / egg carriers MAL-0x, LAV-0x at 9 P at 09:00): no J5
+    listing, no sale into a bid and no swap give of those refs until the dealer day ends."""
+    PLAN_HS = dict(PLAN, hand_sales=["MAL-04"], day_end_hours={"default": 11.0})
+
+    def go(self, t, board=()):
+        return rastro.propose(world(t_hours=t, assets=[card(1, "MAL-04")], board=list(board)), book(held={"MAL-04": 1}),
+                              FakeValuer(**VAL), None, self.PLAN_HS, [], {})
+
+    def gives(self, out):
+        return [(i.kind, i.args.get("ref")) for i in out if i.kind in ("list_offer", "accept")
+                and i.args.get("ref") == "MAL-04"]
+
+    def test_kept_before_the_dealer_day_end(self):
+        self.assertEqual(self.gives(self.go(10.0)), [])
+        self.assertEqual(self.gives(self.go(10.0, board=[bid(5, "MAL-04", 12)])), [])
+
+    def test_released_after_the_dealer_day_end(self):
+        self.assertEqual(self.gives(self.go(11.2)), [("list_offer", "MAL-04")])
+        self.assertEqual(self.gives(self.go(11.2, board=[bid(5, "MAL-04", 12)])), [("accept", "MAL-04")])

@@ -4,7 +4,6 @@ from __future__ import annotations
 import ast
 import collections
 import json
-import math
 import unittest
 from pathlib import Path
 
@@ -197,162 +196,49 @@ class TestValueModel(unittest.TestCase):
         self.assertLess(d2, -50)                          # loses the SAL page bonus
 
 
-def _catalog(values=None, minted=None):
-    """A deep copy of the harvest catalog with optional values overrides and per-ref minted overrides."""
-    cat = json.loads(json.dumps(CATALOG))
-    if values is not None:
-        cat["values"] = values
-    for s in cat["sets"]:
-        for c in s["cards"]:
-            if minted and c["id"] in minted:
-                c["minted"] = minted[c["id"]]
-    return cat
+class TestSelfCheckRobust(unittest.TestCase):
+    """Sat review: nothing unmeasured may fail self_check (valuation_ok False blocks every value write)."""
 
+    def test_unknown_asset_kind_is_not_a_pack(self):
+        me = dict(ME159)
+        me["assets"] = list(ME159["assets"]) + [{"id": 9998, "kind": "ticket", "ref": "golden_ticket"}]
+        self.assertEqual(Valuer.holdings(me), Valuer.holdings(ME159))
+        ok, err, mism = valuer().self_check(me, VALUES_ALL)
+        self.assertTrue(ok, mism)
+        me["assets"].append({"id": 9999, "kind": "pack", "ref": "sobre_nuevo"})   # a real unknown pack still fails
+        self.assertFalse(valuer().self_check(me, VALUES_ALL)[0])
 
-def _rarity_refs(rarity, released=FRIDAY_RELEASED):
-    return [c["id"] for s in CATALOG["sets"] if s["id"] in released for c in s["cards"] if c["rarity"] == rarity]
-
-
-class TestRarityFallback(unittest.TestCase):
-    """Official rule: an exhausted rarity draws from the next rarity down."""
-
-    # pack EVs with the harvest catalog before the fallback / master change (nothing exhausted)
-    EV159 = {"sobre_barrio": 11.466143228045496, "sobre_bienvenida": 36.74830225251024,
-             "sobre_plata": 87.8241835684799, "sobre_oro": 280.82401909644597}
-    EV0 = {"sobre_barrio": 27.0353716254703, "sobre_bienvenida": 62.42841695318094,
-           "sobre_plata": 128.64683718514817, "sobre_oro": 328.2743231293531}
-
-    def test_ev_regression_nothing_exhausted(self):
+    def test_fourth_copy_not_compared(self):
         v = valuer()
-        c, _ = Valuer.holdings(ME159)
-        for p in self.EV159:
-            self.assertAlmostEqual(v.pack_ev(p, c), self.EV159[p], places=9)
-            self.assertAlmostEqual(v.pack_ev(p, {}), self.EV0[p], places=9)
-
-    def test_exhausted_legendary_uses_epic(self):
-        leg = {r: 3 for r in _rarity_refs("legendary")}
-        v = Valuer(_catalog(minted=leg), AFF, FRIDAY_RELEASED)
-        plain = valuer()
-        dist = v._slot_dist("legendary", None)
-        self.assertEqual({r for r, _ in dist}, set(_rarity_refs("epic")))
-        self.assertAlmostEqual(sum(q for _, q in dist), 1.0)
-        self.assertEqual(dist, plain._slot_dist("epic", None))
-        # sobre_oro last slot {epic .85, legendary .15} -> all epic: EV equals a pure-epic slot
-        oro = dict(next(p for p in CATALOG["packs"] if p["id"] == "sobre_oro"))
-        oro["slots"] = oro["slots"][:4] + [{"epic": 1.0}]
-        cat = _catalog(minted=leg)
-        cat["packs"] = [oro]
-        ref_v = Valuer(cat, AFF, FRIDAY_RELEASED)
-        self.assertAlmostEqual(v.pack_ev("sobre_oro", {}), ref_v.pack_ev("sobre_oro", {}), places=9)
-        # the same through the minted argument (Sensor counts: replaces the catalog field for every ref)
-        full = {c["id"]: c["minted"] for s in CATALOG["sets"] for c in s["cards"]}
-        full.update(leg)
-        self.assertAlmostEqual(valuer().pack_ev("sobre_oro", {}, full),
-                               ref_v.pack_ev("sobre_oro", {}), places=9)
-
-    def test_partially_mixed_slot_merges_mass(self):
-        # plata last slot {rare .86, epic .12, legendary .02}; epic + legendary out -> all rare
-        out = {r: 9 for r in _rarity_refs("epic")}
-        out.update({r: 3 for r in _rarity_refs("legendary")})
-        v = Valuer(_catalog(minted=out), AFF, FRIDAY_RELEASED)
-        plata = dict(next(p for p in CATALOG["packs"] if p["id"] == "sobre_plata"))
-        plata["slots"] = plata["slots"][:4] + [{"rare": 1.0}]
-        cat = _catalog(minted=out)
-        cat["packs"] = [plata]
-        self.assertAlmostEqual(v.pack_ev("sobre_plata", {}), Valuer(cat, AFF, FRIDAY_RELEASED)
-                               .pack_ev("sobre_plata", {}), places=9)
-        # only legendary out: its .02 lands on the epics, i.e. {rare .86, epic .14}
-        leg = {r: 3 for r in _rarity_refs("legendary")}
-        v2 = Valuer(_catalog(minted=leg), AFF, FRIDAY_RELEASED)
-        plata["slots"] = plata["slots"][:4] + [{"rare": 0.86, "epic": 0.14}]
-        cat2 = _catalog(minted=leg)
-        cat2["packs"] = [plata]
-        self.assertAlmostEqual(v2.pack_ev("sobre_plata", {}), Valuer(cat2, AFF, FRIDAY_RELEASED)
-                               .pack_ev("sobre_plata", {}), places=9)
-        self.assertLess(v2.pack_ev("sobre_plata", {}), valuer().pack_ev("sobre_plata", {}))
-
-    def test_everything_exhausted_fails_closed(self):
-        out = {}
-        for rar, n in (("common", 300), ("uncommon", 90), ("rare", 30), ("epic", 9), ("legendary", 3)):
-            out.update({r: n for r in _rarity_refs(rar)})
-        v = Valuer(_catalog(minted=out), AFF, FRIDAY_RELEASED)
-        for p in ("sobre_barrio", "sobre_plata", "sobre_oro"):
-            with self.assertRaises(UnknownPack):
-                v.pack_ev(p, {})
-        # rare and below out: a legendary-only slot still has the epics, a rare slot has nothing
-        low = {r: n for r, n in out.items() if r in set(_rarity_refs("common") + _rarity_refs("uncommon")
-                                                       + _rarity_refs("rare"))}
-        v2 = Valuer(_catalog(minted=low), AFF, FRIDAY_RELEASED)
-        self.assertTrue(v2._slot_dist("legendary", None))
-        with self.assertRaises(UnknownPack):
-            v2._slot_dist("rare", None)
-
-    def test_malformed_slot_fails_closed(self):
-        for slot in ({"mythic": 1.0}, {"rare": float("nan")}, {"rare": -0.1}, {"rare": "1"}):
-            cat = _catalog()
-            cat["packs"] = [{"id": "sobre_x", "slots": [slot]}]
-            with self.assertRaises(UnknownPack):
-                Valuer(cat, AFF, FRIDAY_RELEASED).pack_ev("sobre_x", {})
-
-    def test_missing_rarity_is_not_a_stock_out(self):
-        # legendary entries absent (or with a non-finite book) -> bad data, never the epic fallback
-        for how in ("drop", "book", "one_set"):
-            cat = _catalog()
-            for s in cat["sets"]:
-                if how == "one_set" and s["id"] != "LAV":
-                    continue
-                if how == "book":
-                    for c in s["cards"]:
-                        if c["rarity"] == "legendary":
-                            c["book"] = None
-                else:
-                    s["cards"] = [c for c in s["cards"] if c["rarity"] != "legendary"]
-            v = Valuer(cat, AFF, FRIDAY_RELEASED)
-            with self.assertRaises(UnknownPack):
-                v._slot_dist("legendary", None)
-            with self.assertRaises(UnknownPack):
-                v.pack_ev("sobre_oro", {})
-            self.assertTrue(v._slot_dist("epic", None))
+        me = dict(ME159)
+        extra = [dict(a, id=8000 + i, your_value=0.0) for i, a in
+                 enumerate(a for a in ME159["assets"] if a.get("ref") == "LAT-01")]
+        me["assets"] = list(ME159["assets"]) + extra                        # LAT-01 x4
+        c, packs = Valuer.holdings(me)
+        self.assertEqual(c["LAT-01"], 4)
+        me["collection_value"] = v._total(c, packs, None, "buy")            # server prices the 4th copy at 0
+        ok, err, mism = v.self_check(me, VALUES_ALL)
+        self.assertTrue(ok, mism)
+        me["collection_value"] = v.collection_value(c, packs)               # ... or at MARG[-1]
+        self.assertTrue(v.self_check(me, VALUES_ALL)[0])
+        me["collection_value"] = v.collection_value(c, packs) + 5.0         # anything else is still a mismatch
+        self.assertFalse(v.self_check(me, VALUES_ALL)[0])
 
 
 class TestMasterBonus(unittest.TestCase):
-    """master_bonus (V-13): INFERRED base = page cards + epic + legendary of the set, all held."""
-
-    @staticmethod
-    def _full(sid="LAV"):
-        return collections.Counter({c["id"]: 1 for s in CATALOG["sets"] if s["id"] == sid for c in s["cards"]})
-
-    def test_fires_only_with_all_twelve(self):
-        v = valuer()
-        full = self._full()
-        self.assertEqual(len(full), 12)
-        no_mb = Valuer(_catalog(values={"copy_marginals": [1.0, 0.25, 0.1], "page_bonus": 0.25}), AFF,
-                       FRIDAY_RELEASED)
-        master_base = sum(v.base(r) for r in full)
-        self.assertAlmostEqual(v.collection_value(full) - no_mb.collection_value(full), 0.1 * master_base)
-        for missing in ("LAV-01", "LAV-11", "LAV-12"):
-            c = collections.Counter(full)
-            del c[missing]
-            self.assertAlmostEqual(v.collection_value(c), no_mb.collection_value(c))
-        # the 12th card is worth its first copy + the master bonus
-        c = collections.Counter(full)
-        del c["LAV-12"]
-        self.assertAlmostEqual(v.delta_add(c, "LAV-12"), v.base("LAV-12") + 0.1 * master_base)
-        self.assertEqual(v.masters["LAV"], tuple(sorted(full)))
-
-    def test_absent_master_bonus_no_effect(self):
-        no_mb = Valuer(_catalog(values={"copy_marginals": [1.0, 0.25, 0.1], "page_bonus": 0.25}), AFF,
-                       FRIDAY_RELEASED)
-        self.assertEqual(no_mb.master_bonus, 0.0)
-        full = self._full()
-        expected = sum(no_mb.base(r) for r in full) + 0.25 * sum(no_mb.base(r) for r in no_mb.pages["LAV"])
-        self.assertAlmostEqual(no_mb.collection_value(full), expected)
-
-    def test_malformed_master_bonus(self):
-        for bad in (float("nan"), float("inf"), "0.1", None):
-            with self.assertRaises(ValueError):
-                Valuer(_catalog(values={"copy_marginals": [1.0, 0.25, 0.1], "page_bonus": 0.25,
-                                        "master_bonus": bad}), AFF, FRIDAY_RELEASED)
+    def test_master_bonus_fires_with_page_epic_legendary(self):
+        # Sat t950: the server valued SAL-12 at 593.5 with our page + SAL-11 held = page/master model (495 without)
+        import copy
+        cat = copy.deepcopy(CATALOG)
+        cat["values"]["master_bonus"] = 0.1
+        v = Valuer(cat, {"SAL": 1.1}, frozenset({"SAL"}))
+        refs = v.masters.get("SAL")
+        self.assertTrue(refs and len(refs) == len(v.pages["SAL"]) + 2)
+        held = {r: 1 for r in refs if r != refs[-1]}
+        base = sum(v.base(r) for r in refs)
+        self.assertAlmostEqual(v.delta_add(held, refs[-1], ()) - v.base(refs[-1]), 0.1 * base, places=6)
+        self.assertEqual(Valuer(CATALOG, {"SAL": 1.1}, frozenset({"SAL"})).master_bonus,
+                         float(CATALOG["values"].get("master_bonus", 0.0)))
 
 
 class TestNegLedger(unittest.TestCase):

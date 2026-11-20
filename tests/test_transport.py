@@ -3,7 +3,6 @@ INV-21 (hosts), dashboard redaction and api/index.py fail-closed auth. Only in-p
 from __future__ import annotations
 
 import base64
-import hashlib
 import http.client
 import http.server
 import importlib.util

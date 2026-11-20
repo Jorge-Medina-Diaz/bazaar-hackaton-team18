@@ -3,7 +3,7 @@ canonical offer shapes and fingerprints (docs/harness-spec.md §2.5, §3, §4; l
 
 PURE except build_book, which reads the journal object it is handed (no file or network I/O here).
 
-NOTES (M4a, night build)
+Design notes
 - G01 (STOP file) and the "result already exists for iid" half of G05 need I/O: the Gate does them (§2.6
   steps 1-2). check() does the unknown-domain half of G05 and everything else that is pure.
 - G07 here is ONE-SIDED: a team intent may not claim more neg than the guard computes (+0.01). The exact
@@ -28,8 +28,9 @@ NOTES (M4a, night build)
   (ref), want want_ref. Value: V(received) - V(given) - fee via Valuer.delta_swap semantics.
 - Rival venues (D2): accept on a venue != "rastro" needs the venue open in World.venues, owner != t18
   (INV-20), a known leaderboard with the owner outside the top RIVAL_TOP_N, and neg_lo >= RIVAL_VENUE_MIN_GAIN.
-- Not done tonight: dealer_block / thread_limit / recent_rastro are rebuilt from the journal best effort
-  (the M2 row shapes were not final); delivery_risk does not yet look at "new dealer level announced";
+- Known limitations: dealer_block / thread_limit / recent_rastro are rebuilt from the journal best effort
+  (the M2 row shapes were not final; dealer_block also comes from our threads' closed_reason / until_tick, see
+  _closed_thread_blocks); delivery_risk does not yet look at "new dealer level announced";
   dup_min_price (RET/CHA >= 30) is a tactic rule, not a guard here.
 """
 from __future__ import annotations
@@ -44,8 +45,8 @@ from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any, Mapping, Optional
 
-from agent.contracts import (ARGS, KINDS, RASTRO, TALK_KINDS, TEAM, Book, Intent, Outcome, Verdict,
-                             domains_of, make_intent)
+from agent.contracts import KINDS, RASTRO, TALK_KINDS, TEAM, Book, Intent, Outcome, Verdict, domains_of, make_intent
+from agent.offer_safety import offer_ok
 from agent.valuation import fee as _fee
 
 REF_RE = re.compile(r"[A-Z]{3}-\d{2}")
@@ -80,8 +81,9 @@ class Cfg:
     RIVAL_TOP_N: int = 5
     GRANT_LOOKAHEAD_TICKS: int = 3
     DAYS_SIGN: Optional[int] = None
+    DAYS_WEIGHT_FALLBACK: Optional[float] = None   # plan duels.days_weight_fallback (null server weight)
     ABUELA_DEALS_HOUR_MAX: int = 6
-    TICKS_PER_GAME_HOUR: int = 60          # measured: tick 159 at t_hours 2.65
+    TICKS_PER_GAME_HOUR: int = 60          # fallback only (Fri 60 s ticks): use ticks_per_hour(world, cfg)
     MIN_EXPIRES: int = 4
     MAX_EXPIRES: int = 240
 
@@ -163,8 +165,19 @@ def _assets(world) -> dict:
 
 
 def _pack_types(world) -> tuple:
+    """Types of the packs in hand: only kind "pack" (an unknown asset kind is not a pack: it made book.packs
+    non-empty and G14 refused every trade)."""
     return tuple(a.get("ref") if isinstance(a.get("ref"), str) else ""
-                 for a in _assets(world).values() if a.get("kind") != "card")
+                 for a in _assets(world).values() if a.get("kind") == "pack")
+
+
+def ticks_per_hour(world, cfg: Optional[Cfg] = None) -> int:
+    """Ticks per game hour. A game hour is a wall hour, so 3600 / tick_seconds (60 at 60 s on Friday: t159 =
+    2.65 h; 120 at 30 s; 240 on Sunday at 15 s). cfg.TICKS_PER_GAME_HOUR only when tick_seconds is unknown."""
+    ts = getattr(world, "tick_seconds", None)
+    if _finite(ts) and ts > 0:
+        return max(1, int(round(3600.0 / ts)))
+    return int(getattr(cfg, "TICKS_PER_GAME_HOUR", 60) or 60)
 
 
 def free(book: Book, ref: str, world=None) -> int:
@@ -375,8 +388,9 @@ def _thread_buy_ref(t: Mapping) -> Optional[str]:
 
 
 def _thread_standing(t: Mapping) -> Optional[int]:
-    """Price of the dealer's live offer in a buy thread (the price we could be charged), or None."""
-    dealer = t.get("with")
+    """Price of the live offer in a buy thread (the price we could be charged), or None. A dealer offer that fails
+    offer_safety.offer_ok (the Pícaros trick: another card at the asked price) can never be accepted: ignored."""
+    dealer, topic = t.get("with"), t.get("topic")
     best = None
     offers = list(t.get("standing_offers") or [])
     for m in t.get("messages") or []:
@@ -384,9 +398,59 @@ def _thread_standing(t: Mapping) -> Optional[int]:
             offers.append(m["offer"])
     for o in offers:
         if isinstance(o, Mapping) and o.get("status") == "open" and o.get("maker") in (dealer, TEAM):
+            if o.get("maker") == dealer and not offer_ok(o, topic, buying=True):
+                continue
             p = _offer_price(o, "want") if o.get("maker") == dealer else _offer_price(o, "give")
             best = p if best is None else max(best, p)
     return best
+
+
+def _own_thread_prices(t: Mapping) -> tuple:
+    """Our prices in a dealer thread, oldest first. Live messages have no top-level price (keys id, offer, sender,
+    tick): the price is the cash of the offer the message carries (give.cash when we buy, want.cash when we sell),
+    as gate._foreign_writer reads it. A top-level price (fake server, tests) is the fallback."""
+    side = "give" if _thread_buy_ref(t) else "want"
+    out = []
+    for m in t.get("messages") or []:
+        if not isinstance(m, Mapping) or m.get("sender") != TEAM:
+            continue
+        o = m.get("offer")
+        p = _offer_price(o, side) if isinstance(o, Mapping) else 0
+        if not p and _int(m.get("price")):
+            p = m["price"]
+        if p > 0:
+            out.append(p)
+    return tuple(out)
+
+
+_HOUR_BLOCK_REASONS = ("persona_quota", "persona_budget", "sold_out")
+
+
+def _closed_thread_blocks(world, tph: int) -> dict:
+    """dealer -> until_tick from our threads the dealer closed in the current game hour (closed_reason; live Sat:
+    status "walked", closed_reason "persona_budget"): cooloff until its until_tick (end of the hour without one),
+    persona_quota / persona_budget / sold_out until the end of the current game hour, so the dealers tactic does
+    not reopen them. The closing tick is the thread's last message (or created_tick)."""
+    out: dict = {}
+    t_h = world.t_hours if _finite(world.t_hours) else None
+    frac = t_h - math.floor(t_h) if t_h is not None else 0.0
+    hour_start = world.tick - int(math.floor(frac * tph + 1e-9)) if t_h is not None else world.tick - tph
+    hour_end = world.tick + max(1, math.ceil((1.0 - frac) * tph))
+    for t in (world.threads or {}).values():
+        if not isinstance(t, Mapping) or t.get("status") == "open" or not isinstance(t.get("with"), str):
+            continue
+        reason = t.get("closed_reason")
+        if not isinstance(reason, str) or not reason:
+            continue
+        until = t.get("until_tick") if "cooloff" in reason and _int(t.get("until_tick")) else None
+        if until is None and ("cooloff" in reason or any(c in reason for c in _HOUR_BLOCK_REASONS)):
+            ticks = [m.get("tick") for m in t.get("messages") or () if isinstance(m, Mapping) and _int(m.get("tick"))]
+            last = max(ticks) if ticks else t.get("created_tick")
+            if _int(last) and last >= hour_start:
+                until = hour_end
+        if until is not None and until >= world.tick:
+            out[t["with"]] = max(until, out.get(t["with"], until))
+    return out
 
 
 def _rows(journal, kinds) -> list:
@@ -436,10 +500,11 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
             commit += p
 
     # dealer threads opened by us
-    thread_limit, thread_prices, thread_ref, thread_by_dealer = {}, {}, {}, {}
+    thread_limit, thread_prices, thread_ref, thread_by_dealer, thread_res = {}, {}, {}, {}, {}
     deals_hour: Counter = Counter()
     abuela_open = False
-    hour_ago = world.tick - cfg.TICKS_PER_GAME_HOUR
+    tph = ticks_per_hour(world, cfg)
+    hour_ago = world.tick - tph
     for tid, t in (world.threads or {}).items():
         if not isinstance(t, Mapping):
             continue
@@ -447,8 +512,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
         if t.get("status") == "deal" and isinstance(dealer, str) and _int(t.get("created_tick")) \
                 and t["created_tick"] >= hour_ago:
             deals_hour[dealer] += 1
-        prices = tuple(m.get("price") for m in (t.get("messages") or [])
-                       if isinstance(m, Mapping) and m.get("sender") == TEAM and _int(m.get("price")))
+        prices = _own_thread_prices(t)
         thread_prices[tid] = prices
         if t.get("status") != "open":
             continue
@@ -462,7 +526,7 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
             standing = _thread_standing(t)
             if standing is not None:
                 projected[ref] += 1
-            commit += max([standing or 0] + list(prices))
+            thread_res[tid] = max([standing or 0] + list(prices))    # capped at the thread's limit below
         else:
             topic = t.get("topic") or {}
             sell = topic.get("sell") if isinstance(topic, Mapping) else None
@@ -492,11 +556,13 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                 if it.get("intent_kind") == "open_thread" and r.get("status") == "ok" and isinstance(resp, Mapping) \
                         and _int(resp.get("id")) and _int(args.get("limit")):
                     thread_limit[resp["id"]] = args["limit"]
-                if any(c in code for c in ("cooloff", "persona_quota")):
+                if any(c in code for c in ("cooloff", "persona_quota", "persona_budget", "sold_out")):
                     dealer = args.get("dealer") or (world.threads.get(args.get("thread_id")) or {}).get("with")
                     until = r.get("until_tick") or (resp.get("until_tick") if isinstance(resp, Mapping) else None)
+                    if not _int(until) and isinstance(r.get("dealer_block"), Mapping):
+                        until = r["dealer_block"].get(dealer)   # the Gate's own end-of-hour block on that refusal
                     if isinstance(dealer, str):
-                        dealer_block[dealer] = until if _int(until) else (r.get("tick") or world.tick) + cfg.TICKS_PER_GAME_HOUR
+                        dealer_block[dealer] = until if _int(until) else (r.get("tick") or world.tick) + tph
                 if it.get("intent_kind") == "accept" and r.get("status") == "ok" and args.get("venue", RASTRO) == RASTRO:
                     _note_trade(recent, args, r.get("tick") or it.get("tick") or 0)
             elif k == "settlement":
@@ -505,6 +571,8 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                     if it.get("intent_kind") == "list_offer":
                         _note_trade(recent, it.get("args") or {}, r.get("tick") or 0)
         for p in journal.pending():
+            if p.get("pending") == "accepted_unsettled" and _int(p.get("tick")) is not None                     and world.tick > p["tick"] and "me" not in (world.down or ()):
+                continue   # settles at T+1 (settles_at_tick): from T+1 the World read already shows the card and cash
             # M2 rows: the row kind is "intent" and the intent's own kind is in "intent_kind"
             it = p if p.get("kind") == "intent" else (intents.get(p.get("id")) or {})
             kind, args = it.get("intent_kind"), it.get("args") or {}
@@ -530,6 +598,15 @@ def build_book(world, journal, valuer, cfg: Cfg, plan_cfg, frozen, baseline) -> 
                 if args.get("dealer") not in thread_by_dealer:
                     paths[args["ref"]] += 1
                     commit += args.get("limit") if _int(args.get("limit")) else 0
+
+    for dealer, until in _closed_thread_blocks(world, tph).items():
+        dealer_block[dealer] = max(until, dealer_block.get(dealer, until))
+
+    # open buy threads reserve max(dealer ask, our prices), never above the limit the thread was opened with (we
+    # never pay more: a dealer asking 95 on a limit-90 thread held 95); unknown limit -> the full max (fail closed)
+    for tid, res in thread_res.items():
+        lim = thread_limit.get(tid)
+        commit += min(lim, res) if _int(lim) else res
 
     protect = frozenset(plan_cfg.get("protect_sets") or ("SAL", "RET", "CHA", "LAT"))
     keep = {}
@@ -597,7 +674,7 @@ def _grant_soon(world, ticks: Any, cfg: Cfg) -> bool:
         up = (world.schedule or {}).get("upcoming")
         if not isinstance(up, (list, tuple)) or not _finite(world.t_hours):
             return True
-        horizon = world.t_hours + float(ticks) / cfg.TICKS_PER_GAME_HOUR
+        horizon = world.t_hours + float(ticks) / ticks_per_hour(world, cfg)
         for e in up:
             params = e.get("params") or {}
             if isinstance(params, Mapping) and params.get("packs"):
@@ -669,12 +746,11 @@ def apply(book: Book, intent: Intent, outcome: Outcome) -> Book:
 # ------------------------------------------------------------------------------------------- check
 
 def check(intent, world, book, valuer, cfg, counters, *, fresh=None, now: float) -> Verdict:
-    """PURE. Globals G02-G06 (+ one-sided G07), G61 (no pack is ever bought), then the team / publication / pack / thread-close guards.
+    """PURE. Globals G02-G06 (+ one-sided G07), then the team / publication / pack / thread-close guards.
     TALK_KINDS and dealer accepts go to agent.talk.check. Any exception -> refuse (fail closed)."""
     try:
         cfg = cfg or Cfg()
         _globals(intent, world, book, cfg, counters, now)
-        _g61(intent, world, fresh)
         kind, a = intent.kind, intent.args
         if kind in TALK_KINDS or (kind == "accept" and a["source"] == "dealer"):
             try:
@@ -746,68 +822,6 @@ def _globals(it, world, book, cfg, counters, now) -> None:
     # G14 unopened pack
     if book.packs:
         _need(kind in _PACK_OK_KINDS, "G14.pack")
-
-
-_PACK_RELEASE_KINDS = frozenset({"cancel", "close_thread", "open_pack"})
-
-
-def _pack_ids(world) -> frozenset:
-    cat = world.catalog if isinstance(world.catalog, Mapping) else {}
-    return frozenset(p.get("id") for p in cat.get("packs") or () if isinstance(p, Mapping))
-
-
-def _is_pack_ref(ref: Any, ids: frozenset) -> bool:
-    return isinstance(ref, str) and (ref.startswith("pack:") or "sobre_" in ref or ref in ids)
-
-
-def _receives_pack(offer: Any) -> bool:
-    """The maker's give carries anything but cards (a pack asset or a non-card type). Unreadable -> True."""
-    if not isinstance(offer, Mapping):
-        return False
-    give = offer.get("give")
-    if give is None:
-        return False
-    if not isinstance(give, Mapping):
-        return True
-    for a in give.get("assets") or ():
-        if not isinstance(a, Mapping) or a.get("kind", "card") != "card" or "pack" in a:
-            return True
-    for t in give.get("types") or ():
-        if not (isinstance(t, str) and t.startswith("card:")):
-            return True
-    return "packs" in give and bool(give.get("packs"))
-
-
-def _g61(it: Intent, world, fresh) -> None:
-    """Packs are never bought (strategy §2.1.1, INV-09): no intent names, threads for or receives a pack."""
-    if it.kind in _PACK_RELEASE_KINDS:
-        return
-    a, ids = it.args, _pack_ids(world)
-    for k in ("ref", "want_ref"):
-        _need(not _is_pack_ref(a.get(k), ids), "G61.pack_buy", str(a.get(k)))
-    tid = a.get("thread_id")
-    if tid is not None:
-        t = (world.threads or {}).get(tid)
-        _need(not (isinstance(t, Mapping) and _is_pack_ref(_thread_buy_ref(t), ids)), "G61.pack_buy",
-              f"thread {tid}")
-    if it.kind == "accept" and isinstance(fresh, Mapping):
-        f = fresh
-        ft = f.get("thread", f)
-        offers = [f.get("offer")] + [o for o in _thread_offers(ft) if o.get("id") == a["offer_id"]]
-        topic = ft.get("topic") if isinstance(ft, Mapping) else None
-        _need(not (isinstance(topic, Mapping) and isinstance(topic.get("buy"), Mapping) and "pack" in topic["buy"]),
-              "G61.pack_buy", "fresh topic")
-        _need(not any(_receives_pack(o) for o in offers), "G61.pack_buy", "offer gives a pack")
-
-
-def _thread_offers(t: Any) -> list:
-    if not isinstance(t, Mapping):
-        return []
-    out = [o for o in t.get("standing_offers") or () if isinstance(o, Mapping)]
-    for m in t.get("messages") or ():
-        if isinstance(m, Mapping) and isinstance(m.get("offer"), Mapping):
-            out.append(m["offer"])
-    return out
 
 
 def _g07(it: Intent, neg_lo: float) -> None:

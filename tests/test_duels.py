@@ -8,10 +8,9 @@ import copy
 import json
 import random
 import unittest
-from types import MappingProxyType
 
 from tests import HARVEST
-from agent.contracts import FRIDAY, Limits, World
+from agent.contracts import Limits, World
 from agent.tactics import duels as D
 
 ROLES = ("buyer", "seller")
@@ -281,7 +280,7 @@ class TestPolicy(unittest.TestCase):
         self.assertEqual(D.decide(D.view(duel(role="seller", L=60, deadline=116), 100), {}), ("say", 100, None))
 
     def test_slow_ascent_silent_rival(self):
-        # buyer L=100, start 100, deadline 116: anchor 60 -> 99 at deadline-2, 75 % of the way by deadline-5
+        # buyer L=100, start 100, deadline 116: anchor 60; the walk stops at slow_cap 0.8 of the way (60+0.8*39=91)
         d = duel(L=100, deadline=116)
         prices = {}
         for t in range(100, 116):
@@ -290,8 +289,8 @@ class TestPolicy(unittest.TestCase):
                 d["messages"].append(msg("you", t, p))
                 prices[t] = p
         self.assertEqual(prices[100], 60)
-        self.assertEqual(max(prices.values()), 99)
-        self.assertEqual(prices[114], 99)
+        self.assertEqual(max(prices.values()), 60 + round(0.8 * 39))
+        self.assertEqual(prices[max(prices)], 60 + round(0.8 * 39))     # stays at the cap until the deadline
         at_tail = max(p for t, p in prices.items() if t <= 111)
         self.assertLessEqual(at_tail, 60 + round(0.75 * 39) + 1)
         seq = [prices[t] for t in sorted(prices)]
@@ -326,61 +325,252 @@ class TestTwoIssues(unittest.TestCase):
     def two(self, **kw):
         return duel(issues=("price", "days"), **kw)
 
+    def test_ultimatum_two_ticks_before_deadline(self):
+        # Sun Duels III: 11097 seller L79 ended at 87 with no deal; two ticks before the deadline a rival still outside
+        # our limit gets our closest allowed price (seller L+1 at 10 days, buyer L-1 at 0 days), never past the limit
+        s = self.two(role="seller", L=79, w=3.0, meaning="each delivery day adds this much cash to your side",
+                     msgs=[msg("you", 104, 120, 10), msg("R", 105, 60, 10), msg("you", 112, 87, 10),
+                           msg("R", 113, 70, 10)],
+                     rival_offer={"price": 70, "days": 10, "tick": 113, "id": 3})
+        self.assertEqual(D.decide(D.view(s, 114), {}), ("say", 80, 10))
+        b = self.two(L=168, w=2.0, meaning="each delivery day costs you this much cash",
+                     msgs=[msg("you", 104, 100, 0), msg("R", 105, 200, 0), msg("you", 112, 158, 0),
+                           msg("R", 113, 185, 0)],
+                     rival_offer={"price": 185, "days": 0, "tick": 113, "id": 4})
+        self.assertEqual(D.decide(D.view(b, 114), {}), ("say", 167, 0))
+        self.assertNotEqual(D.decide(D.view(b, 110), {})[1], 167)            # not before deadline - 2
+
+    def test_silent_seller_goes_to_the_limit_at_the_end(self):
+        # Sun Duels III audit: silent-rival sellers stopped 5-10 P above L (slow_cap); at deadline-2 a seller at 10
+        # days offers L+1 (worth 1 + 10|w|); a silent-rival buyer keeps the cap
+        s = self.two(role="seller", L=79, w=3.0, meaning="each delivery day adds this much cash to your side",
+                     msgs=[msg("you", 104, 128, 10), msg("you", 112, 87, 10)])
+        self.assertEqual(D.decide(D.view(s, 114), {}), ("say", 80, 10))
+        b = self.two(L=168, w=1.1, meaning="each delivery day costs you this much cash",
+                     msgs=[msg("you", 104, 104, 0), msg("you", 112, 158, 0)])
+        kind, p, d = D.decide(D.view(b, 114), {})
+        self.assertTrue(kind == "wait" or p < 167, (kind, p))
+
     def test_unreadable_days_no_message(self):
         self.assertEqual(D.decide(D.view(self.two(w=None, meaning="x"), 100), {})[0], "wait")
-        self.assertEqual(D.decide(D.view(self.two(w=2.0, meaning=None), 100), {})[0], "wait")
+        # days_meaning is free text the Sensor never passes: the weight alone makes the duel playable
+        self.assertEqual(D.decide(D.view(self.two(w=2.0, meaning=None), 100), {})[0], "say")
 
-    def test_sign_unknown_worst_case_margin(self):
-        # w = 3 -> every price needs surplus >= 1 + 30
+    def test_null_weight_uses_plan_fallback(self):
+        # server sends your_days_weight null: silent unless plan duels.days_weight_fallback is set; buyer -> day 0
+        d = self.two(L=100, w=None, meaning=None)
+        self.assertEqual(D.decide(D.view(d, 100), {})[0], "wait")
+        kind, p, days = D.decide(D.view(d, 100), {"days_weight_fallback": 1.0})
+        self.assertEqual((kind, days), ("say", 0))
+        self.assertLessEqual(p, 99)
+        # a real server weight wins over the fallback
+        ro = {"price": 80, "days": 5, "tick": 114, "id": 4}
+        d3 = self.two(L=100, w=3.0, meaning=None, msgs=[msg("you", 100, 60, 5), msg("R", 114, 80, 5)], rival_offer=ro)
+        self.assertEqual(D.decide(D.view(d3, 114), {"days_weight_fallback": 5.0})[0], "accept")   # 20 >= 1+15 (w=3)
+
+    def test_server_meaning_gives_the_sign(self):
+        # Duels II live: buyer "each delivery day costs you this much cash" -> day 0; seller "...adds ... to your side" -> 10
+        from agent import talk
+        cost = "each delivery day costs you this much cash"
+        add = "each delivery day adds this much cash to your side"
+        kind, p, days = D.decide(D.view(self.two(L=100, w=3.4, meaning=cost), 100), {})
+        self.assertEqual((kind, days), ("say", 0))
+        kind, p, days = D.decide(D.view(self.two(role="seller", L=79, w=1.98, meaning=add), 100), {})
+        self.assertEqual((kind, days), ("say", 10))
+        # the Gate uses the same rule: buyer at day 0 needs only the base margin, at day 10 it needs 1 + 34;
+        # seller: days only add (value s*(p-L) + |w|*d, 44/44 Duels II deals) -> no days margin at any day
+        self.assertEqual(talk._days_penalty({"your_days_weight": 3.4, "days_meaning": cost}, 0), 0.0)
+        self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 3.4, "days_meaning": cost}, 10), 34.0)
+        self.assertEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": add}, 0), 0.0)
+        self.assertEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": add}, 10), 0.0)
+        self.assertAlmostEqual(talk._days_penalty({"your_days_weight": 2.0, "days_meaning": "?"}, 5), 10.0)
+
+    def test_reworded_meaning_against_the_role_is_worst_case(self):
+        # pre-Sunday review D1/S1: buyer L100 w6 with 'adds ... the price you pay' (parsed +1) used to give penalty 0:
+        # accept 95@10 (true value 5 - 60 = -55) and say day 10 (Saturday's bug). The conflict now gives -1.
+        m = "each delivery day adds this much to the price you pay"
+        ro = {"price": 95, "days": 10, "tick": 114, "id": 3}
+        d = self.two(L=100, w=6.0, meaning=m, msgs=[msg("you", 100, 60, 0), msg("R", 114, 95, 10)], rival_offer=ro)
+        self.assertNotEqual(D.decide(D.view(d, 114), {})[0], "accept")
+        kind, p, days = D.decide(D.view(self.two(L=100, w=5.0, meaning=m), 100), {})
+        self.assertEqual((kind, days), ("say", 0))
+        # a seller's reworded 'reduces' reading -1 also goes to the safe side: day 0 and |w|*d (not penalty 0)
+        s = self.two(role="seller", L=60, w=2.0, meaning="each delivery day reduces the cash you receive")
+        self.assertEqual(D.decide(D.view(s, 100), {})[2], 0)
+
+    P3 = {"anchor": 0.62, "slow_cap": 0.85, "acc_late": 2, "e8_ticks": 0, "days_weight_fallback": 1.0}   # plan duels
+
+    def test_silent_rival_with_other_days_gets_its_own_pair_back(self):
+        # pre-Sunday review E2E-2 (sim drive3, duels 901/905): buyer L125 w5 (sign -1), ours 97/d0, the rival offers
+        # 94/d5 (+6 for us) and goes silent. We used to wait to the deadline (no deal). Now by deadline-2 we send
+        # (94, 5) back, the Gate passes it, and when the rival answers with it we accept.
+        from agent import talk
+        cost = "each delivery day costs you this much cash"
+        dl = 116
+        ro = {"price": 94, "days": 5, "tick": 105, "id": 3}
+        d = self.two(L=125, w=5.0, meaning=cost, msgs=[msg("you", 104, 97, 0), msg("R", 105, 94, 5)],
+                     rival_offer=ro)
+        d.update(deadline_tick=dl, decay_per_round=0.10)
+        got = None
+        for t in range(106, dl):
+            kind, p, days = D.decide(D.view(d, t), self.P3)
+            if kind == "say":
+                got = (t, p, days)
+                break
+        self.assertIsNotNone(got)
+        self.assertLessEqual(got[0], dl - 2)
+        self.assertEqual(got[1:], (94, 5))
+        self.assertGreaterEqual(125 - 94, 1 + talk._days_penalty(d, 5))           # the Gate's margin: 31 >= 26
+        d["messages"].append(msg("you", got[0], 94, 5))
+        d["your_offer"] = {"price": 94, "days": 5, "tick": got[0], "id": 9}
+        self.assertEqual(D.decide(D.view(d, got[0] + 1), self.P3)[0], "wait")          # no second echo
+        d["messages"].append(msg("R", got[0] + 1, 94, 5))
+        d["rival_offer"] = {"price": 94, "days": 5, "tick": got[0] + 1, "id": 4}
+        self.assertEqual(D.decide(D.view(d, got[0] + 1), self.P3), ("accept", 94, 5))
+
+    def test_unknown_text_falls_back_by_role(self):
+        # pre-Sunday audit: an unrecognised days_meaning no longer means "day 5 + worst case" (0/7 deals in Duels II):
+        # the sign comes from the role (buyer -1, seller +1), the same in tactic and Gate (talk.days_sign_of)
         d = self.two(L=100, w=3.0, meaning="delivery days", msgs=[msg("you", 100, 60, 0)])
         for t in range(101, 116):
             kind, p, days = D.decide(D.view(d, t), {})
             if kind == "say":
-                self.assertLessEqual(p, 69)
-                self.assertIsInstance(days, int)
+                self.assertEqual(days, 0)
+                self.assertLessEqual(p, 99)
                 d["messages"].append(msg("you", t, p, days))
-        ro = {"price": 75, "days": 5, "tick": 114, "id": 3}
-        d2 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 75, 5)], rival_offer=ro)
-        self.assertNotEqual(D.decide(D.view(d2, 114), {})[0], "accept")       # 25 < 31
+                d["your_offer"] = {"price": p, "days": days, "tick": t, "id": 9}
+        for rd, want in ((0, True), (5, True), (10, False)):                 # 20 >= 1 + 3*rd ?
+            ro = {"price": 80, "days": rd, "tick": 114, "id": 3}
+            d2 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 80, rd)],
+                          rival_offer=ro)
+            self.assertEqual(D.decide(D.view(d2, 114), {})[0] == "accept", want, rd)
+        s = self.two(role="seller", L=60, w=2.0, meaning="zzz")
+        self.assertEqual(D.decide(D.view(s, 100), {})[2], 10)
+
+    def test_default_T_by_decay(self):
+        self.assertEqual(D._default_T(0.06), 16)
+        self.assertEqual(D._default_T(0.08), 16)     # Duels II: duel_ticks 16
+        self.assertEqual(D._default_T(0.10), 12)     # Sunday: duel_ticks 12
+
+    def test_accept_when_rival_retreats_inside_limit(self):
+        # D2304: rival came to 135 (inside L=167), we countered, it moved back up to 140: accept, do not chase
+        d = duel(L=167, msgs=[msg("you", 100, 108), msg("R", 100, 187), msg("you", 102, 124), msg("R", 103, 135),
+                              msg("you", 104, 132), msg("R", 105, 140)],
+                 rival_offer={"price": 140, "days": 0, "tick": 105, "id": 9})
+        self.assertEqual(D.decide(D.view(d, 105), {"anchor": 0.65}), ("accept", 140, 0))
         ro = {"price": 69, "days": 5, "tick": 114, "id": 3}
         d3 = self.two(L=100, w=3.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 69, 5)], rival_offer=ro)
         self.assertEqual(D.decide(D.view(d3, 114), {})[0], "accept")
 
     def test_sign_known_best_days(self):
-        kind, p, days = D.decide(D.view(self.two(L=100, w=2.0, meaning="m"), 100), {"days_sign": 1})
+        kind, p, days = D.decide(D.view(self.two(role="seller", L=60, w=2.0, meaning="m"), 100), {})
         self.assertEqual((kind, days), ("say", 10))
-        kind, p, days = D.decide(D.view(self.two(L=100, w=2.0, meaning="m"), 100), {"days_sign": -1})
+        kind, p, days = D.decide(D.view(self.two(L=100, w=2.0, meaning="m"), 100), {})
         self.assertEqual((kind, days), ("say", 0))
-        # rival offers 85 with 10 days, sign -1, w 2: worst case loses 20 -> 15 - 20 < 1 -> no accept
+        # buyer, rival 85 with 10 days, w 2: each day costs 2 -> 15 < 1 + 20 -> no accept
         ro = {"price": 85, "days": 10, "tick": 114, "id": 3}
         d = self.two(L=100, w=2.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 85, 10)], rival_offer=ro)
-        self.assertNotEqual(D.decide(D.view(d, 114), {"days_sign": -1})[0], "accept")
-        self.assertEqual(D.decide(D.view(d, 114), {"days_sign": 1})[0], "accept")
+        self.assertNotEqual(D.decide(D.view(d, 114), {})[0], "accept")
+        ro = {"price": 75, "days": 10, "tick": 114, "id": 4}
+        d = self.two(L=100, w=2.0, meaning="m", msgs=[msg("you", 100, 60, 0), msg("R", 114, 75, 10)], rival_offer=ro)
+        self.assertEqual(D.decide(D.view(d, 114), {})[0], "accept")          # 25 >= 1 + 20
+
+    def test_seller_days_credit_replays(self):
+        # Duels II misses (pre-Sunday audit, recon/duels_done.json): seller 6173 L60 w6.35 rival 89 P at 0 days on
+        # deadline-1 was worth 29 but needed 1 + 63.5; buyer 5730 L117 rival 89/0 (surplus 28) needed 53.3.
+        ro = {"price": 89, "days": 0, "tick": 115, "id": 3}
+        d = self.two(role="seller", L=60, w=6.35, meaning="each delivery day adds this much cash to your side",
+                     msgs=[msg("you", 100, 100, 10), msg("R", 115, 89, 0)], rival_offer=ro)
+        self.assertEqual(D.decide(D.view(d, 115), {}), ("accept", 89, 0))
+        b = self.two(L=117, w=5.33, meaning=None, msgs=[msg("you", 100, 70, 0), msg("R", 115, 89, 0)],
+                     rival_offer={"price": 89, "days": 0, "tick": 115, "id": 4})
+        self.assertEqual(D.decide(D.view(b, 115), {}), ("accept", 89, 0))
+        # a seller never goes below its limit, whatever the days pay (price floor)
+        lo = self.two(role="seller", L=60, w=6.35, meaning=None,
+                      msgs=[msg("you", 100, 100, 10), msg("R", 115, 59, 10)],
+                      rival_offer={"price": 59, "days": 10, "tick": 115, "id": 5})
+        self.assertNotEqual(D.decide(D.view(lo, 115), {})[0], "accept")
+
+    def test_accept_ranks_offers_with_days(self):
+        # buyer L120 w3, our standing 80@0 (value 40); rival 79@10 is cheaper but worth 41 - 30 = 11: not "good"
+        ro = {"price": 79, "days": 10, "tick": 102, "id": 3}
+        d = self.two(L=120, w=3.0, msgs=[msg("you", 100, 72, 0), msg("you", 101, 80, 0), msg("R", 102, 79, 10)],
+                     rival_offer=ro)
+        self.assertNotEqual(D.decide(D.view(d, 102), {})[0], "accept")
+        # the same price at 0 days is worth 41 >= 40: accepted
+        ro0 = {"price": 79, "days": 0, "tick": 102, "id": 4}
+        d0 = self.two(L=120, w=3.0, msgs=[msg("you", 100, 72, 0), msg("you", 101, 80, 0), msg("R", 102, 79, 0)],
+                      rival_offer=ro0)
+        self.assertEqual(D.decide(D.view(d0, 102), {})[0], "accept")
+
+    def test_fuzz_two_issue_value_never_below_one(self):
+        # every say and accept has true value s*(p-L) + sign*|w|*d >= 1 and a price inside the limit
+        import random
+        rnd = random.Random(44)
+        n = 0
+        for _ in range(3000):
+            role = rnd.choice(("buyer", "seller"))
+            L, w = rnd.randint(20, 160), round(rnd.uniform(0.2, 7.0), 2)
+            s, sign = (1, 1) if role == "seller" else (-1, -1)
+            t0, dl = 100, 112
+            rp, rd = rnd.randint(1, 250), rnd.randint(0, 10)
+            tick = rnd.randint(t0 + 1, dl - 1)
+            msgs = [msg("you", t0, L + s * rnd.randint(5, 60), 10 if sign > 0 else 0), msg("R", tick, rp, rd)]
+            d = self.two(role=role, L=L, w=w, deadline=dl, decay=0.1, msgs=msgs,
+                         rival_offer={"price": rp, "days": rd, "tick": tick, "id": 1})
+            kind, p, days = D.decide(D.view(d, tick), {})
+            if kind in ("accept", "say"):
+                n += 1
+                self.assertGreaterEqual(s * (p - L), 1, (role, L, w, kind, p, days))
+                self.assertGreaterEqual(s * (p - L) + sign * w * days, 1, (role, L, w, kind, p, days))
+        self.assertGreater(n, 500)
 
     def test_missing_rival_days_not_accepted(self):
         ro = {"price": 50, "days": None, "tick": 114, "id": 3}
         d = self.two(L=100, w=2.0, meaning="m", msgs=[msg("you", 100, 40, 0), msg("R", 114, 50)], rival_offer=ro)
-        self.assertNotEqual(D.decide(D.view(d, 114), {"days_sign": 1})[0], "accept")
+        self.assertNotEqual(D.decide(D.view(d, 114), {})[0], "accept")
 
 
 class TestPropose(unittest.TestCase):
     def test_accept_budget_by_deadline(self):
         ds = []
         for did, dl in ((1, 120), (2, 116), (3, 118)):
-            ds.append(duel(did=did, L=100, deadline=dl, msgs=[msg("you", 104, 60), msg("R", 115, 70)],
-                           rival_offer={"price": 70, "days": None, "tick": 115, "id": did}))
+            ds.append(dict(duel(did=did, L=100, deadline=dl, msgs=[msg("you", 104, 60), msg("R", 115, 70)],
+                                rival_offer={"price": 70, "days": None, "tick": 115, "id": did}), rounds=1))
         st = {}
         out = D.propose(make_world(ds, 115), None, {"days_sign": None}, {}, st)
         acc = [i for i in out if i.kind == "duel_accept"]
         self.assertEqual([i.args["duel_id"] for i in acc], [2])
         self.assertEqual(acc[0].args["fingerprint"], D.view(ds[1], 115).fingerprint)
-        self.assertFalse(any(i.kind == "duel_say" and i.args["duel_id"] in (1, 3) for i in out))
+        # pre-Sunday review D3: the accept beyond the budget (duel 3) gets the rival's price back as a say (it uses no
+        # accept); duel 1 is held by E8 and says nothing
+        self.assertEqual(sorted((i.args["duel_id"], i.args["price"]) for i in out if i.kind == "duel_say"),
+                         [(3, 70)])
+        self.assertFalse(any(i.kind == "duel_say" and i.args["duel_id"] == 2 for i in out))
         self.assertEqual(st["duel_accepts"][2]["price"], 70)
         self.assertAlmostEqual(acc[0].prediction.duel, 30 * 0.94 ** 1, places=1)
         self.assertEqual(acc[0].prediction.model, "U-01")
         # zero accept budget -> no duel_accept
         out0 = D.propose(make_world(ds, 115, accepts=0), None, {}, {}, {})
         self.assertFalse(any(i.kind == "duel_accept" for i in out0))
+
+    def test_skipped_two_issue_accept_echoes_the_rival_pair(self):
+        # four duels on one deadline (Sunday max_concurrent 4) and one accept per tick: the three skipped ones send
+        # the rival's (price, days) back; each passes the Gate's margin with its days
+        from agent import talk
+        cost = "each delivery day costs you this much cash"
+        ds = []
+        for did in (1, 2, 3, 4):
+            ds.append(dict(duel(did=did, L=100, deadline=118, decay=0.1, issues=("price", "days"), w=2.0,
+                                meaning=cost, msgs=[msg("you", 108, 60, 0), msg("R", 115, 80, 3)],
+                                rival_offer={"price": 80, "days": 3, "tick": 115, "id": did}), rounds=1))
+        out = D.propose(make_world(ds, 115), None, {}, {}, {})
+        self.assertEqual([i.args["duel_id"] for i in out if i.kind == "duel_accept"], [1])
+        says = [i for i in out if i.kind == "duel_say"]
+        self.assertEqual(sorted((i.args["duel_id"], i.args["price"], i.args["days"]) for i in says),
+                         [(2, 80, 3), (3, 80, 3), (4, 80, 3)])
+        for i in says:
+            self.assertGreaterEqual(100 - i.args["price"], 1 + talk._days_penalty(ds[0], i.args["days"]))
 
     def test_duels_down_nothing(self):
         self.assertEqual(D.propose(make_world([duel()], 100, down={"duels"}), None, {}, {}, {}), [])
@@ -408,11 +598,19 @@ class TestPropose(unittest.TestCase):
         st = {}
         out = D.propose(make_world([d], 114), None, {}, {}, st)
         self.assertFalse(any(i.kind == "duel_accept" for i in out))
-        self.assertTrue(st["duel_accepts_paused"].startswith("E16.two_msgs"))
-        # and the pause holds for other duels too
+        # audit Sat: the pause is per duel (G51 re-reads + fingerprints before any accept); other duels still accept
+        self.assertNotIn("duel_accepts_paused", st)
         d2 = duel(did=6, L=100, deadline=116, msgs=[msg("you", 104, 60), msg("R", 114, 70)],
                   rival_offer={"price": 70, "days": None, "tick": 114, "id": 3})
-        self.assertFalse(any(i.kind == "duel_accept" for i in D.propose(make_world([d2], 114), None, {}, {}, st)))
+        self.assertTrue(any(i.kind == "duel_accept" for i in D.propose(make_world([d2], 114), None, {}, {}, st)))
+
+    def test_opening_never_worse_than_rival(self):
+        # audit Sat: rival already asks 55 (buyer, L=100, anchor 60): we open at 55, not at the anchor (G50 refused)
+        d = duel(did=7, L=100, deadline=116, msgs=[msg("R", 103, 55)],
+                 rival_offer={"price": 55, "days": None, "tick": 103, "id": 4})
+        act = D.decide(D.view(d, 105), {})
+        self.assertEqual(act[0], "say")
+        self.assertLessEqual(act[1], 55)
 
     def test_e16_settled_price(self):
         st = {"duel_accepts": {8: {"tick": 114, "price": 70, "days": None}}}
@@ -423,10 +621,7 @@ class TestPropose(unittest.TestCase):
 
 class TestCrossModule(unittest.TestCase):
     def test_fingerprint_matches_guards(self):
-        try:
-            from agent.guards import duel_fingerprint
-        except Exception:                                   # M4a absent: local copy is used
-            self.skipTest("agent.guards not importable")
+        from agent.guards import duel_fingerprint
         d = duel(did=11, msgs=[msg("you", 100, 60), msg("R", 101, 130)],
                  rival_offer={"price": 130, "days": None, "tick": 101, "id": 2})
         self.assertEqual(D._local_duel_fingerprint(d), duel_fingerprint(d))
@@ -464,3 +659,104 @@ class TestHarvest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLiveReviewFixes(unittest.TestCase):
+    """Sat 3 Oct review before Duels I: text-only rival messages, repeated rival prices."""
+
+    def test_text_only_rival_message_does_not_freeze(self):
+        d = duel(L=100, deadline=116, msgs=[msg("you", 100, 75), {"tick": 101, "from": "R", "text": "hola", "price": None,
+                                                                   "days": None}])
+        v = D.view(d, 102)
+        self.assertTrue(v.ok, v.why)
+
+    def test_no_concession_to_a_repeated_price(self):
+        d = duel(L=100, deadline=116, msgs=[msg("you", 100, 75), msg("R", 101, 150), msg("you", 102, 80),
+                                            msg("R", 103, 150)],
+                 rival_offer={"price": 150, "days": None, "tick": 103, "id": 9})
+        self.assertEqual(D.decide(D.view(d, 104), {})[0], "wait")
+
+
+class TestGateConsistency(unittest.TestCase):
+    """Sat review (Duels II): the tactic sends only what the Gate (talk G50/G51, gate G07) lets through."""
+
+    def test_days_margin_is_the_gates_with_sign_known(self):
+        from agent.talk import _days_penalty
+        n = 0
+        for sign in (1, -1):
+            for t in range(101, 115):
+                d = duel(issues=("price", "days"), L=100, w=2.0, meaning="m",
+                         msgs=[msg("you", 100, 60, 10 if sign > 0 else 0)])
+                kind, p, days = D.decide(D.view(d, t), {"days_sign": sign})
+                if kind == "say":
+                    n += 1
+                    self.assertGreaterEqual(100 - p, 1 + _days_penalty(d, days), (sign, t, p, days))
+        self.assertGreater(n, 0)
+        # accept: the rival's days are charged the Gate's worst case too (talk G51)
+        ro = {"price": 85, "days": 10, "tick": 114, "id": 3}
+        d = duel(issues=("price", "days"), L=100, w=2.0, meaning="m", msgs=[msg("you", 100, 60, 10),
+                                                                             msg("R", 114, 85, 10)], rival_offer=ro)
+        self.assertNotEqual(D.decide(D.view(d, 114), {"days_sign": 1})[0], "accept")    # 15 < 1 + 20
+
+    def test_server_sign_margin_is_the_gates(self):
+        # merged build: with the SERVER's sign (days_meaning, or the sensor's days_sign) tactic and Gate both
+        # charge the loss vs our best days, not the worst case; the plan sign alone keeps the worst case
+        from agent.talk import _days_penalty
+        cost = "each delivery day costs you this much cash"
+        for srv in ({"meaning": cost}, {"meaning": None}):
+            def two(msgs, ro=None):
+                d = duel(issues=("price", "days"), L=100, w=2.0, msgs=msgs, rival_offer=ro, **srv)
+                if srv["meaning"] is None:
+                    d["days_sign"] = -1                                   # World shape: only the derived sign
+                return d
+            for t in range(101, 115):
+                d = two([msg("you", 100, 60, 0)])
+                kind, p, days = D.decide(D.view(d, t), {})
+                if kind == "say":
+                    self.assertEqual(days, 0)
+                    self.assertGreaterEqual(100 - p, 1 + _days_penalty(d, days), (srv, t, p))
+            ro = {"price": 85, "days": 0, "tick": 114, "id": 3}
+            d = two([msg("you", 100, 60, 0), msg("R", 114, 85, 0)], ro)
+            self.assertEqual(_days_penalty(d, 0), 0.0)
+            self.assertEqual(D.decide(D.view(d, 114), {})[0], "accept")               # 15 >= 1 + 0
+            ro = {"price": 85, "days": 10, "tick": 114, "id": 4}
+            d = two([msg("you", 100, 60, 0), msg("R", 114, 85, 10)], ro)
+            self.assertNotEqual(D.decide(D.view(d, 114), {})[0], "accept")            # 15 < 1 + 20
+        # server silent: the role gives the sign (buyer -1) in both tactic and Gate -> day 0 costs nothing
+        ro = {"price": 85, "days": 0, "tick": 114, "id": 5}
+        d = duel(issues=("price", "days"), L=100, w=2.0, meaning="m",
+                 msgs=[msg("you", 100, 60, 0), msg("R", 114, 85, 0)], rival_offer=ro)
+        self.assertEqual(_days_penalty(d, 0), 0.0)
+        self.assertEqual(D.decide(D.view(d, 114), {})[0], "accept")
+
+    def test_float_limit_is_read_inside(self):
+        b = D.view(duel(role="buyer", L=100.0), 100)
+        self.assertTrue(b.ok, b.why)
+        self.assertEqual(b.limit, 100)
+        self.assertEqual(D.view(duel(role="buyer", L=100.7), 100).limit, 100)       # floor for a buyer
+        self.assertEqual(D.view(duel(role="seller", L=100.2), 100).limit, 101)      # ceil for a seller
+        # the prediction uses the raw limit, as the Gate's G07 recompute does
+        d = duel(L=100.5, msgs=[msg("you", 104, 60), msg("R", 115, 70)],
+                 rival_offer={"price": 70, "days": None, "tick": 115, "id": 1})
+        acc = [i for i in D.propose(make_world([d], 115), None, {}, {}, {}) if i.kind == "duel_accept"]
+        self.assertEqual(len(acc), 1)
+        self.assertAlmostEqual(acc[0].prediction.duel, 30.5, places=6)               # server rounds 0
+
+    def test_never_resends_our_own_price(self):
+        d = duel(L=100, deadline=116, msgs=[msg("you", 104, 60), msg("R", 110, 80), msg("you", 112, 80)],
+                 rival_offer={"price": 80, "days": None, "tick": 110, "id": 5})
+        v = D.view(d, 114)
+        self.assertEqual(D._final_guard(v, dict(D.DEFAULTS), ("say", 80, None)), ("wait", None, None))
+        self.assertEqual(D.decide(v, {}), ("wait", None, None))
+        two = duel(issues=("price", "days"), L=100, w=1.0, meaning="m", msgs=[msg("you", 104, 60, 5)])
+        v2 = D.view(two, 106)
+        self.assertEqual(D._final_guard(v2, dict(D.DEFAULTS), ("say", 60, 5))[0], "wait")
+        self.assertEqual(D._final_guard(v2, dict(D.DEFAULTS), ("say", 60, 4))[0], "say")   # other days: not a repeat
+
+    def test_rounds_from_server(self):
+        d = dict(duel(L=100, msgs=[msg("you", 104, 60), msg("R", 115, 70)],
+                      rival_offer={"price": 70, "days": None, "tick": 115, "id": 1}), rounds=3)
+        self.assertEqual(D.view(d, 115).rounds, 3)
+        acc = [i for i in D.propose(make_world([d], 115), None, {}, {}, {}) if i.kind == "duel_accept"]
+        self.assertAlmostEqual(acc[0].prediction.duel, 30 * 0.94 ** 3, places=6)
+        self.assertEqual(D.view(dict(d, rounds=None), 115).rounds, 1)                 # fallback: min(ours, rivals)

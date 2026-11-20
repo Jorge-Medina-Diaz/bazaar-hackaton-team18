@@ -179,6 +179,17 @@ class TestJ0AndProtection(unittest.TestCase):
         out = hygiene.watch(w, make_book(w), FakeValuer(VALUES), Cfg(), PLAN)
         self.assertEqual(ids(out), {3003})          # one copy may go (2 held, keep 1); the earliest is cancelled
 
+    def test_no_g19_cancel_on_degraded_catalog(self):
+        # Sat 19:44 / 22:12: first tick after a restart, catalog down -> keep 1 for every held ref -> the manual
+        # sole-copy SAL-11 listing (16911, 19163) was cancelled. With degraded data G19 waits; with real data it acts.
+        offers = current_offers() + [_offer(3001, give_ref="SAL-10", asset_id=180, want_cash=300)]
+        down = make_world(offers=offers, down={"catalog"})
+        self.assertEqual(hygiene.unprotected_sales(down, make_book(down)), [])
+        self.assertEqual(hygiene.watch(down, make_book(down), FakeValuer(VALUES), Cfg(), PLAN), [])
+        up = make_world(offers=offers)
+        self.assertEqual(ids(hygiene.watch(up, make_book(up), None, Cfg(), PLAN)), set())      # no valuer
+        self.assertEqual(ids(hygiene.watch(up, make_book(up), FakeValuer(VALUES), Cfg(), PLAN)), {3001})
+
     def test_unprotected_swap_is_cancelled(self):
         offers = current_offers() + [{**_offer(3004, give_ref="SAL-03", asset_id=258, exp=300),
                                       "want": {"cash": 0, "assets": [], "types": ["card:RET-09"]}}]
@@ -355,6 +366,17 @@ class TestThreadsAndPacks(unittest.TestCase):
         early = make_world(offers=current_offers(), threads=th, t_hours=17.9, today="sat", schedule=sched)
         self.assertEqual(hygiene.watch(early, make_book(early), FakeValuer(VALUES), Cfg(), PLAN), [])
 
+    def test_walked_thread_is_not_closed_again(self):
+        # live Sat t1455: status "walked" (closed_reason final_offer_refused) was re-proposed every tick -> G33.not_open
+        walked = dict(buy_thread(dealer="picaros", ref="SAL-11", status="walked"), closed_reason="final_offer_refused")
+        budget = dict(buy_thread(dealer="pilar", status="walked"), closed_reason="persona_budget")
+        th = {1455: walked, 1519: budget}
+        sched = {"upcoming": []}
+        late = make_world(offers=current_offers(), threads=th, t_hours=17.92, today="sat", schedule=sched)
+        self.assertEqual(ids(hygiene.watch(late, make_book(late), FakeValuer(VALUES), Cfg(), PLAN), "close_thread",
+                             "thread_id"), set())
+        self.assertEqual(hygiene._open_threads(late), [])
+
     def test_foreign_threads_recorded_and_closed_only_with_e17(self):
         w = make_world(offers=current_offers(), foreign=(141,))
         state = {}
@@ -369,6 +391,77 @@ class TestThreadsAndPacks(unittest.TestCase):
         keys = [(it.kind, it.args.get("offer_id")) for it in out]
         self.assertEqual(len(keys), len(set(keys)))
         self.assertEqual(ids(out), {2463, 1652})
+
+
+class TestSwapWatchRealBook(unittest.TestCase):
+    def test_own_swap_valued_as_first_copy(self):
+        # real Valuer + guards.build_book: projected already counts the swap's wanted MAL-06, so it read as a 2nd
+        # copy (3.125 - 5 < 2 -> cancelled); as the 1st copy it is 12.5 - 5 = 7.5 >= 2 -> kept
+        from agent import guards
+        from tests.test_guards import DEFAULT, Ctx
+        swap = {**_offer(3005, give_ref="MAL-04", asset_id=295, exp=300),
+                "want": {"cash": 0, "assets": [], "types": ["card:MAL-06"]}}
+        c = Ctx(my_offers=DEFAULT + (swap,))
+        self.assertEqual(c.book.projected.get("MAL-06"), 1)
+        self.assertTrue(c.book.valuation_ok)
+        self.assertEqual(hygiene.swap_watch(c.world, c.book, c.valuer, guards.Cfg(), PLAN), [])
+
+
+class ThreadValueRealBook(unittest.TestCase):
+    """Operator note (Sat): "G19 en hygiene valora la puja propia como 2a copia (91 -> 22.8): cancela cada hilo".
+    Real guards.build_book + real Valuer: our standing buy in a dealer thread is valued as the copy after held."""
+
+    def _ctx(self, threads, my_offers=()):
+        from agent import guards
+        from agent.valuation import Valuer
+        cat = _load("catalog.json")
+        me = _load("me.json")
+        w = World(tick=210, t_hours=5.0, round=2, tick_seconds=30.0, tick_deadline=1e12,
+                  clock={"tick": 210, "paused": False, "doors": "open", "today": "sat"}, limits=FRIDAY, reading="N",
+                  me=me, my_offers=tuple(my_offers), offers_to_us=(), board=(), own_pseudonym=None,
+                  threads=threads, foreign_threads=(), duels=(), catalog=cat, schedule={"upcoming": []},
+                  released_sets=Valuer.released_from_catalog(cat), feed_new=(), server_values={}, down=frozenset())
+        v = Valuer(cat, me["affinity"], w.released_sets)
+        cfg = guards.Cfg()
+        return w, guards.build_book(w, None, v, cfg, {}, {}, {}), v, cfg
+
+    @staticmethod
+    def _thread(tid, dealer, ref, own, ask):
+        mine = {"id": 10 * tid, "maker": "t18", "to": dealer, "venue": None, "thread": tid, "status": "open",
+                "final": False, "give": {"cash": own, "assets": [], "types": []},
+                "want": {"cash": 0, "assets": [], "types": [f"card:{ref}"]}, "created_tick": 209, "expires_tick": 213}
+        hers = {"id": 10 * tid + 1, "maker": dealer, "to": "t18", "venue": None, "thread": tid, "status": "open",
+                "final": False, "give": {"cash": 0, "assets": [], "types": [f"card:{ref}"]},
+                "want": {"cash": ask, "assets": [], "types": []}, "created_tick": 210, "expires_tick": 214}
+        t = {"id": tid, "team": "t18", "with": dealer, "status": "open", "topic": {"buy": {"card": ref}},
+             "created_tick": 207, "standing_offers": [mine, hers],
+             "messages": [{"id": 1, "tick": 209, "sender": "t18", "offer": mine},
+                          {"id": 2, "tick": 210, "sender": dealer, "offer": hers}]}
+        return t, mine
+
+    def test_own_standing_buy_valued_as_first_copy(self):
+        t, mine = self._thread(392, "chato", "RET-10", 74, 95)     # live t210 shape (offer also in my_offers)
+        w, b, v, cfg = self._ctx({392: t}, (mine,))
+        first = float(v.delta_add({}, "RET-10", b.packs))
+        self.assertEqual(hygiene._dv_add(w, b, v, "RET-10", hygiene._counts_for_thread(b, "RET-10")), first)
+        self.assertEqual(hygiene.thread_watch(w, b, v, cfg, {}), [])
+
+    def test_ref_projected_twice_still_first_copy(self):
+        # two open threads for one ref: build_book projects RET-10 twice; projected - 1 was a 2nd copy -> G19 closed
+        t1, m1 = self._thread(392, "chato", "RET-10", 74, 95)
+        t2, m2 = self._thread(393, "picaros", "RET-10", 70, 99)
+        w, b, v, cfg = self._ctx({392: t1, 393: t2}, (m1, m2))
+        self.assertEqual(b.projected["RET-10"], 2)
+        self.assertEqual(hygiene.thread_watch(w, b, v, cfg, {}), [])
+
+    def test_walked_thread_is_not_open(self):
+        # live Sat: status "walked" (closed_reason persona_budget) counted as open: G19 close every tick (G33
+        # refused) and J1 never opened a pack while it stayed in me/threads
+        walked = dict(buy_thread(price=136), status="walked", closed_reason="persona_budget")
+        w = make_world(me=with_pack(_load("me.json")), offers=current_offers(), threads={7: walked})
+        out = hygiene.propose(w, make_book(w), FakeValuer(VALUES), Cfg(), PLAN, {})
+        self.assertEqual(ids(out, "close_thread", "thread_id"), set())
+        self.assertEqual(ids(out, "open_pack", "asset_id"), {900})
 
 
 if __name__ == "__main__":

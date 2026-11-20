@@ -5,7 +5,7 @@ inbox -> STOP -> wait / paused-doors poll -> fast path (startup, first open-door
 gate.begin_tick + reconcile -> calibrator.on_tick -> pages.plan (Book.needs) -> tactics (each isolated) ->
 choose (order, budgets, accepts by deadline) -> gate.execute -> late window for duel_accept -> journal "tick".
 
-NOTES (M15, night build)
+Design notes
 - Exit codes: 0 = max_ticks reached / interrupted, 1 = cannot start (no key, plan unreadable, bad mode),
   2 = STOP (STOP file present or written, GateViolation, StopActive, JournalError, AssertionError), 3 = writer lock busy.
   A STOP file at start or during the run makes the runner journal it and exit 2 (so a hot update can relaunch `run`).
@@ -20,6 +20,8 @@ NOTES (M15, night build)
   removed): a stale `arm` must never arm a new run. `do` from a one-shot CLI call comes in through run(manual=...).
 - Manual intents (`do`, `flatten`): the prediction is the Gate's own recomputation (Gate._predict), so G07 never
   trips on a human order; every other guard applies unchanged. A failure there leaves predict_none -> the Gate refuses.
+  A `do` order is sent for real only if it says "live": true (`do --live`); otherwise armed_now() drops "manual"
+  while the Gate executes it, so it ends as a "would" even in a live run. Flatten intents follow the run's mode.
 - Fast path (§1 step 4) only runs when a baseline already exists and nothing is pending reconciliation: the Gate
   takes its baseline from the World it is given and reconcile reads evidence from it, and the fast World has most
   sources down. It only executes the configured startup cancels (J0). First start without baseline: the full
@@ -27,7 +29,7 @@ NOTES (M15, night build)
 - Late window: duel_accept intents are held back; from 50 % of the tick the runner re-reads (sensor.snapshot),
   re-proposes duels on the fresh World and executes the fresh duel_accepts (accept budget left this tick, the Gate
   re-checks G51 and the deadline). If the re-read fails or the tick moved, the early ones are dropped.
-- Not done tonight (open issues): Book.protect_sets is left as guards.build_book made it (pages.protect_sets would
+- Known limitations: Book.protect_sets is left as guards.build_book made it (pages.protect_sets would
   drop LAT at t205 but Book.keep would not follow); Calibrator recheck= (guards-based) is not wired; duels.e16_settled
   is not called (World has no done duels); L1 bench recorder is not polled; snapshots every 5 ticks only (not on
   every write tick); no req_rate in the tick row.
@@ -64,9 +66,14 @@ FATAL_NAMES = frozenset({"GateViolation", "StopActive", "JournalError"})
 BASELINE_SOURCES = frozenset({"me/offers", "me/threads", "threads", "duels"})
 EXC_LIMIT, EXC_WINDOW = 3, 20
 SNAP_EVERY = 5
+# Keyed request budget (RULES: 5 requests/s per key, bursts of 20). The runner takes 3.5/s, burst 8 (2 kept for the
+# Gate's fresh re-reads and sends); read-only panels on the same key take agent.client.PANEL_RATE (1/s) -> 4.5/s.
+# At 2.5/s a 15 s Sunday tick left only a few seconds after the snapshot (Sat: 14 G03.late at 30 s ticks).
+RUNNER_RATE, RUNNER_BURST, RUNNER_RESERVE = 3.5, 8, 2
 MAX_SLEEP_S = 60.0
 WAKE_PAD_S = 1.0
 INBOX_CMDS = frozenset({"arm", "pause", "resume", "do", "flatten"})
+FLATTEN_MAX_TICKS = 10           # stop --flatten: STOP anyway after this many flatten ticks (a cancel that never lands)
 
 
 class Fatal(Exception):
@@ -163,17 +170,23 @@ def _cfg(cfg: Any, name: str, default: Any) -> Any:
     return default if v is None else v
 
 
-def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
+def choose(intents: Sequence[Intent], world: World, cfg: Any, drops: Optional[list] = None) -> list:
     """Order and per-tick budgets (INV-03). Pure.
 
     Order: exposure reducers first (cancel, close_thread, open_pack), then priority (high first), then tactic order.
     Budgets: accepts (team/dealer + duel when DUEL_ACCEPT_SHARED) <= limits.accepts, given to the EARLIEST deadline
-    (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, limits.listings - 2); new list_offer <=
-    room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= limits.threads -
-    THREADS_MARGIN - own open threads, none while >= 4 duels are live; <= 1 message per thread / duel (a duel being
-    accepted gets no message); duplicates (same intent id, or same cancel/close/pack target) dropped.
-    The Gate re-checks every budget (G04); this only decides WHO gets the scarce slots.
+    (ties: higher priority); list_offer + cancel <= min(LISTINGS_PER_TICK, L, max(1, L - 2)), L = limits.listings;
+    new list_offer <= room in open offers (limits.open_offers - OPEN_OFFERS_MARGIN - own open); open_thread <= max(1, limits.threads -
+    THREADS_MARGIN) - own open threads, none from a tactic while more than MAX_LIVE_DUELS_FOR_THREADS (4: Sunday's
+    max_concurrent) duels are live (a manual order still goes); <= 1 message per thread / duel (a duel being accepted
+    gets no message); duplicates (same intent id, or same cancel/close/pack target) dropped.
+    The Gate re-checks every budget (G04); this only decides WHO gets the scarce slots. `drops`, when given, gets
+    (intent, code) for every intent left out (R04.*), so the runner can journal why an order did nothing.
     """
+    def drop(it, code):
+        if drops is not None:
+            drops.append((it, code))
+
     tick = world.tick
     seen_ids, seen_targets = set(), set()
     items = []
@@ -185,6 +198,7 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         except Exception:                                                # noqa: BLE001
             continue
         if iid in seen_ids:
+            drop(it, "R04.dup")
             continue
         seen_ids.add(iid)
         items.append((EXPOSURE.get(it.kind, 3), -int(it.priority), TACTIC_ORDER.get(it.tactic, 9), i, it))
@@ -205,14 +219,16 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         chosen_acc = {id(it) for it in team[:acc_budget] + duel[:acc_budget]}
     accepted_duels = {it.args.get("duel_id") for it in accepts if id(it) in chosen_acc and it.kind == "duel_accept"}
 
-    listings = max(0, min(int(_cfg(cfg, "LISTINGS_PER_TICK", 6)), int(getattr(L, "listings", 0) or 0) - 2))
+    lim = int(getattr(L, "listings", 0) or 0)          # min(L, max(1, L - 2)): limit 2 or 3 keeps one slot (Gate G04)
+    listings = max(0, min(int(_cfg(cfg, "LISTINGS_PER_TICK", 6)), lim, max(1, lim - 2)))
     own_open = sum(1 for o in world.my_offers or () if _g(o, "maker") == TEAM and _g(o, "status") in OWN_OPEN)
     offer_room = max(0, int(getattr(L, "open_offers", 0) or 0) - int(_cfg(cfg, "OPEN_OFFERS_MARGIN", 4)) - own_open)
     own_threads = sum(1 for t in (world.threads or {}).values()
                       if _g(t, "status") == "open" and _g(t, "team", TEAM) == TEAM)
-    thread_room = max(0, int(getattr(L, "threads", 0) or 0) - int(_cfg(cfg, "THREADS_MARGIN", 1)) - own_threads)
-    if len(world.duels or ()) >= 4:
-        thread_room = 0
+    tlim = int(getattr(L, "threads", 0) or 0)
+    thread_room = max(0, min(tlim, max(1, tlim - int(_cfg(cfg, "THREADS_MARGIN", 1)))) - own_threads)
+    live_duels = sum(1 for d in world.duels or () if _g(d, "status", "live") == "live")
+    duel_freeze = live_duels > int(_cfg(cfg, "MAX_LIVE_DUELS_FOR_THREADS", 4))
     msgs: set = set()
 
     out = []
@@ -221,32 +237,40 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
         if k in ACCEPT_KINDS:
             if id(it) in chosen_acc:
                 out.append(it)
+            else:
+                drop(it, "R04.accept_budget")
             continue
         if k in ("cancel", "close_thread", "open_pack"):
             target = (k, a.get("offer_id", a.get("thread_id", a.get("asset_id"))))
             if target in seen_targets:
+                drop(it, "R04.dup")
                 continue
             seen_targets.add(target)
         if k in ("cancel", "list_offer"):
             if listings <= 0:
+                drop(it, "R04.listings")
                 continue
             if k == "list_offer":
                 if offer_room <= 0:
+                    drop(it, "R04.offer_room")
                     continue
                 offer_room -= 1
             listings -= 1
         elif k == "open_thread":
-            if thread_room <= 0:
+            if thread_room <= 0 or (duel_freeze and it.tactic != "manual"):
+                drop(it, "R04.thread_room" if thread_room <= 0 else "R04.duel_freeze")
                 continue
             thread_room -= 1
         elif k == "say":
             key = f"thread:{a.get('thread_id')}"
             if key in msgs:
+                drop(it, "R04.msg")
                 continue
             msgs.add(key)
         elif k == "duel_say":
             key = f"duel:{a.get('duel_id')}"
             if key in msgs or a.get("duel_id") in accepted_duels:
+                drop(it, "R04.msg")
                 continue
             msgs.add(key)
         out.append(it)
@@ -254,6 +278,20 @@ def choose(intents: Sequence[Intent], world: World, cfg: Any) -> list:
 
 
 # ------------------------------------------------------------------------------------------- helpers
+
+DAY_TIMES_MAX_AGE_S = 6 * 3600      # state/day_times.json older than this is another day's: ignored at start
+
+
+def _seen_moved(a: Mapping, b: Mapping) -> bool:
+    """effective_plan memory changed by more than a minute (the live close is re-projected every read)."""
+    for day in set(a or {}) | set(b or {}):
+        ra, rb = (a or {}).get(day) or {}, (b or {}).get(day) or {}
+        for k in ("close", "stalls"):
+            x, y = ra.get(k), rb.get(k)
+            if (x is None) != (y is None) or (x is not None and abs(x - y) > 1 / 60):
+                return True
+    return False
+
 
 def _read_json(path: Path, default: Any) -> Any:
     try:
@@ -315,6 +353,12 @@ class Runner:
                  journal: Any, gate: Any, sensor: Any, calibrator: Any, cfg: Any, clock: Any,
                  manual: Sequence[Mapping] = (), started: Optional[float] = None, chash: Optional[str] = None):
         self.mode, self.paths, self.plan_cfg = mode, paths, plan_cfg
+        self.plan_now: Mapping = plan_cfg          # plan_cfg with today's day end / endgame from the live schedule
+        self._sched_seen: dict = {}                # pages.effective_plan memory (last live close, stalls hour)
+        self._times_logged = False                 # the first 'param day_times' row of this process is written
+        self._drop_counts: dict = {}               # choose() drops of this tick, by R04 code (tick row)
+        self._sign_noted: set = set()              # duel ids already alarmed for an unreadable days_meaning
+        self.late_read_s: Optional[float] = None   # seconds the late-window re-read took (tick row)
         self.transport, self.journal, self.gate, self.sensor = transport, journal, gate, sensor
         self.calibrator, self.cfg, self.clock = calibrator, cfg, clock
         self.started = time.time() if started is None else started
@@ -324,7 +368,10 @@ class Runner:
         self.exc: dict = defaultdict(lambda: deque(maxlen=EXC_LIMIT))
         self.missing_noted: set = set()
         self.pending_manual: list = list(manual or ())
+        self.dry_manual: set = set()               # intent ids of this tick's `do` orders sent without --live
+        self._manual_dry = False                   # True while the Gate executes one of them (armed_now drops manual)
         self.flatten: Optional[str] = None
+        self.flatten_ticks = 0
         self.prev: Optional[World] = None          # last World read (any kind): the sensor carries from it
         self.prev_full: Optional[World] = None     # last fully processed World: the calibrator's "before"
         self.last_tick: Optional[int] = None
@@ -332,6 +379,8 @@ class Runner:
         self._valuer_key = None
         self.frozen: dict = dict(_read_json(paths.frozen, {}) or {}) if isinstance(_read_json(paths.frozen, {}), dict) else {}
         self.ticks_done = 0
+        self.wall = getattr(clock, "wall", None) or time.time   # epoch for the wall close (a sim clock gives its own)
+        self._sched_seen = self._load_day_times()
         for t in armed or ():
             self._arm(t, "run --arm", at_start=True)
         self._save_armed()
@@ -369,6 +418,8 @@ class Runner:
         s = set(self.armed)
         if self.mode == "live" and tactic_green("manual", self.paths, chash=self.chash):
             s.add("manual")
+        if self._manual_dry:                       # a `do` without --live is only a "would", even in a live run
+            s.discard("manual")
         return frozenset(s)
 
     def paused(self, tactic: str) -> bool:
@@ -402,7 +453,7 @@ class Runner:
     def apply_cmd(self, cmd: Mapping, name: str = "") -> None:
         c, why = cmd.get("cmd"), str(cmd.get("why") or "")[:300]
         self.j("cmd", cmd=c, applied=True, why=why, file=name,
-               tactic=cmd.get("tactic"), intent_kind=cmd.get("kind"), args=cmd.get("args"))
+               tactic=cmd.get("tactic"), intent_kind=cmd.get("kind"), args=cmd.get("args"), live=cmd.get("live"))
         if c == "arm":
             if self._arm(str(cmd.get("tactic")), why):
                 self._save_armed()
@@ -438,7 +489,7 @@ class Runner:
     def build_valuer(self, world: World) -> Any:
         # Keyed by catalog CONTENT, not id(): the Sensor re-freezes the catalog each tick and CPython reuses the
         # ids of freed objects, so an id key could keep a Valuer with stale released sets / minted counts
-        # (Sunday sun+0h: CHA flips released:true while the runner keeps going).
+        # (Sunday: CHA flips released:true while the runner keeps going).
         cat = hashlib.sha256(json.dumps(_plain(world.catalog), sort_keys=True, default=str).encode()).hexdigest()
         key = (cat, json.dumps(_plain(_g(world.me, "affinity", {})), sort_keys=True),
                tuple(sorted(world.released_sets or ())))
@@ -458,6 +509,7 @@ class Runner:
     def execute(self, intents: Sequence[Intent], world: World, *, late: bool = False) -> list:
         outs = []
         for it in intents:
+            self._manual_dry = it.tactic == "manual" and intent_id(world.tick, it) in self.dry_manual
             try:
                 o = self.gate.execute(it, world)
             except Exception as e:                                       # noqa: BLE001
@@ -466,6 +518,8 @@ class Runner:
                 self.alarm(f"execute error {e.__class__.__name__}: {str(e)[:200]}", tactic=it.tactic,
                            intent_kind=it.kind)
                 continue
+            finally:
+                self._manual_dry = False
             outs.append((it, o))
         return outs
 
@@ -526,7 +580,7 @@ class Runner:
 
     def propose_all(self, world: World, book: Any, needs: list) -> list:
         intents: list = []
-        v, cfg, pc = self.valuer, self.cfg, self.plan_cfg
+        v, cfg, pc = self.valuer, self.cfg, self.plan_now
         for name, modpath in TACTIC_MODULES:
             mod = self._module(name, modpath)
             if mod is None:
@@ -633,31 +687,48 @@ class Runner:
         if reasons:
             raise Fatal("calibrator: " + "; ".join(map(str, reasons))[:400])
 
+        self.update_plan(world)
+        self.note_days_sign(world)
         needs = self.plan_needs(world, valuer)
         book = self.gate.book
 
         intents = []
         if self.flatten is None and book is not None:
             intents = self.propose_all(world, book, needs)
+        self.dry_manual = set()
         for cmd in self.pending_manual:
             it = self.manual_intent(cmd, world)
             if it is not None:
                 intents.append(it)
+                if cmd.get("live") is not True:          # only an order that says live is sent for real
+                    self.dry_manual.add(intent_id(world.tick, it))
         self.pending_manual = []
+        flat: list = []
         if self.flatten is not None:
-            intents = [it for it in intents if it.tactic == "manual"] + self.flatten_intents(world)
+            flat = self.flatten_intents(world)
+            intents = [it for it in intents if it.tactic == "manual"] + flat
 
-        chosen = choose(intents, world, self.cfg)
+        intents, shadow = self.split_would(intents)
+        drops: list = []
+        chosen = choose(intents, world, self.cfg, drops)
+        chosen = self.keep_duel_slot(world, chosen, drops)
+        self.journal_drops(world, drops)
         early = [it for it in chosen if it.kind != "duel_accept"]
         held = [it for it in chosen if it.kind == "duel_accept"]
         outs = self.execute(early, world)
         if self.flatten is not None:
-            why = self.flatten
-            self.write_stop(f"flatten: {why}")
-            self.j("stop", reason=f"flatten: {why}", tick=world.tick)
-            raise Fatal(f"flatten: {why}")
-        if held or world.duels:
+            # one tick cancels at most the listings budget: keep flattening tick after tick until no own bid / buy
+            # thread is left, then STOP (dry: nothing changes, so one pass; FLATTEN_MAX_TICKS bounds a stuck cancel)
+            self.flatten_ticks += 1
+            if not flat or self.mode != "live" or self.flatten_ticks >= FLATTEN_MAX_TICKS:
+                why = self.flatten if not flat else f"{self.flatten} ({len(flat)} left after {self.flatten_ticks} ticks)"
+                self.write_stop(f"flatten: {why}")
+                self.j("stop", reason=f"flatten: {why}", tick=world.tick)
+                raise Fatal(f"flatten: {why}")
+        if self.flatten is None and (held or world.duels):     # no late duel accepts while flattening
             outs += self.late_window(world, held, outs)
+        if shadow:
+            outs += self.execute(choose(shadow, world, self.cfg), world)   # "would" rows only (Gate step 7)
 
         self.tick_row(world, outs)
         self.prev = world
@@ -668,12 +739,132 @@ class Runner:
             self.snap(world)
         return True
 
+    def keep_duel_slot(self, world: World, chosen: list, drops: list) -> list:
+        """Pre-Sunday review D2: with the accept budget shared, a tactic's early team / dealer accept that would use the
+        last slot is held back (R04.duel_slot) while an armed duels tactic may need it in the late window
+        (duels.accept_slot_wanted). Dealer and team offers stay to the next tick; a manual order or a closer accept
+        (the page's +50, a rival may take the card) is never held."""
+        if (not bool(_cfg(self.cfg, "DUEL_ACCEPT_SHARED", True)) or "duels" not in self.armed_now()
+                or self.paused("duels") or any(it.kind == "duel_accept" for it in chosen)):
+            return chosen
+        early = [it for it in chosen if it.kind == "accept" and it.tactic not in ("manual", "closer")]
+        kept = sum(1 for it in chosen if it.kind == "accept" and it.tactic in ("manual", "closer"))
+        if not early or kept + len(early) < int(getattr(world.limits, "accepts", 0) or 0):
+            return chosen
+        mod = self._module("duels", "agent.tactics.duels")
+        try:
+            wanted = mod is not None and mod.accept_slot_wanted(world, dict(self.plan_now.get("duels") or {}))
+        except Exception:                                                # noqa: BLE001 - unknown: no hold
+            wanted = False
+        if not wanted:
+            return chosen
+        drops.extend((it, "R04.duel_slot") for it in early)
+        held = {id(it) for it in early}
+        return [it for it in chosen if id(it) not in held]
+
+    def split_would(self, intents: list) -> tuple:
+        """Live: (intents that may act, intents of paused / unarmed tactics). The second only journal "would" and run
+        after everything else, so they never take the accept slot or the listing budget (Sat: a paused rastro took
+        4 of 6 listing slots every tick). Dry: everything is a "would" anyway -> (intents, [])."""
+        if self.mode != "live":
+            return list(intents), []
+        armed = self.armed_now()
+        act, shadow = [], []
+        for it in intents:
+            ok = it.tactic == "manual" or (it.tactic in armed and not self.paused(it.tactic))
+            (act if ok else shadow).append(it)
+        return act, shadow
+
+    def journal_drops(self, world: World, drops: list) -> None:
+        """A manual order left out by choose() gets its own 'dropped' row (operators must see why it did nothing);
+        tactic drops only count, in the tick row."""
+        counts: dict = defaultdict(int)
+        for it, code in drops:
+            counts[code] += 1
+            if it.tactic == "manual":
+                try:
+                    iid = intent_id(world.tick, it)
+                except Exception:                                        # noqa: BLE001
+                    iid = None
+                self.j("dropped", id=iid, tactic=it.tactic, intent_kind=it.kind, code=code, tick=world.tick)
+        self._drop_counts = dict(counts)
+
+    def note_days_sign(self, world: World) -> None:
+        """One alarm per two-issue duel whose days_meaning the sensor could not read (days_sign None: tactic and Gate
+        fall back to the role's sign) or read against the role (days_sign_conflict: both use -1, |w|*d and day 0;
+        talk.checked_sign). Either way the operator should know the wording changed."""
+        for d in world.duels or ():
+            did, issues = _g(d, "duel", _g(d, "id")), _g(d, "issues") or ()
+            if "days" not in issues or did in self._sign_noted:
+                continue
+            if _g(d, "days_sign_conflict"):
+                why = "duel days_meaning contradicts the role: days sign -1 (each day costs us)"
+            elif _g(d, "days_sign") not in (1, -1):
+                why = "duel days_meaning not recognised: days sign taken from the role"
+            else:
+                continue
+            self._sign_noted.add(did)
+            self.alarm(why, duel=did, role=_g(d, "role"), tick=world.tick)
+
+    def _day_times_path(self) -> Path:
+        return Path(self.paths.state) / "day_times.json"
+
+    def _load_day_times(self) -> dict:
+        """The effective_plan memory a previous process of today left (pre-Sunday review E2E-1/S4: the stalls close at
+        14:00 leaves 'upcoming' once fired, so a cold restart after it brought back a 14:55 dealer day end and a
+        stream of refused open_threads). Older than DAY_TIMES_MAX_AGE_S (another day) or unreadable -> {}."""
+        raw = _read_json(self._day_times_path(), {})
+        try:
+            if not isinstance(raw, dict) or not (0 <= float(self.wall()) - float(raw["saved"]) <= DAY_TIMES_MAX_AGE_S):
+                return {}
+            out = {}
+            for day, rec in (raw.get("seen") or {}).items():
+                if isinstance(day, str) and isinstance(rec, dict):
+                    out[day] = {k: (float(rec[k]) if type(rec.get(k)) in (int, float) and math.isfinite(rec[k])
+                                    else None) for k in ("close", "stalls")}
+            return out
+        except Exception:                                                # noqa: BLE001 - fail closed: no memory
+            return {}
+
+    def _save_day_times(self) -> None:
+        try:
+            _write_json(self._day_times_path(), {"saved": float(self.wall()), "seen": self._sched_seen})
+        except Exception as e:                                           # noqa: BLE001
+            self.alarm(f"day_times.json not written: {e.__class__.__name__}")
+
+    def update_plan(self, world: World) -> None:
+        """Today's day end / endgame from the live schedule (pages.effective_plan); journal a 'param' row on change."""
+        try:
+            from agent.tactics import pages
+            before = self._sched_seen
+            pc, self._sched_seen = pages.effective_plan(self.plan_cfg, world, self._sched_seen, now=self.wall())
+            if self.mode == "live" and _seen_moved(before, self._sched_seen):
+                self._save_day_times()
+        except Exception as e:                                           # noqa: BLE001 - keep the last plan
+            if _is_fatal(e):
+                raise
+            self.alarm(f"effective_plan failed: {e.__class__.__name__}: {str(e)[:200]}")
+            return
+        day = pages.today(world)
+        def hours(p):
+            de = (p.get("day_end_hours") or {}).get(day)
+            eg = ((p.get("closer") or {}).get("endgame_hours") or {}).get(day)
+            return tuple(round(x, 3) if type(x) in (int, float) and math.isfinite(x) else None for x in (de, eg))
+        old, new = hours(self.plan_now), hours(pc)
+        self.plan_now = pc
+        moved = any((a is None) != (b is None) or (a is not None and abs(a - b) > 1 / 60) for a, b in zip(old, new))
+        if moved or not self._times_logged:           # pre-Sunday review E2E-5: always the first one of each process
+            self._times_logged = True
+            seen = self._sched_seen.get(day) or {}
+            self.j("param", name="day_times", game_day=day, day_end=new[0], endgame=new[1], close=seen.get("close"),
+                   stalls=seen.get("stalls"), tick=world.tick)
+
     def plan_needs(self, world: World, valuer: Any) -> list:
         if valuer is None:
             return []
         try:
             from agent.tactics import pages
-            needs, frozen = pages.plan(world, valuer, self.plan_cfg, self.frozen)
+            needs, frozen = pages.plan(world, valuer, self.plan_now, self.frozen)
         except Exception as e:                                           # noqa: BLE001
             if _is_fatal(e):
                 raise
@@ -708,7 +899,12 @@ class Runner:
         if now < mid:
             self.clock.sleep(mid - now)
         try:
-            fresh, _ = self.sensor.snapshot(world)
+            t_read = self.clock.now()
+            try:
+                fresh, _ = self.sensor.snapshot(world, late=True)   # reduced read: duel_accept needs clock + duels
+            except TypeError:                                        # a sensor without the keyword (test fakes)
+                fresh, _ = self.sensor.snapshot(world)
+            self.late_read_s = round(self.clock.now() - t_read, 3)
             self.prev = fresh
         except Exception as e:                                           # noqa: BLE001
             if _is_fatal(e):
@@ -721,7 +917,7 @@ class Runner:
         if mod is None:
             return []
         try:
-            got = mod.propose(fresh, self.cfg, self.plan_cfg, dict(self.plan_cfg.get("duels") or {}),
+            got = mod.propose(fresh, self.cfg, self.plan_now, dict(self.plan_now.get("duels") or {}),
                               self.state["duels"])
         except Exception as e:                                           # noqa: BLE001
             if _is_fatal(e):
@@ -742,9 +938,14 @@ class Runner:
         counts: dict = defaultdict(int)
         for _, o in outs:
             counts[o.status] += 1
+        extra = {"dropped": self._drop_counts} if getattr(self, "_drop_counts", None) else {}
+        self._drop_counts = {}
+        if getattr(self, "late_read_s", None) is not None:
+            extra["late_read_s"] = self.late_read_s
+            self.late_read_s = None
         self.j("tick", tick=world.tick, cash=_g(world.me, "cash"), cash_free=getattr(b, "cash_free", None),
                points=pts, round=world.round, reading=world.reading, down=sorted(world.down or ()),
-               outcomes=dict(counts), armed=sorted(self.armed_now()))
+               outcomes=dict(counts), armed=sorted(self.armed_now()), **extra)
 
     def snap(self, world: World) -> None:
         try:
@@ -817,10 +1018,13 @@ def _make_cfg(plan_cfg: Mapping) -> Any:
     from agent.guards import Cfg
     cfg = Cfg()
     upd = {}
-    if plan_cfg.get("days_sign") in (1, -1):
-        upd["DAYS_SIGN"] = plan_cfg["days_sign"]
+    # plan days_sign is not copied: one sign for both duel roles is wrong by construction (talk.days_sign_of reads
+    # the duel: sensor days_sign, server days_meaning, then role)
     if type(plan_cfg.get("grant_lookahead_ticks")) is int:
         upd["GRANT_LOOKAHEAD_TICKS"] = plan_cfg["grant_lookahead_ticks"]
+    fb = (plan_cfg.get("duels") or {}).get("days_weight_fallback") if isinstance(plan_cfg.get("duels"), Mapping) else None
+    if type(fb) in (int, float) and fb > 0:
+        upd["DAYS_WEIGHT_FALLBACK"] = float(fb)
     if type(plan_cfg.get("resupply_min")) in (int, float):
         upd["RESUPPLY_MIN"] = float(plan_cfg["resupply_min"])
     return dataclasses.replace(cfg, **upd) if upd else cfg
@@ -873,7 +1077,8 @@ def _run_locked(mode, armed, *, paths, plan_path, max_ticks, base_url, transport
             return 1
         url = base_url or os.environ.get("BAZAAR_URL") or PROD_URL
         transport = T.GuardedTransport(url, key, mode=("live" if mode == "live" else "dry"), paths=paths,
-                                       limiter=T.RateLimiter(clock=clock))
+                                       limiter=T.RateLimiter(rate=RUNNER_RATE, burst=RUNNER_BURST,
+                                                             reserve=RUNNER_RESERVE, clock=clock))
     if mode == "live" and getattr(transport, "mode", None) != "live":
         print("run: --live needs a live transport")
         return 1

@@ -16,13 +16,16 @@ Policy (decide):
   is inside our limit but did not speak this tick (accept in the late window once it answers).
 - Accept only if rival_offer.tick == tick (it already spent its message of the tick, U-10), tick <= deadline-1, the
   surplus holds with the days worst case, and the offer is good (>= our next step), firm (repeated) or late.
-- Two issues (J10): nothing until your_days_weight is a number and days_meaning is present. days_sign (plan_cfg) known:
-  we send our best days and value the rival's days as W(d) - max W. Unknown: surplus >= 1 + 10*|w| on every price.
+- Two issues (J10): nothing until your_days_weight is a number (or the plan fallback). Value = s*(p-L) + sign*|w|*d
+  (44/44 Duels II deals). The days margin is the Gate's (talk._days_penalty) on every price we send or accept:
+  |w| * d when each day costs us (buyer, or sign unknown), 0 when days add (seller: the price alone stays inside the
+  limit). The sign is talk.days_sign_of: sensor days_sign, else the server's days_meaning, else by role. We send
+  our best days (10 when they add, else 0). Accept triggers rank offers by their value including days.
 - E8: on the first duel whose rival speaks, stay silent 2 ticks after its first message (accepts still allowed).
 - E16: two rival messages in one tick, or a settled price different from the one read -> duel accepts paused.
 - Accept budget: at most world.limits.accepts duel_accept intents per tick, nearest deadline first.
 
-NOTES (M12, night build) / open issues
+Design notes and known limitations
 - duel_fingerprint and predict_duel come from agent.guards (M4a) and agent.valuation (M3) (both present; a test checks
   the fingerprint matches the local copy). predict_duel takes side "buy"/"sell", mapped from the duel role.
 - Duel length T is not in the duel object: inferred from decay (0.06 -> 16 ticks, else 12, U-12) and the first message
@@ -42,7 +45,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
-from agent.contracts import Prediction, make_intent
+from agent.contracts import Intent, Prediction, make_intent
 
 DAYS_MAX = 10
 BETA = 1.6
@@ -56,9 +59,10 @@ DEFAULTS: Mapping[str, Any] = {
     "final_frac": 0.6,     # final offer goes this fraction of the way from our offer to the limit
     "slow_keep": 0.25,     # slow ascent keeps this share of the way for the tail
     "slow_tail": 3,        # ... spent over the last slow_tail ticks before deadline - 2
+    "slow_cap": 0.8,       # silent rival: never walk more than this share of the way to the limit (live review)
     "e8_ticks": 2,         # E8: silence after the first answer of the first rival that speaks
     "T": None,             # duel length override (ticks)
-    "days_sign": None,     # +1: more days is better for us; -1: fewer; None: unknown (worst case)
+    "days_weight_fallback": None,   # assumed |your_days_weight| when the server sends null (None: stay silent)
     "accept_paused": False,
     "e8_hold_until": None,
 }
@@ -131,19 +135,29 @@ class DuelView:
     decay: float = 0.0
     two_issue: bool = False
     days_weight: Optional[float] = None
-    days_meaning_known: bool = False
+    days_sign_srv: Optional[int] = None      # talk.days_sign_of(duel): the server's own days_meaning
     ours: tuple = ()               # ((tick, price, days, index), ...) our messages, server order
     rivals: tuple = ()             # same for the rival
     rival_offer: Optional[tuple] = None   # (price, days, tick, id)
     mine: Optional[int] = None     # our standing price (last message, else your_offer)
-    rounds: int = 0
+    mine_days: Optional[int] = None    # days of that standing offer
+    limit_raw: float = 0.0         # your_limit as the server sent it (predictions use it, as the Gate's G07)
+    rounds: int = 0                # server duel["rounds"] (as the Gate's G07), else min(ours, rivals)
     rival_spoke_now: bool = False
     rival_double: bool = False     # E16: two rival messages in one tick
     fingerprint: str = ""
 
 
+def _srv_sign(duel: Mapping) -> Optional[int]:
+    try:
+        from agent.talk import days_sign_of
+        return days_sign_of(duel)
+    except Exception:  # noqa: BLE001 - unknown -> worst case
+        return None
+
+
 def _default_T(decay: float) -> int:
-    return 16 if abs(decay - 0.06) < 1e-9 else 12   # U-12
+    return 12 if decay >= 0.095 else 16   # U-12 + schedule: decay 0.06/0.08 -> 16 ticks (Duels I/II), 0.10 -> 12 (Sunday)
 
 
 def view(duel: Mapping, tick: int) -> DuelView:
@@ -155,7 +169,10 @@ def view(duel: Mapping, tick: int) -> DuelView:
     if duel.get("status") != "live":
         return bad("status")
     role = duel.get("role")
-    limit = _int(duel.get("your_limit"))
+    limit_raw = _num(duel.get("your_limit"))
+    limit = None
+    if limit_raw is not None:            # a float limit is read inside it: floor for a buyer, ceil for a seller
+        limit = int(math.floor(limit_raw)) if role == "buyer" else int(math.ceil(limit_raw))
     deadline = _int(duel.get("deadline_tick"))
     decay = _num(duel.get("decay_per_round"))
     if role not in ("buyer", "seller") or limit is None or limit < 1 or deadline is None:
@@ -174,6 +191,8 @@ def view(duel: Mapping, tick: int) -> DuelView:
         if not isinstance(m, Mapping):
             return bad("shape.message")
         t, p, dd = _int(m.get("tick")), _int(m.get("price")), m.get("days")
+        if p is None and m.get("price") is None and m.get("from") != "you" and t is not None:
+            continue                     # rival text-only message (price null): no offer, not a freeze (live review)
         if t is None or p is None or (dd is not None and _int(dd) is None):
             return bad("shape.message")
         (ours if m.get("from") == "you" else rivals).append((t, p, dd, i))
@@ -188,6 +207,10 @@ def view(duel: Mapping, tick: int) -> DuelView:
         rival_offer = (ro["price"], rd, ro["tick"], ro.get("id"))
     yo = duel.get("your_offer")
     mine = ours[-1][1] if ours else (_int(yo.get("price")) if isinstance(yo, Mapping) else None)
+    mine_days = ours[-1][2] if ours else (yo.get("days") if isinstance(yo, Mapping) else None)
+    rounds = _int(duel.get("rounds"))
+    if rounds is None or rounds < 0:
+        rounds = min(len(ours), len(rivals))
     T = _default_T(decay)
     first = min([m[0] for m in ours + rivals], default=deadline - T)
     start = min(deadline - T, first)
@@ -200,28 +223,32 @@ def view(duel: Mapping, tick: int) -> DuelView:
     return DuelView(
         duel_id=did, ok=True, why="", role=role, limit=limit, s=1 if role == "seller" else -1, tick=tick,
         deadline=deadline, start=start, T=deadline - start, decay=decay, two_issue=two, days_weight=w,
-        days_meaning_known=duel.get("days_meaning") not in (None, ""), ours=tuple(ours), rivals=tuple(rivals),
-        rival_offer=rival_offer, mine=mine, rounds=min(len(ours), len(rivals)), rival_spoke_now=spoke_now,
+        days_sign_srv=_srv_sign(duel),
+        ours=tuple(ours), rivals=tuple(rivals),
+        rival_offer=rival_offer, mine=mine, mine_days=mine_days, limit_raw=limit_raw, rounds=rounds,
+        rival_spoke_now=spoke_now,
         rival_double=any(c > 1 for c in per_tick.values()), fingerprint=duel_fingerprint(duel))
 
 
 # ------------------------------------------------------------------------------------------- decide
 
 def _days_model(v: DuelView, P: Mapping):
-    """-> (readable, our_days, extra(d)) for the days issue. extra(d) = P lost to days in the worst case."""
+    """-> (readable, our_days, extra(d), credit(d)) for the days issue.
+    Measured value (44/44 Duels II deals): s*(p-L) + sign*|w|*d. extra(d) is the margin the days add to every price we
+    send or accept, the Gate's talk._days_penalty: |w|*d when each day costs us (sign -1, or unknown), 0 when days
+    only add (sign +1: the price alone stays inside the limit). credit(d) is the days term of the value (worst sign
+    when unknown), used only to rank two offers. our_days: 10 when days add, else 0."""
     if not v.two_issue:
-        return True, None, (lambda d: 0.0)
+        return True, None, (lambda d: 0.0), (lambda d: 0.0)
     w = v.days_weight
-    if w is None or not v.days_meaning_known:
-        return False, None, None
-    sign = P.get("days_sign")
+    if w is None:                        # days_meaning stays out of the World (free text); only its sign enters
+        w = P.get("days_weight_fallback")    # ponytail: plan duels.days_weight_fallback, used only when the server sends null
+    if type(w) not in (int, float) or isinstance(w, bool):
+        return False, None, None, None
     aw = abs(w)
-    if sign not in (1, -1):
-        return True, None, (lambda d: aw * DAYS_MAX)          # max_d |W(d) - W(base)|
-    best = DAYS_MAX if sign > 0 else 0
-    W = lambda d: sign * aw * d                                 # noqa: E731
-    top = W(best)
-    return True, best, (lambda d: top - W(d))
+    if v.days_sign_srv == 1:
+        return True, DAYS_MAX, (lambda d: 0.0), (lambda d: aw * d)
+    return True, 0, (lambda d: aw * d), (lambda d: -aw * d)
 
 
 def surplus(v: DuelView, p: int) -> int:
@@ -251,7 +278,7 @@ def _final_guard(v: DuelView, P: Mapping, act: tuple) -> tuple:
     wait = ("wait", None, None)
     if kind == "wait" or not v.ok:
         return wait
-    readable, _, extra = _days_model(v, P)
+    readable, _, extra, _ = _days_model(v, P)
     if not readable or v.tick > v.deadline - 1:
         return wait
     if kind == "say":
@@ -264,9 +291,15 @@ def _final_guard(v: DuelView, P: Mapping, act: tuple) -> tuple:
                 return wait
         elif days is not None:
             return wait
+        ro = v.rival_offer                     # audit Sat: never offer worse than the rival's standing offer
+        if ro is not None and type(ro[0]) is int and v.s * (price - ro[0]) < 0:
+            price = ro[0]                      # (G50.worse_than_rival refused it every tick: opening anchor case)
+        if v.mine == price and (not v.two_issue or v.mine_days == days):
+            return wait                        # G50.repeat: never resend our own standing offer (late provoke)
         if surplus(v, price) < _need(v, P, extra, days):
             return wait
-        if v.mine is not None and v.s * (price - v.mine) > 0:            # monotone: never retract a concession
+        echo = v.two_issue and ro is not None and (price, days) == (ro[0], ro[1])   # the rival's own pair (G50)
+        if v.mine is not None and v.s * (price - v.mine) > 0 and not echo:   # monotone: never retract a concession
             return wait
         return ("say", price, days)
     if kind == "accept":
@@ -293,7 +326,7 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
     wait = ("wait", None, None)
     if not v.ok or v.tick > v.deadline - 1:
         return wait
-    readable, our_days, extra = _days_model(v, P)
+    readable, our_days, extra, credit = _days_model(v, P)
     if not readable:
         return wait                                                     # J10: nothing before reading the days
     buyer = v.s < 0
@@ -302,8 +335,11 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
     r = ro[0] if ro else None
     rd = ro[1] if ro else None
     say_days = our_days
-    if v.two_issue and say_days is None:                                # sign unknown: margin covers any days
-        say_days = rd if type(rd) is int and 0 <= rd <= DAYS_MAX else 0
+
+    def val(p, d):                     # value of an offer with its days (ranking only; ok_r/_final_guard keep the margin)
+        return surplus(v, p) + credit(d if d is not None else say_days)
+
+    mine_days = v.mine_days if v.mine_days is not None else say_days
     need_say = _need(v, P, extra, say_days)
     Lm = L - need_say if buyer else L + need_say                        # closest price we may offer
     ok_r = r is not None and surplus(v, r) >= _need(v, P, extra, rd)
@@ -321,11 +357,12 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
 
     # 1. acceptance (only when the rival spoke this tick: its standing offer cannot change before our POST)
     if ok_r and v.rival_spoke_now and not P["accept_paused"]:
-        firm = len(v.rivals) >= 2 and v.rivals[-1][1] == v.rivals[-2][1]
-        good = surplus(v, r) >= surplus(v, nxt) or (mine is not None and surplus(v, r) >= surplus(v, mine))
-        opening = mine is None and surplus(v, r) >= surplus(v, anchor)
+        firm = len(v.rivals) >= 2 and v.rivals[-1][1:3] == v.rivals[-2][1:3]
+        good = val(r, rd) >= val(nxt, say_days) or (mine is not None and val(r, rd) >= val(mine, mine_days))
+        opening = mine is None and val(r, rd) >= val(anchor, say_days)
         elapsed = (v.tick - v.start) >= P["close_frac"] * total
-        if good or firm or late or opening or elapsed:
+        retreat = len(v.rivals) >= 2 and val(*v.rivals[-1][1:3]) < val(*v.rivals[-2][1:3])  # moving away (D2304)
+        if good or firm or late or opening or elapsed or retreat:
             return ("accept", r, rd)
 
     if spoke_this_tick:
@@ -346,7 +383,10 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
             frac = (1 - P["slow_keep"]) * max(0, v.tick - t0) / max(1, tail_start - t0)
         else:
             frac = (1 - P["slow_keep"]) + P["slow_keep"] * (v.tick - tail_start) / max(1, P["slow_tail"])
-        p = _clamp(v, anchor + (Lm - anchor) * min(1.0, frac), need_say)
+        # Sun Duels III audit: 5 of 12 silent-rival SELLERS ended without a deal 5-10 P from L, and a seller at 10 days
+        # still gets 1 + 10|w| at L+1; so at the end a silent seller goes all the way (buyers keep the cap: +1 only)
+        cap = 1.0 if (not buyer and v.tick >= end) else P["slow_cap"]
+        p = _clamp(v, anchor + (Lm - anchor) * min(cap, frac), need_say)
         p = max(p, mine) if buyer else min(p, mine)
         return ("say", p, say_days) if p != mine else wait
 
@@ -357,10 +397,23 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
 
     rival_after_ours = not v.ours or v.rivals[-1][3] > v.ours[-1][3]
 
-    # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise
+    # 5. late: provoke an inside-limit rival that did not speak this tick; final offer toward the limit otherwise.
+    # Two issues with other days (pre-Sunday review E2E-2: ours 97/d0, a silent rival's 94/d5 worth +6 to us): no price
+    # of ours is both monotone and not worse than the rival's, so we send the rival its own standing pair back
+    # (inside the limit with its days by ok_r; G50 allows that echo) and accept when it answers.
     if late and ok_r and not v.rival_spoke_now:
-        p = r if (r >= mine if buyer else r <= mine) else mine
-        return ("say", _clamp(v, p, need_say), say_days)
+        if v.two_issue and rd is not None and rd != say_days and (r, rd) != (mine, mine_days):
+            return ("say", r, rd)
+        p = _clamp(v, r if (r >= mine if buyer else r <= mine) else mine, need_say)
+        return ("say", p, say_days) if p != mine else wait          # never resend our own price (G50.repeat)
+    # 5b. ultimatum (Sun, Duels III review: 3 of 4 no-deals ended 8-11 P short of our limit; no deal scores 0, and a
+    # seller at 10 days still gets 1 + 10|w| at L+1): two ticks before the deadline a rival still outside our limit
+    # gets our closest allowed price (margin kept by Lm and the final guard)
+    if v.tick >= v.deadline - 2 and not ok_r and mine is not None:
+        p = _clamp(v, Lm, need_say)
+        p = max(p, mine) if buyer else min(p, mine)
+        if p != mine:
+            return ("say", p, say_days)
     last_our_tick = v.ours[-1][0] if v.ours else -1
     if v.tick >= v.deadline - P["final"] and not ok_r and last_our_tick < v.deadline - P["final"]:
         p = _clamp(v, mine + P["final_frac"] * (Lm - mine), need_say)
@@ -368,6 +421,8 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
         return ("say", p, say_days) if p != mine else wait
 
     # 6. v0 corrected: concede one step only when the rival answered our last message (K-06)
+    if rival_after_ours and len(v.rivals) >= 2 and v.rivals[-1][1:3] == v.rivals[-2][1:3] and not late:
+        return wait                      # rival did not move: no concession for a repeated price (Day-2 hint 5)
     if rival_after_ours:
         p = nxt
         if ok_r:                                                         # never offer more than the rival asks
@@ -375,6 +430,25 @@ def _decide(v: DuelView, P: Mapping) -> tuple:
             p = max(p, mine) if buyer else min(p, mine)
         return ("say", p, say_days) if p != mine else wait
     return wait
+
+
+def accept_slot_wanted(world, params: Optional[Mapping] = None) -> bool:
+    """True when a live duel is within acc_late ticks of its deadline (and before deadline - 1 has passed) and the
+    rival's standing offer is inside our limit with its days margin: the late window may need this tick's single
+    accept slot (pre-Sunday review D2: an early dealer / team accept took it and the duel ended without a deal)."""
+    P = dict(DEFAULTS, **(params or {}))
+    for d in getattr(world, "duels", None) or ():
+        try:
+            v = view(d, world.tick)
+            if not v.ok or v.rival_offer is None or not 0 < v.deadline - v.tick <= max(1, int(P["acc_late"])):
+                continue
+            readable, _, extra, _ = _days_model(v, P)
+            r, rd = v.rival_offer[0], v.rival_offer[1]
+            if readable and not (v.two_issue and rd is None) and surplus(v, r) >= _need(v, P, extra, rd):
+                return True
+        except Exception:                                               # noqa: BLE001 - unknown: no hold
+            continue
+    return False
 
 
 # ------------------------------------------------------------------------------------------ propose
@@ -404,8 +478,6 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
     if "duels" in (getattr(world, "down", None) or ()):
         return []
     P = dict(DEFAULTS, **(params or {}))
-    sign = (plan_cfg or {}).get("days_sign") if isinstance(plan_cfg, Mapping) else None
-    P["days_sign"] = sign if sign in (1, -1) and type(sign) is int else None
     tick = world.tick
     accepts, says = [], []
     for d in world.duels or ():
@@ -413,8 +485,7 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
             v = view(d, tick)
             if not v.ok:
                 continue
-            if v.rival_double and not state.get("duel_accepts_paused"):
-                state["duel_accepts_paused"] = f"E16.two_msgs:{v.duel_id}"
+            # (audit Sat) a rival's double message no longer pauses ALL duels: _final_guard refuses accepts in that duel
             p = dict(P, accept_paused=bool(P["accept_paused"] or state.get("duel_accepts_paused")))
             e8 = state.get("e8")
             if e8 is None and v.rivals:
@@ -425,22 +496,14 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
                 exp = "E8"
             act, price, days = decide(v, p)
             if act == "accept":
-                pred = _predict(v.limit, price, v.decay, v.rounds, v.role)
+                pred = _predict(v.limit_raw, price, v.decay, v.rounds, v.role)
                 it = make_intent("duel_accept", "duels", {"duel_id": v.duel_id, "fingerprint": v.fingerprint},
                                  f"duel {v.duel_id} {v.role} L={v.limit}: rival {price} spoke at t{tick}",
                                  f"deal at {price}, surplus {surplus(v, price)}, rounds {v.rounds}", pred,
                                  priority=1000 - (v.deadline - tick), experiment=exp)
-                accepts.append((v.deadline, -surplus(v, price), v.duel_id, it, price, days))
+                accepts.append((v.deadline, -surplus(v, price), v.duel_id, it, price, days, v, p, exp))
             elif act == "say":
-                tpl = "duel_days" if v.two_issue else "duel"
-                pred = _predict(v.limit, price, v.decay, v.rounds + 1, v.role)
-                says.append(make_intent(
-                    "duel_say", "duels",
-                    {"duel_id": v.duel_id, "price": price, "days": days, "template": tpl,
-                     "variant": len(v.ours) % _template_variants(tpl)},
-                    f"duel {v.duel_id} {v.role} L={v.limit}: offer {price}" + (f" d{days}" if days is not None else ""),
-                    f"if accepted: surplus {surplus(v, price)}", pred,
-                    priority=500 - (v.deadline - tick), experiment=exp))
+                says.append(_say_intent(v, price, days, tick, exp))
         except Exception:
             continue                                                    # fail closed: nothing for this duel
     budget = getattr(getattr(world, "limits", None), "accepts", 0)
@@ -448,13 +511,33 @@ def propose(world, cfg, plan_cfg, params, state) -> list:
     accepts.sort(key=lambda a: (a[0], a[1], a[2]))
     out = []
     rec = state.setdefault("duel_accepts", {})
-    for dl, _, did, it, price, days in accepts[:budget]:
+    for dl, _, did, it, price, days, *_rest in accepts[:budget]:
         rec[did] = {"tick": tick, "price": price, "days": days}
         out.append(it)
+    # pre-Sunday review D3: an accept beyond the budget (same-deadline batches, 1 accept per tick) gets the rival's own
+    # pair back as a say instead of nothing: the rival accepting our offer uses none of our accept budget
+    for _dl, _s, did, _it, price, days, v, p, exp in accepts[budget:]:
+        try:
+            kind, sp, sd = _final_guard(v, p, ("say", price, days))
+            if kind == "say":
+                says.append(_say_intent(v, sp, sd, tick, exp))
+        except Exception:                                               # noqa: BLE001 - fail closed: no say
+            continue
     chosen = {a[2] for a in accepts[:budget]}
-    skipped = {a[2] for a in accepts[budget:]}
-    out.extend(s for s in says if s.args["duel_id"] not in chosen | skipped)
+    out.extend(s for s in says if s.args["duel_id"] not in chosen)
     return out
+
+
+def _say_intent(v: DuelView, price: int, days: Optional[int], tick: int, exp: Optional[str]) -> Intent:
+    tpl = "duel_days" if v.two_issue else "duel"
+    pred = _predict(v.limit_raw, price, v.decay, v.rounds + 1, v.role)
+    return make_intent(
+        "duel_say", "duels",
+        {"duel_id": v.duel_id, "price": price, "days": days, "template": tpl,
+         "variant": len(v.ours) % _template_variants(tpl)},
+        f"duel {v.duel_id} {v.role} L={v.limit}: offer {price}" + (f" d{days}" if days is not None else ""),
+        f"if accepted: surplus {surplus(v, price)}", pred,
+        priority=500 - (v.deadline - tick), experiment=exp)
 
 
 def _with_T(v: DuelView, T: int) -> DuelView:

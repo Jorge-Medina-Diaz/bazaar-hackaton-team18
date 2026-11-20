@@ -36,32 +36,11 @@ BOOK = {"bench_offers": [ask("b1-1", 50), ask("b1-2", 40), bid("b1-3", 60), bid(
 EXPECTED = [("b1-2", "b1-3", 50), ("b1-1", "b1-4", 52), ("b3-1", "b3-2", 10)]
 
 
-def starter_bench_plan():
-    try:
-        import starter_broker  # archived by M18 (+SystemExit); then this comparison is skipped
-        return starter_broker.bench_plan
-    except BaseException:  # noqa: BLE001
-        return None
-
 
 class TestPlanGreedy(unittest.TestCase):
     def test_fixed_book(self):
         self.assertEqual(plan_greedy(BOOK), EXPECTED)
 
-    def test_equals_starter_bench_plan_on_random_books(self):
-        ref = starter_bench_plan()
-        if ref is None:
-            self.skipTest("starter_broker not importable")
-        rng = random.Random(18)
-        for _ in range(300):
-            offers = []
-            for r in range(rng.randint(1, 4)):
-                for i in range(rng.randint(0, 8)):
-                    q = rng.randint(1, 200)
-                    offers.append((ask if rng.random() < 0.5 else bid)(f"b{r}-{i}", q))
-            rng.shuffle(offers)
-            book = {"bench_offers": offers}
-            self.assertEqual(plan_greedy(book), ref(book))
 
     def test_malformed_fails_closed(self):
         self.assertEqual(plan_greedy(None), [])

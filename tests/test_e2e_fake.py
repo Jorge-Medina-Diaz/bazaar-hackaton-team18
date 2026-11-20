@@ -10,7 +10,7 @@ decisions with and without prompt injection (INV-13), a pack granted mid-run nev
 
 NOTES (M17): 4 seeds x 300 ticks (not 5) to keep the selftest under its time budget; seeds 4-13 were soaked
 by hand (0 violations, 0 duplicates, 0 losses, 0 hard_fail). INV-10 (two dealer
-bots accepting the RET closer in the same tick) is not staged here (open issue).
+bots accepting the RET closer in the same tick) is not staged here (known limitation).
 """
 from __future__ import annotations
 

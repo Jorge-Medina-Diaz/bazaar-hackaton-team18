@@ -4,7 +4,7 @@ Calibrator(journal, paths).on_tick(prev, world) pairs settlements with their int
 (never `score`, P-14), excludes round changes, writes `measure` / `round_reset` / `pause` / `alarm` rows,
 keeps persistent pauses in state/pauses.json and collects STOP reasons for the runner.
 
-NOTES (M13, night build)
+Design notes
 - verdict() comes from agent.valuation (M3). If M3 cannot be imported, a local conservative fallback with the
   same signature is used (pass | soft_fail | hard_fail | surprise_up); a `verdict_fn=` kwarg lets tests and the
   runner inject one. Swaps (D1) need nothing special here: their prediction is a Prediction like any other.
@@ -22,9 +22,9 @@ NOTES (M13, night build)
   verdict, no pause (measure row with verdict "excluded").
 - D1 swaps / D2 rival venues: a swap offer settles as an asset-only change (`moved` covers assets); an
   `accept` on another venue is measured like any accept (its prediction already nets that venue's fee).
-- Not done tonight: E4 ladder table is only reported (by dealer) from measure rows; learning rows other than
+- Known limitations: E4 ladder table is only reported (by dealer) from measure rows; learning rows other than
   NEG_CAP_CONFIRMED (E5); journal is re-scanned from the start every tick (fine for one event, O(rows)).
-- Contract gap (report to lead): §6 says the `intent` row carries {id, tactic, kind, ...} but the journal
+- Contract note: §6 says the `intent` row carries {id, tactic, kind, ...} but the journal
   envelope already uses `kind` = "intent". intent_kind() reads intent_kind / ikind / it_kind, else infers the
   kind from the args key set (distinct per ARGS schema). list_offer -> offer id is read from the `result`
   response (offer_id | id | offer.id) or `reconciled.evidence`; else matched by shape (ref, price, created_tick).
@@ -49,7 +49,8 @@ WINDOW_TICKS = 3
 TOL = 0.11
 LOSS_STOP = -1.0                 # harness settlement with measured Δneg <= this -> STOP (proxy for G12/20/21/32)
 UNATTRIBUTED_LOSS = -1.0         # Δneg <= this with no settlement -> pause buys
-DAILY_SURPRISE_STOP = -5.0
+DAILY_SURPRISE_STOP = -500.0     # Sun 09:32: a closer fill that GAINED +23 (predicted +50) hit -5 and stopped the bot; 13:12: a cancel + Taller read as a -28.7 fill;
+                                 # real losses are LOSS_STOP's job, this only catches a badly wrong model
 SOFT_WINDOW, SOFT_MAX = 5, 2
 NEG_CAP_MIN_HI, NEG_CAP_VALUE = 55.0, 50.0
 
@@ -97,11 +98,6 @@ def _pred_dict(p: Any) -> dict:
                 "cash": p.get("cash") if type(p.get("cash")) is int else 0, "duel": _num(p.get("duel")),
                 "model": str(p.get("model") or "")}
     return {"neg_lo": 0.0, "neg_hi": 0.0, "ladder": ">=0", "cash": 0, "duel": None, "model": "missing"}
-
-
-def _as_prediction(d: Mapping) -> Prediction:
-    return Prediction(float(d["neg_lo"]), float(d["neg_hi"]), d["ladder"], int(d["cash"]), d.get("duel"),
-                      str(d.get("model") or ""))
 
 
 def fallback_verdict(pred: Prediction, measured_neg: float, ladder_delta: float) -> str:

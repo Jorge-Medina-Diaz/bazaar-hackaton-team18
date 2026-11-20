@@ -1,0 +1,87 @@
+Payday (Sat 3 Oct, tick 1201, 20:58): +400 P to every team, not in the published schedule
+(Friday's /api/schedule listed only two grants: 150 P + a pack at hour 4.05 and 150 P on Sunday; tests/fixtures/harvest/probe/schedule.json).
+Organisers' note: "Don Ernesto's vault and Los Picaros' epics are within reach. Only deals score, never cash you hold."
+Round 2 (Saturday) still had ~2 game hours to run (closed at hour 13.37).
+
+Public leaderboard, tick 1230 (29 ticks after the grant) -> tick 1440 (Saturday close). Source: data/leaderboard-saturday.json
+team  deals  negotiating  market  score   rank
+t10     +9     +2.98   +0.00   +2.98   1 -> 1
+t18     +3     +1.25   +0.00   +1.25   4 -> 2
+t05     +0     -1.44   +0.00   -1.44   2 -> 3
+t12     +6     +2.43   -0.25   +2.18   7 -> 4
+t03     +2     -0.44   +0.22   -0.22   5 -> 5
+t06     +8     -1.73   +0.05   -1.69   3 -> 6
+t14     +5     -2.17   +0.00   -2.17   6 -> 7
+t17     +1     +0.99   +0.00   +0.98  10 -> 8
+t01     +1     +1.94   +0.00   +1.94  13 -> 9
+t13     +6     +0.39   +0.12   +0.50  11 -> 10
+t08     +3     +0.70   -0.05   +0.65  12 -> 11
+t04     +8     +1.28   +0.00   +1.28  14 -> 12
+t15     +0     -1.82   +0.00   -1.82   8 -> 13
+t16     +0     -0.27   +1.55   +1.28  15 -> 14
+t02     +3     -1.95   +0.00   -1.95   9 -> 15
+t09     +2     +1.98   +0.00   +1.99  16 -> 16
+t07     +2     +0.66   +0.00   +0.66  17 -> 17
+
+Teams that had sunk 270 P into their own venue (11): mean +4.8 deals, negotiating +0.49 after the grant.
+Teams on the free stall (6, t18 among them): mean +1.0 deals, negotiating -0.11.
+Gap t10 - t18: 4.59 at tick 1230 -> 6.32 at tick 1440.
+
+t18 (our journal): cash 131 before the grant, 531 after; Saturday close 555. We spent 72 P of it on Saturday (LAT-10 from a team, +50)
+and kept the rest for Chamberi (our x1.6 set), which was only released in round 3 (Sunday 09:15).
+
+How the teams that gained used the 400 P (public settlements, tick 1201-1445; the feed shows 59 of the 77 settlements in this window)
+team  card moves  bought  sold  net cash out   what
+t12        6       475     70       405        RET-11 epic from t06 at 216, LAT-10 rare from t01 at 86, MAL-11 epic from Picaros at 139, 2 uncommons
+t04        9       551    171       380        LAV-11 and SAL-11 epics from Picaros (155 each), RET-10 from t06 at 84, 3 loops SAL-09 Picaros (50-55) -> Pilar (72-75)
+t10       10       554    325       229        MAL-11 epic from t08 at 195, SAL-11 epic from Picaros at 155 resold to t17 at 207, RET-11 epic from Picaros at 142,
+                                               SAL-09 Picaros 52 -> Pilar 77, plus Abuela and Chato
+t13       10       242     86       156        LAV-09, LAV-10, LAT-10 rares from Picaros (54-63), LAT-10 resold to t18 at 72
+t17        1       207      0       207        SAL-11 epic from t10 at 207
+t08        5       290    276        14        SAL-11 and MAL-11 epics from Picaros (140, 150), MAL-11 resold to t10 at 195
+t06       12       436    462       -26        SAL-11 (143) and RET-11 (137) epics from Picaros: RET-11 resold to t12 at 216, SAL-11 to the banco at 120
+t18        3        72     96       -24        LAT-10 from t13 at 72; sold SAL-10 (71) and RET-07 (25) to Pilar
+
+What the money bought:
+- Epics from Los Picaros: 11 in the public feed after the grant against 1 before it (the pre-grant feed is incomplete: 24 of 84 settlements),
+  each 137-155 P, which is more than most teams held. That was the organisers' stated aim: "Don Ernesto's vault and Los Picaros' epics are within reach".
+- Epic and rare resales between teams at 195-216 P (RET-11, MAL-11, SAL-11). A trade between teams scores for both sides at their private values
+  (up to +50 each): the grant financed both legs.
+- Dealer-to-dealer loops (SAL-09 bought from Los Picaros, sold to Pilar): ladder slots at levels 4 and 3, the heaviest after the banco.
+- t12 and t04 spent about the whole grant (net 405 and 380 P out) in the two hours that were left of round 2.
+
+Why it helped us less:
+- We had already spent our own cash on the same plays before the grant: SAL-11 epic from Los Picaros at 139 and LAT-09 at 55 (level 4), SAL-11 to
+  Pilar at 199 (level 3). Ladder 0.214 -> 0.366 between ticks 1000 and 1100, cash 303 -> 131. Our level 3 and 4 slots were full when the grant came.
+- The rest of our need was Chamberi, released only on Sunday. So the grant subsidised the teams that had not yet made these plays: late movers.
+
+Limits of this analysis: rivals' private values are unknown, so their points per deal cannot be computed; the public feed misses 18 of 77
+settlements after the grant and most before it; the leaderboard is relative and lags a few ticks.
+
+Estimated impact on us (three methods; ranges, not a precise number)
+A. Erosion of teams that made no deals (the score is relative: others' deals lower yours).
+   Before the grant (ticks 1050-1230): t17 -0.31 negotiating per 100 ticks. After it (1230-1440): t05 -0.69, t15 -0.87, t16 -0.13 (mean -0.56).
+   Extra erosion about -0.25 per 100 ticks, i.e. about -0.5 over the 210 ticks (range 0 to -1.2).
+B. Our own budget. After the grant we added at least +80 neg_points (LAT-10 +50, flags +30). On Saturday +50 measured about +1.9 on the board (S-30),
+   so that alone is worth about +3.0, before counting two Pilar ladder slots and Duels II. Observed: +1.25 negotiating (22.51 -> 23.76).
+   The field therefore took at least about 1.8 from us in that window. Our pre-grant drift (-0.31 per 100 ticks) explains about 0.65 of it,
+   which leaves about 1.1 to the field's acceleration (grant-funded deals plus Duels II, which overlapped).
+C. The leader. t10's pace did not change (+1.62 per 100 ticks before, +1.42 after): its lead was not created by the grant.
+   The teams that accelerated were mid-table: t01 (-0.36 -> +1.94), t04 (-0.40 -> +1.28), t09 (+0.68 -> +1.98), t17 (-0.55 -> +0.99).
+
+Estimate: about -0.5 to -1.1 negotiating points on Saturday's board (central -0.8). The final score averages the rounds
+(0.5 x Fri + Sat + Sun) / 2.5 and the Saturday board shows (0.5 x Fri + Sat) / 1.5, so a Saturday-board point is worth 0.6 final points:
+about -0.3 to -0.7 final points. No team passed us because of it on Saturday (we went 4th -> 2nd), and the same +400 paid for our
+Chamberi on Sunday, so the net effect on us is smaller than the Saturday figure.
+
+Sunday check (did the grant money buy the teams that passed us more ladder slots today?)
+Public feed, Sunday settlements (215 of 351 visible, 61 %); leaderboard at 14:02, tick 2582 (data/leaderboard-sunday-1402.json).
+team (rank)   net spent today   ladder slots filled today (max 3 per level)   delta negotiating since Sat   delta market since Sat
+t05 (1)       -73 (net seller)   9                                             +1.07                        +5.58
+t10 (2)       +290               7                                             -2.55                        -0.23
+t12 (3)       -287 (net seller)  9                                             -0.51                        +4.19
+t03 (4)       +173               9                                             +2.27                        +2.07
+t18 (5)       +295               12 (the most)                                 -0.35                        +1.50
+Verdict: no. On Sunday the teams that passed us did not out-spend or out-ladder us; they passed us on market points.
+Gap to 1st at 14:02: 4.73 = market 4.08 (13.08 vs 9.00) + negotiating 0.65 (24.06 vs 23.41).
+Visible Sunday trades between other teams on team venues: v10 (t05, a free stall like ours) 3 trades / 3 pairs; ours: v28 1 / 1, v18 0.

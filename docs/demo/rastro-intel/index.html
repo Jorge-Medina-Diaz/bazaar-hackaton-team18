@@ -1,0 +1,136 @@
+<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Rastro Intel t18</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: cuaderno de campo de un equipo en el Rastro. Cabecera con cifras, hallazgos en rejilla, galería de herramientas con pie, cierre con mejoras. */
+:root{
+  --bg:#f4f6fb; --surface:#ffffff; --ink:#152038; --muted:#5b6782; --line:#dde3ef;
+  --azul:#1d4fd8; --oro:#e0a20a; --ok:#178a4c; --ko:#c43b3b;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1322;--surface:#151d31;--ink:#e8edf8;--muted:#9aa6c2;--line:#26304a;--azul:#7aa2ff;--oro:#f2c14e;--ok:#4fd18b;--ko:#ff7a7a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1322;--surface:#151d31;--ink:#e8edf8;--muted:#9aa6c2;--line:#26304a;--azul:#7aa2ff;--oro:#f2c14e;--ok:#4fd18b;--ko:#ff7a7a;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:28px 56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(34px,6vw,58px);font-weight:800;letter-spacing:-.02em;line-height:1.02}
+h2{font-size:26px;font-weight:800;margin-block:44px 14px}
+h3{font-size:18px;font-weight:800}
+.eyebrow{font:600 12px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--azul)}
+.lede{max-width:64ch;color:var(--muted);font-size:18px;margin-top:12px}
+.hl{color:var(--azul)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:26px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font:800 30px var(--display);font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.finds{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.find{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.find.full{grid-column:1/-1}.find p{margin:0;color:var(--muted);font-size:15px}
+.tag{align-self:flex-start;font:500 11px var(--mono);padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--azul) 12%,transparent);color:var(--azul)}
+.tag.oro{background:color-mix(in srgb,var(--oro) 18%,transparent);color:color-mix(in srgb,var(--oro) 70%,var(--ink))}
+.num{font:800 22px var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.quote{font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--bg);border-radius:8px;padding:8px 10px}
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+figure img{display:block;width:100%;height:260px;object-fit:cover;object-position:top;border-bottom:1px solid var(--line);cursor:zoom-in}
+figcaption{padding:12px 14px;font-size:14px;color:var(--muted)}
+figcaption b{color:var(--ink);font-family:var(--display);font-size:16px;display:block;margin-bottom:2px}
+.wide{grid-column:1/-1}.wide img{height:340px}
+.better{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.better div{border-left:3px solid var(--oro);padding:4px 0 4px 12px;font-size:15px;color:var(--muted)}
+.better b{color:var(--ink)}
+.foot{margin-top:40px;font-size:13px;color:var(--muted)}
+dialog{border:0;padding:0;background:transparent;max-width:96vw}dialog::backdrop{background:rgba(5,10,20,.8)}
+dialog img{max-width:96vw;max-height:90vh;border-radius:10px;display:block}
+:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px 10px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .gl{stroke:var(--line);stroke-width:1}.chart .ax{fill:var(--muted);font:500 11px var(--mono)}
+.chart .sep{stroke:var(--muted);stroke-dasharray:4 4}.chart .ar{fill:var(--azul);fill-opacity:.12}
+.chart .ln{fill:none;stroke:var(--azul);stroke-width:2.2}.chart .mk{fill:var(--oro);stroke:var(--surface);stroke-width:2}
+.chart .ml{fill:var(--ink);font:600 12px var(--body)}.cap{margin:6px 2px 0;font-size:13px;color:var(--muted)}
+.endgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
+.k{font:600 12px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.tblw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.tbl{width:100%;border-collapse:collapse;font-size:15px}.tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+.tbl th{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.tbl tr:last-child td{border-bottom:0}
+.tbl .n{text-align:right;font-variant-numeric:tabular-nums}.tbl .b{font-weight:700}
+.tbl tr.me td{color:var(--azul);font-weight:700;background:color-mix(in srgb,var(--azul) 8%,transparent)}
+.stats.one{grid-template-columns:1fr;margin-top:0}
+@media (max-width:720px){.endgrid{grid-template-columns:1fr}}
+@media (max-width:720px){.gal{grid-template-columns:1fr}figure img,.wide img{height:220px}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">The Bazaar · Equipo 18 · material de apoyo para la demo</div>
+  <h1>Rastro Intel: <span class="hl">lo que aprendimos</span> mirando el mercado en directo</h1>
+  <p class="lede">Mientras nuestro agente negociaba, un segundo sistema leía el feed público del Bazaar, archivaba cada evento, entendía a cada dealer y nos avisaba con voz. Estos son los descubrimientos y las herramientas.</p>
+
+  <div class="stats">
+    <div class="stat"><b>2.º</b><span>al cierre del sábado (31,26)</span></div>
+    <div class="stat"><b>30.000+</b><span>eventos públicos archivados y analizados</span></div>
+    <div class="stat"><b>12 / 0</b><span>trucos de Los Pícaros contra nosotros / colados</span></div>
+    <div class="stat"><b>+99 P</b><span>arbitraje con una épica (SAL-11: 139 → 238)</span></div>
+    <div class="stat"><b>3 / 3</b><span>insignias secretas desbloqueadas</span></div>
+  </div>
+
+  <h2 id="trayectoria">Nuestra trayectoria</h2>
+  <div class="chart"><svg viewBox='0 0 1000 230' role='img' aria-label='Puntos de t18 durante el fin de semana'><line x1='46' x2='986' y1='191.8' y2='191.8' class='gl'/><text x='40' y='195.8' text-anchor='end' class='ax'>28</text><line x1='46' x2='986' y1='161.3' y2='161.3' class='gl'/><text x='40' y='165.3' text-anchor='end' class='ax'>29</text><line x1='46' x2='986' y1='130.9' y2='130.9' class='gl'/><text x='40' y='134.9' text-anchor='end' class='ax'>30</text><line x1='46' x2='986' y1='100.5' y2='100.5' class='gl'/><text x='40' y='104.5' text-anchor='end' class='ax'>31</text><line x1='46' x2='986' y1='70.0' y2='70.0' class='gl'/><text x='40' y='74.0' text-anchor='end' class='ax'>32</text><line x1='46' x2='986' y1='39.6' y2='39.6' class='gl'/><text x='40' y='43.6' text-anchor='end' class='ax'>33</text><line x1='381.2' x2='381.2' y1='8' y2='200' class='sep'/><text x='373.2' y='218' text-anchor='end' class='ax'>sábado</text><text x='389.2' y='218' class='ax'>domingo</text><polygon points='46.0,200 46.0,130.6 48.2,130.6 50.4,130.6 52.6,130.6 54.8,130.6 57.0,130.6 59.1,130.6 61.3,130.6 63.5,130.6 65.7,130.6 67.9,130.6 70.1,130.6 72.3,130.6 74.5,130.6 76.7,130.6 78.9,127.2 81.1,127.2 83.2,127.2 85.4,127.2 87.6,127.2 89.8,127.2 92.0,127.2 94.2,132.7 96.4,132.7 98.6,132.7 100.8,132.7 103.0,132.7 105.2,132.7 107.4,132.7 109.5,132.7 111.7,147.0 113.9,147.0 116.1,147.0 118.3,147.0 120.5,147.0 122.7,147.0 124.9,147.0 127.1,137.0 129.3,137.0 131.5,137.0 133.6,137.0 135.8,137.0 138.0,137.0 140.2,137.0 142.4,140.0 144.6,140.0 146.8,140.0 149.0,140.0 151.2,140.0 153.4,140.0 155.6,140.0 157.7,140.0 159.9,165.9 162.1,165.9 164.3,165.9 166.5,165.9 168.7,165.9 170.9,165.9 173.1,165.9 175.3,177.8 177.5,177.8 179.7,177.8 181.9,177.8 184.0,177.8 186.2,177.8 188.4,177.8 190.6,185.7 192.8,185.7 195.0,185.7 197.2,185.7 199.4,185.7 201.6,185.7 203.8,185.7 206.0,185.7 208.1,187.8 210.3,187.8 212.5,187.8 214.7,187.8 216.9,187.8 219.1,187.8 221.3,187.8 223.5,129.4 225.7,129.4 227.9,129.4 230.1,129.4 232.2,129.4 234.4,129.4 236.6,129.4 238.8,129.4 241.0,129.4 243.2,129.4 245.4,129.4 247.6,129.4 249.8,129.4 252.0,129.4 254.2,129.1 256.3,129.1 258.5,129.1 260.7,129.1 262.9,129.1 265.1,129.1 267.3,129.1 269.5,129.1 271.7,127.5 273.9,127.5 276.1,127.5 278.3,127.5 280.5,127.5 282.6,127.5 284.8,127.5 287.0,128.8 289.2,128.8 291.4,128.8 293.6,128.8 295.8,128.8 298.0,128.8 300.2,128.8 302.4,126.0 304.6,126.0 306.7,126.0 308.9,126.0 311.1,126.0 313.3,126.0 315.5,126.0 317.7,101.1 319.9,101.1 322.1,101.1 324.3,101.1 326.5,101.1 328.7,101.1 330.8,101.1 333.0,101.1 335.2,101.1 337.4,101.1 339.6,101.1 341.8,101.1 344.0,101.1 346.2,101.1 348.4,101.1 350.6,101.1 352.8,101.1 355.0,101.1 357.1,101.1 359.3,101.1 361.5,101.1 363.7,101.1 365.9,92.5 368.1,92.5 370.3,92.5 372.5,92.5 374.7,92.5 376.9,92.5 379.1,92.5 381.2,92.5 383.4,92.5 385.6,92.5 387.8,92.5 390.0,92.5 392.2,92.5 394.4,92.5 396.6,141.6 398.8,96.5 401.0,96.5 403.2,96.5 405.3,96.5 407.5,97.1 409.7,97.1 411.9,97.1 414.1,97.1 416.3,97.1 418.5,97.1 420.7,97.1 422.9,97.4 425.1,97.4 427.3,97.4 429.4,97.4 431.6,97.4 433.8,97.4 436.0,97.4 438.2,98.0 440.4,98.0 442.6,98.0 444.8,98.0 447.0,98.0 449.2,98.3 451.4,98.3 453.6,98.3 455.7,98.3 457.9,98.3 460.1,98.3 462.3,98.3 464.5,98.9 466.7,98.9 468.9,98.9 471.1,98.9 473.3,98.9 475.5,98.9 477.7,98.9 479.8,99.2 482.0,99.2 484.2,99.2 486.4,99.2 488.6,99.2 490.8,99.2 493.0,99.2 495.2,99.2 497.4,101.4 499.6,101.4 501.8,101.4 503.9,101.4 506.1,101.4 508.3,101.4 510.5,101.4 512.7,105.6 514.9,105.6 517.1,105.6 519.3,105.6 521.5,105.6 523.7,105.6 525.9,105.6 528.1,106.5 530.2,106.5 532.4,106.5 534.6,106.5 536.8,106.5 539.0,106.5 541.2,106.5 543.4,43.2 545.6,43.2 547.8,43.2 550.0,43.2 552.2,43.2 554.3,43.2 556.5,43.2 558.7,43.2 560.9,41.1 563.1,41.1 565.3,41.1 567.5,41.1 569.7,41.1 571.9,41.1 574.1,41.1 576.3,38.7 578.4,38.7 580.6,38.7 582.8,38.7 585.0,38.7 587.2,38.7 589.4,38.7 591.6,36.5 593.8,36.5 596.0,36.5 598.2,36.5 600.4,36.5 602.6,36.5 604.7,36.5 606.9,36.5 609.1,44.1 611.3,44.1 613.5,44.1 615.7,44.1 617.9,44.1 620.1,44.1 622.3,44.1 624.5,32.6 626.7,32.6 628.8,32.6 631.0,32.6 633.2,32.6 635.4,32.6 637.6,32.6 639.8,28.0 642.0,28.0 644.2,28.0 646.4,28.0 648.6,28.0 650.8,28.0 652.9,28.0 655.1,26.2 657.3,26.2 659.5,26.2 661.7,26.2 663.9,26.2 666.1,26.2 668.3,26.2 670.5,42.9 672.7,42.9 674.9,42.9 677.0,42.9 679.2,42.9 681.4,42.9 683.6,42.9 685.8,64.5 688.0,64.5 690.2,64.5 692.4,64.5 694.6,64.5 696.8,64.5 699.0,64.5 701.2,64.5 703.3,59.1 705.5,59.1 707.7,59.1 709.9,59.1 712.1,59.1 714.3,59.1 716.5,59.1 718.7,53.9 720.9,53.9 723.1,53.9 725.3,53.9 727.4,53.9 729.6,53.9 731.8,53.9 734.0,52.1 736.2,52.1 738.4,52.1 740.6,52.1 742.8,52.1 745.0,52.1 747.2,52.1 749.4,30.1 751.5,30.1 753.7,30.1 755.9,30.1 758.1,30.1 760.3,30.1 762.5,30.1 764.7,27.1 766.9,27.1 769.1,27.1 771.3,27.1 773.5,27.1 775.7,27.1 777.8,27.1 780.0,39.9 782.2,39.9 784.4,37.4 786.6,37.4 788.8,37.4 791.0,37.1 793.2,37.1 795.4,37.1 797.6,37.1 799.8,37.1 801.9,36.2 804.1,36.2 806.3,36.2 808.5,36.2 810.7,36.2 812.9,33.5 815.1,31.0 817.3,31.0 819.5,31.0 821.7,30.7 823.9,30.7 826.0,50.2 828.2,50.2 830.4,50.2 832.6,50.2 834.8,50.2 837.0,51.7 839.2,51.7 841.4,51.7 843.6,51.7 845.8,53.6 848.0,53.6 850.1,53.6 852.3,53.6 854.5,53.6 856.7,53.9 858.9,53.9 861.1,53.9 863.3,53.9 865.5,53.9 867.7,48.4 869.9,48.4 872.1,54.2 874.3,54.2 876.4,54.2 878.6,54.2 880.8,54.2 883.0,54.2 885.2,54.2 887.4,54.2 889.6,54.2 891.8,54.2 894.0,54.2 896.2,54.2 898.4,54.2 900.5,54.2 902.7,54.2 904.9,54.8 907.1,54.8 909.3,54.8 911.5,54.8 913.7,54.8 915.9,54.8 918.1,54.8 920.3,57.5 922.5,57.5 924.6,57.5 926.8,57.5 929.0,59.4 931.2,59.4 933.4,59.4 935.6,64.5 937.8,64.5 940.0,58.7 942.2,58.7 944.4,58.7 946.6,57.2 948.8,60.0 950.9,60.0 953.1,60.0 955.3,60.0 957.5,60.0 959.7,60.0 961.9,60.0 964.1,60.0 966.3,60.0 968.5,61.8 970.7,61.8 972.9,61.8 975.0,61.8 977.2,61.8 979.4,61.8 981.6,61.8 983.8,61.8 986.0,61.8 986.0,200' class='ar'/><polyline points='46.0,130.6 48.2,130.6 50.4,130.6 52.6,130.6 54.8,130.6 57.0,130.6 59.1,130.6 61.3,130.6 63.5,130.6 65.7,130.6 67.9,130.6 70.1,130.6 72.3,130.6 74.5,130.6 76.7,130.6 78.9,127.2 81.1,127.2 83.2,127.2 85.4,127.2 87.6,127.2 89.8,127.2 92.0,127.2 94.2,132.7 96.4,132.7 98.6,132.7 100.8,132.7 103.0,132.7 105.2,132.7 107.4,132.7 109.5,132.7 111.7,147.0 113.9,147.0 116.1,147.0 118.3,147.0 120.5,147.0 122.7,147.0 124.9,147.0 127.1,137.0 129.3,137.0 131.5,137.0 133.6,137.0 135.8,137.0 138.0,137.0 140.2,137.0 142.4,140.0 144.6,140.0 146.8,140.0 149.0,140.0 151.2,140.0 153.4,140.0 155.6,140.0 157.7,140.0 159.9,165.9 162.1,165.9 164.3,165.9 166.5,165.9 168.7,165.9 170.9,165.9 173.1,165.9 175.3,177.8 177.5,177.8 179.7,177.8 181.9,177.8 184.0,177.8 186.2,177.8 188.4,177.8 190.6,185.7 192.8,185.7 195.0,185.7 197.2,185.7 199.4,185.7 201.6,185.7 203.8,185.7 206.0,185.7 208.1,187.8 210.3,187.8 212.5,187.8 214.7,187.8 216.9,187.8 219.1,187.8 221.3,187.8 223.5,129.4 225.7,129.4 227.9,129.4 230.1,129.4 232.2,129.4 234.4,129.4 236.6,129.4 238.8,129.4 241.0,129.4 243.2,129.4 245.4,129.4 247.6,129.4 249.8,129.4 252.0,129.4 254.2,129.1 256.3,129.1 258.5,129.1 260.7,129.1 262.9,129.1 265.1,129.1 267.3,129.1 269.5,129.1 271.7,127.5 273.9,127.5 276.1,127.5 278.3,127.5 280.5,127.5 282.6,127.5 284.8,127.5 287.0,128.8 289.2,128.8 291.4,128.8 293.6,128.8 295.8,128.8 298.0,128.8 300.2,128.8 302.4,126.0 304.6,126.0 306.7,126.0 308.9,126.0 311.1,126.0 313.3,126.0 315.5,126.0 317.7,101.1 319.9,101.1 322.1,101.1 324.3,101.1 326.5,101.1 328.7,101.1 330.8,101.1 333.0,101.1 335.2,101.1 337.4,101.1 339.6,101.1 341.8,101.1 344.0,101.1 346.2,101.1 348.4,101.1 350.6,101.1 352.8,101.1 355.0,101.1 357.1,101.1 359.3,101.1 361.5,101.1 363.7,101.1 365.9,92.5 368.1,92.5 370.3,92.5 372.5,92.5 374.7,92.5 376.9,92.5 379.1,92.5 381.2,92.5 383.4,92.5 385.6,92.5 387.8,92.5 390.0,92.5 392.2,92.5 394.4,92.5 396.6,141.6 398.8,96.5 401.0,96.5 403.2,96.5 405.3,96.5 407.5,97.1 409.7,97.1 411.9,97.1 414.1,97.1 416.3,97.1 418.5,97.1 420.7,97.1 422.9,97.4 425.1,97.4 427.3,97.4 429.4,97.4 431.6,97.4 433.8,97.4 436.0,97.4 438.2,98.0 440.4,98.0 442.6,98.0 444.8,98.0 447.0,98.0 449.2,98.3 451.4,98.3 453.6,98.3 455.7,98.3 457.9,98.3 460.1,98.3 462.3,98.3 464.5,98.9 466.7,98.9 468.9,98.9 471.1,98.9 473.3,98.9 475.5,98.9 477.7,98.9 479.8,99.2 482.0,99.2 484.2,99.2 486.4,99.2 488.6,99.2 490.8,99.2 493.0,99.2 495.2,99.2 497.4,101.4 499.6,101.4 501.8,101.4 503.9,101.4 506.1,101.4 508.3,101.4 510.5,101.4 512.7,105.6 514.9,105.6 517.1,105.6 519.3,105.6 521.5,105.6 523.7,105.6 525.9,105.6 528.1,106.5 530.2,106.5 532.4,106.5 534.6,106.5 536.8,106.5 539.0,106.5 541.2,106.5 543.4,43.2 545.6,43.2 547.8,43.2 550.0,43.2 552.2,43.2 554.3,43.2 556.5,43.2 558.7,43.2 560.9,41.1 563.1,41.1 565.3,41.1 567.5,41.1 569.7,41.1 571.9,41.1 574.1,41.1 576.3,38.7 578.4,38.7 580.6,38.7 582.8,38.7 585.0,38.7 587.2,38.7 589.4,38.7 591.6,36.5 593.8,36.5 596.0,36.5 598.2,36.5 600.4,36.5 602.6,36.5 604.7,36.5 606.9,36.5 609.1,44.1 611.3,44.1 613.5,44.1 615.7,44.1 617.9,44.1 620.1,44.1 622.3,44.1 624.5,32.6 626.7,32.6 628.8,32.6 631.0,32.6 633.2,32.6 635.4,32.6 637.6,32.6 639.8,28.0 642.0,28.0 644.2,28.0 646.4,28.0 648.6,28.0 650.8,28.0 652.9,28.0 655.1,26.2 657.3,26.2 659.5,26.2 661.7,26.2 663.9,26.2 666.1,26.2 668.3,26.2 670.5,42.9 672.7,42.9 674.9,42.9 677.0,42.9 679.2,42.9 681.4,42.9 683.6,42.9 685.8,64.5 688.0,64.5 690.2,64.5 692.4,64.5 694.6,64.5 696.8,64.5 699.0,64.5 701.2,64.5 703.3,59.1 705.5,59.1 707.7,59.1 709.9,59.1 712.1,59.1 714.3,59.1 716.5,59.1 718.7,53.9 720.9,53.9 723.1,53.9 725.3,53.9 727.4,53.9 729.6,53.9 731.8,53.9 734.0,52.1 736.2,52.1 738.4,52.1 740.6,52.1 742.8,52.1 745.0,52.1 747.2,52.1 749.4,30.1 751.5,30.1 753.7,30.1 755.9,30.1 758.1,30.1 760.3,30.1 762.5,30.1 764.7,27.1 766.9,27.1 769.1,27.1 771.3,27.1 773.5,27.1 775.7,27.1 777.8,27.1 780.0,39.9 782.2,39.9 784.4,37.4 786.6,37.4 788.8,37.4 791.0,37.1 793.2,37.1 795.4,37.1 797.6,37.1 799.8,37.1 801.9,36.2 804.1,36.2 806.3,36.2 808.5,36.2 810.7,36.2 812.9,33.5 815.1,31.0 817.3,31.0 819.5,31.0 821.7,30.7 823.9,30.7 826.0,50.2 828.2,50.2 830.4,50.2 832.6,50.2 834.8,50.2 837.0,51.7 839.2,51.7 841.4,51.7 843.6,51.7 845.8,53.6 848.0,53.6 850.1,53.6 852.3,53.6 854.5,53.6 856.7,53.9 858.9,53.9 861.1,53.9 863.3,53.9 865.5,53.9 867.7,48.4 869.9,48.4 872.1,54.2 874.3,54.2 876.4,54.2 878.6,54.2 880.8,54.2 883.0,54.2 885.2,54.2 887.4,54.2 889.6,54.2 891.8,54.2 894.0,54.2 896.2,54.2 898.4,54.2 900.5,54.2 902.7,54.2 904.9,54.8 907.1,54.8 909.3,54.8 911.5,54.8 913.7,54.8 915.9,54.8 918.1,54.8 920.3,57.5 922.5,57.5 924.6,57.5 926.8,57.5 929.0,59.4 931.2,59.4 933.4,59.4 935.6,64.5 937.8,64.5 940.0,58.7 942.2,58.7 944.4,58.7 946.6,57.2 948.8,60.0 950.9,60.0 953.1,60.0 955.3,60.0 957.5,60.0 959.7,60.0 961.9,60.0 964.1,60.0 966.3,60.0 968.5,61.8 970.7,61.8 972.9,61.8 975.0,61.8 977.2,61.8 979.4,61.8 981.6,61.8 983.8,61.8 986.0,61.8' class='ln'/><circle cx='655.1' cy='26.2' r='4.5' class='mk'/><text x='655.1' y='12.2' text-anchor='middle' class='ml'>máximo 33,44</text><circle cx='208.1' cy='187.8' r='4.5' class='mk'/><text x='208.1' y='209.8' text-anchor='middle' class='ml'>mínimo 28,13</text><circle cx='379.1' cy='92.5' r='4.5' class='mk'/><text x='379.1' y='78.5' text-anchor='middle' class='ml'>cierre sábado: 2.º</text><circle cx='986.0' cy='61.8' r='4.5' class='mk'/><text x='986.0' y='83.8' text-anchor='end' class='ml'>ahora 32,27</text></svg><p class="cap">Puntos de t18 en la clasificación pública, un corte por minuto desde el sábado a las 21:12 (sin la noche, con el mercado cerrado). Las caídas sin tratos y los saltos tras cada trato bueno son la mecánica que explicamos abajo.</p></div>
+
+  <h2 id="hallazgos">Grandes descubrimientos</h2>
+  <div class="finds">
+    <article class="find"><span class="tag">Los Pícaros</span><h3>El truco siempre es el mismo</h3>
+      <p>La oferta trae otra carta <b>del mismo barrio con número menor</b> (SAL-10 por SAL-11, LAT-06 por LAT-09). Lo detectamos comparando la oferta estructurada con el tema del hilo, nunca con el texto.</p>
+      <p><span class="num">0 de 12</span> intentos colados a t18. En todo el mercado, 1 en 18 equipos.</p></article>
+    <article class="find"><span class="tag oro">Huevos de pascua</span><h3>Los dealers esconden frases</h3>
+      <p>Leyendo sus respuestas mapeamos los disparadores:</p>
+      <div class="quote">Banco: «el oro de Moscú» → carta oculta<br>Pícaros: «Lazarillo, Rinconete» → sin trucos ese día<br>Abuela: «el chotis se baila en una baldosa» → Castizo<br>Chato: «Plaza Mayor, con caña» → sobre gratis</div></article>
+    <article class="find"><span class="tag">Puntuación</span><h3>Si no negocias, bajas solo</h3>
+      <p>La ronda en curso pesa más a medida que avanza el día: sin tratos la nota cae aunque no hagas nada. Un solo trato bueno la levanta.</p>
+      <p><span class="num">+1,92</span> por una compra a otro equipo · <span class="num">−0,85</span> en 10 min parados.</p></article>
+    <article class="find"><span class="tag">Mercado</span><h3>Sin venue, el 30 % está congelado</h3>
+      <p>Sin mercado propio la nota de mercado se queda en la base. Con venue y un Market Test, saltó de golpe.</p>
+      <p><span class="num">5,91 → 8,33</span> con un solo Market Test.</p></article>
+    <article class="find"><span class="tag oro">Épicas</span><h3>Comprar a Los Pícaros, vender a equipos</h3>
+      <p>Venden épicas reales a 128–167 P. Otros equipos y Pilar pagan 195–238 P. Venderlas al Banco da pérdida (113–120 P).</p>
+      <p><span class="num">139 → 238 P</span> nuestra SAL-11.</p></article>
+    <article class="find"><span class="tag">Agente vs entrenamiento</span><h3>Dónde negocia bien el agente</h3>
+      <p>Comparando cada trato con la mediana del resto de equipos (mismo dealer, rareza y barrio): gana comprando épicas a Los Pícaros, unos 7 P por debajo del mercado, y pierde vendiendo infrecuentes de La Latina a Pilar.</p></article>
+    <article class="find full"><span class="tag">Denuncias</span><h3>Una palanca que nadie usa</h3>
+      <p>Las reglas dicen que una denuncia acertada puntúa. Ningún equipo tiene ajustes en el leaderboard. Preparamos 12 denuncias con prueba estructural. Su efecto aún no se ve en la clasificación pública.</p></article>
+  </div>
+
+  <h2 id="herramientas">Las herramientas que construimos</h2>
+  <div class="gal">
+    <figure class="wide"><img src="img/1-tablero.png" alt="Tablero de alertas de t18"><figcaption><b>Tablero de alertas</b>Alertas traducidas a lenguaje claro con qué pasa y qué hacer, niveles por color y un mono con platillos cuando algo nos afecta de verdad.</figcaption></figure>
+    <figure><img src="img/2-radio.png" alt="Radio Rastro en antena"><figcaption><b>Radio Rastro con voz</b>Una locutora elige lo relevante, lo agrupa en boletines con contexto («Nos llevamos la copia 1 de Chamberí 11 por 145 primas») y lo graba en audio.</figcaption></figure>
+    <figure><img src="img/3-batalla.png" alt="Campo de batalla agente contra entrenamiento"><figcaption><b>Campo de batalla</b>Cada trato del agente contra lo que consigue el mercado, con marcador, ventaja acumulada y rondas.</figcaption></figure>
+    <figure><img src="img/4-chats.png" alt="Negociaciones del agente como chats"><figcaption><b>Negociaciones como chats</b>Cada hilo con un dealer, con avatares, ofertas y el truco marcado en rojo con un mini mono cuando intentan colarla.</figcaption></figure>
+    <figure><img src="img/5-clasificacion.png" alt="Clasificación en vivo"><figcaption><b>Clasificación en vivo</b>De dónde salen los puntos de cada equipo (negociación y mercado) y cuánto ha cambiado desde ayer.</figcaption></figure>
+    <figure><img src="img/6-inspector.png" alt="Inspector del agente en vivo"><figcaption><b>Inspector en tiempo real</b>Escucha el flujo SSE del Bazaar y muestra cada acción del agente al segundo, con estado activo, lento o parado.</figcaption></figure>
+    <figure><img src="img/7-final.png" alt="Directo de la Gran Final"><figcaption><b>Directo de la Gran Final</b>Duelos cerrados, acuerdos frente a rupturas, ritmo por minuto y nuestra posición.</figcaption></figure>
+    <figure class="wide"><img src="img/8-estudio.png" alt="Estudio de todos los equipos"><figcaption><b>Estudio de los 18 equipos</b>Con la misma ventana de datos para todos: tratos por dealer, niveles vacíos, quién negocia mejor con cada dealer y la ficha de cada equipo.</figcaption></figure>
+  </div>
+
+  <h2 id="final">Cómo acabó</h2>
+  <div class='endgrid'><div><div class='k'>Clasificación final (congelada a las 15:00)</div><div class='tblw'><table class='tbl'><thead><tr><th>#</th><th>Equipo</th><th class='n'>Negociación</th><th class='n'>Mercado</th><th class='n'>Total</th></tr></thead><tbody><tr class=''><td>1,º</td><td>t05</td><td class='n'>24,64</td><td class='n'>13,08</td><td class='n b'>37,73</td></tr><tr class=''><td>2,º</td><td>t10</td><td class='n'>23,49</td><td class='n'>12,26</td><td class='n b'>35,76</td></tr><tr class=''><td>3,º</td><td>t12</td><td class='n'>23,07</td><td class='n'>11,44</td><td class='n b'>34,51</td></tr><tr class=''><td>4,º</td><td>t03</td><td class='n'>26,04</td><td class='n'>8,15</td><td class='n b'>34,19</td></tr><tr class='me'><td>5,º</td><td>t18</td><td class='n'>23,27</td><td class='n'>9,00</td><td class='n b'>32,27</td></tr><tr class=''><td>6,º</td><td>t09</td><td class='n'>17,49</td><td class='n'>13,34</td><td class='n b'>30,83</td></tr></tbody></table></div></div><div class='stats one'><div class='stat'><b>5,º</b><span>t18 con 32.27 puntos</span></div><div class='stat'><b>306</b><span>duelos en la Gran Final</span></div><div class='stat'><b>202 / 94</b><span>con acuerdo / sin acuerdo</span></div></div></div>
+
+  <h2 id="mejoras">Qué mejoraríamos</h2>
+  <div class="better">
+    <div><b>Cerrar el círculo.</b> El conocimiento por dealer se generaba en vivo, pero el agente no lo leía. Conectarlo es el siguiente paso.</div>
+    <div><b>Venue todo el día.</b> El mercado es el 30 % y sin venue no se mueve.</div>
+    <div><b>Ritmo constante.</b> Tratos buenos repartidos en lugar de ráfagas, porque la nota cae sola.</div>
+    <div><b>Verificar las denuncias.</b> Medir su efecto con los datos privados del equipo antes de enviar más.</div>
+  </div>
+
+  <p class="foot">Fuentes: feed público, flujo SSE y leaderboard del Bazaar (sábado 3 y domingo 4 de octubre de 2026). Ninguna herramienta actuó en el juego; solo lectura.</p>
+</div>
+<dialog id="zoom"><img id="zimg" alt=""></dialog>
+<script>
+document.querySelectorAll('figure img').forEach(function(i){i.addEventListener('click',function(){var d=document.getElementById('zoom');document.getElementById('zimg').src=i.src;document.getElementById('zimg').alt=i.alt;d.showModal()})});
+document.getElementById('zoom').addEventListener('click',function(){this.close()});
+</script>
+</html>

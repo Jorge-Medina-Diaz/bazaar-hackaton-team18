@@ -764,3 +764,218 @@ class ThreadOfferCountedOnce(unittest.TestCase):
         self.assertEqual(base.book.cash_free - c.book.cash_free, 70)
         from agent.tactics import hygiene
         self.assertEqual(hygiene.bid_watch(c.world, c.book, c.valuer, c.cfg, PLAN), [])
+
+
+class ServerClosedDealerThreads(unittest.TestCase):
+    """closed_reason cooloff / sold_out / persona_budget (server-ended threads) block reopening that dealer."""
+    PLAN = dict(PLAN, day_end_hours={"sat": 13.28, "sun": 20.0})
+
+    @staticmethod
+    def th(tid, dealer, reason, last, until=None):
+        t = {"id": tid, "kind": "persona", "team": "t18", "with": dealer, "topic": {"buy": {"card": "SAL-11"}},
+             "status": "walked", "created_tick": last - 2, "standing_offers": [], "closed_reason": reason,
+             "messages": [{"id": tid * 10, "tick": last, "sender": dealer}]}
+        if until is not None:
+            t["until_tick"] = until
+        return t
+
+    def test_blocks(self):
+        ths = {1: self.th(1, "pilar", "persona_budget", 190), 2: self.th(2, "picaros", "cooloff", 150, until=260),
+               3: self.th(3, "chato", "sold_out", 150), 4: self.th(4, "abuela", "sold_out", 50),
+               5: self.th(5, "abuela", "final_offer_refused", 199)}
+        b = Ctx(threads=ths, plan=self.PLAN, t_hours=5.5).book    # tick 200, 30 s ticks: this hour = ticks 140..260
+        self.assertEqual(dict(b.dealer_block), {"pilar": 260, "picaros": 260, "chato": 260})   # until the hour ends
+
+    def test_persona_budget_resets_with_the_game_hour(self):
+        # RULES: "never offers more than it can still pay this hour" -> a budget walk-out blocks to the end of
+        # that game hour; at t 14.0 a new hour began at tick 200, so threads ended at 150 and 60 block nothing
+        ths = {1: self.th(1, "pilar", "persona_budget", 150), 2: self.th(2, "chato", "persona_budget", 60)}
+        b = Ctx(threads=ths, plan=self.PLAN, t_hours=14.0).book    # tick 200
+        self.assertEqual(dict(b.dealer_block), {})
+        b = Ctx(threads=ths, plan=self.PLAN, t_hours=14.5).book    # this hour began at tick 140: pilar (150) blocked to 260
+        self.assertEqual(dict(b.dealer_block), {"pilar": 260})
+
+
+class TicksPerHour(unittest.TestCase):
+    """Live Sat ticks are 30 s (120 per game hour), Sun 15 s (240): never the Friday constant 60."""
+
+    def test_derived_from_tick_seconds(self):
+        from types import SimpleNamespace as NS
+        cfg = guards.Cfg()
+        self.assertEqual([guards.ticks_per_hour(NS(tick_seconds=s), cfg) for s in (60.0, 30.0, 15.0)], [60, 120, 240])
+        self.assertEqual(guards.ticks_per_hour(NS(tick_seconds=None), cfg), cfg.TICKS_PER_GAME_HOUR)
+        self.assertEqual(guards.ticks_per_hour(NS(tick_seconds=0), cfg), cfg.TICKS_PER_GAME_HOUR)
+        # grant 0.04 h ahead, lookahead 3 ticks: 3/120 = 0.025 h (Sat) -> not soon; 3/60 = 0.05 h (Fri) -> soon
+        sched = {"upcoming": [{"action": "grant", "at_hours": 10.04, "params": {"packs": ["sobre"]}}]}
+        sat = NS(tick_seconds=30.0, t_hours=10.0, schedule=sched)
+        fri = NS(tick_seconds=60.0, t_hours=10.0, schedule=sched)
+        self.assertFalse(guards._grant_soon(sat, 3, cfg))
+        self.assertTrue(guards._grant_soon(fri, 3, cfg))
+
+
+class _OpenedJournal:
+    """Journal with one open_thread intent (limit) answered ok with thread `tid`; extra rows appended."""
+
+    def __init__(self, tid, limit, dealer="chato", ref="RET-10", extra=()):
+        self._rows = [{"kind": "intent", "id": "o1", "intent_kind": "open_thread", "tick": 207,
+                       "args": {"dealer": dealer, "side": "buy", "ref": ref, "asset_ids": [], "limit": limit}},
+                      {"kind": "result", "id": "o1", "status": "ok", "code": None, "response": {"id": tid},
+                       "tick": 207}] + list(extra)
+
+    def rows(self, kinds):
+        return iter([r for r in self._rows if r["kind"] in kinds])
+
+    def pending(self):
+        return []
+
+    def unknown_domains(self):
+        return set()
+
+
+class _UnsettledJournal:
+    """A dealer buy of RET-01 at 9 accepted at tick 210 (result ok), its accepted_unsettled row still pending."""
+
+    def __init__(self):
+        self._rows = [{"kind": "intent", "id": "a1", "intent_kind": "accept", "tick": 210,
+                       "args": {"source": "dealer", "side": "buy", "ref": "RET-01", "price": 9, "thread_id": 5,
+                                "offer_id": 77}},
+                      {"kind": "result", "id": "a1", "status": "ok", "code": None, "response": {"queued": True},
+                       "tick": 210}]
+
+    def rows(self, kinds):
+        return iter([r for r in self._rows if r["kind"] in kinds])
+
+    def pending(self):
+        return [{"kind": "accepted_unsettled", "id": "a1", "offer_id": 77, "ref": "RET-01", "price": 9,
+                 "until_tick": 212, "tick": 210, "pending": "accepted_unsettled"}]
+
+    def unknown_domains(self):
+        return set()
+
+
+class RefusalBlocksFromTheJournal(unittest.TestCase):
+    def test_gate_end_of_hour_block_is_rebuilt(self):
+        # the Gate journals {dealer: end of the game hour} on a persona_budget / sold_out / cooloff refusal;
+        # build_book must rebuild that block, not a rolling hour from the refusal tick
+        extra = [{"kind": "intent", "id": "o2", "intent_kind": "open_thread", "tick": 205,
+                  "args": {"dealer": "picaros", "side": "buy", "ref": "CHA-09", "asset_ids": [], "limit": 60}},
+                 {"kind": "result", "id": "o2", "status": "refused", "code": "persona_budget", "response": {},
+                  "tick": 205, "dealer_block": {"picaros": 230}}]
+        b = Ctx(my_offers=(), journal=_OpenedJournal(392, 90, extra=extra)).book
+        self.assertEqual(b.dealer_block.get("picaros"), 230)
+
+
+class AcceptedUnsettledCountedOnce(unittest.TestCase):
+    """Pre-Sunday audit: the server settles an accept at T+1 (settles_at_tick); from then on the World shows the card and
+    the cash, so the pending row must not add price / projected / paths again (Sat ticks 212-213: cash_free < 0)."""
+
+    def test_after_settlement_tick_counted_once(self):
+        plain = Ctx(tick=211, my_offers=()).book
+        b = Ctx(tick=211, my_offers=(), journal=_UnsettledJournal()).book
+        self.assertEqual(b.cash_free, plain.cash_free)
+        self.assertEqual(b.projected.get("RET-01", 0), plain.projected.get("RET-01", 0))
+        self.assertEqual(b.paths.get("RET-01", 0), plain.paths.get("RET-01", 0))
+
+    def test_same_tick_still_pending(self):
+        plain = Ctx(tick=210, my_offers=()).book
+        b = Ctx(tick=210, my_offers=(), journal=_UnsettledJournal()).book
+        self.assertEqual(b.cash_free, plain.cash_free - 9)
+        self.assertEqual(b.projected.get("RET-01", 0), plain.projected.get("RET-01", 0) + 1)
+
+    def test_me_down_keeps_the_reservation(self):
+        plain = Ctx(tick=211, my_offers=(), down={"me"}).book
+        b = Ctx(tick=211, my_offers=(), down={"me"}, journal=_UnsettledJournal()).book
+        self.assertEqual(b.paths.get("RET-01", 0), plain.paths.get("RET-01", 0) + 1)
+
+
+def _live_thread(tid=392, ref="RET-10", ask=95, ask_types=None, dealer="chato"):
+    """Live 3 Oct t210 shape: messages carry only id/offer/sender/tick (no top-level price)."""
+    def offer(oid, maker, cash_give, cash_want, types_give, types_want, status, tick):
+        return {"id": oid, "maker": maker, "to": "t18" if maker != "t18" else dealer, "venue": None, "thread": tid,
+                "status": status, "final": False, "created_tick": tick, "expires_tick": tick + 4,
+                "give": {"cash": cash_give, "assets": [], "types": types_give},
+                "want": {"cash": cash_want, "assets": [], "types": types_want}}
+    mine0 = offer(3506, "t18", 70, 0, [], [f"card:{ref}"], "cancelled", 208)
+    mine1 = offer(3515, "t18", 74, 0, [], [f"card:{ref}"], "open", 209)
+    hers = offer(3519, dealer, 0, ask, ask_types or [f"card:{ref}"], [], "open", 210)
+    msgs = [{"id": 1, "offer": mine0, "sender": "t18", "tick": 208}, {"id": 2, "offer": mine1, "sender": "t18", "tick": 209},
+            {"id": 3, "offer": hers, "sender": dealer, "tick": 210}]
+    return {"id": tid, "team": "t18", "with": dealer, "status": "open", "topic": {"buy": {"card": ref}},
+            "created_tick": 207, "messages": msgs, "standing_offers": [mine1, hers]}, mine1
+
+
+class ThreadPricesAndReserve(unittest.TestCase):
+    def test_prices_read_from_the_message_offer(self):
+        th, mine = _live_thread()
+        c = Ctx(my_offers=(mine,), threads={392: th})
+        self.assertEqual(c.book.thread_prices[392], (70, 74))
+
+    def test_reserve_capped_at_thread_limit(self):
+        base = Ctx(my_offers=())
+        th, mine = _live_thread(ask=95)                       # chato asks 95 on a limit-90 thread
+        c = Ctx(my_offers=(mine,), threads={392: th}, journal=_OpenedJournal(392, 90))
+        self.assertEqual(base.book.cash_free - c.book.cash_free, 90)
+        unknown = Ctx(my_offers=(mine,), threads={392: th})   # no opening limit in the journal: full max (fail closed)
+        self.assertEqual(base.book.cash_free - unknown.book.cash_free, 95)
+
+    def test_trick_offer_not_reserved(self):
+        base = Ctx(my_offers=())
+        th, mine = _live_thread(ask=130, ask_types=["card:LAT-06"], dealer="picaros")   # another card: never ours
+        c = Ctx(my_offers=(mine,), threads={392: th}, journal=_OpenedJournal(392, 160, "picaros"))
+        self.assertEqual(base.book.cash_free - c.book.cash_free, 74)
+        self.assertEqual(guards._thread_standing(th), 74)
+
+
+class ClosedThreadBlocks(unittest.TestCase):
+    """closed_reason / until_tick of our closed dealer threads -> dealer_block (the tactic must not reopen them)."""
+
+    @staticmethod
+    def _closed(tid, dealer, reason, last_tick, **kw):
+        return {"id": tid, "team": "t18", "with": dealer, "status": "walked", "closed_reason": reason,
+                "topic": {"buy": {"card": "RET-06"}}, "created_tick": last_tick - 3, "standing_offers": [],
+                "messages": [{"id": 1, "tick": last_tick, "sender": dealer}], **kw}
+
+    def test_blocks_from_closed_reason(self):
+        # tick 200 at t_hours 5.5 with 30 s ticks: this hour began at tick 140 and ends at 260
+        th = {1: self._closed(1, "abuela", "persona_budget", 190),
+              2: self._closed(2, "chato", "cooloff", 195, until_tick=230),
+              3: self._closed(3, "picaros", "final_offer_refused", 198),
+              4: self._closed(4, "pilar", "persona_quota", 130),           # previous hour: quota reset
+              5: self._closed(5, "ernesto", "cooloff", 150, until_tick=170)}
+        b = Ctx(tick=200, t_hours=5.5, threads=th).book
+        self.assertEqual(dict(b.dealer_block), {"abuela": 260, "chato": 230})
+
+    def test_world_keeps_until_tick(self):
+        from agent import world as W
+        t, _ = W._p_thread(self._closed(2, "chato", "cooloff", 195, until_tick=230))
+        self.assertEqual((t["closed_reason"], t["until_tick"]), ("cooloff", 230))
+
+
+class PackTypesOnlyPacks(unittest.TestCase):
+    def test_unknown_asset_kind_is_not_a_pack(self):
+        me = copy.deepcopy(ME)
+        me["assets"].append({"id": 990, "kind": "badge", "ref": "egg"})
+        c = Ctx(me=me)
+        self.assertEqual(c.book.packs, ())
+        self.assertTrue(c.check(c.bid("RET-01", 3)).code != "G14.pack")
+        me["assets"].append({"id": 991, "kind": "pack", "ref": "sobre_barrio"})
+        self.assertEqual(Ctx(me=me).book.packs, ("sobre_barrio",))
+
+
+class TicksPerGameHour(unittest.TestCase):
+    """A game hour is a wall hour: 3600 / tick_seconds ticks (60 hard-coded made Saturday's 30 s hour 30 min)."""
+
+    def test_derived_from_tick_seconds(self):
+        from agent import gate
+        for ts, tph in ((60.0, 60), (30.0, 120), (15.0, 240)):
+            w = replace(Ctx().world, tick_seconds=ts)
+            self.assertEqual(guards.ticks_per_hour(w), tph)
+            self.assertEqual(gate._ticks_per_hour(w), tph)
+        self.assertEqual(guards.ticks_per_hour(replace(Ctx().world, tick_seconds=0)), 60)
+        self.assertEqual(gate._ticks_per_hour(replace(Ctx().world, tick_seconds=float("nan"))), 60)
+
+    def test_deals_hour_window_at_30s_ticks(self):
+        deal = {"id": 5, "team": "t18", "with": "abuela", "status": "deal", "topic": {"buy": {"card": "RET-06"}},
+                "created_tick": 120, "messages": [], "standing_offers": []}
+        self.assertEqual(Ctx(tick=200, threads={5: deal}).book.dealer_deals_hour.get("abuela"), 1)   # 80 < 120
+        self.assertIsNone(Ctx(tick=241, threads={5: deal}).book.dealer_deals_hour.get("abuela"))

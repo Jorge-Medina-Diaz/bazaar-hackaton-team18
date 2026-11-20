@@ -19,7 +19,7 @@ from agent.execution import writer_lock
 from sim.world import FakeGame
 
 REPO = Path(__file__).resolve().parents[1]
-PLAN = REPO / "config" / "plan.json"
+PLAN = REPO / "tests" / "fixtures" / "plan_night.json"   # frozen: config/plan.json changes during the game
 NONE_P = Prediction(0.0, 0.0, "0", 0, None, "none")
 STAGES = ("core", "hygiene", "dealers", "rastro", "closer", "duels")
 
@@ -109,6 +109,9 @@ class TestChoose(unittest.TestCase):
         self.assertEqual([it.kind for it in out[:3]], ["cancel"] * 3)
         w = make_world(limits=Limits(1, 1, 6, 30, 5))         # min(6, 5 - 2) = 3
         self.assertEqual(len(runner.choose(its, w, Cfg())), 3)
+        for lim, n in ((2, 1), (3, 1), (1, 1), (0, 0)):         # small limits keep one slot (was 0 at 2)
+            self.assertEqual(len(runner.choose(its, make_world(limits=Limits(1, 1, 6, 30, lim)), Cfg())), n, lim)
+        self.assertEqual(len(runner.choose([open_thread()], make_world(limits=Limits(1, 1, 1, 30, 12)), Cfg())), 1)
 
     def test_open_offer_room(self):
         mine = tuple({"id": i, "maker": TEAM, "status": "open"} for i in range(25))
@@ -119,7 +122,9 @@ class TestChoose(unittest.TestCase):
         out = runner.choose([open_thread("RET-01"), open_thread("RET-02")], make_world(), Cfg())
         self.assertEqual(len(out), 2)
         four = tuple({"duel": i, "deadline_tick": 200} for i in range(4))
-        self.assertEqual(runner.choose([open_thread()], make_world(duels=four), Cfg()), [])
+        self.assertEqual(len(runner.choose([open_thread()], make_world(duels=four), Cfg())), 1)   # Sunday: 4 at a time
+        five = tuple({"duel": i, "deadline_tick": 200} for i in range(5))
+        self.assertEqual(runner.choose([open_thread()], make_world(duels=five), Cfg()), [])
         threads = MappingProxyType({i: {"status": "open", "team": TEAM} for i in range(5)})
         self.assertEqual(runner.choose([open_thread()], make_world(threads=threads), Cfg()), [])
         out = runner.choose([say(3, 10), say(3, 11), say(4, 10)], make_world(), Cfg())
@@ -128,6 +133,31 @@ class TestChoose(unittest.TestCase):
         self.assertEqual(sorted((it.kind, it.args["duel_id"]) for it in out), [("duel_accept", 5), ("duel_say", 6)])
         out = runner.choose([cancel(1, "hygiene"), cancel(1, "rastro"), cancel(1, "hygiene")], make_world(), Cfg())
         self.assertEqual(len(out), 1)
+
+
+    def test_duel_freeze_spares_manual_and_drops_are_reported(self):
+        five = tuple({"duel": i, "deadline_tick": 200, "status": "live"} for i in range(5))
+        man = make_intent("open_thread", "manual", dict(open_thread().args), "r", "e", NONE_P, priority=10000)
+        drops = []
+        out = runner.choose([open_thread("RET-02"), man], make_world(duels=five), Cfg(), drops)
+        self.assertEqual([it.tactic for it in out], ["manual"])
+        self.assertEqual([(it.tactic, code) for it, code in drops], [("dealers", "R04.duel_freeze")])
+        # thread room still binds a manual order (G04.threads is the Gate's)
+        threads = MappingProxyType({i: {"status": "open", "team": TEAM} for i in range(5)})
+        drops = []
+        self.assertEqual(runner.choose([man], make_world(threads=threads), Cfg(), drops), [])
+        self.assertEqual([code for _, code in drops], ["R04.thread_room"])
+        drops = []
+        runner.choose([accept(1), accept(2), cancel(3), cancel(3, "rastro")], make_world(), Cfg(), drops)
+        self.assertEqual(sorted(code for _, code in drops), ["R04.accept_budget", "R04.dup"])
+
+    def test_dropped_manual_order_is_journalled(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        man = make_intent("open_thread", "manual", dict(open_thread().args), "r", "e", NONE_P, priority=10000)
+        r.journal_drops(make_world(), [(man, "R04.thread_room"), (open_thread(), "R04.thread_room")])
+        rows = [x for x in r.journal.rows if x["kind"] == "dropped"]
+        self.assertEqual([(x["tactic"], x["code"]) for x in rows], [("manual", "R04.thread_room")])
+        self.assertEqual(r._drop_counts, {"R04.thread_room": 2})
 
     def test_garbage_is_ignored(self):
         self.assertEqual(runner.choose([None, "x", 3], make_world(), Cfg()), [])
@@ -211,6 +241,57 @@ class TestLateWindow(unittest.TestCase):
         self.assertEqual(r.sensor.reads, 1)
         self.assertEqual(len(outs), 1)
 
+    def test_late_window_asks_for_the_reduced_read(self):
+        clk = FakeClock(0.0)
+        w = make_world(tick_deadline=13.0, tick_seconds=15.0, duels=({"duel": 5, "deadline_tick": 110},))
+        r, gate = bare_runner(w, clk)
+        calls = []
+
+        class LateSensor:
+            def snapshot(self, prev, *, late=False):
+                calls.append(late)
+                clk.t += 0.8                                           # four GETs at 5/s
+                return w, None
+        r.sensor = LateSensor()
+        with mock.patch("agent.tactics.duels.propose", return_value=[duel_accept(5)]):
+            outs = r.late_window(w, [duel_accept(5)], [])
+        self.assertEqual(calls, [True])
+        self.assertEqual(len(outs), 1)
+        self.assertLess(gate.calls[0][2], 13.0)                           # sent before the tick deadline
+        self.assertEqual(r.late_read_s, 0.8)
+
+    def test_duel_near_its_deadline_keeps_the_accept_slot(self):
+        # pre-Sunday review D2: a dealer / team accept early in the tick used the single accept slot, so a duel accept
+        # that appeared mid-tick at deadline-1 was dropped and the duel ended without a deal
+        def live_duel(deadline, rival):
+            return {"duel": 5, "status": "live", "role": "buyer", "your_limit": 100, "deadline_tick": deadline,
+                    "decay_per_round": 0.1, "issues": ["price"], "rounds": 1, "your_offer": None,
+                    "messages": [{"from": "you", "tick": 95, "price": 60, "days": None},
+                                 {"from": "R", "tick": 96, "price": rival, "days": None}],
+                    "rival_offer": {"price": rival, "tick": 96, "id": 3, "days": None}}
+        self.assertEqual(FRIDAY.accepts, 1)
+        clk = FakeClock(20.0)
+        w = make_world(tick_deadline=28.0, duels=(live_duel(101, 80),))
+        r, gate = bare_runner(w, clk)
+        r.armed = {"duels", "rastro"}
+        drops = []
+        team = accept(7)
+        self.assertEqual([it.kind for it in r.keep_duel_slot(w, [team, cancel(1, "rastro")], drops)], ["cancel"])
+        self.assertEqual([c for _, c in drops], ["R04.duel_slot"])
+        with mock.patch("agent.tactics.duels.propose", return_value=[duel_accept(5)]):
+            outs = r.late_window(w, [], [])
+        self.assertEqual([c[0] for c in gate.calls], ["duel_accept"])
+        self.assertEqual(len(outs), 1)
+        # no hold: rival outside our limit, deadline still far, a manual accept, or duels not armed
+        for ww in (make_world(duels=(live_duel(101, 100),)), make_world(duels=(live_duel(110, 80),))):
+            self.assertEqual(r.keep_duel_slot(ww, [team], []), [team])
+        manual = make_intent("accept", "manual", dict(team.args), "r", "e", NONE_P)
+        self.assertEqual(r.keep_duel_slot(w, [manual], []), [manual])
+        closer = make_intent("accept", "closer", dict(team.args), "r", "e", NONE_P)
+        self.assertEqual(r.keep_duel_slot(w, [closer], []), [closer])
+        r.armed = {"rastro"}
+        self.assertEqual(r.keep_duel_slot(w, [team], []), [team])
+
     def test_no_late_accept_when_budget_used_or_tick_moved(self):
         clk = FakeClock(20.0)
         w = make_world(tick_deadline=28.0, duels=({"duel": 5, "deadline_tick": 110},))
@@ -252,6 +333,151 @@ class TestLateWindow(unittest.TestCase):
             r.propose_all(make_world(), object(), [])
         alarms = [x for x in r.journal.rows if x["kind"] == "alarm" and "not available" in x.get("why", "")]
         self.assertEqual(len(alarms), 1)
+
+
+class TestRequestBudget(unittest.TestCase):
+    def test_runner_plus_panels_stay_under_the_key_limit(self):
+        # RULES: 5 requests per second per key, bursts of 20; the runner was at 2.5/s (pre-Sunday audit: 15 s ticks)
+        from agent import client
+        self.assertGreater(runner.RUNNER_RATE, 2.5)
+        self.assertLessEqual(runner.RUNNER_RATE + client.PANEL_RATE, 5.0)
+        self.assertLessEqual(runner.RUNNER_BURST + 1, 20)
+        lim = T.RateLimiter(rate=runner.RUNNER_RATE, burst=runner.RUNNER_BURST, reserve=runner.RUNNER_RESERVE)
+        self.assertEqual((lim.rate, lim.burst, lim.reserve), (3.5, 8, 2))
+
+
+class TestPausedTacticsOutOfBudgets(unittest.TestCase):
+    def test_paused_accept_does_not_take_the_duel_accept_slot(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.mode = "live"
+        r.armed = {"dealers", "duels", "rastro"}
+        r.calibrator.pause("dealers", "test")
+        early = accept(7, prio=5)                                   # dealers' standing accept, earlier deadline
+        early = make_intent("accept", "dealers", dict(early.args), "r", "e", NONE_P, priority=5)
+        da = duel_accept(5)
+        act, shadow = r.split_would([early, da, listing(1, "rastro")])
+        self.assertEqual([it.kind for it in act], ["duel_accept", "list_offer"])
+        self.assertEqual([it.tactic for it in shadow], ["dealers"])
+        chosen = runner.choose(act, make_world(), Cfg())
+        self.assertIn("duel_accept", [it.kind for it in chosen])
+        r.mode = "dry"
+        self.assertEqual(r.split_would([early, da]), ([early, da], []))
+
+
+class TestDaysSignAlarm(unittest.TestCase):
+    def test_one_alarm_per_duel_with_an_unread_days_meaning(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        ds = ({"duel": 1, "issues": ("price", "days"), "days_sign": None, "role": "buyer"},
+              {"duel": 2, "issues": ("price", "days"), "days_sign": 1, "role": "seller"},
+              {"duel": 3, "issues": ("price",), "days_sign": None, "role": "buyer"})
+        r.note_days_sign(make_world(duels=ds))
+        r.note_days_sign(make_world(tick=101, duels=ds))
+        alarms = [x for x in r.journal.rows if x["kind"] == "alarm" and "days_meaning" in x.get("why", "")]
+        self.assertEqual([x["duel"] for x in alarms], [1])
+
+    def test_alarm_when_days_meaning_contradicts_the_role(self):
+        # pre-Sunday review D1/S1: a read sign against the role (sensor: days_sign -1 + days_sign_conflict) alarms once
+        r, _ = bare_runner(make_world(), FakeClock())
+        ds = ({"duel": 4, "issues": ("price", "days"), "days_sign": -1, "days_sign_conflict": True, "role": "buyer"},
+              {"duel": 5, "issues": ("price", "days"), "days_sign": -1, "role": "buyer"})
+        r.note_days_sign(make_world(duels=ds))
+        r.note_days_sign(make_world(tick=101, duels=ds))
+        alarms = [x for x in r.journal.rows if x["kind"] == "alarm" and "days_meaning" in x.get("why", "")]
+        self.assertEqual([x["duel"] for x in alarms], [4])
+        self.assertIn("contradicts", alarms[0]["why"])
+
+
+class TestLiveDayTimes(unittest.TestCase):
+    """Pre-Sunday audit: tactics get today's day end / endgame from the live schedule (pages.effective_plan)."""
+
+    def sun(self, t, close, paused=False):
+        return make_world(t_hours=t, clock=MappingProxyType({"paused": paused, "doors": "open", "today": "sun"}),
+                          schedule=MappingProxyType({"now_hours": t, "upcoming": (MappingProxyType(
+                              {"at_hours": close, "action": "day_closes", "params": MappingProxyType({"day": "sun"})}),)}))
+
+    def test_tactics_get_the_live_hours_and_a_param_row(self):
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"*": 18.783}}}
+        r.update_plan(self.sun(16.7, 22.65))                       # clock jumped: close 22.65
+        self.assertAlmostEqual(r.plan_now["day_end_hours"]["sun"], 22.65 - 5 / 60, places=3)
+        self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["N"], 22.65 - 35 / 60, places=3)
+        seen = []
+        with mock.patch("agent.tactics.hygiene.propose", side_effect=lambda w, b, v, c, pc, st: seen.append(pc) or []),                 mock.patch("agent.tactics.dealers.propose", return_value=[]),                 mock.patch("agent.tactics.dealers.DealerState.rebuild", return_value=None),                 mock.patch("agent.tactics.rastro.propose", return_value=[]),                 mock.patch("agent.tactics.duels.propose", return_value=[]):
+            r.propose_all(self.sun(16.7, 22.65), object(), [])
+        self.assertIs(seen[0], r.plan_now)
+        rows = [x for x in r.journal.rows if x["kind"] == "param" and x.get("name") == "day_times"]
+        self.assertEqual(len(rows), 1)
+        r.update_plan(self.sun(16.71, 22.65))                      # same hours: no new row
+        r.update_plan(self.sun(16.8, 22.2))                        # a pause moved the close: new row
+        rows = [x for x in r.journal.rows if x["kind"] == "param" and x.get("name") == "day_times"]
+        self.assertEqual(len(rows), 2)
+        self.assertAlmostEqual(rows[-1]["endgame"], round(22.2 - 35 / 60, 3), places=3)
+
+    def test_first_day_times_row_even_when_it_equals_the_plan(self):
+        # pre-Sunday review E2E-5: scenario A derives 19.284 / 18.784, within a minute of the plan's 19.283 / 18.783, so
+        # no 'param day_times' row was written and the 09:05 runbook check found nothing
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 22.65 - 5 / 60},
+                                   "closer": {"endgame_hours": {"*": 22.65 - 35 / 60, "sun": 22.65 - 35 / 60}}}
+        r.update_plan(self.sun(16.7, 22.65))
+        r.update_plan(self.sun(16.71, 22.65))
+        rows = [x for x in r.journal.rows if x["kind"] == "param" and x.get("name") == "day_times"]
+        self.assertEqual(len(rows), 1)
+        self.assertAlmostEqual(rows[0]["day_end"], round(22.65 - 5 / 60, 3), places=3)
+
+    def test_wall_close_reaches_the_tactics(self):
+        # clock.closes 15:00 read at 09:00 with t13.367: close 19.367 even with a scripted day_closes at 22.65
+        from datetime import datetime
+        r, _ = bare_runner(make_world(), FakeClock())
+        r.plan_cfg = r.plan_now = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"*": 18.783}}}
+        r.wall = lambda: datetime.fromisoformat("2026-10-04T09:00:00+02:00").timestamp()
+        w = make_world(t_hours=13.367, clock=MappingProxyType({"paused": False, "doors": "open", "today": "sun",
+                                                                "closes": "2026-10-04T15:00:00+02:00"}),
+                       schedule=MappingProxyType({"now_hours": 13.367, "upcoming": (MappingProxyType(
+                           {"at_hours": 22.65, "action": "day_closes", "params": MappingProxyType({"day": "sun"})}),)}))
+        r.update_plan(w)
+        self.assertAlmostEqual(r.plan_now["day_end_hours"]["sun"], 19.367 - 5 / 60, places=3)
+        self.assertAlmostEqual(r.plan_now["closer"]["endgame_hours"]["*"], 19.367 - 35 / 60, places=3)
+
+    def test_stalls_latch_survives_a_cold_restart(self):
+        # pre-Sunday review E2E-1/S4: scenario C, the stalls close at 18.367 (14:00) fires and leaves 'upcoming'; a fresh
+        # process at 14:05 used to derive the 14:55 day end again. state/day_times.json keeps the latch for today.
+        from datetime import datetime
+        wall = lambda h, m: datetime.fromisoformat(f"2026-10-04T{h:02d}:{m:02d}:00+02:00").timestamp()   # noqa: E731
+        def w(t, upcoming):
+            return make_world(t_hours=t, clock=MappingProxyType({"paused": False, "doors": "open", "today": "sun",
+                                                                 "closes": "2026-10-04T15:00:00+02:00"}),
+                              schedule=MappingProxyType({"now_hours": t, "upcoming": tuple(upcoming)}))
+        stalls = [MappingProxyType({"at_hours": 18.367, "action": "persona",
+                                    "params": MappingProxyType({"id": p, "enabled": False})})
+                  for p in ("abuela", "chato", "pilar", "picaros", "banco")]
+        plan = {"day_end_hours": {"sun": 19.283}, "closer": {"endgame_hours": {"*": 18.783}}}
+        def fresh(paths, at):
+            clk = FakeClock()
+            clk.wall = lambda: at
+            r = runner.Runner(mode="live", armed=(), paths=paths, plan_cfg=plan, transport=None,
+                              journal=FakeJournal(), gate=FakeGate(clk), sensor=FakeSensor(make_world()),
+                              calibrator=FakeCal(), cfg=Cfg(), clock=clk)
+            r.plan_now = plan
+            return r
+        r1 = fresh(Paths.at(tempfile.mkdtemp(prefix="t18-runner-")), wall(13, 50))
+        r1.update_plan(w(18.2, stalls))
+        self.assertAlmostEqual(r1.plan_now["day_end_hours"]["sun"], 18.2837, places=3)
+        self.assertTrue((Path(r1.paths.state) / "day_times.json").exists())
+        r2 = fresh(r1.paths, wall(14, 5))                                       # cold restart, entries gone
+        r2.update_plan(w(18.45, ()))
+        self.assertAlmostEqual(r2.plan_now["day_end_hours"]["sun"], 18.2837, places=3)
+        r3 = fresh(r1.paths, wall(14, 5) + 10 * 3600)                           # another day: the file is ignored
+        self.assertEqual(r3._sched_seen, {})
+
+    def test_wall_comes_from_the_clock_when_it_has_one(self):
+        import time as _time
+        r, _ = bare_runner(make_world(), FakeClock())
+        self.assertIs(r.wall, _time.time)                          # production clock: the system epoch
+        clk = FakeClock()
+        clk.wall = lambda: 1234.5                                  # a sim clock maps game time to a Sunday epoch
+        r2, _ = bare_runner(make_world(), clk)
+        self.assertEqual(r2.wall(), 1234.5)
 
 
 # ----------------------------------------------------------------------------------------- end to end
@@ -376,7 +602,8 @@ class E2E(unittest.TestCase):
                                                                  "ts": time.time() - 3600}), encoding="utf-8")
         self.green(stages=("core",))
         rc = self.run_("live", armed=(), ticks=2,
-                       manual=[{"cmd": "do", "kind": "cancel", "args": {"offer_id": oid, "ref": None}, "why": "t"}])
+                       manual=[{"cmd": "do", "kind": "cancel", "args": {"offer_id": oid, "ref": None}, "why": "t",
+                                "live": True}])
         self.assertEqual(rc, 0)
         rows = self.rows()
         sent = [r for r in rows if r["kind"] == "intent"]
@@ -385,6 +612,20 @@ class E2E(unittest.TestCase):
         self.assertTrue(any(r["kind"] == "cmd" and r.get("applied") is False for r in rows))
         self.assertEqual(json.loads(self.paths.armed.read_text(encoding="utf-8")), [])
         self.assertEqual(list(self.paths.inbox.glob("*.json")), [])
+
+    def test_manual_do_without_live_is_only_would_in_a_live_run(self):
+        # the order did not say live (no --live): a live runner must not send it, even with core green / manual armed
+        oid = self._own_bid()
+        self.green(stages=("core",))
+        self.paths.inbox.mkdir(parents=True, exist_ok=True)
+        (self.paths.inbox / "5-do.json").write_text(json.dumps({"cmd": "do", "kind": "cancel", "why": "t",
+                                                                "args": {"offer_id": oid, "ref": None}, "live": False,
+                                                                "ts": time.time() + 3600}), encoding="utf-8")
+        self.assertEqual(self.run_("live", armed=("manual",), ticks=2), 0)
+        rows = self.rows()
+        self.assertEqual(self.writes(), [])
+        self.assertEqual([r for r in rows if r["kind"] == "intent"], [])
+        self.assertTrue(any(r["kind"] == "would" and r["tactic"] == "manual" for r in rows))
 
     def test_flatten_cancels_bids_then_stops(self):
         oid = self._own_bid()
@@ -396,6 +637,19 @@ class E2E(unittest.TestCase):
         self.assertTrue(any(p.name.upper().startswith("STOP") for p in self.paths.root.iterdir()))
         sent = [r for r in self.rows() if r["kind"] == "intent"]
         self.assertEqual([(r["intent_kind"], r["args"]["offer_id"]) for r in sent], [("cancel", oid)])
+
+    def test_flatten_keeps_going_past_one_tick_budget(self):
+        # one tick cancels at most min(6, listings - 2); STOP used to come after that first tick with bids left
+        oids = [self._own_bid() for _ in range(8)]
+        self.green(stages=("core",))
+        self.paths.inbox.mkdir(parents=True, exist_ok=True)
+        (self.paths.inbox / "9-flatten.json").write_text(json.dumps({"cmd": "flatten", "why": "test",
+                                                                     "ts": time.time() + 3600}), encoding="utf-8")
+        self.assertEqual(self.run_("live", armed=(), ticks=10), 2)
+        sent = [r for r in self.rows() if r["kind"] == "intent"]
+        self.assertEqual(sorted(r["args"]["offer_id"] for r in sent), sorted(oids))
+        self.assertGreater(len({r["tick"] for r in sent}), 1)
+        self.assertEqual([o for o in self.g.offers.values() if o["maker"] == TEAM and o["status"] == "open"], [])
 
     def test_inbox_pause_applied(self):
         self.paths.inbox.mkdir(parents=True, exist_ok=True)

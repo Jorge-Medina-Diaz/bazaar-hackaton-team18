@@ -3,23 +3,26 @@
 PURE: no I/O, no clock reads, no network. The Gate passes everything in. Foreign text never reaches this
 module: the World carries no text, and the only text we ever look at is the one we render from TEMPLATES.
 
-NOTES (M4b, night build)
+Design notes
 - check() covers open_thread (G30), say (G31), accept with source "dealer" (G32), duel_say (G50) and
   duel_accept (G51). Any other kind -> Verdict(False, "G02.kind"). Every exception -> refuse (fail closed).
-- plan_cfg is not part of the check() signature, so `grant_lookahead_ticks` and `days_sign` are read from
-  cfg with getattr(cfg, "GRANT_LOOKAHEAD_TICKS", 3) / getattr(cfg, "DAYS_SIGN", None). Lead: either add them
-  to guards.Cfg or have guards copy them from plan_cfg.
-- Two-issue duels (price + days): W(d) is modelled as your_days_weight * d (unknown in reality, U-13). The
-  conservative bound (surplus >= 1 + |w| * max(d, 10 - d)) is applied ALWAYS, also when days_sign is known.
-  With your_days_weight null (as in the practice) every two-issue price is refused (G50.days_unknown).
+- plan_cfg is not part of the check() signature, so `grant_lookahead_ticks` is read from cfg with
+  getattr(cfg, "GRANT_LOOKAHEAD_TICKS", 3). The days sign never comes from config (one sign for both roles is wrong
+  by construction): days_sign_of reads the duel itself, and a read sign that contradicts the role becomes -1
+  (checked_sign: |w|*d and day 0, safe whichever sign is true).
+- Two-issue duels (price + days): the measured value is s*(p-L) + sign*|w|*d (44/44 Duels II deals; sign -1 for the
+  buyer, +1 for the seller). G50/G51 need s*(p-L) >= 1 + _days_penalty: |w|*d when each day costs us (or the sign
+  is unknown), 0 when days only add (the price itself never goes outside the limit). Same rule as
+  agent.tactics.duels._days_model. With your_days_weight null and no plan fallback every two-issue price is
+  refused (G50.days_unknown).
 - duel_accept needs guards.duel_fingerprint (M4a). If agent.guards cannot be imported, G51 refuses
   ("G51.no_fingerprint"). A dealer accept does not compare guards.fingerprint (G32 does not ask for it); it
   matches offer id, maker, recipient, status, expiry, exact shape (offer_safety) and price.
 - "Distinct from the last text of the thread": the World has no text, so it is enforced structurally:
   every template carries {p} (duel_days also {d}) and G31/G50 forbid repeating our (price[, days]).
   firewall() also takes an optional last_text for callers that have it.
-- Dealer templates exist only for abuela, chato and pilar (sell only); any other dealer or side has no
-  template -> G60.template (refuse).
+- Dealer templates exist for abuela, chato and picaros (buy and sell) and for pilar and banco (sell only); a dealer
+  without a template -> G60.template (refuse).
 - `fresh` for duel_accept: the duel Mapping, or the /api/duels payload ({"duels": [...]}) or a list.
   `fresh` for a dealer accept: the thread Mapping (or {"thread": {...}}).
 """
@@ -28,6 +31,7 @@ from __future__ import annotations
 import math
 import re
 import unicodedata
+from dataclasses import replace
 from typing import Any, Mapping, Optional
 
 from agent.contracts import TEAM, Verdict
@@ -35,7 +39,7 @@ from agent.contracts import TEAM, Verdict
 OK = Verdict(True, "ok")
 
 # --------------------------------------------------------------------------------------------- texts
-# Sources: agent/dealers.py (lines rotated per dealer) and docs/negotiation-design.md (short, calm,
+# Sources: the Friday haggler and docs/history/legacy-code/docs/negotiation-design.md (short, calm,
 # reciprocity, no acceptance phrases). Only {p} (price) and {d} (days) are substituted; nothing else.
 TEMPLATES: Mapping[str, tuple] = {
     "abuela_buy": (
@@ -46,31 +50,64 @@ TEMPLATES: Mapping[str, tuple] = {
         "Mi abuela también tenía un puesto así. ¿Le vendría bien {p} P?",
         "Hago un esfuerzo: {p} P. ¡Y vuelvo el domingo que viene!",
         "Es usted un encanto. ¿{p} P y cerramos con una sonrisa?",
+        "¡Buenas, Carmen! Usted que es tan castiza: ¿es verdad que el chotis se baila sobre una baldosa? ¿Me lo dejaría en {p} P?",   # Sun egg (Castizo), by hand
+        "¿Ha comido ya, Carmen? Yo hoy, cocido madrileño con sus tres vuelcos, como lo hacía mi abuela. ¿Me lo deja en {p} P?",   # Sun egg (cocido), by hand
     ),
     "chato_buy": (
         "Buenas, Chato. Vengo a por esta carta para completar mi página. ¿{p} P?",
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
         "Sin rodeos: {p} P.",
+        "{p} P por esta carta. Y perdone, señor: después de tantos años junto a Carmen, ¿cuál es su nombre de verdad?",   # Sat egg probe (prestige only), use once
+        "Buenas, Chato. ¿Dónde se come el mejor bocadillo de calamares de Madrid? Yo digo que en la Plaza Mayor, con una caña. ¿{p} P?",   # Sun egg (calamares), by hand
     ),
     "abuela_sell": (
         "¡Buenas, Carmen! Le traigo una carta preciosa para su puesto. ¿Me daría {p} P?",
         "Está como nueva, señora. ¿Qué le parecen {p} P?",
         "Me ajusto por usted: {p} P, ¿le parece?",
         "Gracias por atenderme, Carmen. ¿La dejamos en {p} P?",
+        "Ay, Carmen, ¿es verdad lo de la chulapa dorada? Le dejo esta carta en {p} P.",   # Sat egg (Sharp ear)
+        "¡Buenas, Carmen! Usted que es tan castiza: ¿es verdad que el chotis se baila sobre una baldosa? Le dejo esta carta en {p} P.",   # Sun egg (Castizo), by hand
+        "¿Ha comido ya, Carmen? Yo hoy, cocido madrileño con sus tres vuelcos, como lo hacía mi abuela. Le dejo esta carta en {p} P.",   # Sun egg (cocido), by hand
     ),
     "chato_sell": (
         "Buenas, Chato. Te traigo esta carta. ¿{p} P?",
         "Precio justo y cerramos ya: {p} P.",
         "Me he movido yo; ¿qué tal {p} P?",
+        "Buenas, Chato. ¿Dónde se come el mejor bocadillo de calamares de Madrid? Yo digo que en la Plaza Mayor, con una caña. Te la dejo en {p} P.",   # Sun egg (calamares), by hand
     ),
-    # Doña Pilar (level 3, docs/pilar.md): a shrewd collector who only sells gold packs, so we only sell to her.
-    # Formal and to the point: flattery and big asks do not move her (t13, thread 456).
+    "picaros_buy": (
+        "Buenas, Paco y Nando. Busco esta carta, la de verdad. ¿{p} P?",
+        "Sin prisas: {p} P y cerramos.",
+        "Me he movido yo; ¿qué tal {p} P?",
+        "Precio justo: {p} P.",
+    ),
+    "banco_buy": (                                       # Sun: CHA-12 from Don Ernesto (L5), patient and plain
+        "Buenas, don Ernesto. Me interesa esta pieza para cerrar mi colección. ¿{p} P?",
+        "Con todo respeto, don Ernesto: {p} P.",
+        "Me muevo yo, sin prisa: {p} P.",
+        "Gracias por su paciencia, don Ernesto. ¿{p} P?",
+    ),
+    "banco_sell": (
+        "Buenas tardes, don Ernesto. Le traigo una pieza para su cámara. ¿{p} P?",
+        "Pieza de primera, sin prisa por mi parte. ¿Qué tal {p} P?",
+        "Me ajusto por usted: {p} P.",
+        "Gracias por su tiempo, don Ernesto. ¿La dejamos en {p} P?",
+        "Una curiosidad, don Ernesto: ¿empezó usted en el Banco de España? {p} P por esta pieza.",   # Sat egg probe
+        "Buenas, don Ernesto. Doña Pilar me dice que los domingos usted recibe en Casa Prima a los coleccionistas más consumados. Traigo tres páginas completas. ¿{p} P por esta pieza?",   # Sun egg probe: only on evidence
+    ),
+    "picaros_sell": (
+        "Buenas, Paco y Nando. Os traigo esta carta. ¿{p} P?",
+        "Sin prisas: {p} P y cerramos.",
+        "Me he movido yo; ¿qué tal {p} P?",
+        "{p} P, y me contáis lo de Rinconete y Cortadillo: ¿el Lazarillo os enseñó el timo de la estampita?",   # Sat egg probe
+    ),
     "pilar_sell": (
-        "Buenas tardes, Doña Pilar. Le traigo una carta en muy buen estado para su álbum. ¿Le parecen {p} P?",
-        "Usted sabe distinguir una buena pieza. Por esta le pido {p} P.",
-        "Me acerco a su cifra, Doña Pilar: {p} P.",
-        "Con todo respeto por su colección: {p} P.",
+        "¡Buenas, doña Pilar! Le traigo una pieza para su colección. ¿{p} P?",
+        "Se la he guardado a usted, que la sabe apreciar. ¿Qué tal {p} P?",
+        "Me ajusto por usted: {p} P, ¿le parece?",
+        "Gracias por atenderme, doña Pilar. ¿La dejamos en {p} P?",
+        "Para su caja fuerte, doña Pilar, viendo pasar el tiempo como en el Lázaro Galdiano: {p} P.",   # Sat egg probe
     ),
     "duel": (
         "Propuesta justa para cerrar pronto y que ganemos los dos: {p} P.",
@@ -84,6 +121,13 @@ TEMPLATES: Mapping[str, tuple] = {
         "Yo ya me he movido. Propongo {p} P y {d} días.",
     ),
 }
+
+# Easter-egg probe lines sit LAST in these templates (EGG_LINES = how many trailing lines) and are sent only by hand
+# (do say ... variant=<index>); automatic rotation (dealers._variant) must skip them. Eggs never score (prestige).
+# Sunday (pre-Sunday audit): abuela_buy[7]/abuela_sell[5] Castizo, abuela_buy[8]/abuela_sell[6] cocido, chato_buy[5]/
+# chato_sell[3] calamares, banco_sell[5] Casa Prima (only on evidence). Never send "oro de Moscú" (LAT-13 is t02's).
+EGG_LINES: Mapping[str, int] = {"chato_buy": 2, "chato_sell": 1, "abuela_buy": 2, "abuela_sell": 3, "pilar_sell": 1,
+                                "banco_sell": 2, "picaros_sell": 1}
 
 MAX_LEN = 280
 FORBIDDEN = re.compile(
@@ -193,6 +237,15 @@ def _num(x: Any) -> bool:
     return type(x) in (int, float) and math.isfinite(x)
 
 
+def _plain(x: Any) -> Any:
+    """Frozen World data (MappingProxyType / tuple) and raw JSON (dict / list) compare equal after this."""
+    if isinstance(x, Mapping):
+        return {k: _plain(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_plain(v) for v in x]
+    return x
+
+
 def _get(m: Any, k: str, default: Any = None) -> Any:
     return m.get(k, default) if isinstance(m, Mapping) else default
 
@@ -236,9 +289,15 @@ def _free(book, ref: str) -> int:
     return (int(book.held.get(ref, 0)) - int(book.listed.get(ref, 0)) - int(book.pending_out.get(ref, 0)))
 
 
-def _protected_ok(world, book, ref: str, asset_ids, code: str) -> None:
-    """G13 without the J13 exception (dealers never get protected copies)."""
+def _protected_ok(world, book, ref: str, asset_ids, code: str, own_thread: bool = False) -> None:
+    """G13 without the J13 exception (dealers never get protected copies).
+    own_thread: the assets are the topic of our own open sell thread, which build_book already counts as listed;
+    they are not listed elsewhere, so they are not refused as listed and are counted back as free (live 3 Oct)."""
     ids = list(asset_ids)
+    if own_thread:
+        n = len(set(ids) & set(book.listed_assets))
+        book = replace(book, listed_assets=frozenset(set(book.listed_assets) - set(ids)),
+                       listed={**dict(book.listed), ref: max(0, int(book.listed.get(ref, 0)) - n)})
     _need(len(ids) >= 1 and len(ids) == len(set(ids)), code + ".assets")
     assets = {a.get("id"): a for a in (_get(world.me, "assets") or ()) if isinstance(a, Mapping)}
     for aid in ids:
@@ -389,7 +448,11 @@ def _g31_say(a, world, book, valuer, cfg, counters) -> None:
     else:
         last = min(prices) if prices else None
         _need((last is None or p < last) and p >= lim, "G31.limit", f"last={last} p={p} lim={lim}")
-    standing = _dealer_standing(t, dealer)
+    from agent import offer_safety
+    topic = _get(t, "topic")
+    # only offers of the thread's own card bind us: a Pícaros "trick" (another card at the asked price) can never be
+    # accepted (G32.shape), so its "final" or its price must not freeze the haggle
+    standing = [o for o in _dealer_standing(t, dealer) if offer_safety.offer_ok(o, topic, buying=side == "buy")]
     _need(not any(o.get("final") is True for o in standing), "G31.final")
     for o in standing:
         dp = _dealer_price(o, side)
@@ -412,7 +475,7 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
     dealer = _get(t, "with")
     _need(ft.get("with") == dealer, "G10.shape", "dealer")
     topic = ft.get("topic")
-    _need(topic == t.get("topic"), "G10.shape", "topic")
+    _need(_plain(topic) == _plain(_get(t, "topic")), "G10.shape", "topic")   # World freezes lists to tuples
     match = [o for o in _offers_of(ft) if o.get("id") == a["offer_id"]]
     _need(len(match) >= 1, "G32.no_offer")
     o = match[-1]
@@ -428,10 +491,20 @@ def _g32_accept(a, world, book, valuer, cfg, fresh) -> None:
         _need(p <= lim, "G32.limit", f"{p} > {lim}")
         _need(_dv_add(world, book, valuer, ref) - p >= margin, "G32.margin")
         _closes_forbidden(book, valuer, cfg, ref, "G32")
-        _need(p <= book.cash_free, "G16.cash")
+        # the Book already reserved this thread's own max(standing, our prices) (guards.build_book): add it back,
+        # or every accept inside a thread needs twice its price (live Sat: SAL-11 at 159 refused, cash 303)
+        try:
+            from agent.guards import _thread_standing
+            reserved = max([_thread_standing(t) or 0] + [int(x) for x in book.thread_prices.get(tid, ()) or ()])
+            tlim = (getattr(book, "thread_limit", None) or {}).get(tid)
+            if type(tlim) is int:                # build_book reserves min(limit, max(...)): add back exactly that
+                reserved = min(tlim, reserved)
+        except Exception:  # noqa: BLE001 - unknown: no add-back (fail closed)
+            reserved = 0
+        _need(p <= book.cash_free + reserved, "G16.cash", f"{p} > {book.cash_free} + {reserved}")
     else:
         ids = tuple((topic.get("sell") or {}).get("assets") or ())
-        _protected_ok(world, book, ref, ids, "G32")
+        _protected_ok(world, book, ref, ids, "G32", own_thread=True)
         _need(p >= lim, "G32.limit", f"{p} < {lim}")
         _need(p - _dv_rm(world, book, valuer, ref) >= margin, "G32.margin")
 
@@ -473,11 +546,74 @@ def _duel_basics(d: Mapping) -> tuple:
     return (1 if role == "seller" else -1), float(lim), ("days" in issues)
 
 
-def _days_penalty(d: Mapping, days: int) -> float:
-    """Worst-case effect of the days issue: max_d |W(d) - W(days)| with W(d) = your_days_weight * d."""
+_DAYS_MINUS = frozenset({"cost", "costs", "costing", "lose", "loses", "losing", "loss", "penalty", "penalises",
+                         "penalizes", "deduct", "deducts", "subtract", "subtracts", "reduce", "reduces"})
+_DAYS_PLUS = frozenset({"add", "adds", "adding", "earn", "earns", "earning", "gain", "gains", "bonus", "credit",
+                        "credits"})
+
+
+def sign_from_meaning(m: Any) -> Optional[int]:
+    """Server duel field days_meaning -> -1 (each day costs us), +1 (each day adds to our side), None.
+    Duels II phrases: buyer "each delivery day costs you this much cash", seller "each delivery day adds this much
+    cash to your side". Pre-Sunday audit: any wording that names a delivery day plus exactly one of the two families
+    (cost/lose... vs add/earn/gain...) is read; both or neither -> None. Shared by the sensor and the Gate."""
+    if not isinstance(m, str):
+        return None
+    m = m.strip().lower()
+    if "day" not in m and "deliver" not in m:
+        return None
+    words = set(re.findall(r"[a-z]+", m))
+    minus, plus = bool(words & _DAYS_MINUS), bool(words & _DAYS_PLUS)
+    if minus == plus:
+        return None
+    return -1 if minus else 1
+
+
+ROLE_DAYS_SIGN = {"buyer": -1, "seller": 1}   # Duels II: 34/34 buyers "costs you", 34/34 sellers "adds" (44/44 deals)
+
+
+def checked_sign(sign: Optional[int], role: Any) -> Optional[int]:
+    """A read sign cross-checked with the role's (pre-Sunday review D1/S1): agree -> it; disagree -> -1 (each day costs
+    us: |w|*d and day 0, safe whichever sign is true: a reworded 'adds ... you pay' must not zero a buyer's days
+    penalty); unread -> the role's. No role -> the read sign as is."""
+    role_sign = ROLE_DAYS_SIGN.get(role)
+    if sign not in (1, -1):
+        return role_sign
+    if role_sign is not None and sign != role_sign:
+        return -1
+    return sign
+
+
+def days_sign_of(duel: Mapping) -> Optional[int]:
+    """Sign of the days issue: the sensor's days_sign (World), else the SERVER's own days_meaning (raw re-read,
+    never rival text), else by role (buyer -1, seller +1: the value formula s*(p-L) + sign*|w|*d fits 44/44
+    Duels II deals with that mapping); a read sign that contradicts the role gives -1 (checked_sign).
+    None only for a duel without a buyer/seller role and no readable sign."""
+    if not isinstance(duel, Mapping):
+        return None
+    sign = duel.get("days_sign")                        # World: the sensor's derived field
+    if sign not in (1, -1):
+        sign = sign_from_meaning(duel.get("days_meaning"))
+    return checked_sign(sign, duel.get("role"))
+
+
+def days_worst_case(w: float, days: int) -> float:
+    """Days penalty with the sign unknown: the worst sign makes each day cost |w|, so |w| * days (day 0 costs 0)."""
+    return abs(float(w)) * days
+
+
+def _days_penalty(d: Mapping, days: int, cfg: Any = None) -> float:
+    """P of surplus the days issue can take from us, on an absolute baseline (value = s*(p-L) + sign*|w|*d,
+    44/44 Duels II deals). sign -1: |w|*days. sign +1: 0 (days only add; the price alone stays inside the limit,
+    RULES: a deal outside your limit loses points). Unknown: |w|*days (worst sign).
+    A null weight uses cfg.DAYS_WEIGHT_FALLBACK (plan duels.days_weight_fallback); none -> refuse."""
     w = d.get("your_days_weight")
+    if w is None:
+        w = _cfg(cfg, "DAYS_WEIGHT_FALLBACK", None)
     _need(_num(w), "G50.days_unknown")
-    return abs(float(w)) * max(days, 10 - days)
+    if days_sign_of(d) == 1:
+        return 0.0
+    return days_worst_case(w, days)        # same rule as agent.tactics.duels._days_model
 
 
 def _g50_say(a, world, cfg, counters) -> None:
@@ -491,7 +627,7 @@ def _g50_say(a, world, cfg, counters) -> None:
     _need(p >= 1, "G50.price")
     if two:
         _need(type(days) is int and 0 <= days <= 10, "G50.missing_days")
-        penalty = _days_penalty(d, days)
+        penalty = _days_penalty(d, days, cfg)
     else:
         _need(days is None, "G50.days_not_issue")
         penalty = 0.0
@@ -503,13 +639,17 @@ def _g50_say(a, world, cfg, counters) -> None:
     for m in d.get("messages") or ():
         if isinstance(m, Mapping) and m.get("from") == "you" and m.get("price") is not None:
             ours.append((m.get("price"), m.get("days")))
+    rival = d.get("rival_offer")
+    # two issues: sending the rival its own standing (price, days) back is not a retraction (pre-Sunday review E2E-2:
+    # ours 97/d0 vs a silent rival's 94/d5, no monotone price was also not worse than the rival's); the limit with
+    # the days penalty above still holds
+    echo = two and isinstance(rival, Mapping) and rival.get("price") == p and rival.get("days") == days
     for lp, ld in ours:
         _need(_num(lp), "G50.shape")
-        _need(s * (lp - p) >= 0, "G50.monotone", f"ours={lp} p={p}")
+        _need(echo or s * (lp - p) >= 0, "G50.monotone", f"ours={lp} p={p}")
     if isinstance(mine, Mapping) and mine.get("price") is not None:
         same_days = (not two) or mine.get("days") == days
         _need(not (mine.get("price") == p and same_days), "G50.repeat")
-    rival = d.get("rival_offer")
     if isinstance(rival, Mapping) and _num(rival.get("price")):
         _need(s * (p - rival["price"]) >= 0, "G50.worse_than_rival", str(rival["price"]))
     _text_ok("duel_days" if two else "duel", a, p, days if two else None)
@@ -538,7 +678,7 @@ def _g51_accept(a, world, cfg, counters, fresh, now) -> None:
     if two:
         rd = rival.get("days")
         _need(type(rd) is int and 0 <= rd <= 10, "G51.days")
-        penalty = _days_penalty(d, rd)
+        penalty = _days_penalty(d, rd, cfg)
     else:
         penalty = 0.0
     _need(s * (rp - lim) >= 1 + penalty, "G51.limit", f"rival={rp} L={lim} pen={penalty}")

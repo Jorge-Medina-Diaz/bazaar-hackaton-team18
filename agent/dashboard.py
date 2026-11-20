@@ -1,7 +1,7 @@
 """Dashboard data: one snapshot of us (/api/me) plus everything public about the other teams.
 
 snapshot(b, state) only does GETs (me, clock, catalog, leaderboard, feed, El Rastro board, /api/me/value): no writes,
-no admin routes. New feed events are appended to logs/feed.jsonl (same format as scout.py --save), so what we know
+no admin routes. New feed events are appended to logs/feed.jsonl (same format as affinity.py / afinidad_propia.py read), so what we know
 about rivals grows past the feed's 500-event window.
 
 Rivals' cash and holdings are private (/api/cards/{id} shows their owner as "a team"). intel() works only from
@@ -10,7 +10,7 @@ public evidence: settlements in the feed (who received which card, who paid what
 page(data) fills agent/dashboard.html; data=None gives the live page that polls data.json.
 
 M1 (K-13, INV-18): /api/me is redacted (agent.redact) before it is used or served, and the error text is too.
-NOTES (M1): LOG_DIR is read here from BAZAAR_LOGS instead of importing the old agent.journal (M2 rewrites it).
+LOG_DIR comes from BAZAAR_LOGS (default logs/), so the dashboard never imports the runner's journal.
 """
 import collections, json, os, time  # noqa: E401
 

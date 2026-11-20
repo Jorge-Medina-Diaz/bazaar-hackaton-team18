@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gran Final · en vivo</title>
+<style>
+:root{--bg:#0b0f1a;--card:#141a2a;--ink:#eef2ff;--mut:#9aa6c8;--line:#252d45;--gold:#f5c542;--grn:#3fd17a;--red:#ff5c5c;--blu:#5b8cff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#2a1f55 0%,var(--bg) 60%);color:var(--ink);font:14px/1.45 -apple-system,system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:1150px;margin:0 auto;padding:16px}a{color:var(--blu)}.mut{color:var(--mut)}
+.hero{text-align:center;padding:10px 0 4px}
+.hero h1{margin:0;font:900 34px system-ui;letter-spacing:.02em;background:linear-gradient(90deg,#ffd76a,#ff8a5c,#ffd76a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.live{display:inline-flex;align-items:center;gap:6px;font:800 11px system-ui;letter-spacing:.12em;color:var(--red);background:rgba(255,92,92,.14);padding:4px 10px;border-radius:999px;margin-top:6px}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:p 1.4s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(255,92,92,.7)}70%{box-shadow:0 0 0 8px rgba(255,92,92,0)}100%{box-shadow:0 0 0 0 rgba(255,92,92,0)}}
+.arena{display:flex;justify-content:center;margin:6px 0 2px}.arena svg{width:300px;height:120px}
+.fL{animation:lunge 1.1s ease-in-out infinite alternate;transform-origin:70px 90px}.fR{animation:lunge2 1.1s ease-in-out infinite alternate;transform-origin:230px 90px}
+@keyframes lunge{to{transform:translateX(16px) rotate(4deg)}}@keyframes lunge2{to{transform:translateX(-16px) rotate(-4deg)}}
+.spark{animation:spark 1.1s steps(1) infinite}@keyframes spark{0%{opacity:0}50%{opacity:1}}
+.prog{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0}
+.pbar{height:16px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:8px}.pbar i{display:block;height:100%;background:linear-gradient(90deg,#ffd76a,#ff8a5c);transition:width .6s}
+.row{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+.k{font:700 11px system-ui;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.big{font:900 46px system-ui;line-height:1}.ok{color:var(--grn)}.ko{color:var(--red)}
+.tug{display:flex;height:14px;border-radius:8px;overflow:hidden;margin-top:10px}.tug .a{background:var(--grn);transition:width .6s}.tug .b{background:var(--red);flex:1}
+.bars{display:flex;align-items:flex-end;gap:4px;height:70px;margin-top:10px}.bars i{flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#ffd76a,#ff8a5c);min-height:2px}
+.tick{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:330px;overflow:hidden}
+.ch{display:flex;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13px}
+.ch.deal{border-left:4px solid var(--grn)}.ch.no_deal{border-left:4px solid var(--red)}
+.ch.new{animation:drop .6s ease-out}@keyframes drop{from{transform:translateY(-12px);opacity:0;background:rgba(245,197,66,.25)}to{transform:none;opacity:1}}
+.us{display:flex;align-items:center;gap:14px}.rk{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font:900 24px system-ui;background:#1f5fbf;color:#fff}
+.tb{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}.tb td{padding:5px 4px;border-bottom:1px solid var(--line)}.tb tr.me td{color:#9fc0ff;font-weight:800}
+.it{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)}
+@media (max-width:760px){.grid,.grid3{grid-template-columns:1fr}.hero h1{font-size:26px}}
+</style></head><body><div class="wrap">
+<div class="row"><a href="/">← tablero</a><span class="mut" id="clk"></span></div>
+<div class="hero"><h1>⚔️ LA GRAN FINAL ⚔️</h1><div class="live" id="live"><i></i>EN VIVO</div></div>
+<div class="arena"><svg viewBox="0 0 300 120">
+ <g class="fL"><circle cx="60" cy="38" r="13" fill="#5b8cff"/><rect x="50" y="52" width="20" height="36" rx="8" fill="#5b8cff"/><line x1="68" y1="62" x2="128" y2="50" stroke="#dfe6ff" stroke-width="4" stroke-linecap="round"/>
+  <rect x="50" y="86" width="7" height="22" rx="3" fill="#3b5fbf"/><rect x="63" y="86" width="7" height="22" rx="3" fill="#3b5fbf"/><text x="60" y="43" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" font-family="system-ui">18</text></g>
+ <g class="fR"><circle cx="240" cy="38" r="13" fill="#ff7a5c"/><rect x="230" y="52" width="20" height="36" rx="8" fill="#ff7a5c"/><line x1="232" y1="62" x2="172" y2="50" stroke="#ffe3dc" stroke-width="4" stroke-linecap="round"/>
+  <rect x="230" y="86" width="7" height="22" rx="3" fill="#bf4a3b"/><rect x="243" y="86" width="7" height="22" rx="3" fill="#bf4a3b"/><text x="240" y="43" text-anchor="middle" font-size="12" font-weight="900" fill="#fff" font-family="system-ui">?</text></g>
+ <g class="spark"><path d="M150 40 l6 10 l10 -4 l-6 10 l8 6 l-12 0 l-2 10 l-6 -10 l-10 4 l6 -10 l-8 -6 l12 0z" fill="#ffd76a"/></g>
+</svg></div>
+<div class="prog"><div class="row"><span class="k" id="nm">Duelos de la final</span><span><b id="pc">—</b> <span class="mut" id="left"></span></span></div><div class="pbar"><i id="pb" style="width:0"></i></div></div>
+<div class="grid">
+ <div class="card"><div class="k">🤝 Con acuerdo</div><div class="big ok" id="ok">—</div><div class="tug"><div class="a" id="tug" style="width:50%"></div><div class="b"></div></div><div class="mut" id="rate" style="margin-top:6px;font-size:12px"></div></div>
+ <div class="card"><div class="k">💥 Sin acuerdo</div><div class="big ko" id="ko">—</div><div class="k" style="margin-top:12px">Ritmo (duelos cerrados por minuto)</div><div class="bars" id="bars"></div></div>
+</div>
+<div class="grid3">
+ <div class="card"><div class="k">Teletipo: últimos duelos cerrados</div><div class="tick" id="tk"></div></div>
+ <div>
+  <div class="card"><div class="k">Nosotros ahora</div><div class="us" style="margin-top:8px"><div class="rk" id="rk">—</div><div><div style="font:900 26px system-ui" id="sc">—</div><div class="mut" style="font-size:12px">puntos · t18</div></div></div><table class="tb" id="top"></table></div>
+  <div class="card" style="margin-top:12px"><div class="k">Lo que más se negocia</div><div id="items" style="margin-top:6px"></div></div>
+ </div>
+</div>
+<p class="mut" style="font-size:12px;margin-top:12px">Del flujo público en tiempo real. El público solo ve el resultado de cada duelo (con o sin acuerdo y la carta), no quién juega: nuestros duelos los ve el bot. Puntos de la clasificación pública, que se refresca cada pocos minutos. Se congela a las 15:00.</p>
+</div>
+<script>
+var seen=new Set(),first=true;function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+async function go(){try{var r=await fetch('duelos.json?'+Date.now(),{cache:'no-store'});if(!r.ok)return;var d=await r.json()}catch(e){return}
+ document.getElementById('clk').textContent='actualizado '+d.now+(d.tick?' · tick '+d.tick:'');
+ document.getElementById('nm').textContent=(d.name||'Duelos')+(d.finished?' · TERMINADO':'');
+ var tot=d.total||Math.max(d.closed,1),pc=Math.min(100,d.closed/tot*100);
+ document.getElementById('pc').textContent=d.closed+' / '+tot;document.getElementById('left').textContent='· quedan '+Math.max(0,tot-d.closed);
+ document.getElementById('pb').style.width=pc.toFixed(1)+'%';
+ document.getElementById('live').style.display=d.finished?'none':'inline-flex';
+ document.getElementById('ok').textContent=d.deals;document.getElementById('ko').textContent=d.nodeals;
+ var rt=d.closed?d.deals/d.closed*100:50;document.getElementById('tug').style.width=rt.toFixed(1)+'%';
+ document.getElementById('rate').textContent=rt.toFixed(0)+' % de los duelos cierran con acuerdo';
+ var mx=Math.max(1,Math.max.apply(null,d.per_min));document.getElementById('bars').innerHTML=d.per_min.map(function(v){return '<i title="'+v+'" style="height:'+(v/mx*100)+'%"></i>'}).join('');
+ document.getElementById('tk').innerHTML=d.ticker.map(function(x,i){var key=x.item+'|'+x.status+'|'+i;var nw=!first&&i<2;return '<div class="ch '+x.status+(nw?' new':'')+'">'+(x.status==='deal'?'🤝':'💥')+' <b>'+esc(x.item)+'</b><span class="mut" style="margin-left:auto">'+(x.status==='deal'?'acuerdo':'sin acuerdo')+'</span></div>'}).join('');
+ document.getElementById('items').innerHTML=d.top_items.map(function(x){return '<div class="it"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>'}).join('');
+ if(d.board){document.getElementById('rk').textContent=d.board.us.rank+'º';document.getElementById('sc').textContent=d.board.us.score.toFixed(2).replace('.',',');
+  document.getElementById('top').innerHTML=d.board.top.map(function(t){return '<tr class="'+(t.team==='t18'?'me':'')+'"><td>'+t.rank+'º</td><td>'+t.team+'</td><td style="text-align:right">'+t.score.toFixed(2).replace('.',',')+'</td></tr>'}).join('')}
+ first=false}
+go();setInterval(go,2000);
+</script></body></html>

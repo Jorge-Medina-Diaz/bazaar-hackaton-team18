@@ -114,7 +114,22 @@ class TestOrders(Base):
         names = self.inbox()
         self.assertEqual(len(names), 1)
         self.assertTrue(names[0].endswith("-do.json"))
+        self.assertIs(json.loads((self.paths.inbox / names[0]).read_text(encoding="utf-8"))["live"], False)
         self.assertFalse(self.paths.journal.exists())
+
+    def test_do_without_live_refused_next_to_a_live_runner(self):
+        # a dry `do` used to reach a live runner as a real order; now it is refused, and --live says so in the order
+        with NoNetwork(), mock.patch.object(sys, "argv", ["bazaar.py", "run", "--live"]), writer_lock(self.paths):
+            rc, out = cli("--root", str(self.root), "do", "cancel", "--args", '{"offer_id": 5, "ref": null}',
+                          "--why", "x")
+            self.assertEqual(rc, 1, out)
+            self.assertIn("--live", out)
+            self.assertEqual(self.inbox(), [])
+            rc, out = cli("--root", str(self.root), "do", "cancel", "--args", '{"offer_id": 5, "ref": null}',
+                          "--why", "x", "--live")
+            self.assertEqual(rc, 0, out)
+        order = json.loads(next(self.paths.inbox.glob("*.json")).read_text(encoding="utf-8"))
+        self.assertIs(order["live"], True)
 
     def test_stop_flatten_with_runner_leaves_order(self):
         with writer_lock(self.paths):
@@ -159,6 +174,20 @@ class TestStopResumeStatus(Base):
             rc, out = cli("--root", str(self.root), "status")
         self.assertIn("STOP     STOP", out)
 
+
+    def test_status_flags_a_stale_runner(self):
+        import time as _t
+        from agent.journal import Journal
+        with writer_lock(self.paths):
+            j = Journal(self.paths.journal, mode="dry", writer=True, clock=lambda: _t.time() - 600)
+            j.write("tick", tick=7, cash=1, cash_free=1, reading="N", down=[])
+            with NoNetwork():
+                rc, out = cli("--root", str(self.root), "status")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("STALE?", out)
+        with NoNetwork():
+            rc, out = cli("--root", str(self.root), "status")
+        self.assertNotIn("STALE?", out)                       # no runner: an old row is not news
 
 class TestRunAndSelftest(Base):
     def test_two_runs_second_exits_3(self):
@@ -213,24 +242,25 @@ class TestRunAndSelftest(Base):
 
     def test_clockcheck_against_fake(self):
         from sim.world import FakeGame
-        from agent import transport
         g = FakeGame(seed=1)
         buf = io.StringIO()
-        # Runner tests use an epoch-based fake clock; clockcheck uses monotonic.
-        # Isolate the process-wide limiter so stage order cannot cause a huge sleep.
-        previous = transport._PUBLIC_LAST[0]
-        with redirect_stdout(buf), mock.patch.object(transport, '_PUBLIC_LAST', [float('-inf')]):
+        with redirect_stdout(buf):
             rc = bazaar.cmd_clockcheck("http://127.0.0.1:9", http=g.http)
-        self.assertEqual(transport._PUBLIC_LAST[0], previous)
         self.assertEqual(rc, 0, buf.getvalue())
         self.assertIn("reading", buf.getvalue())
 
-    def test_replay_not_built_is_red(self):
-        if (REPO / "tests" / "test_replay_friday.py").exists():
-            self.skipTest("replay built")
-        with redirect_stdout(io.StringIO()):
-            self.assertEqual(cli("--root", str(self.root), "replay-friday")[0], 1)
+    def test_clockcheck_day_lines_and_scenario(self):
+        from datetime import datetime
+        now = datetime.fromisoformat("2026-10-04T09:00:00+02:00").timestamp()
+        stalls = [{"at_hours": 18.367, "action": "persona", "params": {"id": p, "enabled": False}}
+                  for p in ("abuela", "chato", "pilar")]
+        clock = {"t_hours": 13.367, "round": 3, "doors": "open", "paused": False, "today": "sun",
+                 "closes": "2026-10-04T15:00:00+02:00"}
+        lines = bazaar.day_lines(clock, {"upcoming": stalls}, "N", now)
+        self.assertIn("day_end 18.284", lines[1])
+        self.assertIn("endgame 18.784", lines[1])
+        self.assertTrue(lines[2].startswith("scenario C"))
+        self.assertTrue(bazaar.scenario_hint(dict(clock, t_hours=16.65), 21.65).startswith("B"))
+        self.assertTrue(bazaar.scenario_hint(dict(clock, round=2), 21.65).startswith("A"))
+        self.assertIn("doors not open", bazaar.scenario_hint(dict(clock, doors="closed"), None))
 
-
-if __name__ == "__main__":
-    unittest.main()

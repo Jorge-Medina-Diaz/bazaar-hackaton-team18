@@ -1,6 +1,6 @@
 """M6a sim-core: FakeGame, a deterministic fake of The Bazaar with a virtual clock and its own scoring oracle.
 
-NOTES (M6a, night build)
+Design notes
 - Fidelity list (docs/harness-spec.md §9) implemented: pseudonymous makers on boards, /api/me/offers shows "t18" and
   includes offers addressed to us and "queued" ones, duel accept without body takes the standing rival offer at POST
   time, clock.limits with the real LIMIT_KEYS, dealer offers with venue null / to team / expires created+2,
@@ -27,7 +27,7 @@ import re
 import urllib.parse
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 TEAM = "t18"
 DEALERS = ("abuela", "chato")
@@ -74,12 +74,21 @@ class Model:
         self.page_bonus = float(vals.get("page_bonus", 0.25))
         self.packs = {p["id"]: p for p in catalog.get("packs", [])}
         self.pages = {s["id"]: [c["id"] for c in s["cards"] if c.get("page", True)] for s in catalog["sets"]}
+        # master bonus (live Sat, V-13): every page card + the set's epic + legendary held -> master_bonus x their bases
+        self.master_bonus = float(vals.get("master_bonus", 0.0) or 0.0)
+        self.masters = {}
+        for s in catalog["sets"]:
+            top = [c["id"] for c in s["cards"] if not c.get("page", True) and c.get("rarity") in ("epic", "legendary")]
+            if self.pages[s["id"]] and any(self.cards[r]["rarity"] == "epic" for r in top)                     and any(self.cards[r]["rarity"] == "legendary" for r in top):
+                self.masters[s["id"]] = self.pages[s["id"]] + top
         self.released = [s["id"] for s in catalog["sets"] if s.get("released")]
 
     def mg(self, k: int) -> float:
         return self.marg[k] if k < len(self.marg) else self.marg[-1]
 
     def base(self, ref: str, aff: Mapping[str, float]) -> float:
+        if self.cards[ref].get("hidden") is True:      # live Sat: value?card LAT-13 (hidden, prestige only) = 0
+            return 0.0
         return self.cards[ref]["book"] * float(aff.get(ref[:3], 1.0))
 
     def total(self, counts: Mapping[str, int], aff: Mapping[str, float]) -> float:
@@ -91,6 +100,9 @@ class Model:
         for s, refs in self.pages.items():
             if refs and all(counts.get(r, 0) > 0 for r in refs):
                 v += self.page_bonus * sum(self.base(r, aff) for r in refs)
+        for s, refs in self.masters.items():
+            if self.master_bonus and all(counts.get(r, 0) > 0 for r in refs):
+                v += self.master_bonus * sum(self.base(r, aff) for r in refs)
         return v
 
     def slot_cards(self, rarity: str) -> list:
@@ -274,12 +286,6 @@ class FakeGame:
             self.mint_pack(p, tid, why="starting grant")
         self.ledger.setdefault(tid, [])
         return t
-
-    def key_for(self, team: str) -> str:
-        for k, v in self.keys.items():
-            if v == team:
-                return k
-        raise KeyError(team)
 
     def _add_venue(self, vid: str, name: str, *, owner: str, fee_bps: int, fee_per_card: int, house: bool = False,
                    mechanism: str = "board", status: str = "open") -> dict:

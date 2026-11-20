@@ -20,5 +20,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 
-# despliegues de Vercel (analista/)
-.vercel/
+# Claude Code worktrees (release, ...): local only
+/.claude/

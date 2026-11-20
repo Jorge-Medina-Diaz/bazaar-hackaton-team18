@@ -1,6 +1,6 @@
 """Pure checks shared by the haggler, the guards (M4a, G32) and their offline tests.
 
-Hardened in M4a (night build): any non-empty key in give/want other than cash/assets/types fails (G11 rule),
+Hardened (M4a): any non-empty key in give/want other than cash/assets/types fails (G11 rule),
 asset ids must be positive ints (bool is not int), and a non-dict side fails closed.
 """
 

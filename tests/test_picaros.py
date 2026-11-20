@@ -64,6 +64,9 @@ class TrickTests(unittest.TestCase):
         self.assertEqual(picaros.text_prices("Seventy-three pesos"), {73})
         self.assertEqual(picaros.text_prices("trece perlas, amigo"), {13})
         self.assertEqual(picaros.text_prices("Fine, 13 P. Last offer"), {13})
+        self.assertEqual(picaros.text_prices("ciento ochenta y siete primas"), {187})   # caso real, mensaje 8663
+        self.assertEqual(picaros.text_prices("one hundred and fifty-five"), {155})
+        self.assertEqual(picaros.text_prices("¡Ciento treinta y nueve! Hecho"), {139})
 
 
 class ProfileTests(unittest.TestCase):
@@ -106,11 +109,47 @@ class WatcherTests(unittest.TestCase):
             radio.step(state, {}, out=lines.append)
             radio.step(state, {}, out=lines.append)
         self.assertEqual(len(sent), 1)
-        self.assertEqual(sent[0][1]["level"], "ALTA")
-        self.assertIn("contra t18", sent[0][0][0])
+        self.assertEqual(sent[0][1]["level"], "MEDIA")          # el Gate lo bloquea: informativo, no alarma
+        self.assertIn("🃏 Truco de Los Pícaros", sent[0][0][1])
         self.assertTrue(any("CONTRA NOSOTROS" in x for x in lines))
         with open(os.path.join(d, "picaros.jsonl")) as f:
             self.assertEqual(len(f.readlines()), 2)
+
+
+class QuietPossibleTests(unittest.TestCase):
+    def test_possible_tricks_on_other_teams_are_logged_but_silent(self):
+        d, sent, lines = tempfile.mkdtemp(), [], []
+        ev = [opened(1, "t04", BUY, 1), msg(2, 1, "t04", CARD, {"cash": 80}, text="Only 60 P for you!")]
+
+        def fake_get(path, timeout=10):
+            return {"news": []} if path == "/api/news" else {"events": ev}
+        with patch.object(radio, "LOG_DIR", d), patch.object(radio, "get", fake_get), \
+                patch.object(radio, "observe", lambda: None), \
+                patch.object(radio, "notify", lambda *a, **k: sent.append(a) or True):
+            radio.step(radio.load_state(os.path.join(d, "s.json")), {}, out=lines.append)
+        self.assertEqual(sent, [])
+        self.assertTrue(any("POSIBLE" in x for x in lines))
+
+
+class ContextTests(unittest.TestCase):
+    def test_real_lat09_thread_explains_how_the_bait_is_placed(self):
+        lat = {"buy": {"card": "LAT-09"}}
+        ev = [opened(1346, "t18", lat, 1),
+              msg(2, 1346, "t18", {"cash": 0, "types": ["card:LAT-09"]}, {"cash": 73}),
+              msg(3, 1346, "t18", {"cash": 45}, {"types": ["card:LAT-09"]}, sender="t18"),
+              msg(4, 1346, "t18", {"cash": 0, "types": ["card:LAT-09"]}, {"cash": 66}),
+              msg(5, 1346, "t18", {"cash": 48}, {"types": ["card:LAT-09"]}, sender="t18"),
+              msg(6, 1346, "t18", {"cash": 0, "types": ["card:LAT-06"]}, {"cash": 62}, final=True,
+                  text="Mira, amigo, the Corrala, la de verdad, sixty-two")]
+        trick = {"thread": 1346, "message": 6, "motivo": "da LAT-06 en vez de LAT-09"}
+        cx = picaros.trick_context(ev, trick, names={"la corrala": "LAT-09", "la tabacalera": "LAT-06"})
+        self.assertEqual((cx["asked"], cx["bait"], cx["price"], cx["last_real"], cx["our_bid"], cx["final"],
+                          cx["attempts"], cx["text_names_good"]),
+                         ("LAT-09", "LAT-06", 62, 66, 48, True, 1, True))
+        line = radio.explain_trick(cx, trick)
+        self.assertEqual(line, "🃏 Pedimos LAT-09 (rara) y ofrecen LAT-06 (infrecuente) a 62 · su última oferta real "
+                               "de LAT-09 fue 66 · nuestra puja va en 48 · el texto habla de LAT-09 · lo marcan "
+                               "«final» (suele ser falso). El Gate no lo acepta.")
 
 
 if __name__ == "__main__":
